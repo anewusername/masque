@@ -16,4 +16,6 @@ Requirements:
 * svgwrite (optional, used for svg output)
 
 
+Install with pip, via git:
 
+>pip install git+https://mpxd.net/gogs/jan/masque.git --upgrade
