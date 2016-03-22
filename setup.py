@@ -9,5 +9,16 @@ setup(name='masque',
       author_email='anewusername@gmail.com',
       url='https://mpxd.net/gogs/jan/masque',
       packages=['masque'],
-     )
+      install_requires=[
+            'numpy'
+      ],
+      dependency_links=[
+
+      ],
+      extras_require={
+          'visualization': ['matplotlib'],
+          'gdsii': ['python-gdsii'],
+          'svg': ['svgwrite'],
+      },
+      )
 
