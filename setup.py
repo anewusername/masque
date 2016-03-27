@@ -12,9 +12,6 @@ setup(name='masque',
       install_requires=[
             'numpy'
       ],
-      dependency_links=[
-
-      ],
       extras_require={
           'visualization': ['matplotlib'],
           'gdsii': ['python-gdsii'],
