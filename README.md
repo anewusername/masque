@@ -17,5 +17,6 @@ Requirements:
 
 
 Install with pip, via git:
-
->pip install --upgrade git+https://mpxd.net/gogs/jan/masque.git@release
+```bash
+pip install git+https://mpxd.net/gogs/jan/masque.git@release
+```
