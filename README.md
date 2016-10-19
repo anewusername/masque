@@ -11,9 +11,10 @@ E-beam doses, and the ability to output to multiple formats.
 Requirements:
 * python 3 (written and tested with 3.5)
 * numpy
-* matplotlib (optional, used for visualization functions)
+* matplotlib (optional, used for visualization functions and text)
 * python-gdsii (optional, used for gdsii i/o)
 * svgwrite (optional, used for svg output)
+* freetype (optional, used for text)
 
 
 Install with pip, via git:

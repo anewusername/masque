@@ -16,6 +16,7 @@ setup(name='masque',
           'visualization': ['matplotlib'],
           'gdsii': ['python-gdsii'],
           'svg': ['svgwrite'],
+          'text': ['freetype-py', 'matplotlib']
       },
       )
 
