@@ -19,9 +19,9 @@ def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     :return: Mangled name.
     """
     expression = re.compile('[^A-Za-z0-9_\?\$]')
-    sanitized_name = expression.sub('_', pattern.name)
-    full_name = '{}_{}_{}'.format(sanitized_name, dose_multiplier, id(pattern))
-    return full_name
+    full_name = '{}_{}_{}'.format(pattern.name, dose_multiplier, id(pattern))
+    sanitized_name = expression.sub('_', full_name)
+    return sanitized_name
 
 
 def make_dose_table(pattern: Pattern, dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:
