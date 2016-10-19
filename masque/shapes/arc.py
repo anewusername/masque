@@ -269,5 +269,3 @@ class Arc(Shape):
         return (type(self), radii, angles, self.layer), \
                (self.offset, scale/norm_value, rotation, self.dose), \
                lambda: Arc(radii=radii*norm_value, angles=angles, layer=self.layer)
-
-
