@@ -21,3 +21,11 @@ Install with pip, via git:
 ```bash
 pip install git+https://mpxd.net/gogs/jan/masque.git@release
 ```
+
+## TODO
+* Mirroring
+* Polygon de-embedding
+### Maybe
+* Construct from bitmap
+* Boolean operations on polygons (eg. using pyclipper)
+* Output to OASIS
