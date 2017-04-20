@@ -38,7 +38,7 @@ class Arc(Shape):
 
         :return: [rx, ry]
         """
-        return self.radii
+        return self._radii
 
     @radii.setter
     def radii(self, val: vector2):
@@ -47,27 +47,27 @@ class Arc(Shape):
             raise PatternError('Radii must have length 2')
         if not val.min() >= 0:
             raise PatternError('Radii must be non-negative')
-        self.radii = val
+        self._radii = val
 
     @property
     def radius_x(self) -> float:
-        return self.radii[0]
+        return self._radii[0]
 
     @radius_x.setter
     def radius_x(self, val: float):
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
-        self.radii[0] = val
+        self._radii[0] = val
 
     @property
     def radius_y(self) -> float:
-        return self.radii[1]
+        return self._radii[1]
 
     @radius_y.setter
     def radius_y(self, val: float):
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
-        self.radii[1] = val
+        self._radii[1] = val
 
     # arc start/stop angle properties
     @property
@@ -85,11 +85,7 @@ class Arc(Shape):
         val = numpy.array(val, dtype=float).flatten()
         if not val.size == 2:
             raise PatternError('Angles must have length 2')
-        angles = val % (2 * pi)
-        if angles[0] > pi:
-            self.rotation += pi
-            angles -= pi
-        self._angles = angles
+        self._angles = val
 
     @property
     def start_angle(self) -> float:
@@ -97,7 +93,7 @@ class Arc(Shape):
 
     @start_angle.setter
     def start_angle(self, val: float):
-        self.angles[0] = val % (2 * pi)
+        self.angles = (val, self.angles[1])
 
     @property
     def stop_angle(self) -> float:
@@ -105,7 +101,7 @@ class Arc(Shape):
 
     @stop_angle.setter
     def stop_angle(self, val: float):
-        self.angles[1] = val % (2 * pi)
+        self.angles = (self.angles[0], val)
 
     # Rotation property
     @property
@@ -144,6 +140,7 @@ class Arc(Shape):
     def __init__(self,
                  radii: vector2,
                  angles: vector2,
+                 width: float,
                  rotation: float=0,
                  poly_num_points: int=DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: float=None,
@@ -155,6 +152,7 @@ class Arc(Shape):
         self.dose = dose
         self.radii = radii
         self.angles = angles
+        self.width = width
         self.rotation = rotation
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
@@ -169,30 +167,30 @@ class Arc(Shape):
             raise PatternError('Max number of points and arclength left unspecified' +
                                ' (default was also overridden)')
 
-        rxy = self.radii
-        ang = self.angles
+        r0, r1 = self.radii
+        a0, a1 = self.angles
 
         # Approximate perimeter
         # Ramanujan, S., "Modular Equations and Approximations to ,"
         #  Quart. J. Pure. Appl. Math., vol. 45 (1913-1914), pp. 350-372
-        h = ((rxy[1] - rxy[0]) / rxy.sum()) ** 2
-        ellipse_perimeter = pi * rxy.sum() * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
-        perimeter = abs(ang[0] - ang[1]) / (2 * pi) * ellipse_perimeter
+        h = ((r1 - r0) / (r1 + r0)) ** 2
+        ellipse_perimeter = pi * (r1 + r0) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
+        perimeter = abs(a0 - a1) / (2 * pi) * ellipse_perimeter         # TODO: make this more accurate
 
         n = []
         if poly_num_points is not None:
             n += [poly_num_points]
         if poly_max_arclen is not None:
             n += [perimeter / poly_max_arclen]
-        thetas = numpy.linspace(2 * pi, 0, max(n), endpoint=False)
+        thetas = numpy.linspace(a1, a0, max(n), endpoint=True)
 
         sin_th, cos_th = (numpy.sin(thetas), numpy.cos(thetas))
         wh = self.width / 2.0
 
-        xs1 = (rxy[0] + wh) * cos_th - (rxy[1] + wh) * sin_th
-        ys1 = (rxy[0] + wh) * cos_th - (rxy[1] + wh) * sin_th
-        xs2 = (rxy[0] - wh) * cos_th - (rxy[1] - wh) * sin_th
-        ys2 = (rxy[0] - wh) * cos_th - (rxy[1] - wh) * sin_th
+        xs1 = (r0 + wh) * cos_th
+        ys1 = (r1 + wh) * sin_th
+        xs2 = (r0 - wh) * cos_th
+        ys2 = (r1 - wh) * sin_th
 
         xs = numpy.hstack((xs1, xs2[::-1]))
         ys = numpy.hstack((ys1, ys2[::-1]))
@@ -266,6 +264,15 @@ class Arc(Shape):
             scale = self.radius_y
             rotation = self.rotation + pi / 2
             angles = self.angles - pi / 2
-        return (type(self), radii, angles, self.layer), \
+
+        if angles[0] >= pi:
+            angles -= pi
+            rotation += pi
+
+        angles %= 2 * pi
+        rotation %= 2 * pi
+        width = self.width
+
+        return (type(self), radii, angles, width, self.layer), \
                (self.offset, scale/norm_value, rotation, self.dose), \
-               lambda: Arc(radii=radii*norm_value, angles=angles, layer=self.layer)
+               lambda: Arc(radii=radii*norm_value, angles=angles, width=width, layer=self.layer)

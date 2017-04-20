@@ -32,7 +32,7 @@ class Ellipse(Shape):
 
         :return: [rx, ry]
         """
-        return self.radii
+        return self._radii
 
     @radii.setter
     def radii(self, val: vector2):
@@ -41,7 +41,7 @@ class Ellipse(Shape):
             raise PatternError('Radii must have length 2')
         if not val.min() >= 0:
             raise PatternError('Radii must be non-negative')
-        self.radii = val
+        self._radii = val
 
     @property
     def radius_x(self) -> float:
@@ -109,13 +109,13 @@ class Ellipse(Shape):
             raise PatternError('Number of points and arclength left unspecified'
                                ' (default was also overridden)')
 
-        rxy = self.radii
+        r0, r1 = self.radii
 
         # Approximate perimeter
         # Ramanujan, S., "Modular Equations and Approximations to ,"
         #  Quart. J. Pure. Appl. Math., vol. 45 (1913-1914), pp. 350-372
-        h = ((rxy[1] - rxy[0]) / rxy.sum()) ** 2
-        perimeter = pi * rxy.sum() * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
+        h = ((r1 - r0) / (r1 + r0)) ** 2
+        perimeter = pi * (r1 + r0) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
 
         n = []
         if poly_num_points is not None:
@@ -125,8 +125,8 @@ class Ellipse(Shape):
         thetas = numpy.linspace(2 * pi, 0, max(n), endpoint=False)
 
         sin_th, cos_th = (numpy.sin(thetas), numpy.cos(thetas))
-        xs = rxy[0] * cos_th - rxy[1] * sin_th
-        ys = rxy[0] * sin_th - rxy[1] * cos_th
+        xs = r0 * cos_th
+        ys = r1 * sin_th
         xys = numpy.vstack((xs, ys)).T
 
         poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset)
