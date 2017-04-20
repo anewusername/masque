@@ -45,9 +45,6 @@ def write_dose2dtype(pattern: Pattern,
                                 logical_unit=1,
                                 physical_unit=meters_per_unit)
 
-    # Polygonize pattern
-    pattern.polygonize()
-
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
 
