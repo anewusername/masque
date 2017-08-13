@@ -27,6 +27,9 @@ def write_dose2dtype(pattern: Pattern,
      structures, polygons as boundary elements, and subpatterns as structure
      references (sref).
 
+     For each shape,
+        layer is chosen to be equal to shape.layer if it is an int,
+            or shape.layer[0] if it is a tuple
     Note that this function modifies the Pattern.
 
     It is often a good idea to run pattern.subpatternize() prior to calling this function,
@@ -78,7 +81,11 @@ def write_dose2dtype(pattern: Pattern,
                 data_type = dose_vals_list.index(polygon.dose * pat_dose)
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
                 xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                structure.append(gdsii.elements.Boundary(layer=polygon.layer,
+                if hasattr('__len__', polygon.layer):
+                    layer = polygon.layer[0]
+                else:
+                    layer = polygon.layer
+                structure.append(gdsii.elements.Boundary(layer=layer,
                                                          data_type=data_type,
                                                          xy=xy_closed))
         # Add an SREF for each subpattern entry
