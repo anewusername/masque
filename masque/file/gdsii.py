@@ -20,7 +20,7 @@ __author__ = 'Jan Petykiewicz'
 
 def write_dose2dtype(pattern: Pattern,
                      filename: str,
-                     meters_per_unit: float):
+                     meters_per_unit: float) -> List[float]:
     """
     Write a Pattern to a GDSII file, by first calling .polygonize() on it
      to change the shapes into polygons, and then writing patterns as GDSII
@@ -30,6 +30,11 @@ def write_dose2dtype(pattern: Pattern,
      For each shape,
         layer is chosen to be equal to shape.layer if it is an int,
             or shape.layer[0] if it is a tuple
+        datatype is chosen arbitrarily, based on calcualted dose for each shape.
+            Shapes with equal calcualted dose will have the same datatype.
+            A list of doses is retured, providing a mapping between datatype
+            (list index) and dose (list entry).
+
     Note that this function modifies the Pattern.
 
     It is often a good idea to run pattern.subpatternize() prior to calling this function,
@@ -41,6 +46,8 @@ def write_dose2dtype(pattern: Pattern,
     :param pattern: A Pattern to write to file. Modified by this function.
     :param filename: Filename to write to.
     :param meters_per_unit: Written into the GDSII file, meters per length unit.
+    :returns: A list of doses, providing a mapping between datatype (int, list index)
+                and dose (float, list entry).
     """
     # Create library
     lib = gdsii.library.Library(version=600,
