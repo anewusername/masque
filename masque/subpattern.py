@@ -15,7 +15,7 @@ from .utils import is_scalar, rotation_matrix_2d, vector2
 __author__ = 'Jan Petykiewicz'
 
 
-class SubPattern(object):
+class SubPattern:
     """
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.

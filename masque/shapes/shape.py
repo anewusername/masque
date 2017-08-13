@@ -19,7 +19,7 @@ normalized_shape_tuple = Tuple[Tuple,
 DEFAULT_POLY_NUM_POINTS = 24
 
 
-class Shape(object, metaclass=ABCMeta):
+class Shape(metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """

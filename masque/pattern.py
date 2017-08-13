@@ -19,7 +19,7 @@ from .utils import rotation_matrix_2d, vector2
 __author__ = 'Jan Petykiewicz'
 
 
-class Pattern(object):
+class Pattern:
     """
     2D layout consisting of some set of shapes and references to other Pattern objects
      (via SubPattern). Shapes are assumed to inherit from .shapes.Shape or provide equivalent
