@@ -120,20 +120,16 @@ class Shape(metaclass=ABCMeta):
 
     # layer property
     @property
-    def layer(self) -> int:
+    def layer(self) -> int or Tuple[int]:
         """
-        Layer number (int, >=0)
+        Layer number (int or tuple of ints)
 
         :return: Layer
         """
         return self._layer
 
     @layer.setter
-    def layer(self, val: int):
-        if not isinstance(val, int):
-            raise PatternError('Layer must be an integer')
-        if not val >= 0:
-            raise PatternError('Layer must be non-negative')
+    def layer(self, val: int or List[int]):
         self._layer = val
 
     # dose property
