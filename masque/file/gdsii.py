@@ -88,7 +88,7 @@ def write_dose2dtype(pattern: Pattern,
                 data_type = dose_vals_list.index(polygon.dose * pat_dose)
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
                 xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                if hasattr('__len__', polygon.layer):
+                if hasattr(polygon.layer, '__len__'):
                     layer = polygon.layer[0]
                 else:
                     layer = polygon.layer
