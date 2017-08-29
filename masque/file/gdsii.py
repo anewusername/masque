@@ -7,6 +7,7 @@ import gdsii.structure
 import gdsii.elements
 
 from typing import List, Any, Dict
+import re
 import numpy
 
 from .utils import mangle_name, make_dose_table
