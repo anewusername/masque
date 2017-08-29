@@ -54,11 +54,8 @@ def write(pattern: Pattern,
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
 
-    # Now create a structure for each row in sd_table (ie, each pattern + dose combination)
-    #  and add in any Boundary and SREF elements
-    for pat_id, pat_dose in sd_table:
-        pat = patterns_by_id[pat_id]
-
+    # Now create a structure for each pattern, and add in any Boundary and SREF elements
+    for pat in patterns_by_id.values():
         sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pattern.name)
         structure = gdsii.structure.Structure(name=sanitized_name.encode('ASCII'))
         lib.append(structure)
