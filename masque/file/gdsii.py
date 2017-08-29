@@ -18,6 +18,83 @@ from ..utils import rotation_matrix_2d, get_bit, vector2
 __author__ = 'Jan Petykiewicz'
 
 
+def write(pattern: Pattern,
+          filename: str,
+          meters_per_unit: float):
+    """
+    Write a Pattern to a GDSII file, by first calling .polygonize() on it
+     to change the shapes into polygons, and then writing patterns as GDSII
+     structures, polygons as boundary elements, and subpatterns as structure
+     references (sref).
+
+     For each shape,
+        layer is chosen to be equal to shape.layer if it is an int,
+            or shape.layer[0] if it is a tuple
+        datatype is chosen to be shape.layer[1] if available,
+            otherwise 0
+
+    Note that this function modifies the Pattern.
+
+    It is often a good idea to run pattern.subpatternize() prior to calling this function,
+     especially if calling .polygonize() will result in very many vertices.
+
+    If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
+     prior to calling this function.
+
+    :param pattern: A Pattern to write to file. Modified by this function.
+    :param filename: Filename to write to.
+    :param meters_per_unit: Written into the GDSII file, meters per length unit.
+    """
+    # Create library
+    lib = gdsii.library.Library(version=600,
+                                name='masque-write_dose2dtype'.encode('ASCII'),
+                                logical_unit=1,
+                                physical_unit=meters_per_unit)
+
+    # Get a dict of id(pattern) -> pattern
+    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
+
+    # Now create a structure for each row in sd_table (ie, each pattern + dose combination)
+    #  and add in any Boundary and SREF elements
+    for pat_id, pat_dose in sd_table:
+        pat = patterns_by_id[pat_id]
+
+        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pattern.name)
+        structure = gdsii.structure.Structure(name=sanitized_name.encode('ASCII'))
+        lib.append(structure)
+
+        # Add a Boundary element for each shape
+        for shape in pat.shapes:
+            for polygon in shape.to_polygons():
+                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+                if hasattr(polygon.layer, '__len__'):
+                    layer = polygon.layer[0]
+                    if len(polygon.layer) > 1:
+                        data_type = polygon.layer[1]
+                    else:
+                        data_type = 0
+                else:
+                    layer = polygon.layer
+                    data_type = 0
+                structure.append(gdsii.elements.Boundary(layer=layer,
+                                                         data_type=data_type,
+                                                         xy=xy_closed))
+        # Add an SREF for each subpattern entry
+        #  strans must be set for angle and mag to take effect
+        for subpat in pat.subpatterns:
+            sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.name)
+            sref = gdsii.elements.SRef(struct_name=sanitized_name.encode('ASCII'),
+                                       xy=numpy.round([subpat.offset]).astype(int))
+            sref.strans = 0
+            sref.angle = subpat.rotation
+            sref.mag = subpat.scale
+            structure.append(sref)
+
+    with open(filename, mode='wb') as stream:
+        lib.save(stream)
+
+
 def write_dose2dtype(pattern: Pattern,
                      filename: str,
                      meters_per_unit: float) -> List[float]:
@@ -114,11 +191,20 @@ def write_dose2dtype(pattern: Pattern,
 
 def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
     """
+    Alias for read(filename, use_dtype_as_dose=True)
+    """
+    return read(filename, use_dtype_as_dose=True)
+
+
+def read(filename: str, use_dtype_as_dose=False) -> (List[Pattern], Dict[str, Any]):
+    """
     Read a gdsii file and translate it into a list of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
      are translated into SubPattern objects.
 
     :param filename: Filename specifying a GDSII file to read from.
+    :param use_dtype_as_dose: If false, set each polygon's layer to (gds_layer, gds_datatype).
+            If true, set the layer to gds_layer and the dose to gds_datatype.
     :return: Tuple: (List of Patterns generated GDSII structures, Dict of GDSII library info)
     """
 
@@ -158,10 +244,14 @@ def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
-                pat.shapes.append(
-                    Polygon(vertices=element.xy[:-1],
-                            dose=element.data_type,
-                            layer=element.layer))
+                if use_dtype_as_dose:
+                    shape = Polygon(vertices=element.xy[:-1],
+                                    dose=element.data_type,
+                                    layer=element.layer)
+                else:
+                    shape = Polygon(vertices=element.xy[:-1],
+                                    layer=(element.layer, element.data_type))
+                pat.shapes.append(shape)
 
             elif isinstance(element, gdsii.elements.SRef):
                 pat.subpatterns.append(ref_element_to_subpat(element, element.xy))
