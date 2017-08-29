@@ -74,7 +74,7 @@ class Arc(Shape):
     def angles(self) -> vector2:
         """
         Return the start and stop angles [a_start, a_stop].
-        Angles are measured from x-axis after rotation, and are stored mod 2*pi
+        Angles are measured from x-axis after rotation
 
         :return: [a_start, a_stop]
         """
@@ -168,7 +168,12 @@ class Arc(Shape):
                                ' (default was also overridden)')
 
         r0, r1 = self.radii
-        a0, a1 = self.angles
+
+        # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
+        a0, a1 = (numpy.arctan2(r0*numpy.sin(a), r1*numpy.cos(a)) for a in self.angles)
+        sign = numpy.sign(self.angles[1] - self.angles[0])
+        if sign != numpy.sign(a1 - a0):
+            a1 += sign * 2 * pi
 
         # Approximate perimeter
         # Ramanujan, S., "Modular Equations and Approximations to ,"
@@ -201,8 +206,6 @@ class Arc(Shape):
         return [poly]
 
     def get_bounds(self) -> numpy.ndarray:
-        a = self.angles - 0.5 * pi
-
         mins = []
         maxs = []
         for sgn in (+1, -1):
@@ -210,33 +213,45 @@ class Arc(Shape):
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
+            # Create paremeter 'a' for parametrized ellipse
+            a0, a1 = (numpy.arctan2(rx*numpy.sin(a), ry*numpy.cos(a)) for a in self.angles)
+            sign = numpy.sign(self.angles[1] - self.angles[0])
+            if sign != numpy.sign(a1 - a0):
+                a1 += sign * 2 * pi
+
+            a = numpy.array((a0, a1))
+            a0_offset = a0 - (a0 % (2 * pi))
+
             sin_r = numpy.sin(self.rotation)
             cos_r = numpy.cos(self.rotation)
             tan_r = numpy.tan(self.rotation)
             sin_a = numpy.sin(a)
             cos_a = numpy.cos(a)
 
-            xpt = numpy.arctan(-ry / rx * tan_r)
-            ypt = numpy.arctan(+ry / rx / tan_r)
-            xnt = numpy.arcsin(numpy.sin(xpt - pi))
-            ynt = numpy.arcsin(numpy.sin(ypt - pi))
+            # Cutoff angles
+            xpt = (-self.rotation) % (2 * pi) + a0_offset
+            ypt = self.rotation % (2 * pi) + a0_offset
+            xnt = (xpt - pi) % (2 * pi) + a0_offset
+            ynt = (ypt - pi) % (2 * pi) + a0_offset
 
+            # Points along coordinate axes
             xr = numpy.sqrt((rx * cos_r) ** 2 + (ry * sin_r) ** 2)
             yr = numpy.sqrt((rx * sin_r) ** 2 + (ry * cos_r) ** 2)
 
+            # Arc endpoints
             xn, xp = sorted(rx * cos_r * cos_a - ry * sin_r * sin_a)
             yn, yp = sorted(rx * sin_r * cos_a - ry * cos_r * sin_a)
 
-            if min(a) < xpt < max(a):
+            if a0 < xpt < a1:
                 xp = xr
 
-            if min(a) < xnt < max(a):
+            if a0 < xnt < a1:
                 xn = -xr
 
-            if min(a) < ypt < max(a):
+            if a0 < ypt < a1:
                 yp = yr
 
-            if min(a) < ynt < max(a):
+            if a0 < ynt < a1:
                 yn = -yr
 
             mins.append([xn, yn])
