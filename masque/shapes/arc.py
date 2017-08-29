@@ -206,6 +206,18 @@ class Arc(Shape):
         return [poly]
 
     def get_bounds(self) -> numpy.ndarray:
+        '''
+        Equation for rotated ellipse is
+            x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)
+            y = y0 + a * cos(t) * sin(rot) + b * sin(t) * cos(rot)
+          where t is our parameter.
+
+        Differentiating and solving for 0 slope wrt. t, we find
+            tan(t) = -+ b/a cot(phi)
+          where -+ is for x, y cases, so that's where the extrema are.
+
+        If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
+        '''
         mins = []
         maxs = []
         for sgn in (+1, -1):
@@ -235,13 +247,18 @@ class Arc(Shape):
             ynt = (ypt - pi) % (2 * pi) + a0_offset
 
             # Points along coordinate axes
-            xr = numpy.sqrt((rx * cos_r) ** 2 + (ry * sin_r) ** 2)
-            yr = numpy.sqrt((rx * sin_r) ** 2 + (ry * cos_r) ** 2)
+            xs = rx * sin_r
+            yc = ry * cos_r
+            sin_ax = yc / (yc * yc + xs * xs)
+            cos_ax = xs / (yc * yc + xs * xs)
+            xr = rx * cos_r * cos_ax - ry * sin_r * sin_ax
+            yr = ry * sin_r * cos_ax + ry * cos_r * sin_ax
 
             # Arc endpoints
             xn, xp = sorted(rx * cos_r * cos_a - ry * sin_r * sin_a)
-            yn, yp = sorted(rx * sin_r * cos_a - ry * cos_r * sin_a)
+            yn, yp = sorted(rx * sin_r * cos_a + ry * cos_r * sin_a)
 
+            # If
             if a0 < xpt < a1:
                 xp = xr
 
