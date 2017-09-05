@@ -21,7 +21,8 @@ __author__ = 'Jan Petykiewicz'
 
 def write(pattern: Pattern,
           filename: str,
-          meters_per_unit: float):
+          meters_per_unit: float,
+          logical_units_per_unit: float = 1):
     """
     Write a Pattern to a GDSII file, by first calling .polygonize() on it
      to change the shapes into polygons, and then writing patterns as GDSII
@@ -44,12 +45,16 @@ def write(pattern: Pattern,
 
     :param pattern: A Pattern to write to file. Modified by this function.
     :param filename: Filename to write to.
-    :param meters_per_unit: Written into the GDSII file, meters per length unit.
+    :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
+        All distances are assumed to be an integer multiple of this unit, and are stored as such.
+    :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
+        "logical" unit which is different from the "database" unit, for display purposes.
+        Default 1.
     """
     # Create library
     lib = gdsii.library.Library(version=600,
                                 name='masque-write_dose2dtype'.encode('ASCII'),
-                                logical_unit=1,
+                                logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
     # Get a dict of id(pattern) -> pattern
@@ -95,7 +100,9 @@ def write(pattern: Pattern,
 
 def write_dose2dtype(pattern: Pattern,
                      filename: str,
-                     meters_per_unit: float) -> List[float]:
+                     meters_per_unit: float,
+                     logical_units_per_unit: float = 1
+                     ) -> List[float]:
     """
     Write a Pattern to a GDSII file, by first calling .polygonize() on it
      to change the shapes into polygons, and then writing patterns as GDSII
@@ -120,14 +127,18 @@ def write_dose2dtype(pattern: Pattern,
 
     :param pattern: A Pattern to write to file. Modified by this function.
     :param filename: Filename to write to.
-    :param meters_per_unit: Written into the GDSII file, meters per length unit.
+    :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
+        All distances are assumed to be an integer multiple of this unit, and are stored as such.
+    :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
+        "logical" unit which is different from the "database" unit, for display purposes.
+        Default 1.
     :returns: A list of doses, providing a mapping between datatype (int, list index)
                 and dose (float, list entry).
     """
     # Create library
     lib = gdsii.library.Library(version=600,
                                 name='masque-write_dose2dtype'.encode('ASCII'),
-                                logical_unit=1,
+                                logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
     # Get a dict of id(pattern) -> pattern
