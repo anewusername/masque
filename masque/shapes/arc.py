@@ -303,7 +303,6 @@ class Arc(Shape):
             start_angle -= pi
             rotation += pi
 
-
         angles = (start_angle, start_angle + delta_angle)
         rotation %= 2 * pi
         width = self.width
