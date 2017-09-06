@@ -31,7 +31,7 @@ class Polygon(Shape):
     @vertices.setter
     def vertices(self, val: numpy.ndarray):
         val = numpy.array(val, dtype=float)
-        if val.shape[1] != 2:
+        if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 3:
             raise PatternError('Must have at least 3 vertices (Nx2, N>3)')
