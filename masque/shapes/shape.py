@@ -176,3 +176,94 @@ class Shape(metaclass=ABCMeta):
         self.translate(+pivot)
         return self
 
+    def manhattanize(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
+        """
+        Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
+
+        This function works by
+            1) Converting the shape to polygons using .to_polygons()
+            2) Accurately rasterizing each polygon on a grid,
+                where the edges of each grid cell correspond to the allowed coordinates
+            3) Thresholding the (anti-aliased) rasterized image
+            4) Finding the contours which outline the filled areas in the thresholded image
+        This process results in a fairly accurate Manhattan representation of the shape. Possible
+          caveats include:
+            a) If high accuracy is important, perform any polygonization and clipping operations
+                prior to calling this function. This allows you to specify any arguments you may
+                need for .to_polygons(), and also avoids calling .manhattanize() multiple times for
+                the same grid location (which causes inaccuracies in the final representation).
+            b) If the shape is very large or the grid very fine, memory requirements can be reduced
+                by breaking the shape apart into multiple, smaller shapes.
+            c) Inaccuracies in edge shape can result from Manhattanization of edges which are
+                equidistant from allowed edge location.
+
+        Implementation notes:
+            i) Rasterization is performed using float_raster, giving a high-precision anti-aliased
+                rasterized image.
+            ii) To find the exact polygon edges, the thresholded rasterized image is supersampled
+                  prior to calling skimage.measure.find_contours(), which uses marching squares
+                  to find the contours. This is done because find_contours() performs interpolation,
+                  which has to be undone in order to regain the axis-aligned contours. A targetted
+                  rewrite of find_contours() for this specific application, or use of a different
+                  boundary tracing method could remove this requirement, but for now this seems to
+                  be the most performant approach.
+
+        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+        :return: List of Polygon objects with grid-aligned edges.
+        """
+        from . import Polygon
+        import skimage.measure
+        import float_raster
+
+        grid_x = numpy.unique(grid_x)
+        grid_y = numpy.unique(grid_y)
+
+        polygon_contours = []
+        for polygon in self.to_polygons():
+            mins, maxs = polygon.get_bounds()
+            keep_x = numpy.logical_and(grid_x > mins[0], grid_x < maxs[0])
+            keep_y = numpy.logical_and(grid_y > mins[1], grid_y < maxs[1])
+            for k in (keep_x, keep_y):
+                for s in (1, 2):
+                    k[s:] += k[:-s]
+                    k[:-s] += k[s:]
+                k = k > 0
+
+            gx = grid_x[keep_x]
+            gy = grid_y[keep_y]
+
+            if len(gx) == 0 or len(gy) == 0:
+                continue
+
+            offset = (numpy.where(keep_x)[0][0],
+                      numpy.where(keep_y)[0][0])
+
+            rastered = float_raster.raster((polygon.vertices + polygon.offset).T, gx, gy)
+            binary_rastered = (rastered >= 0.5)
+            supersampled = binary_rastered.repeat(2, axis=0).repeat(2, axis=1)
+
+            from matplotlib import pyplot
+            pyplot.pcolormesh(binary_rastered)
+            pyplot.colorbar()
+            pyplot.show()
+
+            contours = skimage.measure.find_contours(supersampled, 0.5)
+            polygon_contours.append((offset, contours))
+
+        manhattan_polygons = []
+        for offset_i, contours in polygon_contours:
+            for contour in contours:
+                # /2 deals with supersampling
+                # +.5 deals with the fact that our 0-edge becomes -.5 in the super-sampled contour output
+                snapped_contour = numpy.round((contour + .5) / 2).astype(int)
+                vertices = numpy.hstack((grid_x[snapped_contour[:, None, 0] + offset_i[0]],
+                                         grid_y[snapped_contour[:, None, 1] + offset_i[1]]))
+
+                manhattan_polygons.append(Polygon(
+                    vertices=vertices,
+                    layer=self.layer,
+                    dose=self.dose))
+
+        return manhattan_polygons
+

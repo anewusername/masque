@@ -118,6 +118,25 @@ class Pattern:
             subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
         return self
 
+    def manhattanize(self,
+                     grid_x: numpy.ndarray,
+                     grid_y: numpy.ndarray
+                     ) -> 'Pattern':
+        """
+        Calls .polygonize() and .flatten on the pattern, then calls .manhattanize() on all the
+         resulting shapes, replacing them with the returned Manhattan polygons.
+
+        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+        :return: self
+        """
+
+        self.polygonize().flatten()
+        old_shapes = self.shapes
+        self.shapes = list(itertools.chain.from_iterable(
+                        (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
+        return self
+
     def subpatternize(self,
                       recursive: bool=True,
                       norm_value: int=1e6,
