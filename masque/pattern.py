@@ -31,10 +31,9 @@ class Pattern:
             may reference the same Pattern object.
     :var name: An identifier for this object. Not necessarily unique.
     """
-
-    shapes = List[Shape]
-    subpatterns = List[SubPattern]
-    name = str
+    shapes = None               # type: List[Shape]
+    subpatterns = None          # type: List[SubPattern]
+    name = None                 # type: str
 
     def __init__(self,
                  shapes: List[Shape]=(),
