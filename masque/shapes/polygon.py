@@ -172,3 +172,38 @@ class Polygon(Shape):
         return (type(self), reordered_vertices.data.tobytes(), self.layer), \
                (offset, scale/norm_value, rotation, self.dose), \
                lambda: Polygon(reordered_vertices*norm_value, layer=self.layer)
+
+    def cut(self,
+            cut_xs: numpy.ndarray = None,
+            cut_ys: numpy.ndarray = None
+            ) -> List['Polygon']:
+        import float_raster
+        xy = (self.offset + self.vertices).T
+
+        if cut_xs is None:
+            cut_xs = tuple()
+        if cut_ys is None:
+            cut_ys = tuple()
+
+        mins, maxs = self.get_bounds()
+        dx, dy = maxs - mins
+
+        cx = numpy.hstack((min(tuple(cut_xs) + (mins[0],)) - dx, cut_xs, max((maxs[0],) + tuple(cut_xs)) + dx))
+        cy = numpy.hstack((min(tuple(cut_ys) + (mins[1],)) - dy, cut_ys, max((maxs[1],) + tuple(cut_ys)) + dy))
+
+        shape_with_extra_verts = float_raster.create_vertices(xy, cx, cy)
+
+        polygons = []
+        for cx_min, cx_max in zip(cx, cx[1:]):
+            for cy_min, cy_max in zip(cy, cy[1:]):
+                clipped_verts = float_raster.clip_vertices_to_window(
+                                                    copy.deepcopy(shape_with_extra_verts),
+                                                    cx_min, cx_max, cy_min, cy_max)
+                final_verts = numpy.hstack((
+                                    numpy.real(clipped_verts)[:, None],
+                                    numpy.imag(clipped_verts)[:, None]))
+                polygons.append(Polygon(
+                    vertices=final_verts,
+                    layer=self.layer,
+                    dose=self.dose))
+        return polygons
