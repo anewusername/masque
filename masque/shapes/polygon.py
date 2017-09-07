@@ -177,6 +177,14 @@ class Polygon(Shape):
             cut_xs: numpy.ndarray = None,
             cut_ys: numpy.ndarray = None
             ) -> List['Polygon']:
+        """
+        Decomposes the polygon into a list of constituents by cutting along the
+          specified x and/or y coordinates.
+
+        :param cut_xs: list of x-coordinates to cut along (e.g., [1, 1.4, 6])
+        :param cut_ys: list of y-coordinates to cut along (e.g., [1, 3, 5.4])
+        :return: List of Polygon objects
+        """
         import float_raster
         xy = (self.offset + self.vertices).T
 
