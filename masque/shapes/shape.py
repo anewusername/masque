@@ -1,5 +1,6 @@
 from typing import List, Tuple, Callable
 from abc import ABCMeta, abstractmethod
+import copy
 import numpy
 
 from .. import PatternError
@@ -151,6 +152,14 @@ class Shape(metaclass=ABCMeta):
         self._dose = val
 
     # ---- Non-abstract methods
+    def copy(self) -> 'Shape':
+        """
+        Returns a deep copy of the shape.
+
+        :return: Deep copy of self
+        """
+        return copy.deepcopy(self)
+
     def translate(self, offset: vector2) -> 'Shape':
         """
         Translate the shape by the given offset
