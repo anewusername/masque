@@ -191,19 +191,46 @@ class Polygon(Shape):
         cx = numpy.hstack((min(tuple(cut_xs) + (mins[0],)) - dx, cut_xs, max((maxs[0],) + tuple(cut_xs)) + dx))
         cy = numpy.hstack((min(tuple(cut_ys) + (mins[1],)) - dy, cut_ys, max((maxs[1],) + tuple(cut_ys)) + dy))
 
-        shape_with_extra_verts = float_raster.create_vertices(xy, cx, cy)
+        all_verts = float_raster.create_vertices(xy, cx, cy)
 
         polygons = []
         for cx_min, cx_max in zip(cx, cx[1:]):
             for cy_min, cy_max in zip(cy, cy[1:]):
-                clipped_verts = float_raster.clip_vertices_to_window(
-                                                    copy.deepcopy(shape_with_extra_verts),
-                                                    cx_min, cx_max, cy_min, cy_max)
-                final_verts = numpy.hstack((
-                                    numpy.real(clipped_verts)[:, None],
-                                    numpy.imag(clipped_verts)[:, None]))
+                clipped_verts = (numpy.real(all_verts).clip(cx_min, cx_max) + 1j *
+                                 numpy.imag(all_verts).clip(cy_min, cy_max))
+
+                cleaned_verts = _clean_complex_vertices(clipped_verts)
+                if len(cleaned_verts) == 0:
+                    continue
+
+                final_verts = numpy.hstack((numpy.real(clipped_verts)[:, None],
+                                            numpy.imag(clipped_verts)[:, None]))
                 polygons.append(Polygon(
                     vertices=final_verts,
                     layer=self.layer,
                     dose=self.dose))
         return polygons
+
+
+def _clean_complex_vertices(vertices: numpy.ndarray) -> numpy.ndarray:
+    eps = numpy.finfo(vertices.dtype).eps
+
+    def cleanup(vertices):
+        # Remove duplicate points
+        dv = v - numpy.roll(v, 1)
+        v = v[numpy.abs(dv) > eps]
+
+        # Remove colinear points
+        dv = v - numpy.roll(v, 1)
+        m = numpy.angle(dv) % pi
+        diff_m = numpy.abs(m - numpy.roll(m, -1))
+        return v[diff_m > eps]
+
+    n = len(vertices)
+    cleaned = cleanup(vertices)
+    while n != len(cleaned):
+        n = len(cleaned)
+        cleaned = cleanup(cleaned)
+
+    return cleaned
+
