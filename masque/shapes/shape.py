@@ -252,11 +252,6 @@ class Shape(metaclass=ABCMeta):
             binary_rastered = (rastered >= 0.5)
             supersampled = binary_rastered.repeat(2, axis=0).repeat(2, axis=1)
 
-            from matplotlib import pyplot
-            pyplot.pcolormesh(binary_rastered)
-            pyplot.colorbar()
-            pyplot.show()
-
             contours = skimage.measure.find_contours(supersampled, 0.5)
             polygon_contours.append((offset, contours))
 
