@@ -186,7 +186,7 @@ class Polygon(Shape):
         :return: List of Polygon objects
         """
         import float_raster
-        xy_complex = self.vertices[:, 1] + 1j * self.vertices[:, 2]
+        xy_complex = self.vertices[:, 0] + 1j * self.vertices[:, 1]
         xy_cleaned = _clean_complex_vertices(xy_complex)
         xy = numpy.vstack((numpy.real(xy_cleaned)[None, :],
                            numpy.imag(xy_cleaned)[None, :]))
@@ -226,7 +226,7 @@ class Polygon(Shape):
 def _clean_complex_vertices(vertices: numpy.ndarray) -> numpy.ndarray:
     eps = numpy.finfo(vertices.dtype).eps
 
-    def cleanup(vertices):
+    def cleanup(v):
         # Remove duplicate points
         dv = v - numpy.roll(v, 1)
         v = v[numpy.abs(dv) > eps]
