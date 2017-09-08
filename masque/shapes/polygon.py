@@ -214,8 +214,8 @@ class Polygon(Shape):
                 if len(cleaned_verts) == 0:
                     continue
 
-                final_verts = numpy.hstack((numpy.real(clipped_verts)[:, None],
-                                            numpy.imag(clipped_verts)[:, None]))
+                final_verts = numpy.hstack((numpy.real(cleaned_verts)[:, None],
+                                            numpy.imag(cleaned_verts)[:, None]))
                 polygons.append(Polygon(
                     vertices=final_verts,
                     layer=self.layer,
@@ -234,8 +234,8 @@ def _clean_complex_vertices(vertices: numpy.ndarray) -> numpy.ndarray:
         # Remove colinear points
         dv = v - numpy.roll(v, 1)
         m = numpy.angle(dv) % pi
-        diff_m = numpy.abs(m - numpy.roll(m, -1))
-        return v[diff_m > eps]
+        diff_m = m - numpy.roll(m, -1)
+        return v[numpy.abs(diff_m) > eps]
 
     n = len(vertices)
     cleaned = cleanup(vertices)
