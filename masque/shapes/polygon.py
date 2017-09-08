@@ -186,7 +186,10 @@ class Polygon(Shape):
         :return: List of Polygon objects
         """
         import float_raster
-        xy = (self.offset + self.vertices).T
+        xy_complex = self.vertices[:, 1] + 1j * self.vertices[:, 2]
+        xy_cleaned = _clean_complex_vertices(xy_complex)
+        xy = numpy.vstack((numpy.real(xy_cleaned)[None, :],
+                           numpy.imag(xy_cleaned)[None, :]))
 
         if cut_xs is None:
             cut_xs = tuple()
