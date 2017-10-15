@@ -3,6 +3,9 @@ from abc import ABCMeta, abstractmethod
 import copy
 import numpy
 
+import pyclipper
+from pyclipper import scale_to_clipper, scale_from_clipper
+
 from .. import PatternError
 from ..utils import is_scalar, rotation_matrix_2d, vector2
 
@@ -271,3 +274,49 @@ class Shape(metaclass=ABCMeta):
 
         return manhattan_polygons
 
+    def cut(self,
+            cut_xs: numpy.ndarray = None,
+            cut_ys: numpy.ndarray = None
+            ) -> List['Polygon']:
+        """
+        Decomposes the shape into a list of constituent polygons by polygonizing and
+         then cutting along the specified x and/or y coordinates.
+
+        :param cut_xs: list of x-coordinates to cut along (e.g., [1, 1.4, 6])
+        :param cut_ys: list of y-coordinates to cut along (e.g., [1, 3, 5.4])
+        :return: List of Polygon objects
+        """
+        from . import Polygon
+
+        clipped_shapes = []
+        for polygon in self.to_polygons():
+            min_x, min_y = numpy.min(polygon.vertices, axis=0)
+            max_x, max_y = numpy.max(polygon.vertices, axis=0)
+            range_x = max_x - min_x
+            range_y = max_y - min_y
+
+            edge_xs = (min_x - range_x - 1,) + tuple(cut_xs) + (max_x + range_x + 1,)
+            edge_ys = (min_y - range_y - 1,) + tuple(cut_ys) + (max_y + range_y + 1,)
+
+            for i in range(2):
+                for j in range(2):
+                    clipper = pyclipper.Pyclipper()
+                    clipper.AddPath(scale_to_clipper(polygon.vertices), pyclipper.PT_SUBJECT, True)
+
+                    for start_x, stop_x in zip(edge_xs[i::2], edge_xs[(i+1)::2]):
+                        for start_y, stop_y in zip(edge_ys[j::2], edge_ys[(j+1)::2]):
+                            clipper.AddPath(scale_to_clipper((
+                                (start_x, start_y),
+                                (start_x, stop_y),
+                                (stop_x, stop_y),
+                                (stop_x, start_y),
+                            )), pyclipper.PT_CLIP, True)
+
+                    clipped_parts = scale_from_clipper(clipper.Execute(pyclipper.CT_INTERSECTION,
+                                                                       pyclipper.PFT_EVENODD,
+                                                                       pyclipper.PFT_EVENODD))
+                    for part in clipped_parts:
+                        poly = polygon.copy()
+                        poly.vertices = part
+                        clipped_shapes.append(poly)
+        return clipped_shapes

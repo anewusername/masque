@@ -10,14 +10,14 @@ setup(name='masque',
       url='https://mpxd.net/gogs/jan/masque',
       packages=find_packages(),
       install_requires=[
-            'numpy'
+            'numpy',
+            'pyclipper',
       ],
       extras_require={
           'visualization': ['matplotlib'],
           'gdsii': ['python-gdsii'],
           'svg': ['svgwrite'],
           'text': ['freetype-py', 'matplotlib'],
-          'clipping': ['pyclipper'],
       },
       )
 
