@@ -249,7 +249,7 @@ class Shape(metaclass=ABCMeta):
                       numpy.where(keep_y)[0][0])
 
             rastered = float_raster.raster((polygon.vertices + polygon.offset).T, gx, gy)
-            binary_rastered = (rastered >= 0.5)
+            binary_rastered = (numpy.abs(rastered) >= 0.5)
             supersampled = binary_rastered.repeat(2, axis=0).repeat(2, axis=1)
 
             contours = skimage.measure.find_contours(supersampled, 0.5)
