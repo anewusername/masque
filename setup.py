@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='masque',
-      version='0.2',
+      version='0.3',
       description='Lithography mask library',
       author='Jan Petykiewicz',
       author_email='anewusername@gmail.com',
