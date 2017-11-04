@@ -205,7 +205,10 @@ def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
     return read(filename, use_dtype_as_dose=True)
 
 
-def read(filename: str, use_dtype_as_dose=False) -> (List[Pattern], Dict[str, Any]):
+def read(filename: str,
+         use_dtype_as_dose: bool = False,
+         clean_vertices: bool = True,
+         ) -> (List[Pattern], Dict[str, Any]):
     """
     Read a gdsii file and translate it into a list of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
@@ -214,6 +217,10 @@ def read(filename: str, use_dtype_as_dose=False) -> (List[Pattern], Dict[str, An
     :param filename: Filename specifying a GDSII file to read from.
     :param use_dtype_as_dose: If false, set each polygon's layer to (gds_layer, gds_datatype).
             If true, set the layer to gds_layer and the dose to gds_datatype.
+            Default False.
+    :param clean_vertices: If true, remove any redundant vertices when loading polygons.
+            The cleaning process removes any polygons with zero area or <3 vertices.
+            Default True.
     :return: Tuple: (List of Patterns generated GDSII structures, Dict of GDSII library info)
     """
 
@@ -260,6 +267,12 @@ def read(filename: str, use_dtype_as_dose=False) -> (List[Pattern], Dict[str, An
                 else:
                     shape = Polygon(vertices=element.xy[:-1],
                                     layer=(element.layer, element.data_type))
+                if do_clean:
+                    try:
+                        shape.clean_vertices()
+                    except PatternError:
+                        continue
+
                 pat.shapes.append(shape)
 
             elif isinstance(element, gdsii.elements.SRef):
