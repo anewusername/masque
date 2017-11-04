@@ -1,7 +1,7 @@
 """
 GDSII file format readers and writers
 """
-
+# python-gdsii
 import gdsii.library
 import gdsii.structure
 import gdsii.elements
