@@ -19,14 +19,14 @@ from ..utils import rotation_matrix_2d, get_bit, vector2
 __author__ = 'Jan Petykiewicz'
 
 
-def write(pattern: Pattern,
+def write(patterns: Pattern or List[Pattern],
           filename: str,
           meters_per_unit: float,
           logical_units_per_unit: float = 1):
     """
-    Write a Pattern to a GDSII file, by first calling .polygonize() on it
-     to change the shapes into polygons, and then writing patterns as GDSII
-     structures, polygons as boundary elements, and subpatterns as structure
+    Write a Pattern or list of patterns to a GDSII file, by first calling
+     .polygonize() to change the shapes into polygons, and then writing patterns
+     as GDSII structures, polygons as boundary elements, and subpatterns as structure
      references (sref).
 
      For each shape,
@@ -43,7 +43,7 @@ def write(pattern: Pattern,
     If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
      prior to calling this function.
 
-    :param pattern: A Pattern to write to file. Modified by this function.
+    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
     :param filename: Filename to write to.
     :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
         All distances are assumed to be an integer multiple of this unit, and are stored as such.
@@ -57,12 +57,17 @@ def write(pattern: Pattern,
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
+    if isinstance(patterns, Pattern):
+        patterns = [patterns]
+
     # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
+    patterns_by_id = {id(pattern): pattern for pattern in patterns}
+    for pattern in patterns:
+        patterns_by_id.update(pattern.referenced_patterns_by_id())
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pattern.name)
+        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
         structure = gdsii.structure.Structure(name=sanitized_name.encode('ASCII'))
         lib.append(structure)
 
@@ -86,7 +91,7 @@ def write(pattern: Pattern,
         # Add an SREF for each subpattern entry
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
-            sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.name)
+            sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.pattern.name)
             sref = gdsii.elements.SRef(struct_name=sanitized_name.encode('ASCII'),
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
@@ -98,15 +103,15 @@ def write(pattern: Pattern,
         lib.save(stream)
 
 
-def write_dose2dtype(pattern: Pattern,
+def write_dose2dtype(patterns: Pattern or List[Pattern],
                      filename: str,
                      meters_per_unit: float,
                      logical_units_per_unit: float = 1
                      ) -> List[float]:
     """
-    Write a Pattern to a GDSII file, by first calling .polygonize() on it
-     to change the shapes into polygons, and then writing patterns as GDSII
-     structures, polygons as boundary elements, and subpatterns as structure
+    Write a Pattern or list of patterns to a GDSII file, by first calling
+     .polygonize() to change the shapes into polygons, and then writing patterns
+     as GDSII structures, polygons as boundary elements, and subpatterns as structure
      references (sref).
 
      For each shape,
@@ -117,7 +122,7 @@ def write_dose2dtype(pattern: Pattern,
             A list of doses is retured, providing a mapping between datatype
             (list index) and dose (list entry).
 
-    Note that this function modifies the Pattern.
+    Note that this function modifies the Pattern(s).
 
     It is often a good idea to run pattern.subpatternize() prior to calling this function,
      especially if calling .polygonize() will result in very many vertices.
@@ -125,7 +130,7 @@ def write_dose2dtype(pattern: Pattern,
     If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
      prior to calling this function.
 
-    :param pattern: A Pattern to write to file. Modified by this function.
+    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
     :param filename: Filename to write to.
     :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
         All distances are assumed to be an integer multiple of this unit, and are stored as such.
@@ -141,11 +146,16 @@ def write_dose2dtype(pattern: Pattern,
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
+    if isinstance(patterns, Pattern):
+        patterns = [patterns]
 
-    # Get a table of (id(subpat.pattern), written_dose) for each subpattern
-    sd_table = make_dose_table(pattern)
+    # Get a dict of id(pattern) -> pattern
+    patterns_by_id = {id(pattern): pattern for pattern in patterns}
+    for pattern in patterns:
+        patterns_by_id.update(pattern.referenced_patterns_by_id())
+
+    # Get a table of (id(pat), written_dose) for each pattern and subpattern
+    sd_table = make_dose_table(patterns)
 
     # Figure out all the unique doses necessary to write this pattern
     #  This means going through each row in sd_table and adding the dose values needed to write
@@ -185,7 +195,7 @@ def write_dose2dtype(pattern: Pattern,
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
             dose_mult = subpat.dose * pat_dose
-            sref = gdsii.elements.SRef(struct_name=mangle_name(subpat.pattern,  dose_mult).encode('ASCII'),
+            sref = gdsii.elements.SRef(struct_name=mangle_name(subpat.pattern, dose_mult).encode('ASCII'),
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
             sref.angle = subpat.rotation

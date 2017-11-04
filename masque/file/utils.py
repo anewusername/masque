@@ -2,7 +2,7 @@
 Helper functions for file reading and writing
 """
 import re
-from typing import Set, Tuple
+from typing import Set, Tuple, List
 
 from masque.pattern import Pattern
 
@@ -24,18 +24,19 @@ def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     return sanitized_name
 
 
-def make_dose_table(pattern: Pattern, dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:
+def make_dose_table(patterns: List[Pattern], dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:
     """
-    Create a set containing (id(subpat.pattern), written_dose) for each subpattern
+    Create a set containing (id(pat), written_dose) for each pattern (including subpatterns)
 
-    :param pattern: Source Pattern.
+    :param pattern: Source Patterns.
     :param dose_multiplier: Multiplier for all written_dose entries.
     :return: {(id(subpat.pattern), written_dose), ...}
     """
-    dose_table = {(id(pattern), dose_multiplier)}
-    for subpat in pattern.subpatterns:
-        subpat_dose_entry = (id(subpat.pattern), subpat.dose * dose_multiplier)
-        if subpat_dose_entry not in dose_table:
-            subpat_dose_table = make_dose_table(subpat.pattern, subpat.dose * dose_multiplier)
-            dose_table = dose_table.union(subpat_dose_table)
+    dose_table = {(id(pattern), dose_multiplier) for pattern in patterns}
+    for pattern in patterns:
+        for subpat in pattern.subpatterns:
+            subpat_dose_entry = (id(subpat.pattern), subpat.dose * dose_multiplier)
+            if subpat_dose_entry not in dose_table:
+                subpat_dose_table = make_dose_table([subpat.pattern], subpat.dose * dose_multiplier)
+                dose_table = dose_table.union(subpat_dose_table)
     return dose_table
