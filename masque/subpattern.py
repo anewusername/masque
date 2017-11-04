@@ -156,4 +156,3 @@ class SubPattern:
         """
         self.scale *= c
         return self
-

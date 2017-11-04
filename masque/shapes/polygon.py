@@ -2,6 +2,8 @@ from typing import List
 import copy
 import numpy
 from numpy import pi
+import pyclipper
+from pyclipper import scale_to_clipper, scale_from_clipper
 
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
@@ -173,75 +175,17 @@ class Polygon(Shape):
                (offset, scale/norm_value, rotation, self.dose), \
                lambda: Polygon(reordered_vertices*norm_value, layer=self.layer)
 
-    def cut(self,
-            cut_xs: numpy.ndarray = None,
-            cut_ys: numpy.ndarray = None
-            ) -> List['Polygon']:
+    def clean_vertices(self) -> 'Polygon':
         """
-        Decomposes the polygon into a list of constituents by cutting along the
-          specified x and/or y coordinates.
+        Removes duplicate, co-linear and otherwise redundant vertices.
 
-        :param cut_xs: list of x-coordinates to cut along (e.g., [1, 1.4, 6])
-        :param cut_ys: list of y-coordinates to cut along (e.g., [1, 3, 5.4])
-        :return: List of Polygon objects
+        :returns: self
         """
-        import float_raster
-        xy_complex = self.vertices[:, 0] + 1j * self.vertices[:, 1]
-        xy_cleaned = _clean_complex_vertices(xy_complex)
-        xy = numpy.vstack((numpy.real(xy_cleaned)[None, :],
-                           numpy.imag(xy_cleaned)[None, :]))
+        self.vertices = scale_from_clipper(
+                            pyclipper.CleanPolygon(
+                                scale_to_clipper(
+                                    self.vertices
+                                )))
+        return self
 
-        if cut_xs is None:
-            cut_xs = tuple()
-        if cut_ys is None:
-            cut_ys = tuple()
-
-        mins, maxs = self.get_bounds()
-        dx, dy = maxs - mins
-
-        cx = numpy.hstack((min(tuple(cut_xs) + (mins[0],)) - dx, cut_xs, max((maxs[0],) + tuple(cut_xs)) + dx))
-        cy = numpy.hstack((min(tuple(cut_ys) + (mins[1],)) - dy, cut_ys, max((maxs[1],) + tuple(cut_ys)) + dy))
-
-        all_verts = float_raster.create_vertices(xy, cx, cy)
-
-        polygons = []
-        for cx_min, cx_max in zip(cx, cx[1:]):
-            for cy_min, cy_max in zip(cy, cy[1:]):
-                clipped_verts = (numpy.real(all_verts).clip(cx_min, cx_max) + 1j *
-                                 numpy.imag(all_verts).clip(cy_min, cy_max))
-
-                cleaned_verts = _clean_complex_vertices(clipped_verts)
-                if len(cleaned_verts) == 0:
-                    continue
-
-                final_verts = numpy.hstack((numpy.real(cleaned_verts)[:, None],
-                                            numpy.imag(cleaned_verts)[:, None]))
-                polygons.append(Polygon(
-                    vertices=final_verts,
-                    layer=self.layer,
-                    dose=self.dose))
-        return polygons
-
-
-def _clean_complex_vertices(vertices: numpy.ndarray) -> numpy.ndarray:
-    eps = numpy.finfo(vertices.dtype).eps
-
-    def cleanup(v):
-        # Remove duplicate points
-        dv = v - numpy.roll(v, 1)
-        v = v[numpy.abs(dv) > eps]
-
-        # Remove colinear points
-        dv = v - numpy.roll(v, 1)
-        m = numpy.angle(dv) % pi
-        diff_m = m - numpy.roll(m, -1)
-        return v[numpy.abs(diff_m) > eps]
-
-    n = len(vertices)
-    cleaned = cleanup(vertices)
-    while n != len(cleaned):
-        n = len(cleaned)
-        cleaned = cleanup(cleaned)
-
-    return cleaned
 
