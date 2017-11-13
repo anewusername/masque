@@ -277,7 +277,7 @@ def read(filename: str,
                 else:
                     shape = Polygon(vertices=element.xy[:-1],
                                     layer=(element.layer, element.data_type))
-                if do_clean:
+                if clean_vertices:
                     try:
                         shape.clean_vertices()
                     except PatternError:
