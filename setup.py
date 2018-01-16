@@ -7,7 +7,7 @@ setup(name='masque',
       description='Lithography mask library',
       author='Jan Petykiewicz',
       author_email='anewusername@gmail.com',
-      url='https://mpxd.net/gogs/jan/masque',
+      url='https://mpxd.net/code/jan/masque',
       packages=find_packages(),
       install_requires=[
             'numpy',
