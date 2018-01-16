@@ -188,6 +188,90 @@ class Shape(metaclass=ABCMeta):
         self.translate(+pivot)
         return self
 
+    def manhattanize_fast(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
+        from . import Polygon
+
+        grid_x = numpy.unique(grid_x)
+        grid_y = numpy.unique(grid_y)
+
+        polygon_contours = []
+        for polygon in self.to_polygons():
+            mins, maxs = polygon.get_bounds()
+
+            vertex_lists = []
+            p_verts = polygon.vertices + polygon.offset
+            for v, v_next in zip(p_verts, numpy.roll(p_verts, -1, axis=0)):
+                dv = v_next - v
+
+                if abs(dv[0]) < 1e-20:
+                    xs = numpy.array([v[0], v[0]])   # TODO maybe pick between v[0] and v_next[0]?
+                    ys = numpy.array([v[1], v_next[1]])
+                    xi = numpy.digitize(xs, grid_x).clip(1, len(grid_x) - 1)
+                    yi = numpy.digitize(ys, grid_y).clip(1, len(grid_y) - 1)
+                    err_x = (xs - grid_x[xi]) / (grid_x[xi] - grid_x[xi - 1])
+                    err_y = (ys - grid_y[yi]) / (grid_y[yi] - grid_y[yi - 1])
+                    xi[err_y < 0.5] -= 1
+                    yi[err_y < 0.5] -= 1
+
+                    segment = numpy.column_stack((grid_x[xi], grid_y[yi]))
+                    vertex_lists.append(segment)
+                    continue
+
+                m = dv[1]/dv[0]
+                def get_grid_inds(xes):
+                    ys = m * (xes - v[0]) + v[1]
+
+                    # (inds - 1) is the index of the y-grid line below the edge's intersection with the x-grid
+                    inds = numpy.digitize(ys, grid_y).clip(1, len(grid_y) - 1)
+
+                    # err is what fraction of the cell upwards we have to go to reach our y
+                    #   (can be negative at bottom edge due to clip above)
+                    err = (ys - grid_y[inds - 1]) / (grid_y[inds] - grid_y[inds - 1])
+
+                    # now set inds to the index of the nearest y-grid line
+                    inds[err < 0.5] -= 1
+                    #if dv[0] >= 0:
+                    #    inds[err <= 0.5] -= 1
+                    #else:
+                    #    inds[err < 0.5] -= 1
+                    return inds
+
+                gxi_range = numpy.digitize([v[0], v_next[0]], grid_x)
+                gxi_min = numpy.min(gxi_range - 1).clip(0, len(grid_x))
+                gxi_max = numpy.max(gxi_range).clip(0, len(grid_x))
+
+                xs = grid_x[gxi_min:gxi_max]
+                inds = get_grid_inds(xs)
+
+                # Find intersections for midpoints
+                xs2 = (xs[:-1] + xs[1:]) / 2
+                inds2 = get_grid_inds(xs2)
+
+                xinds = numpy.round(numpy.arange(gxi_min, gxi_max - 0.99, 1/3)).astype(int)
+
+                # interleave the results
+                yinds = xinds.copy()
+                yinds[0::3] = inds
+                yinds[1::3] = inds2
+                yinds[2::3] = inds2
+
+                vlist = numpy.column_stack((grid_x[xinds], grid_y[yinds]))
+                if dv[0] < 0:
+                    vlist = vlist[::-1]
+
+                vertex_lists.append(vlist)
+            polygon_contours.append(numpy.vstack(vertex_lists))
+
+        manhattan_polygons = []
+        for contour in polygon_contours:
+            manhattan_polygons.append(Polygon(
+                vertices=contour,
+                layer=self.layer,
+                dose=self.dose))
+
+        return manhattan_polygons
+
+
     def manhattanize(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
@@ -233,6 +317,7 @@ class Shape(metaclass=ABCMeta):
 
         polygon_contours = []
         for polygon in self.to_polygons():
+            # Get rid of unused gridlines (anything not within 2 lines of the polygon bounds)
             mins, maxs = polygon.get_bounds()
             keep_x = numpy.logical_and(grid_x > mins[0], grid_x < maxs[0])
             keep_y = numpy.logical_and(grid_y > mins[1], grid_y < maxs[1])
