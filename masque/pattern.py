@@ -94,6 +94,22 @@ class Pattern:
             pat.subpatterns = [s for s in self.subpatterns if subpatterns_func(s)]
         return pat
 
+    def apply(self,
+              func: Callable[['Pattern'], 'Pattern']
+              ) -> 'Pattern':
+        """
+        Recursively apply func() to this pattern and its subpatterns.
+        func() is expected to take and return a Pattern.
+        func() is first applied to the pattern as a whole, then the subpatterns.
+
+        :param func: Function which accepts a Pattern, and returns a pattern.
+        :return: The result of applying func() to this pattern and all subpatterns.
+        """
+        pat = func(self)
+        for subpat in pat.subpatterns:
+            subpat.pattern = subpat.pattern.apply(func)
+        return pat
+
     def polygonize(self,
                    poly_num_points: int=None,
                    poly_max_arclen: float=None
