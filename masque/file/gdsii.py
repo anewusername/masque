@@ -101,7 +101,7 @@ def write(patterns: Pattern or List[Pattern],
             sref = gdsii.elements.SRef(struct_name=encoded_name,
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
-            sref.angle = subpat.rotation
+            sref.angle = subpat.rotation * 180 / numpy.pi
             sref.mag = subpat.scale
             structure.append(sref)
 
@@ -210,7 +210,7 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
             sref = gdsii.elements.SRef(struct_name=encoded_name,
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
-            sref.angle = subpat.rotation
+            sref.angle = subpat.rotation * 180 / numpy.pi
             sref.mag = subpat.scale
             structure.append(sref)
 
@@ -270,7 +270,7 @@ def read(filename: str,
                 if get_bit(element.strans, 13):
                     subpat.offset *= subpat.scale
             if element.angle is not None:
-                subpat.rotation = element.angle
+                subpat.rotation = element.angle * numpy.pi / 180
                 # Bit 14 means absolute rotation
                 if get_bit(element.strans, 14):
                     subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
