@@ -90,11 +90,13 @@ class Text(Shape):
 
         return all_polygons
 
-    def rotate(self, theta: float):
+    def rotate(self, theta: float) -> 'Text':
         self.rotation += theta
+        return self
 
-    def scale_by(self, c: float):
+    def scale_by(self, c: float) -> 'Text':
         self.height *= c
+        return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
         return (type(self), self.string, self.font_path, self.layer), \
