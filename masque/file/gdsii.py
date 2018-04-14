@@ -301,8 +301,17 @@ def read(filename: str,
                 pat.subpatterns.append(ref_element_to_subpat(element, element.xy))
 
             elif isinstance(element, gdsii.elements.ARef):
-                for offset in element.xy:
-                    pat.subpatterns.append(ref_element_to_subpat(element, offset))
+                xy = numpy.array(element.xy)
+                origin = xy[0]
+                col_spacing = (xy[1] - origin) / element.cols
+                row_spacing = (xy[2] - origin) / element.rows
+
+                print(element.xy)
+                for c in range(element.cols):
+                    for r in range(element.rows):
+                        offset = origin + c * col_spacing + r * row_spacing
+                        pat.subpatterns.append(ref_element_to_subpat(element, offset))
+
         patterns.append(pat)
 
     # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
