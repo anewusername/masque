@@ -102,6 +102,14 @@ def write(patterns: Pattern or List[Pattern],
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
             sref.angle = subpat.rotation * 180 / numpy.pi
+            mirror_x, mirror_y = subpat.mirrored
+            if mirror_y and mirror_y:
+                sref.angle += 180
+            elif mirror_x:
+                sref.strans = set_bit(sref.strans, 15 - 0, True)
+            elif mirror_y:
+                sref.angle += 180
+                sref.strans = set_bit(sref.strans, 15 - 0, True)
             sref.mag = subpat.scale
             structure.append(sref)
 
@@ -212,6 +220,14 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
             sref.strans = 0
             sref.angle = subpat.rotation * 180 / numpy.pi
             sref.mag = subpat.scale
+            mirror_x, mirror_y = subpat.mirrored
+            if mirror_y and mirror_y:
+                sref.angle += 180
+            elif mirror_x:
+                sref.strans = set_bit(sref.strans, 15 - 0, True)
+            elif mirror_y:
+                sref.angle += 180
+                sref.strans = set_bit(sref.strans, 15 - 0, True)
             structure.append(sref)
 
     with open(filename, mode='wb') as stream:
@@ -258,7 +274,6 @@ def read(filename: str,
         # Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
         #  and sets the instance attribute .ref_name to the struct_name.
         #
-        # BUG: Need to check STRANS bit 0 to handle x-reflection
         # BUG: "Absolute" means not affected by parent elements.
         #       That's not currently supported by masque at all, so need to either tag it and
         #       undo the parent transformations, or implement it in masque.
@@ -277,6 +292,9 @@ def read(filename: str,
                 if get_bit(element.strans, 15 - 14):
                     #subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
                     raise PatternError('Absolute rotation is not implemented yet!')
+            # Bit 0 means mirror x-axis
+            if get_bit(element.strans, 15 - 0):
+                subpat.mirror(axis=0)
         return subpat
 
 
