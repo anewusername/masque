@@ -68,7 +68,10 @@ def write(patterns: Pattern or List[Pattern],
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
         sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
-        structure = gdsii.structure.Structure(name=sanitized_name.encode('ASCII'))
+        encoded_name = sanitized_name.encode('ASCII')
+        if len(encoded_name) == 0:
+            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
+        structure = gdsii.structure.Structure(name=encoded_name)
         lib.append(structure)
 
         # Add a Boundary element for each shape
@@ -92,7 +95,10 @@ def write(patterns: Pattern or List[Pattern],
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
             sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.pattern.name)
-            sref = gdsii.elements.SRef(struct_name=sanitized_name.encode('ASCII'),
+            encoded_name = sanitized_name.encode('ASCII')
+            if len(encoded_name) == 0:
+                raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(subpat.pattern.name))
+            sref = gdsii.elements.SRef(struct_name=encoded_name,
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
             sref.angle = subpat.rotation
@@ -175,7 +181,10 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
     for pat_id, pat_dose in sd_table:
         pat = patterns_by_id[pat_id]
 
-        structure = gdsii.structure.Structure(name=mangle_name(pat, pat_dose).encode('ASCII'))
+        encoded_name = mangle_name(pat, pat_dose).encode('ASCII')
+        if len(encoded_name) == 0:
+            raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(pat.name))
+        structure = gdsii.structure.Structure(name=encoded_name)
         lib.append(structure)
 
         # Add a Boundary element for each shape
@@ -195,7 +204,10 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
             dose_mult = subpat.dose * pat_dose
-            sref = gdsii.elements.SRef(struct_name=mangle_name(subpat.pattern, dose_mult).encode('ASCII'),
+            encoded_name = mangle_name(subpat.pattern, dose_mult).encode('ASCII')
+            if len(encoded_name) == 0:
+                raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(subpat.pattern.name))
+            sref = gdsii.elements.SRef(struct_name=encoded_name,
                                        xy=numpy.round([subpat.offset]).astype(int))
             sref.strans = 0
             sref.angle = subpat.rotation
