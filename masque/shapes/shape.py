@@ -72,6 +72,16 @@ class Shape(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def mirror(self, axis: int) -> 'Shape':
+        """
+        Mirror the shape across an axis.
+
+        :param axis: Axis to mirror across.
+        :return: self
+        """
+        pass
+
+    @abstractmethod
     def scale_by(self, c: float) -> 'Shape':
         """
         Scale the shape's size (eg. radius, for a circle) by a constant factor.

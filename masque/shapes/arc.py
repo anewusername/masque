@@ -280,6 +280,12 @@ class Arc(Shape):
         self.rotation += theta
         return self
 
+    def mirror(self, axis: int) -> 'Arc':
+        self.offset[axis - 1] *= -1
+        self.rotation *= -1
+        self.angles *= -1
+        return self
+
     def scale_by(self, c: float) -> 'Arc':
         self.radii *= c
         self.width *= c

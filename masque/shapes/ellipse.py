@@ -142,6 +142,11 @@ class Ellipse(Shape):
         self.rotation += theta
         return self
 
+    def mirror(self, axis: int) -> 'Ellipse':
+        self.offset[axis - 1] *= -1
+        self.rotation *= -1
+        return self
+
     def scale_by(self, c: float) -> 'Ellipse':
         self.radii *= c
         return self

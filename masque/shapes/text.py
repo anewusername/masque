@@ -18,6 +18,7 @@ class Text(Shape):
     _string = ''
     _height = 1.0
     _rotation = 0.0
+    _mirrored = None
     font_path = ''
 
     # vertices property
@@ -51,10 +52,22 @@ class Text(Shape):
             raise PatternError('Height must be a scalar')
         self._height = val
 
+    # Mirrored property
+    @property
+    def mirrored(self) -> List[bool]:
+        return self._mirrored
+
+    @mirrored.setter
+    def mirrored(self, val: List[bool]):
+        if is_scalar(val):
+            raise PatternError('Mirrored must be a 2-element list of booleans')
+        self._mirrored = val
+
     def __init__(self,
                  string: str,
                  height: float,
                  font_path: str,
+                 mirrored: List[bool]=None,
                  rotation: float=0.0,
                  offset: vector2=(0.0, 0.0),
                  layer: int=0,
@@ -66,6 +79,9 @@ class Text(Shape):
         self.height = height
         self.rotation = rotation
         self.font_path = font_path
+        if mirrored is None:
+            mirrored = [False, False]
+        self.mirrored = mirrored
 
     def to_polygons(self,
                     _poly_num_points: int=None,
@@ -79,9 +95,9 @@ class Text(Shape):
             # Move these polygons to the right of the previous letter
             for xys in raw_polys:
                 poly = Polygon(xys, dose=self.dose, layer=self.layer)
+                [poly.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
                 poly.scale_by(self.height)
                 poly.offset = self.offset + [total_advance, 0]
-                # poly.scale_by(self.height)
                 poly.rotate_around(self.offset, self.rotation)
                 all_polygons += [poly]
 
@@ -94,16 +110,21 @@ class Text(Shape):
         self.rotation += theta
         return self
 
+    def mirror(self, axis: int) -> 'Text':
+        self.mirrored[axis] = not self.mirrored[axis]
+        return self
+
     def scale_by(self, c: float) -> 'Text':
         self.height *= c
         return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
-        return (type(self), self.string, self.font_path, self.layer), \
+        return (type(self), self.string, self.font_path, self.mirrored, self.layer), \
                (self.offset, self.height / norm_value, self.rotation, self.dose), \
                lambda: Text(string=self.string,
                             height=self.height * norm_value,
                             font_path=self.font_path,
+                            mirrored=self.mirrored,
                             layer=self.layer)
 
     def get_bounds(self) -> numpy.ndarray:

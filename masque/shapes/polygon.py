@@ -146,6 +146,10 @@ class Polygon(Shape):
         self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
         return self
 
+    def mirror(self, axis: int) -> 'Polygon':
+        self.vertices[:, axis - 1] *= -1
+        return self
+
     def scale_by(self, c: float) -> 'Polygon':
         self.vertices *= c
         return self

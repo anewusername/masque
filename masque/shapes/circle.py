@@ -82,6 +82,10 @@ class Circle(Shape):
     def rotate(self, theta: float) -> 'Circle':
         return self
 
+    def mirror(self, axis: int) -> 'Circle':
+        self.offset *= -1
+        return self
+
     def scale_by(self, c: float) -> 'Circle':
         self.radius *= c
         return self
