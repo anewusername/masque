@@ -258,23 +258,27 @@ def read(filename: str,
         # Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
         #  and sets the instance attribute .ref_name to the struct_name.
         #
-        # BUG: Figure out what "absolute" means in the context of elements and if the current
-        #       behavior is correct
         # BUG: Need to check STRANS bit 0 to handle x-reflection
+        # BUG: "Absolute" means not affected by parent elements.
+        #       That's not currently supported by masque at all, so need to either tag it and
+        #       undo the parent transformations, or implement it in masque.
         subpat = SubPattern(pattern=None, offset=offset)
         subpat.ref_name = element.struct_name
         if element.strans is not None:
             if element.mag is not None:
                 subpat.scale = element.mag
                 # Bit 13 means absolute scale
-                if get_bit(element.strans, 13):
-                    subpat.offset *= subpat.scale
+                if get_bit(element.strans, 15 - 13):
+                    #subpat.offset *= subpat.scale
+                    raise PatternError('Absolute scale is not implemented yet!')
             if element.angle is not None:
                 subpat.rotation = element.angle * numpy.pi / 180
                 # Bit 14 means absolute rotation
-                if get_bit(element.strans, 14):
-                    subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
+                if get_bit(element.strans, 15 - 14):
+                    #subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
+                    raise PatternError('Absolute rotation is not implemented yet!')
         return subpat
+
 
     patterns = []
     for structure in lib:
