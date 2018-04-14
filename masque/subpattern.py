@@ -3,7 +3,7 @@
   offset, rotation, scaling, and other such properties to the reference.
 """
 
-from typing import Union
+from typing import Union, List
 
 import numpy
 from numpy import pi
@@ -26,11 +26,13 @@ class SubPattern:
     _rotation = 0.0         # type: float
     _dose = 1.0             # type: float
     _scale = 1.0            # type: float
+    _mirrored = None        # type: List[bool]
 
     def __init__(self,
                  pattern: 'Pattern',
                  offset: vector2=(0.0, 0.0),
                  rotation: float=0.0,
+                 mirrored: List[bool]=None,
                  dose: float=1.0,
                  scale: float=1.0):
         self.pattern = pattern
@@ -38,6 +40,9 @@ class SubPattern:
         self.rotation = rotation
         self.dose = dose
         self.scale = scale
+        if mirrored is None:
+            mirrored = [False, False]
+        self.mirrored = mirrored
 
     # offset property
     @property
@@ -90,6 +95,17 @@ class SubPattern:
             raise PatternError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)
 
+    # Mirrored property
+    @property
+    def mirrored(self) -> List[bool]:
+        return self._mirrored
+
+    @mirrored.setter
+    def mirrored(self, val: List[bool]):
+        if is_scalar(val):
+            raise PatternError('Mirrored must be a 2-element list of booleans')
+        self._mirrored = val
+
     def as_pattern(self) -> 'Pattern':
         """
         Returns a copy of self.pattern which has been scaled, rotated, etc. according to this
@@ -98,6 +114,7 @@ class SubPattern:
         """
         pattern = self.pattern.copy()
         pattern.scale_by(self.scale)
+        [pattern.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
         pattern.rotate_around((0.0, 0.0), self.rotation)
         pattern.translate_elements(self.offset)
         pattern.scale_element_doses(self.dose)
@@ -136,6 +153,16 @@ class SubPattern:
         :return: self
         """
         self.rotation += rotation
+        return self
+
+    def mirror(self, axis: int) -> 'SubPattern':
+        """
+        Mirror the subpattern across an axis.
+
+        :param axis: Axis to mirror across.
+        :return: self
+        """
+        self.mirrored[axis] = not self.mirrored[axis]
         return self
 
     def get_bounds(self) -> numpy.ndarray or None:

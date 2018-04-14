@@ -351,6 +351,40 @@ class Pattern:
             entry.rotate(rotation)
         return self
 
+    def mirror_element_centers(self, axis: int) -> 'Pattern':
+        """
+        Mirror the offsets of all shapes and subpatterns across an axis
+
+        :param axis: Axis to mirror across
+        :return: self
+        """
+        for entry in self.shapes + self.subpatterns:
+            entry.offset[axis] *= -1
+        return self
+
+    def mirror_elements(self, axis: int) -> 'Pattern':
+        """
+        Mirror each shape and subpattern across an axis, relative to its
+          center (offset)
+
+        :param axis: Axis to mirror across
+        :return: self
+        """
+        for entry in self.shapes + self.subpatterns:
+            entry.mirror(axis)
+        return self
+
+    def mirror(self, axis: int) -> 'Pattern':
+        """
+        Mirror the Pattern across an axis
+
+        :param axis: Axis to mirror across
+        :return: self
+        """
+        self.mirror_elements(axis)
+        self.mirror_element_centers(axis)
+        return self
+
     def scale_element_doses(self, factor: float) -> 'Pattern':
         """
         Multiply all shape and subpattern doses by a factor
