@@ -367,12 +367,22 @@ class Pattern:
         Return a copy of the Pattern, deep-copying shapes and copying subpattern entries, but not
          deep-copying any referenced patterns.
 
+	See also: Pattern.deepcopy()
+
         :return: A copy of the current Pattern.
         """
         cp = copy.copy(self)
         cp.shapes = copy.deepcopy(cp.shapes)
         cp.subpatterns = [copy.copy(subpat) for subpat in cp.subpatterns]
         return cp
+
+    def deepcopy(self) -> 'Pattern':
+        """
+        Convenience method for copy.deepcopy(pattern)
+
+        :return: A deep copy of the current Pattern.
+        """
+        return copy.deepcopy(self)
 
     @staticmethod
     def load(filename: str) -> 'Pattern':
