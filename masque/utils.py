@@ -30,6 +30,22 @@ def get_bit(bit_string: Any, bit_id: int) -> bool:
     return bit_string & (1 << bit_id) != 0
 
 
+def set_bit(bit_string: Any, bit_id: int, value: bool) -> Any:
+    """
+    Returns 'bit_string' with bit number 'bit_id' set to 'value'.
+
+    :param bit_string: Bit string to alter
+    :param bit_id: Bit number, 0-indexed from right (lsb)
+    :param value: Boolean value to set bit to
+    :return: Altered 'bit_string'
+    """
+    mask = (1 << bit_id)
+    bit_string &= ~mask
+    if value:
+        bit_string |= mask
+    return bit_string
+
+
 def rotation_matrix_2d(theta: float) -> numpy.ndarray:
     """
     2D rotation matrix for rotating counterclockwise around the origin.
