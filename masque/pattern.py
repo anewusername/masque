@@ -98,16 +98,30 @@ class Pattern:
               func: Callable[['Pattern'], 'Pattern']
               ) -> 'Pattern':
         """
-        Recursively apply func() to this pattern and its subpatterns.
+        Recursively apply func() to this pattern and any pattern it references.
         func() is expected to take and return a Pattern.
-        func() is first applied to the pattern as a whole, then the subpatterns.
+        func() is first applied to the pattern as a whole, then the referenced patterns.
+        It is only applied to any given pattern once, regardless of how many times it is
+            referenced.
 
         :param func: Function which accepts a Pattern, and returns a pattern.
         :return: The result of applying func() to this pattern and all subpatterns.
+        :raises: PatternError if called on a pattern containing a circular reference.
         """
+        pat_map = {id(self): None}
         pat = func(self)
+        pat_map[id(self)] = pat
+
         for subpat in pat.subpatterns:
-            subpat.pattern = subpat.pattern.apply(func)
+            ref_pat_id = id(subpat.pattern)
+            if ref_pat_id not in pat_map:
+                pat_map[ref_pat_id] = None
+                subpat.pattern = subpat.pattern.apply(func)
+                pat_map[ref_pat_id] = subpat.pattern
+            elif pat_map[ref_pat_id] is None:
+                raise PatternError('.apply() called on pattern with circular reference')
+            else:
+                subpat.pattern = pat_map[ref_pat_id]
         return pat
 
     def polygonize(self,
