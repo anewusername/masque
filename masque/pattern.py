@@ -87,7 +87,7 @@ class Pattern:
         :return: A Pattern containing all the shapes and subpatterns for which the parameter
                         functions return True
         """
-        pat = Pattern()
+        pat = Pattern(name=self.name)
         if shapes_func is not None:
             pat.shapes = [s for s in self.shapes if shapes_func(s)]
         if subpatterns_func is not None:
