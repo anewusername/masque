@@ -81,17 +81,26 @@ class Pattern:
         Self is _not_ altered, but shapes and subpatterns are _not_ copied.
 
         :param shapes_func: Given a shape, returns a boolean denoting whether the shape is a member
-                        of the subset
+             of the subset. Default always returns False.
         :param subpatterns_func: Given a subpattern, returns a boolean denoting if it is a member
-                        of the subset
+             of the subset. Default always returns False.
+        :param recursive: If True, also calls .subset() recursively on patterns referenced by this
+             pattern.
         :return: A Pattern containing all the shapes and subpatterns for which the parameter
-                        functions return True
+             functions return True
         """
-        pat = Pattern(name=self.name)
-        if shapes_func is not None:
-            pat.shapes = [s for s in self.shapes if shapes_func(s)]
-        if subpatterns_func is not None:
-            pat.subpatterns = [s for s in self.subpatterns if subpatterns_func(s)]
+        def do_subset(self):
+            pat = Pattern(name=self.name)
+            if shapes_func is not None:
+                pat.shapes = [s for s in self.shapes if shapes_func(s)]
+            if subpatterns_func is not None:
+                pat.subpatterns = [s for s in self.subpatterns if subpatterns_func(s)]
+            return pat
+
+        if recursive:
+            pat = self.apply(do_subset)
+        else:
+            pat = do_subset(self)
         return pat
 
     def apply(self,
