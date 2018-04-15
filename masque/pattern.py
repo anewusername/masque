@@ -359,7 +359,7 @@ class Pattern:
         :return: self
         """
         for entry in self.shapes + self.subpatterns:
-            entry.offset[axis] *= -1
+            entry.offset[axis - 1] *= -1
         return self
 
     def mirror_elements(self, axis: int) -> 'Pattern':
