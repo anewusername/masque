@@ -143,10 +143,10 @@ class Pattern:
         Arguments are passed directly to shape.to_polygons(...).
 
         :param poly_num_points: Number of points to use for each polygon. Can be overridden by
-                     poly_max_arclen if that results in more points. Optional, defaults to shapes'
-                      internal defaults.
+             poly_max_arclen if that results in more points. Optional, defaults to shapes'
+             internal defaults.
         :param poly_max_arclen: Maximum arclength which can be approximated by a single line
-                     segment. Optional, defaults to shapes' internal defaults.
+             segment. Optional, defaults to shapes' internal defaults.
         :return: self
         """
         old_shapes = self.shapes
@@ -193,7 +193,7 @@ class Pattern:
 
         :param recursive: Whether to call recursively on self's subpatterns. Default True.
         :param norm_value: Passed to shape.normalized_form(norm_value). Default 1e6 (see function
-                     note about GDSII)
+                note about GDSII)
         :param exclude_types: Shape types passed in this argument are always left untouched, for
                 speed or convenience. Default: (Shapes.Polygon,)
         :return: self
