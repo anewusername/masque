@@ -328,7 +328,6 @@ def read(filename: str,
                 col_spacing = (xy[1] - origin) / element.cols
                 row_spacing = (xy[2] - origin) / element.rows
 
-                print(element.xy)
                 for c in range(element.cols):
                     for r in range(element.rows):
                         offset = origin + c * col_spacing + r * row_spacing
