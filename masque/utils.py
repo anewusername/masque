@@ -24,7 +24,7 @@ def get_bit(bit_string: Any, bit_id: int) -> bool:
     Returns true iff bit number 'bit_id' from the right of 'bit_string' is 1
 
     :param bit_string: Bit string to test
-    :param bit_id: Bit number, 0-indexed from the right (lsb
+    :param bit_id: Bit number, 0-indexed from the right (lsb)
     :return: value of the requested bit (bool)
     """
     return bit_string & (1 << bit_id) != 0
