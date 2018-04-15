@@ -74,6 +74,7 @@ class Pattern:
     def subset(self,
                shapes_func: Callable[[Shape], bool]=None,
                subpatterns_func: Callable[[SubPattern], bool]=None,
+               recursive: bool=False,
                ) -> 'Pattern':
         """
         Returns a Pattern containing only the shapes and subpatterns for which shapes_func or
