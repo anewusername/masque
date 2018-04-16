@@ -90,12 +90,12 @@ class Pattern:
         :return: A Pattern containing all the shapes and subpatterns for which the parameter
              functions return True
         """
-        def do_subset(self):
-            pat = Pattern(name=self.name)
+        def do_subset(src):
+            pat = Pattern(name=src.name)
             if shapes_func is not None:
-                pat.shapes = [s for s in self.shapes if shapes_func(s)]
+                pat.shapes = [s for s in src.shapes if shapes_func(s)]
             if subpatterns_func is not None:
-                pat.subpatterns = [s for s in self.subpatterns if subpatterns_func(s)]
+                pat.subpatterns = [s for s in src.subpatterns if subpatterns_func(s)]
             return pat
 
         if recursive:
