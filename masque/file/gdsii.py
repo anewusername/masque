@@ -76,18 +76,10 @@ def write(patterns: Pattern or List[Pattern],
 
         # Add a Boundary element for each shape
         for shape in pat.shapes:
+            layer, data_type = _mlayer2gds(shape.layer)
             for polygon in shape.to_polygons():
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
                 xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                if is_scalar(polygon.layer):
-                    layer = polygon.layer
-                    data_type = 0
-                else:
-                    layer = polygon.layer[0]
-                    if len(polygon.layer) > 1:
-                        data_type = polygon.layer[1]
-                    else:
-                        data_type = 0
                 structure.append(gdsii.elements.Boundary(layer=layer,
                                                          data_type=data_type,
                                                          xy=xy_closed))
@@ -344,3 +336,16 @@ def read(filename: str,
             del sp.ref_name
 
     return patterns_dict, library_info
+
+
+def _mlayer2gds(mlayer):
+    if is_scalar(mlayer):
+        layer = mlayer
+        data_type = 0
+    else:
+        layer = mlayer[0]
+        if len(mlayer) > 1:
+            data_type = mlayer[1]
+        else:
+            data_type = 0
+    return layer, data_type
