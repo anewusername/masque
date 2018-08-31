@@ -11,7 +11,7 @@ import re
 import numpy
 
 from .utils import mangle_name, make_dose_table
-from .. import Pattern, SubPattern, PatternError
+from .. import Pattern, SubPattern, PatternError, Label
 from ..shapes import Polygon
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
 
@@ -74,6 +74,7 @@ def write(patterns: Pattern or List[Pattern],
         structure = gdsii.structure.Structure(name=encoded_name)
         lib.append(structure)
 
+
         # Add a Boundary element for each shape
         for shape in pat.shapes:
             layer, data_type = _mlayer2gds(shape.layer)
@@ -83,6 +84,14 @@ def write(patterns: Pattern or List[Pattern],
                 structure.append(gdsii.elements.Boundary(layer=layer,
                                                          data_type=data_type,
                                                          xy=xy_closed))
+        for label in pat.labels:
+            layer, text_type = _mlayer2gds(label.layer)
+            xy_closed =  numpy.round([label.offset, label.offset]).astype(int)
+            structure.append(gdsii.elements.Text(layer=layer,
+                                                 text_type=text_type,
+                                                 xy=xy_closed,
+                                                 string=label.string.encode('ASCII')))
+
         # Add an SREF for each subpattern entry
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
@@ -200,6 +209,14 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
                 structure.append(gdsii.elements.Boundary(layer=layer,
                                                          data_type=data_type,
                                                          xy=xy_closed))
+        for label in pat.labels:
+            layer, text_type = _mlayer2gds(label.layer)
+            xy_closed =  numpy.round([label.offset, label.offset]).astype(int)
+            structure.append(gdsii.elements.Text(layer=layer,
+                                                 text_type=text_type,
+                                                 xy=xy_closed,
+                                                 string=label.string.encode('ASCII')))
+
         # Add an SREF for each subpattern entry
         #  strans must be set for angle and mag to take effect
         for subpat in pat.subpatterns:
@@ -310,6 +327,12 @@ def read(filename: str,
                         continue
 
                 pat.shapes.append(shape)
+
+            elif isinstance(element, gdsii.elements.Text):
+                label = Label(offset=element.xy,
+                              layer=(element.layer, element.text_type),
+                              string=element.string.decode('ASCII'))
+                pat.labels.append(label)
 
             elif isinstance(element, gdsii.elements.SRef):
                 pat.subpatterns.append(ref_element_to_subpat(element, element.xy))

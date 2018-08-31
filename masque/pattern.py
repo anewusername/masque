@@ -13,6 +13,7 @@ import numpy
 
 from .subpattern import SubPattern
 from .shapes import Shape, Polygon
+from .label import Label
 from .utils import rotation_matrix_2d, vector2
 from .error import PatternError
 
@@ -32,11 +33,13 @@ class Pattern:
     :var name: An identifier for this object. Not necessarily unique.
     """
     shapes = None               # type: List[Shape]
+    labels = None               # type: List[Labels]
     subpatterns = None          # type: List[SubPattern]
     name = None                 # type: str
 
     def __init__(self,
                  shapes: List[Shape]=(),
+                 labels: List[Label]=(),
                  subpatterns: List[SubPattern]=(),
                  name: str='',
                  ):
@@ -45,6 +48,7 @@ class Pattern:
          Non-list inputs for shapes and subpatterns get converted to lists.
 
         :param shapes: Initial shapes in the Pattern
+        :param labels: Initial labels in the Pattern
         :param subpatterns: Initial subpatterns in the Pattern
         :param name: An identifier for the Pattern
         """
@@ -52,6 +56,11 @@ class Pattern:
             self.shapes = shapes
         else:
             self.shapes = list(shapes)
+
+        if isinstance(labels, list):
+            self.labels = labels
+        else:
+            self.labels = list(labels)
 
         if isinstance(subpatterns, list):
             self.subpatterns = subpatterns
@@ -62,26 +71,31 @@ class Pattern:
 
     def append(self, other_pattern: 'Pattern') -> 'Pattern':
         """
-        Appends all shapes and subpatterns from other_pattern to self's shapes and subpatterns.
+        Appends all shapes, labels and subpatterns from other_pattern to self's shapes,
+          labels, and supbatterns.
 
         :param other_pattern: The Pattern to append
         :return: self
         """
         self.subpatterns += other_pattern.subpatterns
         self.shapes += other_pattern.shapes
+        self.labels += other_pattern.labels
         return self
 
     def subset(self,
                shapes_func: Callable[[Shape], bool]=None,
+               labels_func: Callable[[Label], bool]=None,
                subpatterns_func: Callable[[SubPattern], bool]=None,
                recursive: bool=False,
                ) -> 'Pattern':
         """
-        Returns a Pattern containing only the shapes and subpatterns for which shapes_func or
-         subpatterns_func returns True.
-        Self is _not_ altered, but shapes and subpatterns are _not_ copied.
+        Returns a Pattern containing only the entities (e.g. shapes) for which the
+          given entity_func returns True.
+        Self is _not_ altered, but shapes, labels, and subpatterns are _not_ copied.
 
         :param shapes_func: Given a shape, returns a boolean denoting whether the shape is a member
+             of the subset. Default always returns False.
+        :param labels_func: Given a label, returns a boolean denoting whether the label is a member
              of the subset. Default always returns False.
         :param subpatterns_func: Given a subpattern, returns a boolean denoting if it is a member
              of the subset. Default always returns False.
@@ -94,6 +108,8 @@ class Pattern:
             pat = Pattern(name=src.name)
             if shapes_func is not None:
                 pat.shapes = [s for s in src.shapes if shapes_func(s)]
+            if labels_func is not None:
+                pat.labels = [s for s in src.labels if labels_func(s)]
             if subpatterns_func is not None:
                 pat.subpatterns = [s for s in src.subpatterns if subpatterns_func(s)]
             return pat
@@ -281,7 +297,7 @@ class Pattern:
 
         :return: [[x_min, y_min], [x_max, y_max]] or None
         """
-        entries = self.shapes + self.subpatterns
+        entries = self.shapes + self.subpatterns + self.labels
         if not entries:
             return None
 
@@ -304,17 +320,19 @@ class Pattern:
         self.subpatterns = []
         for subpat in subpatterns:
             subpat.pattern.flatten()
-            self.shapes += subpat.as_pattern().shapes
+            p = subpat.as_pattern()
+            self.shapes += p.shapes
+            self.labels += p.labels
         return self
 
     def translate_elements(self, offset: vector2) -> 'Pattern':
         """
-        Translates all shapes and subpatterns by the given offset.
+        Translates all shapes, label, and subpatterns by the given offset.
 
         :param offset: Offset to translate by
         :return: self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in self.shapes + self.subpatterns + self.labels:
             entry.translate(offset)
         return self
 
@@ -359,12 +377,12 @@ class Pattern:
 
     def rotate_element_centers(self, rotation: float) -> 'Pattern':
         """
-        Rotate the offsets of all shapes and subpatterns around (0, 0)
+        Rotate the offsets of all shapes, labels, and subpatterns around (0, 0)
 
         :param rotation: Angle to rotate by (counter-clockwise, radians)
         :return: self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in self.shapes + self.subpatterns + self.labels:
             entry.offset = numpy.dot(rotation_matrix_2d(rotation), entry.offset)
         return self
 
@@ -381,12 +399,12 @@ class Pattern:
 
     def mirror_element_centers(self, axis: int) -> 'Pattern':
         """
-        Mirror the offsets of all shapes and subpatterns across an axis
+        Mirror the offsets of all shapes, labels, and subpatterns across an axis
 
         :param axis: Axis to mirror across
         :return: self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in self.shapes + self.subpatterns + self.labels:
             entry.offset[axis - 1] *= -1
         return self
 
@@ -435,6 +453,7 @@ class Pattern:
         """
         cp = copy.copy(self)
         cp.shapes = copy.deepcopy(cp.shapes)
+        cp.labels = copy.deepcopy(cp.labels)
         cp.subpatterns = [copy.copy(subpat) for subpat in cp.subpatterns]
         return cp
 
@@ -487,6 +506,7 @@ class Pattern:
         :param fill_color: Interiors are drawn with this color (passed to matplotlib PolyCollection)
         :param overdraw: Whether to create a new figure or draw on a pre-existing one
         """
+        # TODO: add text labels to visualize()
         from matplotlib import pyplot
         import matplotlib.collections
 
