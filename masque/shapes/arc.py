@@ -18,7 +18,7 @@ class Arc(Shape):
 
     The radii define an ellipse; the ring is formed with radii +/- width/2.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.
-    The start and stop angle are measure counterclockwise from the first (x) radius.
+    The start and stop angle are measured counterclockwise from the first (x) radius.
     """
 
     _radii = None           # type: numpy.ndarray
