@@ -31,8 +31,8 @@ class Shape(metaclass=ABCMeta):
     # [x_offset, y_offset]
     _offset = numpy.array([0.0, 0.0])   # type: numpy.ndarray
 
-    # Layer (integer >= 0)
-    _layer = 0                          # type: int
+    # Layer (integer >= 0 or tuple)
+    _layer = 0                          # type: int or Tuple
 
     # Dose
     _dose = 1.0                         # type: float
