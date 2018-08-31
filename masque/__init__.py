@@ -32,3 +32,5 @@ from .pattern import Pattern
 
 
 __author__ = 'Jan Petykiewicz'
+
+version = '0.3'

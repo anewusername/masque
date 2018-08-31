@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+import masque
 
 setup(name='masque',
-      version='0.3',
+      version=masque.version,
       description='Lithography mask library',
       author='Jan Petykiewicz',
       author_email='anewusername@gmail.com',
