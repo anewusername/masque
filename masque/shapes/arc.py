@@ -170,14 +170,12 @@ class Arc(Shape):
         r0, r1 = self.radii
 
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
-        a0, a1 = (numpy.arctan2(r0*numpy.sin(a), r1*numpy.cos(a)) for a in self.angles)
-        sign = numpy.sign(self.angles[1] - self.angles[0])
-        if sign != numpy.sign(a1 - a0):
-            a1 += sign * 2 * pi
+        a_ranges = self._angles_to_parameters()
 
         # Approximate perimeter
         # Ramanujan, S., "Modular Equations and Approximations to ,"
         #  Quart. J. Pure. Appl. Math., vol. 45 (1913-1914), pp. 350-372
+        a0, a1 = a_ranges[1]    # use outer arc
         h = ((r1 - r0) / (r1 + r0)) ** 2
         ellipse_perimeter = pi * (r1 + r0) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
         perimeter = abs(a0 - a1) / (2 * pi) * ellipse_perimeter         # TODO: make this more accurate
@@ -187,18 +185,20 @@ class Arc(Shape):
             n += [poly_num_points]
         if poly_max_arclen is not None:
             n += [perimeter / poly_max_arclen]
-        thetas = numpy.linspace(a1, a0, max(n), endpoint=True)
+        thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], max(n), endpoint=True)
+        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], max(n), endpoint=True)
 
-        sin_th, cos_th = (numpy.sin(thetas), numpy.cos(thetas))
+        sin_th_i, cos_th_i = (numpy.sin(thetas_inner), numpy.cos(thetas_inner))
+        sin_th_o, cos_th_o = (numpy.sin(thetas_outer), numpy.cos(thetas_outer))
         wh = self.width / 2.0
 
-        xs1 = (r0 + wh) * cos_th
-        ys1 = (r1 + wh) * sin_th
-        xs2 = (r0 - wh) * cos_th
-        ys2 = (r1 - wh) * sin_th
+        xs1 = (r0 + wh) * cos_th_o
+        ys1 = (r1 + wh) * sin_th_o
+        xs2 = (r0 - wh) * cos_th_i
+        ys2 = (r1 - wh) * sin_th_i
 
-        xs = numpy.hstack((xs1, xs2[::-1]))
-        ys = numpy.hstack((ys1, ys2[::-1]))
+        xs = numpy.hstack((xs1, xs2))
+        ys = numpy.hstack((ys1, ys2))
         xys = numpy.vstack((xs, ys)).T
 
         poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset)
@@ -218,25 +218,20 @@ class Arc(Shape):
 
         If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
         '''
+        a_ranges = self._angles_to_parameters()
+
         mins = []
         maxs = []
-        for sgn in (+1, -1):
+        for a, sgn in zip(a_ranges, (-1, +1)):
             wh = sgn * self.width/2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
-            # Create paremeter 'a' for parametrized ellipse
-            a0, a1 = (numpy.arctan2(rx*numpy.sin(a), ry*numpy.cos(a)) for a in self.angles)
-            sign = numpy.sign(self.angles[1] - self.angles[0])
-            if sign != numpy.sign(a1 - a0):
-                a1 += sign * 2 * pi
-
-            a = numpy.array((a0, a1))
+            a0, a1 = a
             a0_offset = a0 - (a0 % (2 * pi))
 
             sin_r = numpy.sin(self.rotation)
             cos_r = numpy.cos(self.rotation)
-            tan_r = numpy.tan(self.rotation)
             sin_a = numpy.sin(a)
             cos_a = numpy.cos(a)
 
@@ -316,3 +311,23 @@ class Arc(Shape):
         return (type(self), radii, angles, width, self.layer), \
                (self.offset, scale/norm_value, rotation, self.dose), \
                lambda: Arc(radii=radii*norm_value, angles=angles, width=width, layer=self.layer)
+
+    def _angles_to_parameters(self) -> numpy.ndarray:
+        '''
+        :return: "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
+                   [[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]
+        '''
+        a = []
+        for sgn in (-1, +1):
+            wh = sgn * self.width/2
+            rx = self.radius_x + wh
+            ry = self.radius_y + wh
+
+            # create paremeter 'a' for parametrized ellipse
+            a0, a1 = (numpy.arctan2(rx*numpy.sin(a), ry*numpy.cos(a)) for a in self.angles)
+            sign = numpy.sign(self.angles[1] - self.angles[0])
+            if sign != numpy.sign(a1 - a0):
+                a1 += sign * 2 * pi
+
+            a.append((a0, a1))
+        return numpy.array(a)
