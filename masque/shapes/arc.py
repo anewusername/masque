@@ -312,6 +312,33 @@ class Arc(Shape):
                (self.offset, scale/norm_value, rotation, self.dose), \
                lambda: Arc(radii=radii*norm_value, angles=angles, width=width, layer=self.layer)
 
+    def get_cap_edges(self) -> numpy.ndarray:
+        '''
+        :returns: [[[x0, y0], [x1, y1]],   array of 4 points, specifying the two cuts which
+                   [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
+        '''
+        a_ranges = self._angles_to_parameters()
+
+        mins = []
+        maxs = []
+        for a, sgn in zip(a_ranges, (-1, +1)):
+            wh = sgn * self.width/2
+            rx = self.radius_x + wh
+            ry = self.radius_y + wh
+
+            sin_r = numpy.sin(self.rotation)
+            cos_r = numpy.cos(self.rotation)
+            sin_a = numpy.sin(a)
+            cos_a = numpy.cos(a)
+
+            # arc endpoints
+            xn, xp = sorted(rx * cos_r * cos_a - ry * sin_r * sin_a)
+            yn, yp = sorted(rx * sin_r * cos_a + ry * cos_r * sin_a)
+
+            mins.append([xn, yn])
+            maxs.append([xp, yp])
+        return  numpy.array([mins, maxs]) + self.offset
+
     def _angles_to_parameters(self) -> numpy.ndarray:
         '''
         :return: "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
