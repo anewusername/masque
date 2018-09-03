@@ -4,7 +4,7 @@ import numpy
 from numpy import pi
 
 from . import PatternError
-from .utils import is_scalar, vector2
+from .utils import is_scalar, vector2, rotation_matrix_2d
 
 
 __author__ = 'Jan Petykiewicz'
