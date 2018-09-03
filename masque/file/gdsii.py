@@ -86,10 +86,10 @@ def write(patterns: Pattern or List[Pattern],
                                                          xy=xy_closed))
         for label in pat.labels:
             layer, text_type = _mlayer2gds(label.layer)
-            xy_closed =  numpy.round([label.offset, label.offset]).astype(int)
+            xy=  numpy.round([label.offset]).astype(int)
             structure.append(gdsii.elements.Text(layer=layer,
                                                  text_type=text_type,
-                                                 xy=xy_closed,
+                                                 xy=xy,
                                                  string=label.string.encode('ASCII')))
 
         # Add an SREF for each subpattern entry
@@ -211,10 +211,10 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
                                                          xy=xy_closed))
         for label in pat.labels:
             layer, text_type = _mlayer2gds(label.layer)
-            xy_closed =  numpy.round([label.offset, label.offset]).astype(int)
+            xy =  numpy.round([label.offset]).astype(int)
             structure.append(gdsii.elements.Text(layer=layer,
                                                  text_type=text_type,
-                                                 xy=xy_closed,
+                                                 xy=xy,
                                                  string=label.string.encode('ASCII')))
 
         # Add an SREF for each subpattern entry
