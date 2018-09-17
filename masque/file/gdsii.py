@@ -53,7 +53,7 @@ def write(patterns: Pattern or List[Pattern],
     """
     # Create library
     lib = gdsii.library.Library(version=600,
-                                name='masque-write_dose2dtype'.encode('ASCII'),
+                                name='masque-gdsii-write'.encode('ASCII'),
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
@@ -255,11 +255,17 @@ def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
 def read(filename: str,
          use_dtype_as_dose: bool = False,
          clean_vertices: bool = True,
-         ) -> (List[Pattern], Dict[str, Any]):
+         ) -> (Dict[str, Pattern], Dict[str, Any]):
     """
-    Read a gdsii file and translate it into a list of Pattern objects. GDSII structures are
+    Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
      are translated into SubPattern objects.
+
+    Additional library info is returned in a dict, containing:
+      'name': name of the library
+      'meters_per_unit': number of meters per database unit (all values are in database units)
+      'logical_units_per_unit': number of "logical" units displayed by layout tools (typically microns)
+                                per database unit
 
     :param filename: Filename specifying a GDSII file to read from.
     :param use_dtype_as_dose: If false, set each polygon's layer to (gds_layer, gds_datatype).
@@ -268,15 +274,15 @@ def read(filename: str,
     :param clean_vertices: If true, remove any redundant vertices when loading polygons.
             The cleaning process removes any polygons with zero area or <3 vertices.
             Default True.
-    :return: Tuple: (List of Patterns generated GDSII structures, Dict of GDSII library info)
+    :return: Tuple: (Dict of pattern_name:Patterns generated from GDSII structures, Dict of GDSII library info)
     """
 
     with open(filename, mode='rb') as stream:
         lib = gdsii.library.Library.load(stream)
 
     library_info = {'name': lib.name.decode('ASCII'),
-                    'physical_unit': lib.physical_unit,
-                    'logical_unit': lib.logical_unit,
+                    'meters_per_unit': lib.physical_unit,
+                    'logical_units_per_unit': lib.logical_unit,
                     }
 
     def ref_element_to_subpat(element, offset: vector2) -> SubPattern:
