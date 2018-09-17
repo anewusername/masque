@@ -53,7 +53,7 @@ def write(patterns: Pattern or List[Pattern],
     """
     # Create library
     lib = gdsii.library.Library(version=600,
-                                name='masque-write_dose2dtype'.encode('ASCII'),
+                                name='masque-gdsii-write'.encode('ASCII'),
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
