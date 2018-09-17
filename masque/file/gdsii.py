@@ -261,6 +261,12 @@ def read(filename: str,
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
      are translated into SubPattern objects.
 
+    Additional library info is returned in a dict, containing:
+      'name': name of the library
+      'meters_per_unit': number of meters per database unit (all values are in database units)
+      'logical_units_per_unit': number of "logical" units displayed by layout tools (typically microns)
+                                per database unit
+
     :param filename: Filename specifying a GDSII file to read from.
     :param use_dtype_as_dose: If false, set each polygon's layer to (gds_layer, gds_datatype).
             If true, set the layer to gds_layer and the dose to gds_datatype.
@@ -275,8 +281,8 @@ def read(filename: str,
         lib = gdsii.library.Library.load(stream)
 
     library_info = {'name': lib.name.decode('ASCII'),
-                    'physical_unit': lib.physical_unit,
-                    'logical_unit': lib.logical_unit,
+                    'meters_per_unit': lib.physical_unit,
+                    'logical_units_per_unit': lib.logical_unit,
                     }
 
     def ref_element_to_subpat(element, offset: vector2) -> SubPattern:
