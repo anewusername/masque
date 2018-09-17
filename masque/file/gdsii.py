@@ -255,9 +255,9 @@ def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
 def read(filename: str,
          use_dtype_as_dose: bool = False,
          clean_vertices: bool = True,
-         ) -> (List[Pattern], Dict[str, Any]):
+         ) -> (Dict[str, Pattern], Dict[str, Any]):
     """
-    Read a gdsii file and translate it into a list of Pattern objects. GDSII structures are
+    Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
      are translated into SubPattern objects.
 
@@ -268,7 +268,7 @@ def read(filename: str,
     :param clean_vertices: If true, remove any redundant vertices when loading polygons.
             The cleaning process removes any polygons with zero area or <3 vertices.
             Default True.
-    :return: Tuple: (List of Patterns generated GDSII structures, Dict of GDSII library info)
+    :return: Tuple: (Dict of pattern_name:Patterns generated from GDSII structures, Dict of GDSII library info)
     """
 
     with open(filename, mode='rb') as stream:
