@@ -112,7 +112,7 @@ class SubPattern:
          SubPattern's properties.
         :return: Copy of self.pattern that has been altered to reflect the SubPattern's properties.
         """
-        pattern = self.pattern.copy()
+        pattern = self.pattern.deepcopy()
         pattern.scale_by(self.scale)
         [pattern.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
         pattern.rotate_around((0.0, 0.0), self.rotation)
