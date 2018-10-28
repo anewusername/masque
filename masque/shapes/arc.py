@@ -237,33 +237,31 @@ class Arc(Shape):
 
             # Cutoff angles
             xpt = (-self.rotation) % (2 * pi) + a0_offset
-            ypt = self.rotation % (2 * pi) + a0_offset
+            ypt = (pi/2 - self.rotation) % (2 * pi) + a0_offset
             xnt = (xpt - pi) % (2 * pi) + a0_offset
             ynt = (ypt - pi) % (2 * pi) + a0_offset
 
             # Points along coordinate axes
-            xs = rx * sin_r
-            yc = ry * cos_r
-            sin_ax = yc / (yc * yc + xs * xs)
-            cos_ax = xs / (yc * yc + xs * xs)
-            xr = rx * cos_r * cos_ax - ry * sin_r * sin_ax
-            yr = ry * sin_r * cos_ax + ry * cos_r * sin_ax
+            rx2_inv = 1 / (rx * rx)
+            ry2_inv = 1 / (ry * ry)
+            xr = numpy.abs(cos_r * cos_r * rx2_inv + sin_r * sin_r * ry2_inv) ** -0.5
+            yr = numpy.abs(-sin_r * -sin_r * rx2_inv + cos_r * cos_r * ry2_inv) ** -0.5
 
             # Arc endpoints
             xn, xp = sorted(rx * cos_r * cos_a - ry * sin_r * sin_a)
             yn, yp = sorted(rx * sin_r * cos_a + ry * cos_r * sin_a)
 
-            # If
-            if a0 < xpt < a1:
+            # If our arc subtends a coordinate axis, use the extremum along that axis
+            if a0 < xpt < a1 or a0 < xpt + 2 * pi < a1:
                 xp = xr
 
-            if a0 < xnt < a1:
+            if a0 < xnt < a1 or a0 < xnt + 2 * pi < a1:
                 xn = -xr
 
-            if a0 < ypt < a1:
+            if a0 < ypt < a1 or a0 < ypt + 2 * pi < a1:
                 yp = yr
 
-            if a0 < ynt < a1:
+            if a0 < ynt < a1 or a0 < ynt + 2 * pi < a1:
                 yn = -yr
 
             mins.append([xn, yn])
