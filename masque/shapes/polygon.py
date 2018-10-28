@@ -87,7 +87,7 @@ class Polygon(Shape):
                dose: float=1.0
                ) -> 'Polygon':
         """
-        Draw a square given side_length
+        Draw a square given side_length, centered on the origin.
 
         :param side_length: Length of one side
         :param rotation: Rotation counterclockwise, in radians
@@ -114,7 +114,7 @@ class Polygon(Shape):
                   dose: float=1.0
                   ) -> 'Polygon':
         """
-        Draw a rectangle with side lengths lx and ly
+        Draw a rectangle with side lengths lx and ly, centered on the origin.
 
         :param lx: Length along x (before rotation)
         :param ly: Length along y (before rotation)
