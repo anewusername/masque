@@ -20,7 +20,7 @@
     - numpy
     - matplotlib    [Pattern.visualize(...)]
     - python-gdsii  [masque.file.gdsii]
-    - svgwrite      [masque.file.svgwrite]
+    - svgwrite      [masque.file.svg]
 """
 
 from .error import PatternError
