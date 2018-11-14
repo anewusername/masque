@@ -196,6 +196,19 @@ class Shape(metaclass=ABCMeta):
         return self
 
     def manhattanize_fast(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
+        """
+        Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
+
+        This function works by
+            1) Converting the shape to polygons using .to_polygons()
+            2) Approximating each edge with an equivalent Manhattan edge
+        This process results in a reasonable Manhattan representation of the shape, but is
+          imprecise near non-Manhattan or off-grid corners.
+
+        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+        :return: List of Polygon objects with grid-aligned edges.
+        """
         from . import Polygon
 
         grid_x = numpy.unique(grid_x)
