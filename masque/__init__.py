@@ -18,7 +18,6 @@
 
  Dependencies:
     - numpy
-    - pyclipper
     - matplotlib    [Pattern.visualize(...)]
     - python-gdsii  [masque.file.gdsii]
     - svgwrite      [masque.file.svgwrite]

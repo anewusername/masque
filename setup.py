@@ -17,7 +17,6 @@ setup(name='masque',
       packages=find_packages(),
       install_requires=[
             'numpy',
-            'pyclipper',
       ],
       extras_require={
           'visualization': ['matplotlib'],
