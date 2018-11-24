@@ -186,7 +186,7 @@ class Polygon(Shape):
         self.remove_colinear_vertices()
         return self
 
-    def remove_duplicate_vertices(self) -> 'Polygon'
+    def remove_duplicate_vertices(self) -> 'Polygon':
         '''
         Removes all consecutive duplicate (repeated) vertices.
 
@@ -196,7 +196,7 @@ class Polygon(Shape):
         self.vertices = self.vertices[~duplicates]
         return self
 
-    def remove_colinear_vertices(self) -> 'Polygon'
+    def remove_colinear_vertices(self) -> 'Polygon':
         '''
         Removes consecutive co-linear vertices.
 
