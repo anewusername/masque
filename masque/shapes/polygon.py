@@ -130,6 +130,81 @@ class Polygon(Shape):
         poly.rotate(rotation)
         return poly
 
+    @staticmethod
+    def rect(xmin: float = None,
+             xctr: float = None,
+             xmax: float = None,
+             lx: float = None,
+             ymin: float = None,
+             yctr: float = None,
+             ymax: float = None,
+             ly: float = None,
+             layer: int = 0,
+             dose: float = 1.0
+             ) -> 'Polygon':
+        """
+        Draw a rectangle by specifying side/center positions.
+
+        Must provide 2 of (xmin, xctr, xmax, lx),
+        and 2 of (ymin, yctr, ymax, ly).
+
+        :param xmin: Minimum x coordinate
+        :param xctr: Center x coordinate
+        :param xmax: Maximum x coordinate
+        :param lx: Length along x direction
+        :param ymin: Minimum y coordinate
+        :param yctr: Center y coordinate
+        :param ymax: Maximum y coordinate
+        :param yx: Length along y direction
+        :param layer: Layer, default 0
+        :param dose: Dose, default 1.0
+        :return: A Polygon object containing the requested rectangle
+        """
+        if lx is None:
+            if xctr is None:
+                xctr = 0.5 * (xmax + xmin)
+                lx = xmax - xmin
+            elif xmax is None:
+                lx = 2 * (xctr - xmin)
+            elif xmin is None:
+                lx = 2 * (xmax - xctr)
+            else:
+                raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
+        else:
+            if xctr is not None:
+                pass
+            elif xmax is None:
+                xctr = xmin + 0.5 * lx
+            elif xmin is None:
+                xctr = xmax - 0.5 * lx
+            else:
+                raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
+
+        if ly is None:
+            if yctr is None:
+                yctr = 0.5 * (ymax + ymin)
+                ly = ymax - ymin
+            elif ymax is None:
+                ly = 2 * (yctr - ymin)
+            elif ymin is None:
+                ly = 2 * (ymax - yctr)
+            else:
+                raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
+        else:
+            if yctr is not None:
+                pass
+            elif ymax is None:
+                yctr = ymin + 0.5 * ly
+            elif ymin is None:
+                yctr = ymax - 0.5 * ly
+            else:
+                raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
+
+        poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr),
+                                 layer=layer, dose=dose)
+        return poly
+
+
     def to_polygons(self,
                     _poly_num_points: int=None,
                     _poly_max_arclen: float=None,
