@@ -4,6 +4,7 @@
 """
 
 from typing import Union, List
+import copy
 
 import numpy
 from numpy import pi
@@ -183,3 +184,19 @@ class SubPattern:
         """
         self.scale *= c
         return self
+
+    def copy(self) -> 'SubPattern':
+        """
+        Return a shallow copy of the subpattern.
+
+        :return: copy.copy(self)
+        """
+        return copy.copy(self)
+
+    def deepcopy(self) -> 'SubPattern':
+        """
+        Return a deep copy of the subpattern.
+
+        :return: copy.copy(self)
+        """
+        return copy.deepcopy(self)
