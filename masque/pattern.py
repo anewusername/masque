@@ -12,6 +12,7 @@ import numpy
 # .visualize imports matplotlib and matplotlib.collections
 
 from .subpattern import SubPattern
+from .repetition import GridRepetition
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, vector2
@@ -34,7 +35,7 @@ class Pattern:
     """
     shapes = None               # type: List[Shape]
     labels = None               # type: List[Labels]
-    subpatterns = None          # type: List[SubPattern]
+    subpatterns = None          # type: List[SubPattern or GridRepetition]
     name = None                 # type: str
 
     def __init__(self,

@@ -27,6 +27,7 @@ from .error import PatternError
 from .shapes import Shape
 from .label import Label
 from .subpattern import SubPattern
+from .repetition import GridRepetition
 from .pattern import Pattern
 
 

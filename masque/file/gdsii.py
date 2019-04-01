@@ -6,12 +6,12 @@ import gdsii.library
 import gdsii.structure
 import gdsii.elements
 
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Tuple
 import re
 import numpy
 
 from .utils import mangle_name, make_dose_table
-from .. import Pattern, SubPattern, PatternError, Label
+from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
 from ..shapes import Polygon
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
 
@@ -74,45 +74,13 @@ def write(patterns: Pattern or List[Pattern],
         structure = gdsii.structure.Structure(name=encoded_name)
         lib.append(structure)
 
-
         # Add a Boundary element for each shape
-        for shape in pat.shapes:
-            layer, data_type = _mlayer2gds(shape.layer)
-            for polygon in shape.to_polygons():
-                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                structure.append(gdsii.elements.Boundary(layer=layer,
-                                                         data_type=data_type,
-                                                         xy=xy_closed))
-        for label in pat.labels:
-            layer, text_type = _mlayer2gds(label.layer)
-            xy = numpy.round([label.offset]).astype(int)
-            structure.append(gdsii.elements.Text(layer=layer,
-                                                 text_type=text_type,
-                                                 xy=xy,
-                                                 string=label.string.encode('ASCII')))
+        structure += _shapes_to_boundaries(pat.shapes)
 
-        # Add an SREF for each subpattern entry
-        #  strans must be set for angle and mag to take effect
-        for subpat in pat.subpatterns:
-            sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.pattern.name)
-            encoded_name = sanitized_name.encode('ASCII')
-            if len(encoded_name) == 0:
-                raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(subpat.pattern.name))
-            sref = gdsii.elements.SRef(struct_name=encoded_name,
-                                       xy=numpy.round([subpat.offset]).astype(int))
-            sref.strans = 0
-            sref.angle = subpat.rotation * 180 / numpy.pi
-            mirror_x, mirror_y = subpat.mirrored
-            if mirror_y and mirror_y:
-                sref.angle += 180
-            elif mirror_x:
-                sref.strans = set_bit(sref.strans, 15 - 0, True)
-            elif mirror_y:
-                sref.angle += 180
-                sref.strans = set_bit(sref.strans, 15 - 0, True)
-            sref.mag = subpat.scale
-            structure.append(sref)
+        structure += _labels_to_texts(pat.labels)
+
+        # Add an SREF / AREF for each subpattern entry
+        structure += _subpatterns_to_refs(pat.subpatterns)
 
     with open(filename, mode='wb') as stream:
         lib.save(stream)
@@ -155,12 +123,31 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
     :returns: A list of doses, providing a mapping between datatype (int, list index)
                 and dose (float, list entry).
     """
-    # Create library
-    lib = gdsii.library.Library(version=600,
-                                name='masque-write_dose2dtype'.encode('ASCII'),
-                                logical_unit=logical_units_per_unit,
-                                physical_unit=meters_per_unit)
+    patterns, dose_vals = dose2dtype(patterns)
+    write(patterns, filename, meters_per_unit, logical_units_per_unit)
+    return dose_vals
 
+
+def dose2dtype(patterns: Pattern or List[Pattern],
+              ) -> Tuple[List[Pattern], List[float]]:
+    """
+     For each shape in each pattern, set shape.layer to the tuple
+     (base_layer, datatype), where:
+        layer is chosen to be equal to the original shape.layer if it is an int,
+            or shape.layer[0] if it is a tuple
+        datatype is chosen arbitrarily, based on calcualted dose for each shape.
+            Shapes with equal calcualted dose will have the same datatype.
+            A list of doses is retured, providing a mapping between datatype
+            (list index) and dose (list entry).
+
+    Note that this function modifies the input Pattern(s).
+
+    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
+    :returns: (patterns, dose_list)
+            patterns: modified input patterns
+            dose_list: A list of doses, providing a mapping between datatype (int, list index)
+                       and dose (float, list entry).
+    """
     if isinstance(patterns, Pattern):
         patterns = [patterns]
 
@@ -183,66 +170,36 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
     if len(dose_vals) > 256:
         raise PatternError('Too many dose values: {}, maximum 256 when using dtypes.'.format(len(dose_vals)))
 
-    dose_vals_list = list(dose_vals)
-
-    # Now create a structure for each row in sd_table (ie, each pattern + dose combination)
-    #  and add in any Boundary and SREF elements
+    # Create a new pattern for each non-1-dose entry in the dose table
+    #   and update the shapes to reflect their new dose
+    new_pats = {} # (id, dose) -> new_pattern mapping
     for pat_id, pat_dose in sd_table:
-        pat = patterns_by_id[pat_id]
+        if pat_dose == 1:
+            new_pats[(pat_id, pat_dose)] = patterns_by_id[pat_id]
+            continue
+
+        pat = patterns_by_id[pat_id].deepcopy()
 
         encoded_name = mangle_name(pat, pat_dose).encode('ASCII')
         if len(encoded_name) == 0:
             raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(pat.name))
-        structure = gdsii.structure.Structure(name=encoded_name)
-        lib.append(structure)
 
-        # Add a Boundary element for each shape
         for shape in pat.shapes:
-            for polygon in shape.to_polygons():
-                data_type = dose_vals_list.index(polygon.dose * pat_dose)
-                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                if is_scalar(polygon.layer):
-                    layer = polygon.layer
-                else:
-                    layer = polygon.layer[0]
-                structure.append(gdsii.elements.Boundary(layer=layer,
-                                                         data_type=data_type,
-                                                         xy=xy_closed))
-        for label in pat.labels:
-            layer, text_type = _mlayer2gds(label.layer)
-            xy = numpy.round([label.offset]).astype(int)
-            structure.append(gdsii.elements.Text(layer=layer,
-                                                 text_type=text_type,
-                                                 xy=xy,
-                                                 string=label.string.encode('ASCII')))
+            data_type = dose_vals_list.index(shape.dose * pat_dose)
+            if is_scalar(shape.layer):
+                layer = (shape.layer, data_type)
+            else:
+                layer = (shape.layer[0], data_type)
 
-        # Add an SREF for each subpattern entry
-        #  strans must be set for angle and mag to take effect
+        new_pats[(pat_id, pat_dose)] = pat
+
+    # Go back through all the dose-specific patterns and fix up their subpattern entries
+    for (pat_id, pat_dose), pat in new_pats.items():
         for subpat in pat.subpatterns:
             dose_mult = subpat.dose * pat_dose
-            encoded_name = mangle_name(subpat.pattern, dose_mult).encode('ASCII')
-            if len(encoded_name) == 0:
-                raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(subpat.pattern.name))
-            sref = gdsii.elements.SRef(struct_name=encoded_name,
-                                       xy=numpy.round([subpat.offset]).astype(int))
-            sref.strans = 0
-            sref.angle = subpat.rotation * 180 / numpy.pi
-            sref.mag = subpat.scale
-            mirror_x, mirror_y = subpat.mirrored
-            if mirror_y and mirror_y:
-                sref.angle += 180
-            elif mirror_x:
-                sref.strans = set_bit(sref.strans, 15 - 0, True)
-            elif mirror_y:
-                sref.angle += 180
-                sref.strans = set_bit(sref.strans, 15 - 0, True)
-            structure.append(sref)
+            subpat.pattern = new_pats[(id(subpat.pattern), dose_mult)]
 
-    with open(filename, mode='wb') as stream:
-        lib.save(stream)
-
-    return dose_vals_list
+    return patterns, list(dose_vals)
 
 
 def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
@@ -285,34 +242,6 @@ def read(filename: str,
                     'logical_units_per_unit': lib.logical_unit,
                     }
 
-    def ref_element_to_subpat(element, offset: vector2) -> SubPattern:
-        # Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
-        #  and sets the instance attribute .ref_name to the struct_name.
-        #
-        # BUG: "Absolute" means not affected by parent elements.
-        #       That's not currently supported by masque at all, so need to either tag it and
-        #       undo the parent transformations, or implement it in masque.
-        subpat = SubPattern(pattern=None, offset=offset)
-        subpat.ref_name = element.struct_name
-        if element.strans is not None:
-            if element.mag is not None:
-                subpat.scale = element.mag
-                # Bit 13 means absolute scale
-                if get_bit(element.strans, 15 - 13):
-                    #subpat.offset *= subpat.scale
-                    raise PatternError('Absolute scale is not implemented yet!')
-            if element.angle is not None:
-                subpat.rotation = element.angle * numpy.pi / 180
-                # Bit 14 means absolute rotation
-                if get_bit(element.strans, 15 - 14):
-                    #subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
-                    raise PatternError('Absolute rotation is not implemented yet!')
-            # Bit 0 means mirror x-axis
-            if get_bit(element.strans, 15 - 0):
-                subpat.mirror(axis=0)
-        return subpat
-
-
     patterns = []
     for structure in lib:
         pat = Pattern(name=structure.name.decode('ASCII'))
@@ -341,18 +270,10 @@ def read(filename: str,
                 pat.labels.append(label)
 
             elif isinstance(element, gdsii.elements.SRef):
-                pat.subpatterns.append(ref_element_to_subpat(element, element.xy))
+                pat.subpatterns.append(_sref_to_subpat(element))
 
             elif isinstance(element, gdsii.elements.ARef):
-                xy = numpy.array(element.xy)
-                origin = xy[0]
-                col_spacing = (xy[1] - origin) / element.cols
-                row_spacing = (xy[2] - origin) / element.rows
-
-                for c in range(element.cols):
-                    for r in range(element.rows):
-                        offset = origin + c * col_spacing + r * row_spacing
-                        pat.subpatterns.append(ref_element_to_subpat(element, offset))
+                pat.subpatterns.append(_aref_to_gridrep(element))
 
         patterns.append(pat)
 
@@ -378,3 +299,149 @@ def _mlayer2gds(mlayer):
         else:
             data_type = 0
     return layer, data_type
+
+
+def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
+    # Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
+    #  and sets the instance attribute .ref_name to the struct_name.
+    #
+    # BUG: "Absolute" means not affected by parent elements.
+    #       That's not currently supported by masque at all, so need to either tag it and
+    #       undo the parent transformations, or implement it in masque.
+    subpat = SubPattern(pattern=None, offset=element.xy)
+    subpat.ref_name = element.struct_name
+    if element.strans is not None:
+        if element.mag is not None:
+            subpat.scale = element.mag
+            # Bit 13 means absolute scale
+            if get_bit(element.strans, 15 - 13):
+                #subpat.offset *= subpat.scale
+                raise PatternError('Absolute scale is not implemented yet!')
+        if element.angle is not None:
+            subpat.rotation = element.angle * numpy.pi / 180
+            # Bit 14 means absolute rotation
+            if get_bit(element.strans, 15 - 14):
+                #subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
+                raise PatternError('Absolute rotation is not implemented yet!')
+        # Bit 0 means mirror x-axis
+        if get_bit(element.strans, 15 - 0):
+            subpat.mirror(axis=0)
+    return subpat
+
+
+def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
+    # Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
+    #  and sets the instance attribute .ref_name to the struct_name.
+    #
+    # BUG: "Absolute" means not affected by parent elements.
+    #       That's not currently supported by masque at all, so need to either tag it and
+    #       undo the parent transformations, or implement it in masque.i
+
+    rotation = 0
+    offset = numpy.array(element.xy[0])
+    scale = 1
+    mirror_signs = numpy.ones(2)
+
+    if element.strans is not None:
+        if element.mag is not None:
+            scale = element.mag
+            # Bit 13 means absolute scale
+            if get_bit(element.strans, 15 - 13):
+                raise PatternError('Absolute scale is not implemented yet!')
+        if element.angle is not None:
+            rotation = element.angle * numpy.pi / 180
+            # Bit 14 means absolute rotation
+            if get_bit(element.strans, 15 - 14):
+                raise PatternError('Absolute rotation is not implemented yet!')
+        # Bit 0 means mirror x-axis
+        if get_bit(element.strans, 15 - 0):
+            mirror_signs[0] = -1
+
+    counts = [element.cols, element.rows]
+    vec_a0 = element.xy[1] - offset
+    vec_b0 = element.xy[2] - offset
+
+    a_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_a0 / scale / counts[0]) * mirror_signs[0]
+    b_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_b0 / scale / counts[1]) * mirror_signs[1]
+
+
+    gridrep = GridRepetition(pattern=None,
+                            a_vector=a_vector,
+                            b_vector=b_vector,
+                            a_count=counts[0],
+                            b_count=counts[1],
+                            offset=offset,
+                            rotation=rotation,
+                            scale=scale,
+                            mirrored=(mirror_signs == -1))
+    gridrep.ref_name = element.struct_name
+
+    return gridrep
+
+
+def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
+                        ) -> List[gdsii.elements.ARef or gdsii.elements.SRef]:
+    #  strans must be set for angle and mag to take effect
+    refs = []
+    for subpat in subpatterns:
+        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.pattern.name)
+        encoded_name = sanitized_name.encode('ASCII')
+        if len(encoded_name) == 0:
+            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(subpat.pattern.name))
+
+        if isinstance(subpat, GridRepetition):
+            mirror_signs = (-1) ** numpy.array(subpat.mirrored)
+            xy = numpy.array(subpat.offset) + [
+                  [0, 0],
+                  numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.a_vector * mirror_signs) * subpat.scale * subpat.a_count,
+                  numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.b_vector * mirror_signs) * subpat.scale * subpat.b_count,
+                 ]
+            ref = gdsii.elements.ARef(struct_name=encoded_name,
+                                       xy=numpy.round(xy).astype(int),
+                                       cols=subpat.a_count,
+                                       rows=subpat.b_count)
+        else:
+            ref = gdsii.elements.SRef(struct_name=encoded_name,
+                                      xy=numpy.round([subpat.offset]).astype(int))
+
+        ref.strans = 0
+        ref.angle = subpat.rotation * 180 / numpy.pi
+        mirror_x, mirror_y = subpat.mirrored
+        if mirror_y and mirror_y:
+            ref.angle += 180
+        elif mirror_x:
+            ref.strans = set_bit(ref.strans, 15 - 0, True)
+        elif mirror_y:
+            ref.angle += 180
+            ref.strans = set_bit(ref.strans, 15 - 0, True)
+        ref.mag = subpat.scale
+
+        refs.append(ref)
+    return refs
+
+
+def _shapes_to_boundaries(shapes: List[Shape]
+                         ) -> List[gdsii.elements.Boundary]:
+    # Add a Boundary element for each shape
+    boundaries = []
+    for shape in shapes:
+        layer, data_type = _mlayer2gds(shape.layer)
+        for polygon in shape.to_polygons():
+            xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+            boundaries.append(gdsii.elements.Boundary(layer=layer,
+                                                      data_type=data_type,
+                                                      xy=xy_closed))
+    return boundaries
+
+
+def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
+    texts = []
+    for label in labels:
+        layer, text_type = _mlayer2gds(label.layer)
+        xy = numpy.round([label.offset]).astype(int)
+        texts.append(gdsii.elements.Text(layer=layer,
+                                         text_type=text_type,
+                                         xy=xy,
+                                         string=label.string.encode('ASCII')))
+    return texts
