@@ -155,7 +155,7 @@ class Polygon(Shape):
         :param ymin: Minimum y coordinate
         :param yctr: Center y coordinate
         :param ymax: Maximum y coordinate
-        :param yx: Length along y direction
+        :param ly: Length along y direction
         :param layer: Layer, default 0
         :param dose: Dose, default 1.0
         :return: A Polygon object containing the requested rectangle
