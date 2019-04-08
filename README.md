@@ -17,9 +17,14 @@ Requirements:
 * freetype (optional, used for text)
 
 
-Install with pip, via git:
+Install with pip:
 ```bash
-pip install git+https://mpxd.net/code/jan/masque.git@release
+pip3 install masque
+```
+
+Alternatively, install from git
+```bash
+pip3 install git+https://mpxd.net/code/jan/masque.git@release
 ```
 
 ## TODO
