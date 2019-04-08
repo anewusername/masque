@@ -27,7 +27,6 @@ setup(name='masque',
       classifiers=[
             'Programming Language :: Python :: 3',
             'Development Status :: 4 - Beta',
-            'Environment :: Other Environment',
             'Intended Audience :: Developers',
             'Intended Audience :: Information Technology',
             'Intended Audience :: Manufacturing',
@@ -35,9 +34,8 @@ setup(name='masque',
             'License :: OSI Approved :: GNU Affero General Public License v3',
             'Operating System :: POSIX :: Linux',
             'Operating System :: Microsoft :: Windows',
-            'Topic :: Scientific/Engineering',
             'Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)',
-            'Topic :: Software Development :: Libraries :: Python Modules',
+            'Topic :: Scientific/Engineering :: Visualization',
       ],
       )
 
