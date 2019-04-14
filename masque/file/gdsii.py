@@ -407,7 +407,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
         ref.strans = 0
         ref.angle = subpat.rotation * 180 / numpy.pi
         mirror_x, mirror_y = subpat.mirrored
-        if mirror_y and mirror_y:
+        if mirror_x and mirror_y:
             ref.angle += 180
         elif mirror_x:
             ref.strans = set_bit(ref.strans, 15 - 0, True)
