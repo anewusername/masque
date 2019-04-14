@@ -398,8 +398,8 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
                  ]
             ref = gdsii.elements.ARef(struct_name=encoded_name,
                                        xy=numpy.round(xy).astype(int),
-                                       cols=subpat.a_count,
-                                       rows=subpat.b_count)
+                                       cols=numpy.round(subpat.a_count).astype(int),
+                                       rows=numpy.round(subpat.b_count).astype(int))
         else:
             ref = gdsii.elements.SRef(struct_name=encoded_name,
                                       xy=numpy.round([subpat.offset]).astype(int))
