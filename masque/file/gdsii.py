@@ -414,6 +414,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
         elif mirror_y:
             ref.angle += 180
             ref.strans = set_bit(ref.strans, 15 - 0, True)
+        ref.angle %= 360
         ref.mag = subpat.scale
 
         refs.append(ref)
