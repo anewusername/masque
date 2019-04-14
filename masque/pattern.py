@@ -448,7 +448,7 @@ class Pattern:
         Return a copy of the Pattern, deep-copying shapes and copying subpattern entries, but not
          deep-copying any referenced patterns.
 
-	See also: Pattern.deepcopy()
+        See also: Pattern.deepcopy()
 
         :return: A copy of the current Pattern.
         """
