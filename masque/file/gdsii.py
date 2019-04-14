@@ -9,6 +9,9 @@ import gdsii.elements
 from typing import List, Any, Dict, Tuple
 import re
 import numpy
+import base64
+import struct
+import logging
 
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
@@ -17,6 +20,9 @@ from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
 
 
 __author__ = 'Jan Petykiewicz'
+
+
+logger = logging.getLogger(__name__)
 
 
 def write(patterns: Pattern or List[Pattern],
@@ -65,13 +71,11 @@ def write(patterns: Pattern or List[Pattern],
     for pattern in patterns:
         patterns_by_id.update(pattern.referenced_patterns_by_id())
 
+    _disambiguate_pattern_names(patterns_by_id.values())
+
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
-        encoded_name = sanitized_name.encode('ASCII')
-        if len(encoded_name) == 0:
-            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
-        structure = gdsii.structure.Structure(name=encoded_name)
+        structure = gdsii.structure.Structure(name=pat.name)
         lib.append(structure)
 
         # Add a Boundary element for each shape
@@ -384,10 +388,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
     #  strans must be set for angle and mag to take effect
     refs = []
     for subpat in subpatterns:
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', subpat.pattern.name)
-        encoded_name = sanitized_name.encode('ASCII')
-        if len(encoded_name) == 0:
-            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(subpat.pattern.name))
+        encoded_name = subpat.pattern.name
 
         if isinstance(subpat, GridRepetition):
             mirror_signs = (-1) ** numpy.array(subpat.mirrored)
@@ -446,3 +447,29 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
                                          xy=xy,
                                          string=label.string.encode('ASCII')))
     return texts
+
+
+def _disambiguate_pattern_names(patterns):
+    used_names = []
+    for pat in patterns:
+        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+
+        i = 0
+        suffixed_name = sanitized_name
+        while suffixed_name in used_names:
+            suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
+
+            suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
+            i += 1
+
+        if suffixed_name != sanitized_name:
+            logger.warning('Pattern name "{}" appears multiple times; renaming to "{}"'.format(pat.name, suffixed_name))
+
+        encoded_name = sanitized_name.encode('ASCII')
+        if len(encoded_name) == 0:
+            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
+        if len(encoded_name) > 32:
+            raise PatternError('Pattern name "{}" length > 32 after encode, originally "{}"'.format(encoded_name, pat.name))
+
+        pat.name = encoded_name
+        used_names.append(suffixed_name)
