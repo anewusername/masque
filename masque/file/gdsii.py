@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 def write(patterns: Pattern or List[Pattern],
           filename: str,
           meters_per_unit: float,
-          logical_units_per_unit: float = 1):
+          logical_units_per_unit: float = 1,
+          library_name: str = 'masque-gdsii-write'):
     """
     Write a Pattern or list of patterns to a GDSII file, by first calling
      .polygonize() to change the shapes into polygons, and then writing patterns
@@ -56,10 +57,12 @@ def write(patterns: Pattern or List[Pattern],
     :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
         "logical" unit which is different from the "database" unit, for display purposes.
         Default 1.
+    :param library_name: Library name written into the GDSII file.
+        Default 'masque-gdsii-write'.
     """
     # Create library
     lib = gdsii.library.Library(version=600,
-                                name='masque-gdsii-write'.encode('ASCII'),
+                                name=library_name.encode('ASCII'),
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
@@ -93,7 +96,8 @@ def write(patterns: Pattern or List[Pattern],
 def write_dose2dtype(patterns: Pattern or List[Pattern],
                      filename: str,
                      meters_per_unit: float,
-                     logical_units_per_unit: float = 1
+                     *args,
+                     **kwargs,
                      ) -> List[float]:
     """
     Write a Pattern or list of patterns to a GDSII file, by first calling
@@ -121,14 +125,13 @@ def write_dose2dtype(patterns: Pattern or List[Pattern],
     :param filename: Filename to write to.
     :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
         All distances are assumed to be an integer multiple of this unit, and are stored as such.
-    :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
-        "logical" unit which is different from the "database" unit, for display purposes.
-        Default 1.
+    :param args: passed to masque.file.gdsii.write().
+    :param kwargs: passed to masque.file.gdsii.write().
     :returns: A list of doses, providing a mapping between datatype (int, list index)
                 and dose (float, list entry).
     """
     patterns, dose_vals = dose2dtype(patterns)
-    write(patterns, filename, meters_per_unit, logical_units_per_unit)
+    write(patterns, filename, meters_per_unit, *args, **kwargs)
     return dose_vals
 
 
