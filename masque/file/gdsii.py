@@ -468,7 +468,7 @@ def _disambiguate_pattern_names(patterns):
         if suffixed_name != sanitized_name:
             logger.warning('Pattern name "{}" appears multiple times; renaming to "{}"'.format(pat.name, suffixed_name))
 
-        encoded_name = sanitized_name.encode('ASCII')
+        encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
         if len(encoded_name) > 32:
