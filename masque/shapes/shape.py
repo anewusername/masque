@@ -223,14 +223,26 @@ class Shape(metaclass=ABCMeta):
             for v, v_next in zip(p_verts, numpy.roll(p_verts, -1, axis=0)):
                 dv = v_next - v
 
+                # Find x-index bounds for the line      # TODO: fix this and err_xmin/xmax for grids smaller than the line / shape
+                gxi_range = numpy.digitize([v[0], v_next[0]], grid_x)
+                gxi_min = numpy.min(gxi_range - 1).clip(0, len(grid_x) - 1)
+                gxi_max = numpy.max(gxi_range).clip(0, len(grid_x))
+
+                err_xmin = (min(v[0], v_next[0]) - grid_x[gxi_min]) / (grid_x[gxi_min + 1] - grid_x[gxi_min])
+                err_xmax = (max(v[0], v_next[0]) - grid_x[gxi_max - 1]) / (grid_x[gxi_max] - grid_x[gxi_max - 1])
+
+                if err_xmin >= 0.5:
+                    gxi_xmin += 1
+                if err_xmax >= 0.5:
+                    gxi_xmax += 1
+
+
                 if abs(dv[0]) < 1e-20:
-                    xs = numpy.array([v[0], v[0]])   # TODO maybe pick between v[0] and v_next[0]?
+                    # Vertical line, don't calculate slope
+                    xi = [gxi_min, gxi_max - 1]
                     ys = numpy.array([v[1], v_next[1]])
-                    xi = numpy.digitize(xs, grid_x).clip(1, len(grid_x) - 1)
                     yi = numpy.digitize(ys, grid_y).clip(1, len(grid_y) - 1)
-                    err_x = (xs - grid_x[xi]) / (grid_x[xi] - grid_x[xi - 1])
                     err_y = (ys - grid_y[yi]) / (grid_y[yi] - grid_y[yi - 1])
-                    xi[err_y < 0.5] -= 1
                     yi[err_y < 0.5] -= 1
 
                     segment = numpy.column_stack((grid_x[xi], grid_y[yi]))
@@ -250,20 +262,13 @@ class Shape(metaclass=ABCMeta):
 
                     # now set inds to the index of the nearest y-grid line
                     inds[err < 0.5] -= 1
-                    #if dv[0] >= 0:
-                    #    inds[err <= 0.5] -= 1
-                    #else:
-                    #    inds[err < 0.5] -= 1
                     return inds
 
-                gxi_range = numpy.digitize([v[0], v_next[0]], grid_x)
-                gxi_min = numpy.min(gxi_range - 1).clip(0, len(grid_x))
-                gxi_max = numpy.max(gxi_range).clip(0, len(grid_x))
-
+                # Find the y indices on all x gridlines
                 xs = grid_x[gxi_min:gxi_max]
                 inds = get_grid_inds(xs)
 
-                # Find intersections for midpoints
+                # Find y-intersections for x-midpoints
                 xs2 = (xs[:-1] + xs[1:]) / 2
                 inds2 = get_grid_inds(xs2)
 
