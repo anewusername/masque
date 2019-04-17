@@ -232,9 +232,9 @@ class Shape(metaclass=ABCMeta):
                 err_xmax = (max(v[0], v_next[0]) - grid_x[gxi_max - 1]) / (grid_x[gxi_max] - grid_x[gxi_max - 1])
 
                 if err_xmin >= 0.5:
-                    gxi_xmin += 1
+                    gxi_min += 1
                 if err_xmax >= 0.5:
-                    gxi_xmax += 1
+                    gxi_max += 1
 
 
                 if abs(dv[0]) < 1e-20:
