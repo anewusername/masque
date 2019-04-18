@@ -368,8 +368,8 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     vec_a0 = element.xy[1] - offset
     vec_b0 = element.xy[2] - offset
 
-    a_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_a0 / scale / counts[0]) * mirror_signs[0]
-    b_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_b0 / scale / counts[1]) * mirror_signs[1]
+    a_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_a0 / scale / counts[0]) * mirror_signs
+    b_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_b0 / scale / counts[1]) * mirror_signs
 
 
     gridrep = GridRepetition(pattern=None,
