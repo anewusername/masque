@@ -57,7 +57,7 @@ class SubPattern:
 
         if val.size != 2:
             raise PatternError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten()
+        self._offset = val.flatten().astype(float)
 
     # dose property
     @property
