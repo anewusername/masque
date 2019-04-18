@@ -459,17 +459,20 @@ def _disambiguate_pattern_names(patterns):
 
         i = 0
         suffixed_name = sanitized_name
-        while suffixed_name in used_names:
+        while suffixed_name in used_names or suffixed_name == '':
             suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
             i += 1
 
-        if suffixed_name != sanitized_name:
+        if sanitized_name == '':
+            logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
+        elif suffixed_name != sanitized_name:
             logger.warning('Pattern name "{}" appears multiple times; renaming to "{}"'.format(pat.name, suffixed_name))
 
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
+            # Should never happen since zero-length names are replaced
             raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
         if len(encoded_name) > 32:
             raise PatternError('Pattern name "{}" length > 32 after encode, originally "{}"'.format(encoded_name, pat.name))
