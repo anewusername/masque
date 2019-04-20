@@ -6,6 +6,7 @@ from numpy import pi
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
 from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 __author__ = 'Jan Petykiewicz'
 
@@ -267,8 +268,7 @@ class Polygon(Shape):
 
         :returns: self
         '''
-        duplicates = (self.vertices == numpy.roll(self.vertices, 1, axis=0)).all(axis=1)
-        self.vertices = self.vertices[~duplicates]
+        self.vertices = remove_duplicate_vertices(self.vertices, closed_path=True)
         return self
 
     def remove_colinear_vertices(self) -> 'Polygon':
@@ -277,19 +277,5 @@ class Polygon(Shape):
 
         :returns: self
         '''
-        dv0 = numpy.roll(self.vertices, 1, axis=0) - self.vertices
-        dv1 = numpy.roll(dv0, -1, axis=0)
-
-        # find cases where at least one coordinate is 0 in successive dv's
-        eq = dv1 == dv0
-        aa_colinear = numpy.logical_and(eq, dv0 == 0).any(axis=1)
-
-        # find cases where slope is equal
-        with numpy.errstate(divide='ignore', invalid='ignore'):   # don't care about zeroes
-            slope_quotient = (dv0[:, 0] * dv1[:, 1]) / (dv1[:, 0] * dv0[:, 1])
-        slopes_equal = numpy.abs(slope_quotient - 1) < 1e-14
-
-        colinear = numpy.logical_or(aa_colinear, slopes_equal)
-        self.vertices = self.vertices[~colinear]
+        self.vertices = remove_colinear_vertices(self.vertices, closed_path=True)
         return self
-

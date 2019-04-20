@@ -55,3 +55,35 @@ def rotation_matrix_2d(theta: float) -> numpy.ndarray:
     """
     return numpy.array([[numpy.cos(theta), -numpy.sin(theta)],
                         [numpy.sin(theta), +numpy.cos(theta)]])
+
+
+def remove_duplicate_vertices(vertices: numpy.ndarray, closed_path: bool = True) -> numpy.ndarray:
+        duplicates = (vertices == numpy.roll(vertices, 1, axis=0)).all(axis=1)
+        if not closed_path:
+            duplicates[0] = False
+        return vertices[~duplicates]
+
+
+def remove_colinear_vertices(vertices: numpy.ndarray, closed_path: bool = True) -> numpy.ndarray:
+        '''
+        Given a list of vertices, remove any superflous vertices (i.e.
+            those which lie along the line formed by their neighbors)
+
+        :param vertices: Nx2 ndarray of vertices
+        :param closed_path: If True, the vertices are assumed to represent an implicitly
+            closed path. If False, the path is assumed to be open. Default True.
+        :return:
+        '''
+        # Check for dx0/dy0 == dx1/dy1
+
+        dv = numpy.roll(vertices, 1, axis=0) - vertices #[y0 - yn1, y1-y0, ...]
+        dxdy = dv * numpy.roll(dv, 1, axis=0)[:, ::-1] # [[dx1*dy0, dx1*dy0], ...]
+
+        dxdy_diff = numpy.abs(numpy.diff(dxdy, axis=1))[:, 0]
+        err_mult = 2 * numpy.abs(dxdy).sum(axis=1) + 1e-40
+
+        slopes_equal = (dxdy_diff / err_mult) < 1e-15
+        if not closed_path:
+            slopes_equal[[0, -1]] = False
+
+        return vertices[~slopes_equal]
