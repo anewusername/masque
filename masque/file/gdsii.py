@@ -15,14 +15,22 @@ import logging
 
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
-from ..shapes import Polygon
+from ..shapes import Polygon, Path
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
+from ..utils import remove_colinear_vertices
 
 
 __author__ = 'Jan Petykiewicz'
 
 
 logger = logging.getLogger(__name__)
+
+
+path_cap_map = {0: Path.Cap.Flush,
+                1: Path.Cap.Circle,
+                2: Path.Cap.Square,
+               #3: custom?
+               }
 
 
 def write(patterns: Pattern or List[Pattern],
@@ -81,12 +89,8 @@ def write(patterns: Pattern or List[Pattern],
         structure = gdsii.structure.Structure(name=pat.name)
         lib.append(structure)
 
-        # Add a Boundary element for each shape
-        structure += _shapes_to_boundaries(pat.shapes)
-
+        structure += _shapes_to_elements(pat.shapes)
         structure += _labels_to_texts(pat.labels)
-
-        # Add an SREF / AREF for each subpattern entry
         structure += _subpatterns_to_refs(pat.subpatterns)
 
     with open(filename, mode='wb') as stream:
@@ -255,17 +259,48 @@ def read(filename: str,
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
+                args = {'vertices': element.xy[:-1],
+                       }
+
                 if use_dtype_as_dose:
-                    shape = Polygon(vertices=element.xy[:-1],
-                                    dose=element.data_type,
-                                    layer=element.layer)
+                    args['dose'] = element.data_type
+                    args['layer'] = element.layer
                 else:
-                    shape = Polygon(vertices=element.xy[:-1],
-                                    layer=(element.layer, element.data_type))
+                    args['layer'] = (element.layer, element.data_type)
+
+                shape = Polygon(**args)
+
                 if clean_vertices:
                     try:
                         shape.clean_vertices()
                     except PatternError:
+                        continue
+
+                pat.shapes.append(shape)
+
+            if isinstance(element, gdsii.elements.Path):
+                if element.path_type in path_cap_map:
+                    cap = path_cap_map[element.path_type]
+                else:
+                    raise PatternError('Unrecognized path type: {}'.format(element.path_type))
+
+                args = {'vertices': element.xy,
+                        'width': element.width,
+                        'cap': cap,
+                       }
+
+                if use_dtype_as_dose:
+                    args['dose'] = element.data_type
+                    args['layer'] = element.layer
+                else:
+                    args['layer'] = (element.layer, element.data_type)
+
+                shape = Path(**args)
+
+                if clean_vertices:
+                    try:
+                        shape.clean_vertices()
+                    except PatternError as err:
                         continue
 
                 pat.shapes.append(shape)
@@ -425,19 +460,31 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
     return refs
 
 
-def _shapes_to_boundaries(shapes: List[Shape]
-                         ) -> List[gdsii.elements.Boundary]:
-    # Add a Boundary element for each shape
-    boundaries = []
+def _shapes_to_elements(shapes: List[Shape],
+                        polygonize_paths: bool = False
+                       ) -> List[gdsii.elements.Boundary]:
+    elements = []
+    # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
         layer, data_type = _mlayer2gds(shape.layer)
-        for polygon in shape.to_polygons():
-            xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-            boundaries.append(gdsii.elements.Boundary(layer=layer,
-                                                      data_type=data_type,
-                                                      xy=xy_closed))
-    return boundaries
+        if isinstance(shape, Path) and not polygonize_paths:
+            xy = numpy.round(shape.vertices + shape.offset).astype(int)
+            width = numpy.round(shape.width).astype(int)
+            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    #reverse lookup
+            path = gdsii.elements.Path(layer=layer,
+                                       data_type=data_type,
+                                       xy=xy)
+            path.path_type = path_type
+            path.width = width
+            elements.append(path)
+        else:
+            for polygon in shape.to_polygons():
+                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+                elements.append(gdsii.elements.Boundary(layer=layer,
+                                                        data_type=data_type,
+                                                        xy=xy_closed))
+    return elements
 
 
 def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:

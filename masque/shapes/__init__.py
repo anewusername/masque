@@ -10,3 +10,4 @@ from .circle import Circle
 from .ellipse import Ellipse
 from .arc import Arc
 from .text import Text
+from .path import Path
