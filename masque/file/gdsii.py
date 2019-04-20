@@ -8,6 +8,7 @@ import gdsii.elements
 
 from typing import List, Any, Dict, Tuple
 import re
+import copy
 import numpy
 import base64
 import struct
@@ -37,7 +38,8 @@ def write(patterns: Pattern or List[Pattern],
           filename: str,
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
-          library_name: str = 'masque-gdsii-write'):
+          library_name: str = 'masque-gdsii-write',
+          modify_originals: bool = False):
     """
     Write a Pattern or list of patterns to a GDSII file, by first calling
      .polygonize() to change the shapes into polygons, and then writing patterns
@@ -49,8 +51,6 @@ def write(patterns: Pattern or List[Pattern],
             or shape.layer[0] if it is a tuple
         datatype is chosen to be shape.layer[1] if available,
             otherwise 0
-
-    Note that this function modifies the Pattern.
 
     It is often a good idea to run pattern.subpatternize() prior to calling this function,
      especially if calling .polygonize() will result in very many vertices.
@@ -67,15 +67,21 @@ def write(patterns: Pattern or List[Pattern],
         Default 1.
     :param library_name: Library name written into the GDSII file.
         Default 'masque-gdsii-write'.
+    :param modify_originals: If True, the original pattern is modified as part of the writing
+        process. Otherwise, a copy is made.
+        Default False.
     """
+    if not modify_originals:
+        patterns = copy.deepcopy(patterns)
+
+    if isinstance(patterns, Pattern):
+        patterns = [patterns]
+
     # Create library
     lib = gdsii.library.Library(version=600,
                                 name=library_name.encode('ASCII'),
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
-
-    if isinstance(patterns, Pattern):
-        patterns = [patterns]
 
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
