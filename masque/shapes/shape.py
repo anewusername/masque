@@ -94,16 +94,16 @@ class Shape(metaclass=ABCMeta):
         Writes the shape in a standardized notation, with offset, scale, rotation, and dose
          information separated out from the remaining values.
 
-        :param norm_value: This value is used to normalize lengths intrinsic to teh shape;
-                eg. for a circle, the returned magnitude value will be (radius / norm_value), and
+        :param norm_value: This value is used to normalize lengths intrinsic to the shape;
+                eg. for a circle, the returned intrinsic radius value will be (radius / norm_value), and
                 the returned callable will create a Circle(radius=norm_value, ...). This is useful
                 when you find it important for quantities to remain in a certain range, eg. for
                 GDSII where vertex locations are stored as integers.
         :return: The returned information takes the form of a 3-element tuple,
                 (intrinsic, extrinsic, constructor). These are further broken down as:
-                extrinsic: ([x_offset, y_offset], scale, rotation, dose)
                 intrinsic: A tuple of basic types containing all information about the instance that
                             is not contained in 'extrinsic'. Usually, intrinsic[0] == type(self).
+                extrinsic: ([x_offset, y_offset], scale, rotation, dose)
                 constructor: A callable (no arguments) which returns an instance of type(self) with
                             internal state equivalent to 'intrinsic'.
         """

@@ -307,9 +307,9 @@ class Arc(Shape):
         rotation %= 2 * pi
         width = self.width
 
-        return (type(self), radii, angles, width, self.layer), \
+        return (type(self), radii, angles, width/norm_value, self.layer), \
                (self.offset, scale/norm_value, rotation, self.dose), \
-               lambda: Arc(radii=radii*norm_value, angles=angles, width=width, layer=self.layer)
+               lambda: Arc(radii=radii*norm_value, angles=angles, width=width*norm_value, layer=self.layer)
 
     def get_cap_edges(self) -> numpy.ndarray:
         '''
