@@ -61,15 +61,15 @@ class Text(Shape):
     def mirrored(self, val: List[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = val
+        self._mirrored = list(val)
 
     def __init__(self,
                  string: str,
                  height: float,
                  font_path: str,
-                 mirrored: List[bool]=None,
-                 rotation: float=0.0,
                  offset: vector2=(0.0, 0.0),
+                 rotation: float=0.0,
+                 mirrored: Tuple[bool]=(False, False),
                  layer: int=0,
                  dose: float=1.0):
         self.offset = offset
@@ -79,8 +79,6 @@ class Text(Shape):
         self.height = height
         self.rotation = rotation
         self.font_path = font_path
-        if mirrored is None:
-            mirrored = [False, False]
         self.mirrored = mirrored
 
     def to_polygons(self,

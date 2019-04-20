@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import math
 import numpy
 from numpy import pi
@@ -141,19 +141,21 @@ class Arc(Shape):
                  radii: vector2,
                  angles: vector2,
                  width: float,
-                 rotation: float=0,
                  poly_num_points: int=DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: float=None,
                  offset: vector2=(0.0, 0.0),
+                 rotation: float=0,
+                 mirrored: Tuple[bool] = (False, False),
                  layer: int=0,
                  dose: float=1.0):
-        self.offset = offset
-        self.layer = layer
-        self.dose = dose
         self.radii = radii
         self.angles = angles
         self.width = width
+        self.offset = offset
         self.rotation = rotation
+        [self.mirror(a) for a, do in enumerate(mirrored) if do]
+        self.layer = layer
+        self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
 
@@ -201,8 +203,7 @@ class Arc(Shape):
         ys = numpy.hstack((ys1, ys2))
         xys = numpy.vstack((xs, ys)).T
 
-        poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset)
-        poly.rotate(self.rotation)
+        poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset, rotation=self.rotation)
         return [poly]
 
     def get_bounds(self) -> numpy.ndarray:

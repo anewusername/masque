@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import math
 import numpy
 from numpy import pi
@@ -82,17 +82,19 @@ class Ellipse(Shape):
 
     def __init__(self,
                  radii: vector2,
-                 rotation: float=0,
                  poly_num_points: int=DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: float=None,
                  offset: vector2=(0.0, 0.0),
+                 rotation: float=0,
+                 mirrored: Tuple[bool] = (False, False),
                  layer: int=0,
                  dose: float=1.0):
+        self.radii = radii
         self.offset = offset
+        self.rotation = rotation
+        [self.mirror(a) for a, do in enumerate(mirrored) if do]
         self.layer = layer
         self.dose = dose
-        self.radii = radii
-        self.rotation = rotation
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
 
@@ -129,8 +131,7 @@ class Ellipse(Shape):
         ys = r1 * sin_th
         xys = numpy.vstack((xs, ys)).T
 
-        poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset)
-        poly.rotate(self.rotation)
+        poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset, rotation=self.rotation)
         return [poly]
 
     def get_bounds(self) -> numpy.ndarray:

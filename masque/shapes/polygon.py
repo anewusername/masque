@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import copy
 import numpy
 from numpy import pi
@@ -71,12 +71,17 @@ class Polygon(Shape):
     def __init__(self,
                  vertices: numpy.ndarray,
                  offset: vector2=(0.0, 0.0),
+                 rotation: float=0.0,
+                 mirrored: Tuple[bool] = (False, False),
                  layer: int=0,
-                 dose: float=1.0):
-        self.offset = offset
+                 dose: float=1.0,
+                 ):
         self.layer = layer
         self.dose = dose
         self.vertices = vertices
+        self.offset = offset
+        self.rotate(rotation)
+        [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     @staticmethod
     def square(side_length: float,
