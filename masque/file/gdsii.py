@@ -8,11 +8,14 @@ import gdsii.elements
 
 from typing import List, Any, Dict, Tuple
 import re
+import io
 import copy
 import numpy
 import base64
 import struct
 import logging
+import pathlib
+import gzip
 
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
@@ -35,7 +38,7 @@ path_cap_map = {0: Path.Cap.Flush,
 
 
 def write(patterns: Pattern or List[Pattern],
-          filename: str,
+          stream: io.BufferedIOBase,
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
@@ -58,8 +61,8 @@ def write(patterns: Pattern or List[Pattern],
     If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
      prior to calling this function.
 
-    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
-    :param filename: Filename to write to.
+    :param patterns: A Pattern or list of patterns to write to file.
+    :param file: Filename or stream object to write to.
     :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
         All distances are assumed to be an integer multiple of this unit, and are stored as such.
     :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
@@ -99,50 +102,29 @@ def write(patterns: Pattern or List[Pattern],
         structure += _labels_to_texts(pat.labels)
         structure += _subpatterns_to_refs(pat.subpatterns)
 
-    with open(filename, mode='wb') as stream:
-        lib.save(stream)
+    lib.save(stream)
+    return
 
 
-def write_dose2dtype(patterns: Pattern or List[Pattern],
-                     filename: str,
-                     meters_per_unit: float,
-                     *args,
-                     **kwargs,
-                     ) -> List[float]:
+def writefile(patterns: List[Pattern] or Pattern,
+              filename: str or pathlib.Path,
+              *args,
+              **kwargs,
+              ):
     """
-    Write a Pattern or list of patterns to a GDSII file, by first calling
-     .polygonize() to change the shapes into polygons, and then writing patterns
-     as GDSII structures, polygons as boundary elements, and subpatterns as structure
-     references (sref).
+    Wrapper for gdsii.write() that takes a filename or path instead of a stream.
 
-     For each shape,
-        layer is chosen to be equal to shape.layer if it is an int,
-            or shape.layer[0] if it is a tuple
-        datatype is chosen arbitrarily, based on calcualted dose for each shape.
-            Shapes with equal calcualted dose will have the same datatype.
-            A list of doses is retured, providing a mapping between datatype
-            (list index) and dose (list entry).
-
-    Note that this function modifies the Pattern(s).
-
-    It is often a good idea to run pattern.subpatternize() prior to calling this function,
-     especially if calling .polygonize() will result in very many vertices.
-
-    If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
-     prior to calling this function.
-
-    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
-    :param filename: Filename to write to.
-    :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
-        All distances are assumed to be an integer multiple of this unit, and are stored as such.
-    :param args: passed to masque.file.gdsii.write().
-    :param kwargs: passed to masque.file.gdsii.write().
-    :returns: A list of doses, providing a mapping between datatype (int, list index)
-                and dose (float, list entry).
+    Will automatically compress the file if it has a .gz suffix.
     """
-    patterns, dose_vals = dose2dtype(patterns)
-    write(patterns, filename, meters_per_unit, *args, **kwargs)
-    return dose_vals
+    path = pathlib.Path(filename)
+    if path.suffix == 'gz':
+        open_func = gzip.open
+    else:
+        open_func = open
+
+    with open_func(path, mode='wb') as stream:
+        results = write(patterns, stream, *args, **kwargs)
+    return results
 
 
 def dose2dtype(patterns: Pattern or List[Pattern],
@@ -219,14 +201,27 @@ def dose2dtype(patterns: Pattern or List[Pattern],
     return patterns, list(dose_vals)
 
 
-def read_dtype2dose(filename: str) -> (List[Pattern], Dict[str, Any]):
+def readfile(filename: str or pathlib.Path,
+             *args,
+             **kwargs,
+             ) -> (Dict[str, Pattern], Dict[str, Any]):
     """
-    Alias for read(filename, use_dtype_as_dose=True)
+    Wrapper for gdsii.read() that takes a filename or path instead of a stream.
+
+    Tries to autodetermine file type based on suffixes
     """
-    return read(filename, use_dtype_as_dose=True)
+    path = pathlib.Path(filename)
+    if path.suffix == 'gz':
+        open_func = gzip.open
+    else:
+        open_func = open
+
+    with open_func(path, mode='rb') as stream:
+        results = read(stream, *args, **kwargs)
+    return results
 
 
-def read(filename: str,
+def read(stream: io.BufferedIOBase,
          use_dtype_as_dose: bool = False,
          clean_vertices: bool = True,
          ) -> (Dict[str, Pattern], Dict[str, Any]):
@@ -251,8 +246,7 @@ def read(filename: str,
     :return: Tuple: (Dict of pattern_name:Patterns generated from GDSII structures, Dict of GDSII library info)
     """
 
-    with open(filename, mode='rb') as stream:
-        lib = gdsii.library.Library.load(stream)
+    lib = gdsii.library.Library.load(stream)
 
     library_info = {'name': lib.name.decode('ASCII'),
                     'meters_per_unit': lib.physical_unit,
@@ -532,3 +526,4 @@ def _disambiguate_pattern_names(patterns):
 
         pat.name = encoded_name
         used_names.append(suffixed_name)
+
