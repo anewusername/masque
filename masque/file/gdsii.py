@@ -30,7 +30,9 @@ __author__ = 'Jan Petykiewicz'
 logger = logging.getLogger(__name__)
 
 
-path_cap_map = {0: Path.Cap.Flush,
+path_cap_map = {
+                None: Path.Cap.Flush,
+                0: Path.Cap.Flush,
                 1: Path.Cap.Circle,
                 2: Path.Cap.Square,
                #3: custom?
@@ -285,7 +287,7 @@ def read(stream: io.BufferedIOBase,
                     raise PatternError('Unrecognized path type: {}'.format(element.path_type))
 
                 args = {'vertices': element.xy,
-                        'width': element.width,
+                        'width': element.width if element.width is not None else 0.0,
                         'cap': cap,
                        }
 
