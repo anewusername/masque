@@ -106,7 +106,7 @@ class Polygon(Shape):
                                    [+1, +1],
                                    [+1, -1]], dtype=float)
         vertices = 0.5 * side_length * norm_square
-        poly = Polygon(vertices, offset, layer, dose)
+        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose)
         poly.rotate(rotation)
         return poly
 
@@ -133,7 +133,7 @@ class Polygon(Shape):
                                       [-lx, +ly],
                                       [+lx, +ly],
                                       [+lx, -ly]], dtype=float)
-        poly = Polygon(vertices, offset, layer, dose)
+        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose)
         poly.rotate(rotation)
         return poly
 
