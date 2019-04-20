@@ -13,7 +13,8 @@ __author__ = 'Jan Petykiewicz'
 
 class Polygon(Shape):
     """
-    A polygon, consisting of a bunch of vertices (Nx2 ndarray) along with an offset.
+    A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
+       implicitly-closed boundary, and an offset.
 
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
@@ -35,14 +36,14 @@ class Polygon(Shape):
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 3:
-            raise PatternError('Must have at least 3 vertices (Nx2, N>3)')
+            raise PatternError('Must have at least 3 vertices (Nx2 where N>2)')
         self._vertices = val
 
     # xs property
     @property
     def xs(self) -> numpy.ndarray:
         """
-        All x vertices in a 1D ndarray
+        All vertex x coords as a 1D ndarray
         """
         return self.vertices[:, 0]
 
@@ -57,7 +58,7 @@ class Polygon(Shape):
     @property
     def ys(self) -> numpy.ndarray:
         """
-        All y vertices in a 1D ndarray
+        All vertex y coords as a 1D ndarray
         """
         return self.vertices[:, 1]
 
