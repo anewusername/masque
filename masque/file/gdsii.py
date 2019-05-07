@@ -399,7 +399,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                 raise PatternError('Absolute rotation is not implemented yet!')
         # Bit 0 means mirror x-axis
         if get_bit(element.strans, 15 - 0):
-            mirror_signs[0] = -1
+            mirror_signs[1] = -1
 
     counts = [element.cols, element.rows]
     vec_a0 = element.xy[1] - offset
@@ -417,7 +417,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                             offset=offset,
                             rotation=rotation,
                             scale=scale,
-                            mirrored=(mirror_signs == -1))
+                            mirrored=(mirror_signs[::-1] == -1))
     gridrep.ref_name = element.struct_name
 
     return gridrep
