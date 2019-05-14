@@ -34,6 +34,9 @@ class Shape(metaclass=ABCMeta):
     # Dose
     _dose = 1.0                         # type: float
 
+    # An arbitrary identifier for the shape, usually not set but used by Pattern.flatten()
+    identifier = ()                     # type: Tuple
+
     # --- Abstract methods
     @abstractmethod
     def to_polygons(self, num_vertices: int, max_arclen: float) -> List['Polygon']:
