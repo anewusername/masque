@@ -315,15 +315,31 @@ class Pattern:
         """
         Removes all subpatterns and adds equivalent shapes.
 
+        Shape identifiers are changed to represent their original position in the
+         pattern hierarchy:
+         (L1_name (str), L1_index (int), L2_name, L2_index, ..., *original_shape_identifier)
+         where L1_name is the first-level subpattern's name (e.g. self.subpatterns[0].pattern.name),
+         L2_name is the next-level subpattern's name (e.g.
+         self.subpatterns[0].pattern.subpatterns[0].pattern.name) and L1_index is an integer
+         used to differentiate between multiple instance of the same (or same-named) subpatterns.
+
         :return: self
         """
         subpatterns = copy.deepcopy(self.subpatterns)
         self.subpatterns = []
+        shape_counts = {}
         for subpat in subpatterns:
             subpat.pattern.flatten()
             p = subpat.as_pattern()
-            self.shapes += p.shapes
-            self.labels += p.labels
+
+            # Update identifiers so each shape has a unique one
+            for shape in p.shapes:
+                combined_identifier = (subpat.pattern.name,) + shape.identifier
+                shape_count = shape_counts.get(combined_identifier, 0)
+                shape.identifier = (subpat.pattern.name, shape_count) + shape.identifier
+                shape_counts[combined_identifier] = shape_count + 1
+
+            self.append(p)
         return self
 
     def translate_elements(self, offset: vector2) -> 'Pattern':
