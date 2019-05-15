@@ -33,7 +33,7 @@ class GridRepetition:
     _mirrored = None        # type: List[bool]
 
     _a_vector = None        # type: numpy.ndarray
-    _b_vector = None        # type: numpy.ndarray
+    _b_vector = None        # type: numpy.ndarray or None
     a_count = None          # type: int
     b_count = 1             # type: int
 
@@ -179,15 +179,11 @@ class GridRepetition:
 
     def as_pattern(self) -> 'Pattern':
         """
-        Returns a copy of self.pattern which has been scaled, rotated, etc. according to this
-         SubPattern's properties.
-        :return: Copy of self.pattern that has been altered to reflect the SubPattern's properties.
+        Returns a copy of self.pattern which has been scaled, rotated, repeated, etc.
+          etc. according to this GridRepetitions's properties.
+        :return: Copy of self.pattern that has been repeated / altered as implied by
+          this object's other properties.
         """
-        #xy = numpy.array(element.xy)
-        #origin = xy[0]
-        #col_spacing = (xy[1] - origin) / element.cols
-        #row_spacing = (xy[2] - origin) / element.rows
-
         patterns = []
 
         for a in range(self.a_count):
@@ -246,7 +242,7 @@ class GridRepetition:
 
     def mirror(self, axis: int) -> 'GridRepetition':
         """
-        Mirror the subpattern across an axis.
+        Mirror the GridRepetition across an axis.
 
         :param axis: Axis to mirror across.
         :return: self
@@ -257,7 +253,7 @@ class GridRepetition:
     def get_bounds(self) -> numpy.ndarray or None:
         """
         Return a numpy.ndarray containing [[x_min, y_min], [x_max, y_max]], corresponding to the
-         extent of the SubPattern in each dimension.
+         extent of the GridRepetition in each dimension.
         Returns None if the contained Pattern is empty.
 
         :return: [[x_min, y_min], [x_max, y_max]] or None
@@ -266,7 +262,7 @@ class GridRepetition:
 
     def scale_by(self, c: float) -> 'GridRepetition':
         """
-        Scale the subpattern by a factor
+        Scale the GridRepetition by a factor
 
         :param c: scaling factor
         """
@@ -281,7 +277,7 @@ class GridRepetition:
         """
         return copy.copy(self)
 
-    def deepcopy(self) -> 'SubPattern':
+    def deepcopy(self) -> 'GridRepetition':
         """
         Return a deep copy of the repetition.
 
