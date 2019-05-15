@@ -15,11 +15,11 @@ __author__ = 'Jan Petykiewicz'
 
 
 class Text(Shape):
-    _string = ''
-    _height = 1.0
-    _rotation = 0.0
-    _mirrored = None
-    font_path = ''
+    _string = ''        # type: str
+    _height = 1.0       # type: float
+    _rotation = 0.0     # type: float
+    _mirrored = None    # type: List[str]
+    font_path = ''      # type: str
 
     # vertices property
     @property
