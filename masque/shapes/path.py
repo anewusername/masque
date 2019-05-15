@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import copy
 from enum import Enum
 import numpy
@@ -161,6 +161,15 @@ class Path(Shape):
             self.cap_extensions = cap_extensions
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'Path':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        new._vertices = self._vertices.copy()
+        new._cap = copy.deepcopy(self._cap, memo)
+        new._cap_extensions = copy.deepcopy(self._cap_extensions, memo)
+        return new
 
     @staticmethod
     def travel(travel_pairs: Tuple[Tuple[float, float]],

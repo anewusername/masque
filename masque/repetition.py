@@ -3,7 +3,7 @@
      instances of a Pattern in the same parent Pattern.
 """
 
-from typing import Union, List
+from typing import Union, List, Dict
 import copy
 
 import numpy
@@ -85,6 +85,16 @@ class GridRepetition:
         if mirrored is None:
             mirrored = [False, False]
         self.mirrored = mirrored
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'GridReptition':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new.pattern = copy.deepcopy(self.pattern, memo)
+        new._offset = self._offset.copy()
+        new._mirrored = copy.deepcopy(self._mirrored, memo)
+        new._a_vector = self._a_vector.copy()
+        new._b_vector = copy.copy(self._b_vector)       # ndarray or None so don't need deepcopy
+        return new
 
     # offset property
     @property

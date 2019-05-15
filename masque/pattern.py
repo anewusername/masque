@@ -70,6 +70,15 @@ class Pattern:
 
         self.name = name
 
+    def  __deepcopy__(self, memo: Dict = None) -> 'Pattern':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new.name = self.name
+        new.shapes = copy.deepcopy(self.shapes, memo)
+        new.labels = copy.deepcopy(self.labels, memo)
+        new.subpatterns = copy.deepcopy(self.subpatterns, memo)
+        return new
+
     def append(self, other_pattern: 'Pattern') -> 'Pattern':
         """
         Appends all shapes, labels and subpatterns from other_pattern to self's shapes,

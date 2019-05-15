@@ -1,4 +1,5 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+import copy
 import numpy
 from numpy import pi, inf
 
@@ -80,6 +81,13 @@ class Text(Shape):
         self.rotation = rotation
         self.font_path = font_path
         self.mirrored = mirrored
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'Text':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        new._mirrored = copy.deepcopy(self._mirrored, memo)
+        return new
 
     def to_polygons(self,
                     _poly_num_points: int=None,

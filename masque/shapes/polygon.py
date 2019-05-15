@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import copy
 import numpy
 from numpy import pi
@@ -83,6 +83,13 @@ class Polygon(Shape):
         self.offset = offset
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'Polygon':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        new._vertices = self._vertices.copy()
+        return new
 
     @staticmethod
     def square(side_length: float,

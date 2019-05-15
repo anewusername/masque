@@ -3,7 +3,7 @@
   offset, rotation, scaling, and other such properties to the reference.
 """
 
-from typing import Union, List
+from typing import Union, List, Dict
 import copy
 
 import numpy
@@ -44,6 +44,14 @@ class SubPattern:
         if mirrored is None:
             mirrored = [False, False]
         self.mirrored = mirrored
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new.pattern = copy.deepcopy(self.pattern, memo)
+        new._offset = self._offset.copy()
+        new._mirrored = copy.deepcopy(self._mirrored, memo)
+        return new
 
     # offset property
     @property

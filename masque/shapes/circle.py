@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 import numpy
 from numpy import pi
 
@@ -52,6 +52,12 @@ class Circle(Shape):
         self.radius = radius
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'Circle':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        return new
 
     def to_polygons(self, poly_num_points: int=None, poly_max_arclen: float=None) -> List[Polygon]:
         if poly_num_points is None:

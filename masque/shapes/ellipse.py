@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import math
 import numpy
 from numpy import pi
@@ -97,6 +97,13 @@ class Ellipse(Shape):
         self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
+
+    def  __deepcopy__(self, memo: Dict = None) -> 'Ellipse':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        new._radii = self._radii.copy()
+        return new
 
     def to_polygons(self,
                     poly_num_points: int=None,
