@@ -250,12 +250,12 @@ class Path(Shape):
             if towards_perp[i]:
                 o0.append(intersection_p[i])
                 if acute[i]:
-                    o1.append(intersection_n[i])
-                else:
                     # Opposite is >270
                     pt0 = v[i + 1] - perp[i + 0] + dvdir[i + 0] * self.width / 2
                     pt1 = v[i + 1] - perp[i + 1] - dvdir[i + 1] * self.width / 2
                     o1 += [pt0, pt1]
+                else:
+                    o1.append(intersection_n[i])
             else:
                 o1.append(intersection_n[i])
                 if acute[i]:
