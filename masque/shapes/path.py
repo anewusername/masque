@@ -22,12 +22,14 @@ class Path(Shape):
     _vertices = None        # type: numpy.ndarray
     _width = None           # type: float
     _cap = None             # type: Path.Cap
+    _cap_extensions = None  # type: numpy.ndarray or None
 
     class Cap(Enum):
         Flush = 0       # Path ends at final vertices
         Circle = 1      # Path extends past final vertices with a semicircle of radius width/2
         Square = 2      # Path extends past final vertices with a width-by-width/2 rectangle
-
+        SquareCustom = 4  # Path extends past final vertices with a rectangle of length
+                          #     defined by path.cap_extensions
 
     # width property
     @property
@@ -59,7 +61,35 @@ class Path(Shape):
 
     @cap.setter
     def cap(self, val: 'Path.Cap'):
+        # TODO: Document that setting cap can change cap_extensions
         self._cap = Path.Cap(val)
+        if self.cap != Path.Cap.SquareCustom:
+            self.cap_extensions = None
+        elif self.cap_extensions is None:
+            # just got set to SquareCustom
+            self.cap_extensions = numpy.zeros(2)
+
+    # cap_extensions property
+    @property
+    def cap_extensions(self) -> numpy.ndarray or None:
+        """
+        Path end-cap extensionf
+
+        :return: 2-element ndarray or None
+        """
+        return self._cap_extensions
+
+    @cap_extensions.setter
+    def cap_extensions(self, vals: numpy.ndarray or None):
+        custom_caps = (Path.Cap.SquareCustom,)
+        if self.cap in custom_caps:
+            if vals is None:
+                raise Exception('Tried to set cap extensions to None on path with custom cap type')
+            self._cap_extensions = numpy.array(vals, dtype=float)
+        else:
+            if vals is not None:
+                raise Exception('Tried to set custom cap extensions on path with non-custom cap type')
+            self._cap_extensions = vals
 
     # vertices property
     @property
@@ -126,6 +156,8 @@ class Path(Shape):
         self.vertices = vertices
         self.width = width
         self.cap = cap
+        if cap_extensions is not None:
+            self.cap_extensions = cap_extensions
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
@@ -133,6 +165,7 @@ class Path(Shape):
     def travel(travel_pairs: Tuple[Tuple[float, float]],
                width: float = 0.0,
                cap: 'Path.Cap' = Cap.Flush,
+               cap_extensions = None,
                offset: vector2=(0.0, 0.0),
                rotation: float = 0,
                mirrored: Tuple[bool] = (False, False),
@@ -149,6 +182,8 @@ class Path(Shape):
             to the +x axis).
         :param width: Path width, default 0
         :param cap: End-cap type, default Path.Cap.Flush (no end-cap)
+        :param cap_extensions: End-cap extension distances, when using Path.Cap.CustomSquare.
+            Default (0, 0) or None, depending on cap type
         :param offset: Offset, default (0, 0)
         :param rotation: Rotation counterclockwise, in radians. Default 0
         :param mirrored: Whether to mirror across the x or y axes. For example,
@@ -166,7 +201,7 @@ class Path(Shape):
             direction = numpy.dot(rotation_matrix_2d(angle), direction.T).T
             verts.append(verts[-1] + direction * distance)
 
-        return Path(vertices=verts, width=width, cap=cap,
+        return Path(vertices=verts, width=width, cap=cap, cap_extensions=cap_extensions,
                     offset=offset, rotation=rotation, mirrored=mirrored,
                     layer=layer, dose=dose)
 
@@ -174,12 +209,7 @@ class Path(Shape):
                     poly_num_points: int=None,
                     poly_max_arclen: float=None,
                     ) -> List['Polygon']:
-        if self.cap in (Path.Cap.Flush, Path.Cap.Circle):
-            extension = 0.0
-        elif self.cap == Path.Cap.Square:
-            extension = self.width / 2
-        else:
-            raise PatternError('Unrecognized path endcap: {}'.format(self.cap))
+        extensions = self._calculate_cap_extensions()
 
         v = remove_colinear_vertices(self.vertices, closed_path=False)
         dv = numpy.diff(v, axis=0)
@@ -191,12 +221,11 @@ class Path(Shape):
 
         perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
 
-        # add extension
-        if extension != 0:
-            v[0] -= dvdir[0] * extension
-            v[-1] += dvdir[-1] * extension
+        # add extensions
+        if (extensions != 0).any():
+            v[0] -= dvdir[0] * extensions[0]
+            v[-1] += dvdir[-1] * extensions[1]
             dv = numpy.diff(v, axis=0)      # recalculate dv; dvdir and perp should stay the same
-
 
         # Find intersections of expanded sides
         As = numpy.stack((dv[:-1], -dv[1:]), axis=2)
@@ -254,19 +283,17 @@ class Path(Shape):
             bounds = self.offset + numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
                                                  numpy.max(self.vertices, axis=0) + self.width / 2))
         elif self.cap in (Path.Cap.Flush,
-                          Path.Cap.Square):
-            if self.cap == Path.Cap.Flush:
-                extension = 0
-            elif self.cap == Path.Cap.Square:
-                extension = self.width / 2
+                          Path.Cap.Square,
+                          Path.Cap.SquareCustom):
+            extensions = self._calculate_cap_extensions()
 
             v = remove_colinear_vertices(self.vertices, closed_path=False)
             dv = numpy.diff(v, axis=0)
             dvdir = dv / numpy.sqrt((dv * dv).sum(axis=1))[:, None]
             perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
 
-            v[0] -= dvdir * extension
-            v[-1] += dvdir * extension
+            v[0] -= dvdir * extensions[0]
+            v[-1] += dvdir * extensions[1]
 
             bounds = self.offset + numpy.vstack((numpy.min(v - numpy.abs(perp), axis=0),
                                                  numpy.max(v + numpy.abs(perp), axis=0)))
@@ -342,3 +369,14 @@ class Path(Shape):
         '''
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=False)
         return self
+
+    def _calculate_cap_extensions(self) -> numpy.ndarray:
+        if self.cap == Path.Cap.Square:
+            extensions = numpy.full(2, self.width / 2)
+        elif self.cap == Path.Cap.SquareCustom:
+            extensions =  self.cap_extensions
+        else:
+            # Flush or Circle
+            extensions = numpy.zeros(2)
+        return extensions
+

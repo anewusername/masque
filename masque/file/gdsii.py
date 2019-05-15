@@ -35,7 +35,7 @@ path_cap_map = {
                 0: Path.Cap.Flush,
                 1: Path.Cap.Circle,
                 2: Path.Cap.Square,
-               #3: custom?
+                4: Path.Cap.SquareCustom,
                }
 
 
@@ -290,6 +290,13 @@ def read(stream: io.BufferedIOBase,
                         'width': element.width if element.width is not None else 0.0,
                         'cap': cap,
                        }
+
+                if cap == Path.Cap.SquareCustom:
+                    args['cap_extensions'] = numpy.zeros(2)
+                    if element.bgn_extn is not None:
+                        args['cap_extensions'][0] = element.bgn_extn
+                    if element.end_extn is not None:
+                        args['cap_extensions'][1] = element.end_extn
 
                 if use_dtype_as_dose:
                     args['dose'] = element.data_type
