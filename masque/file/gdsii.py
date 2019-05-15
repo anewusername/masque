@@ -119,7 +119,7 @@ def writefile(patterns: List[Pattern] or Pattern,
     Will automatically compress the file if it has a .gz suffix.
     """
     path = pathlib.Path(filename)
-    if path.suffix == 'gz':
+    if path.suffix == '.gz':
         open_func = gzip.open
     else:
         open_func = open
@@ -213,7 +213,7 @@ def readfile(filename: str or pathlib.Path,
     Tries to autodetermine file type based on suffixes
     """
     path = pathlib.Path(filename)
-    if path.suffix == 'gz':
+    if path.suffix == '.gz':
         open_func = gzip.open
     else:
         open_func = open
