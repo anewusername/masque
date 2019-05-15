@@ -482,6 +482,14 @@ class Pattern:
         """
         return copy.deepcopy(self)
 
+    def is_empty(self) -> bool:
+        """
+        Returns true if the Pattern contains no shapes, labels, or subpatterns.
+
+        :return: True if the pattern is empty.
+        """
+        return (len(self.subpatterns) == 0 and len(self.shapes) == 0 and len(self.labels) == 0)
+
     @staticmethod
     def load(filename: str) -> 'Pattern':
         """
