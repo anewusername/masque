@@ -384,6 +384,8 @@ class Pattern:
         for entry in self.shapes + self.subpatterns:
             entry.offset *= c
             entry.scale_by(c)
+        for entry in self.labels:
+            entry.offset *= c
         return self
 
     def rotate_around(self, pivot: vector2, rotation: float) -> 'Pattern':
