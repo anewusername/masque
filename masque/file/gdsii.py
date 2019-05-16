@@ -531,7 +531,8 @@ def _disambiguate_pattern_names(patterns):
         if sanitized_name == '':
             logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
         elif suffixed_name != sanitized_name:
-            logger.warning('Pattern name "{}" appears multiple times; renaming to "{}"'.format(pat.name, suffixed_name))
+            logger.warning('Pattern name "{}" ({}) appears multiple times; renaming to "{}"'.format(
+                            pat.name, sanitized_name, suffixed_name))
 
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
