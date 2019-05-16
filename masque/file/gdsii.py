@@ -511,7 +511,14 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
 def _disambiguate_pattern_names(patterns):
     used_names = []
     for pat in patterns:
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+        if len(pat.name) > 32:
+            shortened_name = pat.name[:26]
+            logger.warning('Pattern name "{}" is too long ({}/32 chars),'.format(pat.name, len(pat.name)) + \
+                           ' shortening to "{}" before generating suffix'.format(shortened_name))
+        else:
+            shortened_name = pat.name
+
+        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
 
         i = 0
         suffixed_name = sanitized_name
