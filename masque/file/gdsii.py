@@ -124,7 +124,7 @@ def writefile(patterns: List[Pattern] or Pattern,
     else:
         open_func = open
 
-    with open_func(path, mode='wb') as stream:
+    with io.BufferedWriter(open_func(path, mode='wb')) as stream:
         results = write(patterns, stream, *args, **kwargs)
     return results
 
@@ -218,7 +218,7 @@ def readfile(filename: str or pathlib.Path,
     else:
         open_func = open
 
-    with open_func(path, mode='rb') as stream:
+    with io.BufferedReader(open_func(path, mode='rb')) as stream:
         results = read(stream, *args, **kwargs)
     return results
 
