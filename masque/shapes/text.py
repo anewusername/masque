@@ -151,7 +151,7 @@ class Text(Shape):
     def get_bounds(self) -> numpy.ndarray:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so
         #  just convert to polygons instead
-        bounds = [[+inf, +inf], [-inf, -inf]]
+        bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
         polys = self.to_polygons()
         for poly in polys:
             poly_bounds = poly.get_bounds()
