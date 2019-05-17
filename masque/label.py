@@ -24,6 +24,9 @@ class Label:
     # Label string
     _string = None                      # type: str
 
+    # Arbitrary identifier tuple
+    identifier: Tuple
+
     # ---- Properties
     # offset property
     @property
@@ -76,6 +79,7 @@ class Label:
                  string: str,
                  offset: vector2=(0.0, 0.0),
                  layer: int=0):
+        self.identifier = ()
         self.string = string
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer

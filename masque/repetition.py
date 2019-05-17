@@ -3,7 +3,7 @@
      instances of a Pattern in the same parent Pattern.
 """
 
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 import copy
 
 import numpy
@@ -36,6 +36,8 @@ class GridRepetition:
     _b_vector = None        # type: numpy.ndarray or None
     a_count = None          # type: int
     b_count = 1             # type: int
+
+    identifier: Tuple
 
     def __init__(self,
                  pattern: 'Pattern',
@@ -77,6 +79,7 @@ class GridRepetition:
         self.a_count = a_count
         self.b_count = b_count
 
+        self.identifier = ()
         self.pattern = pattern
         self.offset = offset
         self.rotation = rotation

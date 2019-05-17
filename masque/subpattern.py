@@ -3,7 +3,7 @@
   offset, rotation, scaling, and other such properties to the reference.
 """
 
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 import copy
 
 import numpy
@@ -28,6 +28,7 @@ class SubPattern:
     _dose = 1.0             # type: float
     _scale = 1.0            # type: float
     _mirrored = None        # type: List[bool]
+    identifier: Tuple
 
     def __init__(self,
                  pattern: 'Pattern',
@@ -36,6 +37,7 @@ class SubPattern:
                  mirrored: List[bool]=None,
                  dose: float=1.0,
                  scale: float=1.0):
+        self.identifier = ()
         self.pattern = pattern
         self.offset = offset
         self.rotation = rotation
