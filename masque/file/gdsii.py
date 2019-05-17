@@ -129,8 +129,8 @@ def writefile(patterns: List[Pattern] or Pattern,
     return results
 
 
-def dose2dtype(patterns: Pattern or List[Pattern],
-              ) -> Tuple[List[Pattern], List[float]]:
+def dose2dtype(patterns: List[Pattern],
+               ) -> Tuple[List[Pattern], List[float]]:
     """
      For each shape in each pattern, set shape.layer to the tuple
      (base_layer, datatype), where:
@@ -149,9 +149,6 @@ def dose2dtype(patterns: Pattern or List[Pattern],
             dose_list: A list of doses, providing a mapping between datatype (int, list index)
                        and dose (float, list entry).
     """
-    if isinstance(patterns, Pattern):
-        patterns = [patterns]
-
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
     for pattern in patterns:
@@ -206,7 +203,7 @@ def dose2dtype(patterns: Pattern or List[Pattern],
             dose_mult = subpat.dose * pat_dose
             subpat.pattern = new_pats[(id(subpat.pattern), dose_mult)]
 
-    return patterns, list(dose_vals)
+    return patterns, dose_vals_list
 
 
 def readfile(filename: str or pathlib.Path,
