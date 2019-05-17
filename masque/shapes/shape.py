@@ -12,7 +12,7 @@ __author__ = 'Jan Petykiewicz'
 
 # Type definitions
 normalized_shape_tuple = Tuple[Tuple,
-                               Tuple[numpy.ndarray, float, float, float],
+                               Tuple[numpy.ndarray, float, float, bool, float],
                                Callable[[], 'Shape']]
 
 # ## Module-wide defaults
@@ -101,7 +101,7 @@ class Shape(metaclass=ABCMeta):
                 (intrinsic, extrinsic, constructor). These are further broken down as:
                 intrinsic: A tuple of basic types containing all information about the instance that
                             is not contained in 'extrinsic'. Usually, intrinsic[0] == type(self).
-                extrinsic: ([x_offset, y_offset], scale, rotation, dose)
+                extrinsic: ([x_offset, y_offset], scale, rotation, mirror_across_x_axis, dose)
                 constructor: A callable (no arguments) which returns an instance of type(self) with
                             internal state equivalent to 'intrinsic'.
         """

@@ -353,7 +353,7 @@ class Path(Shape):
         width0 = self.width / norm_value
 
         return (type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer), \
-               (offset, scale/norm_value, rotation, self.dose), \
+               (offset, scale/norm_value, rotation, False, self.dose), \
                lambda: Polygon(reordered_vertices*norm_value, width=self.width*norm_value,
                                cap=self.cap, layer=self.layer)
 

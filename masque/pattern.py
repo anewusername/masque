@@ -261,9 +261,9 @@ class Pattern:
                 pat = Pattern(shapes=[shape])
 
                 for i, values in shape_table[label][1]:
-                    (offset, scale, rotation, dose) = values
+                    (offset, scale, rotation, mirror_x, dose) = values
                     subpat = SubPattern(pattern=pat, offset=offset, scale=scale,
-                                        rotation=rotation, dose=dose)
+                                        rotation=rotation, dose=dose, mirrored=(mirror_x, False))
                     self.subpatterns.append(subpat)
                     shapes_to_remove.append(i)
 

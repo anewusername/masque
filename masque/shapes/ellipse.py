@@ -169,6 +169,6 @@ class Ellipse(Shape):
             scale = self.radius_y
             angle = (self.rotation + pi / 2) % pi
         return (type(self), radii, self.layer), \
-               (self.offset, scale/norm_value, angle, self.dose), \
+               (self.offset, scale/norm_value, angle, False, self.dose), \
                lambda: Ellipse(radii=radii*norm_value, layer=self.layer)
 

@@ -319,7 +319,7 @@ class Arc(Shape):
         width = self.width
 
         return (type(self), radii, angles, width/norm_value, self.layer), \
-               (self.offset, scale/norm_value, rotation, self.dose), \
+               (self.offset, scale/norm_value, rotation, False, self.dose), \
                lambda: Arc(radii=radii*norm_value, angles=angles, width=width*norm_value, layer=self.layer)
 
     def get_cap_edges(self) -> numpy.ndarray:

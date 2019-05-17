@@ -131,12 +131,21 @@ class Text(Shape):
         return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
-        return (type(self), self.string, self.font_path, self.mirrored, self.layer), \
-               (self.offset, self.height / norm_value, self.rotation, self.dose), \
+        mirror_x, mirror_y = self.mirrored
+        rotation = self.rotation
+        if mirror_x and mirror_y:
+            rotation += pi
+        elif mirror_y:
+            rotation += pi
+            mirror_x = True
+        rotation %= 2 * pi
+        return (type(self), self.string, self.font_path, self.layer), \
+               (self.offset, self.height / norm_value, rotation, mirror_x, self.dose), \
                lambda: Text(string=self.string,
                             height=self.height * norm_value,
                             font_path=self.font_path,
-                            mirrored=self.mirrored,
+                            rotation=rotation,
+                            mirrored=(mirror_x, False),
                             layer=self.layer)
 
     def get_bounds(self) -> numpy.ndarray:

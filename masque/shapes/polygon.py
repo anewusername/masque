@@ -265,7 +265,7 @@ class Polygon(Shape):
         reordered_vertices = numpy.roll(rotated_vertices, -x_min, axis=0)
 
         return (type(self), reordered_vertices.data.tobytes(), self.layer), \
-               (offset, scale/norm_value, rotation, self.dose), \
+               (offset, scale/norm_value, rotation, False, self.dose), \
                lambda: Polygon(reordered_vertices*norm_value, layer=self.layer)
 
     def clean_vertices(self) -> 'Polygon':

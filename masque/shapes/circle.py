@@ -102,6 +102,6 @@ class Circle(Shape):
         rotation = 0.0
         magnitude = self.radius / norm_value
         return (type(self), self.layer), \
-               (self.offset, magnitude, rotation, self.dose), \
+               (self.offset, magnitude, rotation, False, self.dose), \
                lambda: Circle(radius=norm_value, layer=self.layer)
 
