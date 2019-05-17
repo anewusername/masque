@@ -40,10 +40,10 @@ class Pattern:
     name: str
 
     def __init__(self,
-                 shapes: List[Shape]=(),
-                 labels: List[Label]=(),
-                 subpatterns: List[SubPattern]=(),
-                 name: str='',
+                 name: str = '',
+                 shapes: List[Shape] = (),
+                 labels: List[Label] = (),
+                 subpatterns: List[SubPattern] = (),
                  ):
         """
         Basic init; arguments get assigned to member variables.
