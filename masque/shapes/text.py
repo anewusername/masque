@@ -78,6 +78,7 @@ class Text(Shape):
                  mirrored: Tuple[bool] = (False, False),
                  layer: int = 0,
                  dose: float = 1.0):
+        self.identifier = ()
         self.offset = offset
         self.layer = layer
         self.dose = dose
