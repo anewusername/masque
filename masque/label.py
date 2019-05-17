@@ -90,7 +90,6 @@ class Label:
         new._offset = self._offset.copy()
         return new
 
-    # ---- Non-abstract methods
     def copy(self) -> 'Label':
         """
         Returns a deep copy of the shape.
