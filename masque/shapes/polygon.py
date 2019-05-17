@@ -264,6 +264,8 @@ class Polygon(Shape):
             x_min = x_min[y_min]
         reordered_vertices = numpy.roll(rotated_vertices, -x_min, axis=0)
 
+        # TODO: normalize mirroring?
+
         return (type(self), reordered_vertices.data.tobytes(), self.layer), \
                (offset, scale/norm_value, rotation, False, self.dose), \
                lambda: Polygon(reordered_vertices*norm_value, layer=self.layer)
