@@ -511,10 +511,8 @@ class Pattern:
         :return: Loaded Pattern
         """
         with open(filename, 'rb') as f:
-            tmp_dict = pickle.load(f)
+            pattern = pickle.load(f)
 
-        pattern = Pattern()
-        pattern.__dict__.update(tmp_dict)
         return pattern
 
     def save(self, filename: str) -> 'Pattern':
@@ -525,7 +523,7 @@ class Pattern:
         :return: self
         """
         with open(filename, 'wb') as f:
-            pickle.dump(self.__dict__, f, protocol=2)
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         return self
 
     def visualize(self,
