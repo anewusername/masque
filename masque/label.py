@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import copy
 import numpy
 from numpy import pi
@@ -80,6 +80,11 @@ class Label:
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer
 
+    def  __deepcopy__(self, memo: Dict = None) -> 'Label':
+        memo = {} if memo is None else memo
+        new = copy.copy(self)
+        new._offset = self._offset.copy()
+        return new
 
     # ---- Non-abstract methods
     def copy(self) -> 'Label':
