@@ -149,8 +149,8 @@ class Path(Shape):
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int=0,
-                 dose: float=1.0,
+                 layer: int = 0,
+                 dose: float = 1.0,
                  ) -> 'Path':
         self._cap_extensions = None     # Since .cap setter might access it
 
@@ -180,11 +180,11 @@ class Path(Shape):
                width: float = 0.0,
                cap: 'Path.Cap' = Cap.Flush,
                cap_extensions = None,
-               offset: vector2=(0.0, 0.0),
+               offset: vector2 = (0.0, 0.0),
                rotation: float = 0,
                mirrored: Tuple[bool] = (False, False),
-               layer: int=0,
-               dose: float=1.0,
+               layer: int = 0,
+               dose: float = 1.0,
                ) -> 'Path':
         """
         Build a path by specifying the turn angles and travel distances
@@ -220,8 +220,8 @@ class Path(Shape):
                     layer=layer, dose=dose)
 
     def to_polygons(self,
-                    poly_num_points: int=None,
-                    poly_max_arclen: float=None,
+                    poly_num_points: int = None,
+                    poly_max_arclen: float = None,
                     ) -> List['Polygon']:
         extensions = self._calculate_cap_extensions()
 

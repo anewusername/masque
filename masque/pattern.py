@@ -94,10 +94,10 @@ class Pattern:
         return self
 
     def subset(self,
-               shapes_func: Callable[[Shape], bool]=None,
-               labels_func: Callable[[Label], bool]=None,
-               subpatterns_func: Callable[[SubPattern], bool]=None,
-               recursive: bool=False,
+               shapes_func: Callable[[Shape], bool] = None,
+               labels_func: Callable[[Label], bool] = None,
+               subpatterns_func: Callable[[SubPattern], bool] = None,
+               recursive: bool = False,
                ) -> 'Pattern':
         """
         Returns a Pattern containing only the entities (e.g. shapes) for which the
@@ -133,7 +133,7 @@ class Pattern:
 
     def apply(self,
               func: Callable[['Pattern'], 'Pattern'],
-              memo: Dict[int, 'Pattern']=None,
+              memo: Dict[int, 'Pattern'] = None,
               ) -> 'Pattern':
         """
         Recursively apply func() to this pattern and any pattern it references.
@@ -166,8 +166,8 @@ class Pattern:
         return pat
 
     def polygonize(self,
-                   poly_num_points: int=None,
-                   poly_max_arclen: float=None
+                   poly_num_points: int = None,
+                   poly_max_arclen: float = None,
                    ) -> 'Pattern':
         """
         Calls .to_polygons(...) on all the shapes in this Pattern and any referenced patterns,
@@ -191,7 +191,7 @@ class Pattern:
 
     def manhattanize(self,
                      grid_x: numpy.ndarray,
-                     grid_y: numpy.ndarray
+                     grid_y: numpy.ndarray,
                      ) -> 'Pattern':
         """
         Calls .polygonize() and .flatten on the pattern, then calls .manhattanize() on all the
@@ -209,9 +209,9 @@ class Pattern:
         return self
 
     def subpatternize(self,
-                      recursive: bool=True,
-                      norm_value: int=1e6,
-                      exclude_types: Tuple[Shape]=(Polygon,)
+                      recursive: bool = True,
+                      norm_value: int = int(1e6),
+                      exclude_types: Tuple[Shape] = (Polygon,)
                       ) -> 'Pattern':
         """
         Iterates through this Pattern and all referenced Patterns. Within each Pattern, it iterates
@@ -529,10 +529,10 @@ class Pattern:
         return self
 
     def visualize(self,
-                  offset: vector2=(0., 0.),
-                  line_color: str='k',
-                  fill_color: str='none',
-                  overdraw: bool=False):
+                  offset: vector2 = (0., 0.),
+                  line_color: str = 'k',
+                  fill_color: str = 'none',
+                  overdraw: bool = False):
         """
         Draw a picture of the Pattern and wait for the user to inspect it
 

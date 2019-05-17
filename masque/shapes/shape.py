@@ -193,7 +193,10 @@ class Shape(metaclass=ABCMeta):
         self.translate(+pivot)
         return self
 
-    def manhattanize_fast(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
+    def manhattanize_fast(self,
+                          grid_x: numpy.ndarray,
+                          grid_y: numpy.ndarray,
+                          ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
@@ -295,7 +298,10 @@ class Shape(metaclass=ABCMeta):
         return manhattan_polygons
 
 
-    def manhattanize(self, grid_x: numpy.ndarray, grid_y: numpy.ndarray) -> List['Polygon']:
+    def manhattanize(self,
+                     grid_x: numpy.ndarray,
+                     grid_y: numpy.ndarray
+                     ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 

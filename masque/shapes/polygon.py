@@ -72,11 +72,11 @@ class Polygon(Shape):
 
     def __init__(self,
                  vertices: numpy.ndarray,
-                 offset: vector2=(0.0, 0.0),
-                 rotation: float=0.0,
+                 offset: vector2 = (0.0, 0.0),
+                 rotation: float = 0.0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int=0,
-                 dose: float=1.0,
+                 layer: int = 0,
+                 dose: float = 1.0,
                  ):
         self.identifier = ()
         self.layer = layer
@@ -95,10 +95,10 @@ class Polygon(Shape):
 
     @staticmethod
     def square(side_length: float,
-               rotation: float=0.0,
-               offset: vector2=(0.0, 0.0),
-               layer: int=0,
-               dose: float=1.0
+               rotation: float = 0.0,
+               offset: vector2 = (0.0, 0.0),
+               layer: int = 0,
+               dose: float = 1.0,
                ) -> 'Polygon':
         """
         Draw a square given side_length, centered on the origin.
@@ -122,10 +122,10 @@ class Polygon(Shape):
     @staticmethod
     def rectangle(lx: float,
                   ly: float,
-                  rotation: float=0,
-                  offset: vector2=(0.0, 0.0),
-                  layer: int=0,
-                  dose: float=1.0
+                  rotation: float = 0,
+                  offset: vector2 = (0.0, 0.0),
+                  layer: int = 0,
+                  dose: float = 1.0,
                   ) -> 'Polygon':
         """
         Draw a rectangle with side lengths lx and ly, centered on the origin.
@@ -156,7 +156,7 @@ class Polygon(Shape):
              ymax: float = None,
              ly: float = None,
              layer: int = 0,
-             dose: float = 1.0
+             dose: float = 1.0,
              ) -> 'Polygon':
         """
         Draw a rectangle by specifying side/center positions.
@@ -222,8 +222,8 @@ class Polygon(Shape):
 
 
     def to_polygons(self,
-                    _poly_num_points: int=None,
-                    _poly_max_arclen: float=None,
+                    _poly_num_points: int = None,
+                    _poly_max_arclen: float = None,
                     ) -> List['Polygon']:
         return [copy.deepcopy(self)]
 

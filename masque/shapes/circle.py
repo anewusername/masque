@@ -39,11 +39,11 @@ class Circle(Shape):
 
     def __init__(self,
                  radius: float,
-                 poly_num_points: int=DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: float=None,
-                 offset: vector2=(0.0, 0.0),
-                 layer: int=0,
-                 dose: float=1.0):
+                 poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
+                 poly_max_arclen: float = None,
+                 offset: vector2 = (0.0, 0.0),
+                 layer: int = 0,
+                 dose: float = 1.0):
         self.identifier = ()
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer
@@ -58,7 +58,10 @@ class Circle(Shape):
         new._offset = self._offset.copy()
         return new
 
-    def to_polygons(self, poly_num_points: int=None, poly_max_arclen: float=None) -> List[Polygon]:
+    def to_polygons(self,
+                    poly_num_points: int = None,
+                    poly_max_arclen: float = None,
+                    ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points
         if poly_max_arclen is None:

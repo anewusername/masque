@@ -32,11 +32,11 @@ class SubPattern:
 
     def __init__(self,
                  pattern: 'Pattern',
-                 offset: vector2=(0.0, 0.0),
-                 rotation: float=0.0,
-                 mirrored: List[bool]=None,
-                 dose: float=1.0,
-                 scale: float=1.0):
+                 offset: vector2 = (0.0, 0.0),
+                 rotation: float = 0.0,
+                 mirrored: List[bool] = None,
+                 dose: float = 1.0,
+                 scale: float = 1.0):
         self.identifier = ()
         self.pattern = pattern
         self.offset = offset

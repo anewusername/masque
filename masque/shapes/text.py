@@ -73,11 +73,11 @@ class Text(Shape):
                  string: str,
                  height: float,
                  font_path: str,
-                 offset: vector2=(0.0, 0.0),
-                 rotation: float=0.0,
-                 mirrored: Tuple[bool]=(False, False),
-                 layer: int=0,
-                 dose: float=1.0):
+                 offset: vector2 = (0.0, 0.0),
+                 rotation: float = 0.0,
+                 mirrored: Tuple[bool] = (False, False),
+                 layer: int = 0,
+                 dose: float = 1.0):
         self.offset = offset
         self.layer = layer
         self.dose = dose
@@ -95,8 +95,8 @@ class Text(Shape):
         return new
 
     def to_polygons(self,
-                    _poly_num_points: int=None,
-                    _poly_max_arclen: float=None
+                    _poly_num_points: int = None,
+                    _poly_max_arclen: float = None,
                     ) -> List[Polygon]:
         all_polygons = []
         total_advance = 0
@@ -153,7 +153,7 @@ class Text(Shape):
 
 def get_char_as_polygons(font_path: str,
                          char: str,
-                         resolution: float=48*64,
+                         resolution: float = 48*64,
                          ) -> Tuple[List[List[List[float]]], float]:
     from freetype import Face
     from matplotlib.path import Path

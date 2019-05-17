@@ -81,13 +81,13 @@ class Ellipse(Shape):
 
     def __init__(self,
                  radii: vector2,
-                 poly_num_points: int=DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: float=None,
-                 offset: vector2=(0.0, 0.0),
-                 rotation: float=0,
+                 poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
+                 poly_max_arclen: float = None,
+                 offset: vector2 = (0.0, 0.0),
+                 rotation: float = 0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int=0,
-                 dose: float=1.0):
+                 layer: int = 0,
+                 dose: float = 1.0):
         self.identifier = ()
         self.radii = radii
         self.offset = offset
@@ -106,8 +106,8 @@ class Ellipse(Shape):
         return new
 
     def to_polygons(self,
-                    poly_num_points: int=None,
-                    poly_max_arclen: float=None
+                    poly_num_points: int = None,
+                    poly_max_arclen: float = None,
                     ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points
