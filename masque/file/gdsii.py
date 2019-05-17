@@ -171,6 +171,8 @@ def dose2dtype(patterns: Pattern or List[Pattern],
     if len(dose_vals) > 256:
         raise PatternError('Too many dose values: {}, maximum 256 when using dtypes.'.format(len(dose_vals)))
 
+    dose_vals_list = list(dose_vals)
+
     # Create a new pattern for each non-1-dose entry in the dose table
     #   and update the shapes to reflect their new dose
     new_pats = {} # (id, dose) -> new_pattern mapping
@@ -179,18 +181,22 @@ def dose2dtype(patterns: Pattern or List[Pattern],
             new_pats[(pat_id, pat_dose)] = patterns_by_id[pat_id]
             continue
 
-        pat = patterns_by_id[pat_id].deepcopy()
+        old_pat = patterns_by_id[pat_id]
+        pat = old_pat.copy() # keep old subpatterns
+        pat.shapes = copy.deepcopy(old_pat.shapes)
+        pat.labels = copy.deepcopy(old_pat.labels)
 
-        encoded_name = mangle_name(pat, pat_dose).encode('ASCII')
+        encoded_name = mangle_name(pat, pat_dose)
         if len(encoded_name) == 0:
             raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(pat.name))
+        pat.name = encoded_name
 
         for shape in pat.shapes:
             data_type = dose_vals_list.index(shape.dose * pat_dose)
             if is_scalar(shape.layer):
-                layer = (shape.layer, data_type)
+                shape.layer = (shape.layer, data_type)
             else:
-                layer = (shape.layer[0], data_type)
+                shape.layer = (shape.layer[0], data_type)
 
         new_pats[(pat_id, pat_dose)] = pat
 
