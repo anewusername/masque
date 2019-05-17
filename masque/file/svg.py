@@ -12,7 +12,7 @@ from .. import Pattern
 __author__ = 'Jan Petykiewicz'
 
 
-def write(pattern: Pattern,
+def writefile(pattern: Pattern,
           filename: str,
           custom_attributes: bool=False):
     """
@@ -83,7 +83,7 @@ def write(pattern: Pattern,
     svg.save()
 
 
-def write_inverted(pattern: Pattern, filename: str):
+def writefile_inverted(pattern: Pattern, filename: str):
     """
     Write an inverted Pattern to an SVG file, by first calling .polygonize() and
      .flatten() on it to change the shapes into polygons, then drawing a bounding
