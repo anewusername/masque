@@ -14,15 +14,15 @@ class Label:
     """
     A circle, which has a position and radius.
     """
-
+    __slots__ = ('_offset', '_layer', '_string', 'identifier')
     # [x_offset, y_offset]
-    _offset = numpy.array([0.0, 0.0])   # type: numpy.ndarray
+    _offset: numpy.ndarray
 
-    # Layer (integer >= 0)
-    _layer = 0                          # type: int or Tuple
+    # Layer (integer >= 0) or 2-Tuple of integers
+    _layer: int or Tuple
 
     # Label string
-    _string = None                      # type: str
+    _string: str
 
     # Arbitrary identifier tuple
     identifier: Tuple

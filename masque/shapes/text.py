@@ -16,11 +16,16 @@ __author__ = 'Jan Petykiewicz'
 
 
 class Text(Shape):
-    _string = ''        # type: str
-    _height = 1.0       # type: float
-    _rotation = 0.0     # type: float
-    _mirrored = None    # type: List[str]
-    font_path = ''      # type: str
+    """
+    Text (to be printed e.g. as a set of polygons).
+    This is distinct from non-printed Label objects.
+    """
+    __slots__ = ('_string', '_height', '_rotation', '_mirrored', 'font_path')
+    _string: str
+    _height: float
+    _rotation: float
+    _mirrored: List[str]
+    font_path: str
 
     # vertices property
     @property

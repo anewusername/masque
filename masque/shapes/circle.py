@@ -14,12 +14,10 @@ class Circle(Shape):
     """
     A circle, which has a position and radius.
     """
-
-    _radius = None                              # type: float
-
-    # Defaults for to_polygons
-    poly_num_points = DEFAULT_POLY_NUM_POINTS   # type: int
-    poly_max_arclen = None                      # type: float
+    __slots__ = ('_radius', 'poly_num_points', 'poly_max_arclen')
+    _radius: float
+    poly_num_points: int
+    poly_max_arclen: float
 
     # radius property
     @property
@@ -46,6 +44,7 @@ class Circle(Shape):
                  offset: vector2=(0.0, 0.0),
                  layer: int=0,
                  dose: float=1.0):
+        self.identifier = ()
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer
         self.dose = dose

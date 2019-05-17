@@ -19,10 +19,11 @@ class Path(Shape):
 
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
-    _vertices = None        # type: numpy.ndarray
-    _width = None           # type: float
-    _cap = None             # type: Path.Cap
-    _cap_extensions = None  # type: numpy.ndarray or None
+    __slots__ = ('_vertices', '_width', '_cap', '_cap_extensions')
+    _vertices: numpy.ndarray
+    _width: float
+    _cap: 'Path.Cap'
+    _cap_extensions: numpy.ndarray or None
 
     class Cap(Enum):
         Flush = 0       # Path ends at final vertices
@@ -151,6 +152,9 @@ class Path(Shape):
                  layer: int=0,
                  dose: float=1.0,
                  ) -> 'Path':
+        self._cap_extensions = None     # Since .cap setter might access it
+
+        self.identifier = ()
         self.offset = offset
         self.layer = layer
         self.dose = dose

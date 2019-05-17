@@ -23,19 +23,30 @@ class GridRepetition:
     GridRepetition provides support for efficiently embedding multiple copies of a Pattern
      into another Pattern at regularly-spaced offsets.
     """
+    __slots__ = ('pattern',
+                 '_offset',
+                 '_rotation',
+                 '_dose',
+                 '_scale',
+                 '_mirrored',
+                 '_a_vector',
+                 '_b_vector',
+                 'a_count',
+                 'b_count',
+                 'identifier')
 
-    pattern = None          # type: Pattern
+    pattern: 'Pattern'
 
-    _offset = (0.0, 0.0)    # type: numpy.ndarray
-    _rotation = 0.0         # type: float
-    _dose = 1.0             # type: float
-    _scale = 1.0            # type: float
-    _mirrored = None        # type: List[bool]
+    _offset: numpy.ndarray
+    _rotation: float
+    _dose: float
+    _scale: float
+    _mirrored: List[bool]
 
-    _a_vector = None        # type: numpy.ndarray
-    _b_vector = None        # type: numpy.ndarray or None
-    a_count = None          # type: int
-    b_count = 1             # type: int
+    _a_vector: numpy.ndarray
+    _b_vector: numpy.ndarray or None
+    a_count: int
+    b_count: int
 
     identifier: Tuple
 

@@ -16,13 +16,12 @@ class Ellipse(Shape):
     An ellipse, which has a position, two radii, and a rotation.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.
     """
-
-    _radii = None       # type: numpy.ndarray
-    _rotation = 0.0     # type: float
-
-    # Defaults for to_polygons
-    poly_num_points = DEFAULT_POLY_NUM_POINTS   # type: int
-    poly_max_arclen = None                      # type: float
+    __slots__ = ('_radii', '_rotation',
+                 'poly_num_points', 'poly_max_arclen')
+    _radii: numpy.ndarray
+    _rotation: float
+    poly_num_points: int
+    poly_max_arclen: float
 
     # radius properties
     @property
@@ -89,6 +88,7 @@ class Ellipse(Shape):
                  mirrored: Tuple[bool] = (False, False),
                  layer: int=0,
                  dose: float=1.0):
+        self.identifier = ()
         self.radii = radii
         self.offset = offset
         self.rotation = rotation

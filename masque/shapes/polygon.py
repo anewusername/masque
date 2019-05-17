@@ -18,7 +18,8 @@ class Polygon(Shape):
 
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
-    _vertices = None        # type: numpy.ndarray
+    __slots__ = ('_vertices',)
+    _vertices: numpy.ndarray
 
     # vertices property
     @property
@@ -77,6 +78,7 @@ class Polygon(Shape):
                  layer: int=0,
                  dose: float=1.0,
                  ):
+        self.identifier = ()
         self.layer = layer
         self.dose = dose
         self.vertices = vertices

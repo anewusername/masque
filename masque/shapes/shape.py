@@ -24,18 +24,13 @@ class Shape(metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """
+    __slots__ = ('_offset', '_layer', '_dose', 'identifier')
 
-    # [x_offset, y_offset]
-    _offset = numpy.array([0.0, 0.0])   # type: numpy.ndarray
-
-    # Layer (integer >= 0 or tuple)
-    _layer = 0                          # type: int or Tuple
-
-    # Dose
-    _dose = 1.0                         # type: float
-
-    # An arbitrary identifier for the shape, usually not set but used by Pattern.flatten()
-    identifier = ()                     # type: Tuple
+    _offset: numpy.ndarray      # [x_offset, y_offset]
+    _layer: int or Tuple        # Layer (integer >= 0 or tuple)
+    _dose: float                # Dose
+    identifier: Tuple           # An arbitrary identifier for the shape,
+                                #  usually empty but used by Pattern.flatten()
 
     # --- Abstract methods
     @abstractmethod

@@ -21,13 +21,13 @@ class SubPattern:
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-
-    pattern = None          # type: Pattern
-    _offset = (0.0, 0.0)    # type: numpy.ndarray
-    _rotation = 0.0         # type: float
-    _dose = 1.0             # type: float
-    _scale = 1.0            # type: float
-    _mirrored = None        # type: List[bool]
+    __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored', 'identifier')
+    pattern: 'Pattern'
+    _offset: numpy.ndarray
+    _rotation: float
+    _dose: float
+    _scale: float
+    _mirrored: List[bool]
     identifier: Tuple
 
     def __init__(self,
