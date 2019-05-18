@@ -332,12 +332,12 @@ def read(stream: io.BufferedIOBase,
         patterns.append(pat)
 
     # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
-    #  according to the subpattern.ref_name (which is deleted after use).
+    #  according to the subpattern.identifier (which is deleted after use).
     patterns_dict = dict(((p.name, p) for p in patterns))
     for p in patterns_dict.values():
         for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.ref_name.decode('ASCII')]
-            del sp.ref_name
+            sp.pattern = patterns_dict[sp.identifier.decode('ASCII')]
+            del sp.identifier
 
     return patterns_dict, library_info
 
@@ -357,13 +357,13 @@ def _mlayer2gds(mlayer):
 
 def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
     # Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
-    #  and sets the instance attribute .ref_name to the struct_name.
+    #  and sets the instance .identifier to the struct_name.
     #
     # BUG: "Absolute" means not affected by parent elements.
     #       That's not currently supported by masque at all, so need to either tag it and
     #       undo the parent transformations, or implement it in masque.
     subpat = SubPattern(pattern=None, offset=element.xy)
-    subpat.ref_name = element.struct_name
+    subpat.identifier = element.struct_name
     if element.strans is not None:
         if element.mag is not None:
             subpat.scale = element.mag
@@ -385,7 +385,7 @@ def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
 
 def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     # Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
-    #  and sets the instance attribute .ref_name to the struct_name.
+    #  and sets the instance .identifier to the struct_name.
     #
     # BUG: "Absolute" means not affected by parent elements.
     #       That's not currently supported by masque at all, so need to either tag it and
@@ -428,7 +428,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                             rotation=rotation,
                             scale=scale,
                             mirrored=(mirror_signs[::-1] == -1))
-    gridrep.ref_name = element.struct_name
+    gridrep.identifier = element.struct_name
 
     return gridrep
 
