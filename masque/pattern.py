@@ -548,8 +548,8 @@ class Pattern:
 
     def copy(self) -> 'Pattern':
         """
-        Return a copy of the Pattern, deep-copying shapes and copying subpattern entries, but not
-         deep-copying any referenced patterns.
+        Return a copy of the Pattern, deep-copying shapes and copying subpattern
+         entries, but not deep-copying any referenced patterns.
 
         See also: Pattern.deepcopy()
 
@@ -575,7 +575,9 @@ class Pattern:
 
         :return: True if the pattern is empty.
         """
-        return (len(self.subpatterns) == 0 and len(self.shapes) == 0 and len(self.labels) == 0)
+        return (len(self.subpatterns) == 0 and
+                len(self.shapes) == 0 and
+                len(self.labels) == 0)
 
     @staticmethod
     def load(filename: str) -> 'Pattern':
