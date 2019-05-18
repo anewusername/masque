@@ -15,10 +15,13 @@ from .subpattern import SubPattern
 from .repetition import GridRepetition
 from .shapes import Shape, Polygon
 from .label import Label
-from .utils import rotation_matrix_2d, vector2
+from .utils import rotation_matrix_2d, vector2, normalize_mirror
 from .error import PatternError
 
 __author__ = 'Jan Petykiewicz'
+
+
+visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
 
 
 class Pattern:
@@ -163,6 +166,78 @@ class Pattern:
             raise PatternError('.apply() called on pattern with circular reference')
         else:
             pat = memo[pat_id]
+        return pat
+
+    def dfs(self,
+            visit_before: visitor_function_t = None,
+            visit_after: visitor_function_t = None,
+            transform: numpy.ndarray or bool or None = False ,
+            memo: Dict = None,
+            hierarchy: Tuple['Pattern'] = (),
+            ) -> 'Pattern':
+        """
+        Experimental convenience function.
+        Performs a depth-first traversal of this pattern and its subpatterns.
+        At each pattern in the tree, the following sequence is called:
+            ```
+            current_pattern = visit_before(current_pattern, **vist_args)
+            for sp in current_pattern.subpatterns]
+                sp.pattern = sp.pattern.df(visit_before, visit_after, updated_transform,
+                                           memo, (current_pattern,) + hierarchy)
+            current_pattern = visit_after(current_pattern, **visit_args)
+            ```
+          where `visit_args` are
+            `hierarchy`:  (top_pattern, L1_pattern, L2_pattern, ..., parent_pattern)
+                          tuple of all parent-and-higher patterns
+            `transform`:  numpy.ndarray containing cumulative
+                          [x_offset, y_offset, rotation (rad), mirror_x (0 or 1)]
+                          for the instance being visited
+            `memo`:  Arbitrary dict (not altered except by visit_*())
+
+        :param visit_before: Function to call before traversing subpatterns.
+                Should accept a Pattern and **visit_args, and return the (possibly modified)
+                pattern. Default None (not called).
+        :param visit_after: Function to call after traversing subpatterns.
+                Should accept a Pattern and **visit_args, and return the (possibly modified)
+                pattern. Default None (not called).
+        :param transform: Initial value for `visit_args['transform']`.
+                Can be `False`, in which case the transform is not calculated.
+                `True` or `None` is interpreted as [0, 0, 0, 0].
+        :param memo: Arbitrary dict for use by visit_*() functions. Default None (empty dict).
+        :param hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
+                Appended to the start of the generated `visit_args['hierarchy']`.
+                Default is an empty tuple.
+        """
+        if memo is None:
+            memo = {}
+
+        if transform is None or transform is True:
+            transform = numpy.zeros(4)
+
+        if self in hierarchy:
+            raise PatternError('.dfs() called on pattern with circular reference')
+
+        pat = self
+        if visit_before is not None:
+            pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)
+
+        for subpattern in self.subpatterns:
+            if transform is not False:
+                mirror_x, angle = normalize_mirror(subpattern.mirrored)
+                angle += subpattern.rotation
+                sp_transform = transform + numpy.hstack((subpattern.offset, angle, mirror_x))
+                sp_transform[3] %= 2
+            else:
+                sp_transform = False
+
+            subpattern.pattern = subpattern.pattern.dfs(visit_before=visit_before,
+                                                        visit_after=visit_after,
+                                                        transform=sp_transform,
+                                                        memo=memo,
+                                                        hierarchy=hierarchy + (self,))
+
+        if visit_after is not None:
+            pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)
         return pat
 
     def polygonize(self,

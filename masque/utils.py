@@ -57,6 +57,20 @@ def rotation_matrix_2d(theta: float) -> numpy.ndarray:
                         [numpy.sin(theta), +numpy.cos(theta)]])
 
 
+def normalize_mirror(mirrored: Tuple[bool, bool]) -> Tuple[bool, float]:
+    mirrored_x, mirrored_y = mirrored
+    if mirrored_x and mirrored_y:
+        angle = numpy.pi
+        mirror_x = False
+    elif mirrored_x:
+        angle = 0
+        mirror_x = True
+    elif mirror_y:
+        angle = numpy.pi
+        mirror_x = True
+    return mirror_x, angle
+
+
 def remove_duplicate_vertices(vertices: numpy.ndarray, closed_path: bool = True) -> numpy.ndarray:
         duplicates = (vertices == numpy.roll(vertices, 1, axis=0)).all(axis=1)
         if not closed_path:
