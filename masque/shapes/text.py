@@ -5,7 +5,7 @@ from numpy import pi, inf
 
 from . import Shape, Polygon, normalized_shape_tuple
 from .. import PatternError
-from ..utils import is_scalar, vector2, get_bit
+from ..utils import is_scalar, vector2, get_bit, normalize_mirror
 
 # Loaded on use:
 # from freetype import Face
@@ -131,13 +131,8 @@ class Text(Shape):
         return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
-        mirror_x, mirror_y = self.mirrored
-        rotation = self.rotation
-        if mirror_x and mirror_y:
-            rotation += pi
-        elif mirror_y:
-            rotation += pi
-            mirror_x = True
+        mirror_x, rotation = normalize_mirror(self.mirrored)
+        rotation += self.rotation
         rotation %= 2 * pi
         return (type(self), self.string, self.font_path, self.layer), \
                (self.offset, self.height / norm_value, rotation, mirror_x, self.dose), \

@@ -21,7 +21,7 @@ from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
-from ..utils import remove_colinear_vertices
+from ..utils import remove_colinear_vertices, normalize_mirror
 
 
 __author__ = 'Jan Petykiewicz'
@@ -455,17 +455,9 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
             ref = gdsii.elements.SRef(struct_name=encoded_name,
                                       xy=numpy.round([subpat.offset]).astype(int))
 
-        ref.strans = 0
-        ref.angle = subpat.rotation * 180 / numpy.pi
-        mirror_x, mirror_y = subpat.mirrored
-        if mirror_x and mirror_y:
-            ref.angle += 180
-        elif mirror_x:
-            ref.strans = set_bit(ref.strans, 15 - 0, True)
-        elif mirror_y:
-            ref.angle += 180
-            ref.strans = set_bit(ref.strans, 15 - 0, True)
-        ref.angle %= 360
+        mirror_x, extra_angle = normalize_mirror(subpat.mirrored)
+        ref.angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
+        ref.strans = set_bit(ref.strans, 15 - 0, True) if mirror_x else 0
         ref.mag = subpat.scale
 
         refs.append(ref)
