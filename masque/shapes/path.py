@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict
 import copy
 from enum import Enum
 import numpy
-from numpy import pi
+from numpy import pi, inf
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
@@ -299,18 +299,12 @@ class Path(Shape):
         elif self.cap in (Path.Cap.Flush,
                           Path.Cap.Square,
                           Path.Cap.SquareCustom):
-            extensions = self._calculate_cap_extensions()
-
-            v = remove_colinear_vertices(self.vertices, closed_path=False)
-            dv = numpy.diff(v, axis=0)
-            dvdir = dv / numpy.sqrt((dv * dv).sum(axis=1))[:, None]
-            perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
-
-            v[0] -= dvdir * extensions[0]
-            v[-1] += dvdir * extensions[1]
-
-            bounds = self.offset + numpy.vstack((numpy.min(v - numpy.abs(perp), axis=0),
-                                                 numpy.max(v + numpy.abs(perp), axis=0)))
+            bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
+            polys = self.to_polygons()
+            for poly in polys:
+                poly_bounds = poly.get_bounds()
+                bounds[0, :] = numpy.minimum(bounds[0, :], poly_bounds[0, :])
+                bounds[1, :] = numpy.maximum(bounds[1, :], poly_bounds[1, :])
         else:
             raise PatternError('get_bounds() not implemented for endcaps: {}'.format(self.cap))
 
