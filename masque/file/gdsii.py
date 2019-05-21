@@ -435,7 +435,6 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
 
 def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
                         ) -> List[gdsii.elements.ARef or gdsii.elements.SRef]:
-    #  strans must be set for angle and mag to take effect
     refs = []
     for subpat in subpatterns:
         encoded_name = subpat.pattern.name
@@ -457,7 +456,8 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
 
         mirror_x, extra_angle = normalize_mirror(subpat.mirrored)
         ref.angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
-        ref.strans = set_bit(ref.strans, 15 - 0, True) if mirror_x else 0
+        #  strans must be non-None for angle and mag to take effect
+        ref.strans = set_bit(0, 15 - 0, mirror_x)
         ref.mag = subpat.scale
 
         refs.append(ref)
