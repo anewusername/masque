@@ -59,15 +59,8 @@ def rotation_matrix_2d(theta: float) -> numpy.ndarray:
 
 def normalize_mirror(mirrored: Tuple[bool, bool]) -> Tuple[bool, float]:
     mirrored_x, mirrored_y = mirrored
-    if mirrored_x and mirrored_y:
-        angle = numpy.pi
-        mirror_x = False
-    elif mirrored_x:
-        angle = 0
-        mirror_x = True
-    elif mirror_y:
-        angle = numpy.pi
-        mirror_x = True
+    mirror_x = (mirrored_x != mirrored_y) #XOR
+    angle = numpy.pi if mirrored_y else 0
     return mirror_x, angle
 
 
