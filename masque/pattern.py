@@ -224,9 +224,13 @@ class Pattern:
 
         for subpattern in self.subpatterns:
             if transform is not False:
+                sign = numpy.ones(2)
+                if transform[3]:
+                   sign[1] = -1
+                xy = numpy.dot(rotation_matrix_2d(transform[2]), subpattern.offset * sign)
                 mirror_x, angle = normalize_mirror(subpattern.mirrored)
                 angle += subpattern.rotation
-                sp_transform = transform + numpy.hstack((subpattern.offset, angle, mirror_x))
+                sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
                 sp_transform[3] %= 2
             else:
                 sp_transform = False
