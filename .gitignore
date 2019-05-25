@@ -1,6 +1,16 @@
 *.pyc
 __pycache__
+
 *.idea
+
 build/
 dist/
 *.egg-info/
+
+
+*.swp
+*.swo
+
+*.gds
+*.svg
+*.oas
