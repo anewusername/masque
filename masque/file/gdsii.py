@@ -508,7 +508,7 @@ def _disambiguate_pattern_names(patterns):
     for pat in patterns:
         if len(pat.name) > 32:
             shortened_name = pat.name[:26]
-            logger.warning('Pattern name "{}" is too long ({}/32 chars),'.format(pat.name, len(pat.name)) + \
+            logger.warning('Pattern name "{}" is too long ({}/32 chars),\n'.format(pat.name, len(pat.name)) +
                            ' shortening to "{}" before generating suffix'.format(shortened_name))
         else:
             shortened_name = pat.name
@@ -526,15 +526,15 @@ def _disambiguate_pattern_names(patterns):
         if sanitized_name == '':
             logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
         elif suffixed_name != sanitized_name:
-            logger.warning('Pattern name "{}" ({}) appears multiple times; renaming to "{}"'.format(
+            logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
                             pat.name, sanitized_name, suffixed_name))
 
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError('Zero-length name after sanitize+encode, originally "{}"'.format(pat.name))
+            raise PatternError('Zero-length name after sanitize+encode,\n originally "{}"'.format(pat.name))
         if len(encoded_name) > 32:
-            raise PatternError('Pattern name "{}" length > 32 after encode, originally "{}"'.format(encoded_name, pat.name))
+            raise PatternError('Pattern name "{}" length > 32 after encode,\n originally "{}"'.format(encoded_name, pat.name))
 
         pat.name = encoded_name
         used_names.append(suffixed_name)
