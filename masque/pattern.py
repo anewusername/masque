@@ -9,6 +9,7 @@ import pickle
 from collections import defaultdict
 
 import numpy
+from numpy import inf
 # .visualize imports matplotlib and matplotlib.collections
 
 from .subpattern import SubPattern
@@ -387,14 +388,18 @@ class Pattern:
         if not entries:
             return None
 
-        init_bounds = entries[0].get_bounds()
-        min_bounds = init_bounds[0, :]
-        max_bounds = init_bounds[1, :]
-        for entry in entries[1:]:
+        min_bounds = numpy.array((+inf, +inf))
+        max_bounds = numpy.array((+inf, +inf))
+        for entry in entries:
             bounds = entry.get_bounds()
+            if bounds is None:
+                continue
             min_bounds = numpy.minimum(min_bounds, bounds[0, :])
             max_bounds = numpy.maximum(max_bounds, bounds[1, :])
-        return numpy.vstack((min_bounds, max_bounds))
+        if (max_bounds < min_bounds).any():
+            return None
+        else:
+            return numpy.vstack((min_bounds, max_bounds))
 
     def flatten(self) -> 'Pattern':
         """
