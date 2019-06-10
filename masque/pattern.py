@@ -393,7 +393,7 @@ class Pattern:
             return None
 
         min_bounds = numpy.array((+inf, +inf))
-        max_bounds = numpy.array((+inf, +inf))
+        max_bounds = numpy.array((-inf, -inf))
         for entry in entries:
             bounds = entry.get_bounds()
             if bounds is None:
