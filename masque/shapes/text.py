@@ -96,8 +96,8 @@ class Text(Shape):
         return new
 
     def to_polygons(self,
-                    _poly_num_points: int = None,
-                    _poly_max_arclen: float = None,
+                    poly_num_points: int = None,        # unused
+                    poly_max_arclen: float = None,      # unused
                     ) -> List[Polygon]:
         all_polygons = []
         total_advance = 0
