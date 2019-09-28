@@ -23,6 +23,8 @@
     - svgwrite      [masque.file.svg]
 """
 
+import pathlib
+
 from .error import PatternError
 from .shapes import Shape
 from .label import Label
@@ -33,4 +35,6 @@ from .pattern import Pattern
 
 __author__ = 'Jan Petykiewicz'
 
-version = '0.5'
+with open(pathlib.Path(__file__).parent / 'VERSION', 'r') as f:
+    __version__ = f.read().strip()
+version = __version__

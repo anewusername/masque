@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, find_packages
-import masque
 
 with open('README.md', 'r') as f:
     long_description = f.read()
 
+with open('masque/VERSION', 'r') as f:
+    version = f.read().strip()
+
 setup(name='masque',
-      version=masque.version,
+      version=version,
       description='Lithography mask library',
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -15,6 +17,9 @@ setup(name='masque',
       author_email='anewusername@gmail.com',
       url='https://mpxd.net/code/jan/masque',
       packages=find_packages(),
+      package_data={
+          'masque': ['VERSION']
+      },
       install_requires=[
             'numpy',
       ],
