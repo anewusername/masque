@@ -33,11 +33,7 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
 
 ## TODO
 
-* Mirroring
 * Polygon de-embedding
-
-### Maybe
-
 * Construct from bitmap
 * Boolean operations on polygons (using pyclipper)
 * Output to OASIS (using fatamorgana)
