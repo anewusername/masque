@@ -115,7 +115,7 @@ class SubPattern:
     def mirrored(self, val: List[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = val
+        self._mirrored = numpy.array(val, dtype=bool)
 
     def as_pattern(self) -> 'Pattern':
         """
