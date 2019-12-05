@@ -47,12 +47,19 @@ class SubPattern:
             mirrored = [False, False]
         self.mirrored = mirrored
 
+    def  __copy__(self) -> 'SubPattern':
+        new = SubPattern(pattern=self.pattern,
+                         offset=self.offset.copy(),
+                         rotation=self.rotation,
+                         dose=self.dose,
+                         scale=self.scale,
+                         mirrored=self.mirrored.copy())
+        return new
+
     def  __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new.pattern = copy.deepcopy(self.pattern, memo)
-        new._offset = self._offset.copy()
-        new._mirrored = copy.deepcopy(self._mirrored, memo)
         return new
 
     # offset property

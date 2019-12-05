@@ -100,14 +100,23 @@ class GridRepetition:
             mirrored = [False, False]
         self.mirrored = mirrored
 
+    def  __copy__(self) -> 'GridRepetition':
+        new = GridRepetition(pattern=self.pattern,
+                             a_vector=self.a_vector.copy(),
+                             b_vector=copy.copy(self.b_vector),
+                             a_count=self.a_count,
+                             b_count=self.b_count,
+                             offset=self.offset.copy(),
+                             rotation=self.rotation,
+                             dose=self.dose,
+                             scale=self.scale,
+                             mirrored=self.mirrored.copy())
+        return new
+
     def  __deepcopy__(self, memo: Dict = None) -> 'GridReptition':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new.pattern = copy.deepcopy(self.pattern, memo)
-        new._offset = self._offset.copy()
-        new._mirrored = copy.deepcopy(self._mirrored, memo)
-        new._a_vector = self._a_vector.copy()
-        new._b_vector = copy.copy(self._b_vector)       # ndarray or None so don't need deepcopy
         return new
 
     # offset property
