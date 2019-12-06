@@ -439,8 +439,10 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
     for subpat in subpatterns:
         encoded_name = subpat.pattern.name
 
+        # Note: GDS mirrors first and rotates second
+        mirror_x, extra_angle = normalize_mirror(subpat.mirrored)
         if isinstance(subpat, GridRepetition):
-            mirror_signs = (-1) ** numpy.array(subpat.mirrored)
+            mirror_signs = [(-1 if mirror_x else 1), 1]
             xy = numpy.array(subpat.offset) + [
                   [0, 0],
                   numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.a_vector * mirror_signs) * subpat.scale * subpat.a_count,
@@ -454,7 +456,6 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
             ref = gdsii.elements.SRef(struct_name=encoded_name,
                                       xy=numpy.round([subpat.offset]).astype(int))
 
-        mirror_x, extra_angle = normalize_mirror(subpat.mirrored)
         ref.angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
         #  strans must be non-None for angle and mag to take effect
         ref.strans = set_bit(0, 15 - 0, mirror_x)

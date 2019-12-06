@@ -181,6 +181,7 @@ class SubPattern:
         :return: self
         """
         self.mirrored[axis] = not self.mirrored[axis]
+        self.rotation *= -1
         return self
 
     def get_bounds(self) -> numpy.ndarray or None:
