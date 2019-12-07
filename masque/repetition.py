@@ -31,8 +31,8 @@ class GridRepetition:
                  '_mirrored',
                  '_a_vector',
                  '_b_vector',
-                 'a_count',
-                 'b_count',
+                 '_a_count',
+                 '_b_count',
                  'identifier')
 
     pattern: 'Pattern'
@@ -45,8 +45,8 @@ class GridRepetition:
 
     _a_vector: numpy.ndarray
     _b_vector: numpy.ndarray or None
-    a_count: int
-    b_count: int
+    _a_count: int
+    _b_count: int
 
     identifier: Tuple
 
@@ -209,6 +209,27 @@ class GridRepetition:
             raise PatternError('b_vector must be convertible to size-2 ndarray')
         self._b_vector = val.flatten()
 
+    # a_count property
+    @property
+    def a_count(self) -> int:
+        return self._a_count
+
+    @a_count.setter
+    def a_count(self, val: int):
+        if val != int(val):
+            raise PatternError('a_count must be convertable to an int!')
+        self._a_count = int(val)
+
+    # b_count property
+    @property
+    def b_count(self) -> int:
+        return self._b_count
+
+    @b_count.setter
+    def b_count(self, val: int):
+        if val != int(val):
+            raise PatternError('b_count must be convertable to an int!')
+        self._b_count = int(val)
 
     def as_pattern(self) -> 'Pattern':
         """
