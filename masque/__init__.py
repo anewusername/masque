@@ -25,7 +25,7 @@
 
 import pathlib
 
-from .error import PatternError
+from .error import PatternError, PatternLockedError
 from .shapes import Shape
 from .label import Label
 from .subpattern import SubPattern

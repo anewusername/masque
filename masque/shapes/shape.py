@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import copy
 import numpy
 
-from .. import PatternError
+from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2
 
 
@@ -24,13 +24,26 @@ class Shape(metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """
-    __slots__ = ('_offset', '_layer', '_dose', 'identifier')
+    __slots__ = ('_offset', '_layer', '_dose', 'identifier', 'locked')
 
     _offset: numpy.ndarray      # [x_offset, y_offset]
     _layer: int or Tuple        # Layer (integer >= 0 or tuple)
     _dose: float                # Dose
     identifier: Tuple           # An arbitrary identifier for the shape,
                                 #  usually empty but used by Pattern.flatten()
+    locked: bool                # If True, any changes to the shape will raise a PatternLockedError
+
+    def __setattr__(self, name, value):
+        if self.locked and name != 'locked':
+            raise PatternLockedError()
+        object.__setattr__(self, name, value)
+
+    def __copy__(self) -> 'Shape':
+        cls = self.__class__
+        new = cls.__new__(cls)
+        for name in Shape.__slots__ + self.__slots__:
+            object.__setattr__(new, name, getattr(self, name))
+        return new
 
     # --- Abstract methods
     @abstractmethod
@@ -388,3 +401,20 @@ class Shape(metaclass=ABCMeta):
 
         return manhattan_polygons
 
+    def lock(self) -> 'Shape':
+        """
+        Lock the Shape
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', True)
+        return self
+
+    def unlock(self) -> 'Shape':
+        """
+        Unlock the Shape
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', False)
+        return self

@@ -9,7 +9,7 @@ import copy
 import numpy
 from numpy import pi
 
-from .error import PatternError
+from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
 
 
@@ -33,7 +33,8 @@ class GridRepetition:
                  '_b_vector',
                  '_a_count',
                  '_b_count',
-                 'identifier')
+                 'identifier',
+                 'locked')
 
     pattern: 'Pattern'
 
@@ -49,6 +50,7 @@ class GridRepetition:
     _b_count: int
 
     identifier: Tuple
+    locked: bool
 
     def __init__(self,
                  pattern: 'Pattern',
@@ -60,7 +62,8 @@ class GridRepetition:
                  rotation: float = 0.0,
                  mirrored: List[bool] = None,
                  dose: float = 1.0,
-                 scale: float = 1.0):
+                 scale: float = 1.0,
+                 locked: bool = False):
         """
         :param a_vector: First lattice vector, of the form [x, y].
             Specifies center-to-center spacing between adjacent elements.
@@ -70,6 +73,7 @@ class GridRepetition:
             Can be omitted when specifying a 1D array.
         :param b_count: Number of elements in the b_vector direction.
             Should be omitted if b_vector was omitted.
+        :param locked: Whether the subpattern is locked after initialization.
         :raises: InvalidDataError if b_* inputs conflict with each other
             or a_count < 1.
         """
@@ -85,6 +89,7 @@ class GridRepetition:
         if b_count < 1:
             raise InvalidDataError('Repetition has too-small b_count: '
                                    '{}'.format(b_count))
+        self.unlock()
         self.a_vector = a_vector
         self.b_vector = b_vector
         self.a_count = a_count
@@ -99,6 +104,12 @@ class GridRepetition:
         if mirrored is None:
             mirrored = [False, False]
         self.mirrored = mirrored
+        self.locked = locked
+
+    def __setattr__(self, name, value):
+        if self.locked and name != 'locked':
+            raise PatternLockedError()
+        object.__setattr__(self, name, value)
 
     def  __copy__(self) -> 'GridRepetition':
         new = GridRepetition(pattern=self.pattern,
@@ -110,7 +121,8 @@ class GridRepetition:
                              rotation=self.rotation,
                              dose=self.dose,
                              scale=self.scale,
-                             mirrored=self.mirrored.copy())
+                             mirrored=self.mirrored.copy(),
+                             locked=self.locked)
         return new
 
     def  __deepcopy__(self, memo: Dict = None) -> 'GridReptition':
@@ -126,6 +138,9 @@ class GridRepetition:
 
     @offset.setter
     def offset(self, val: vector2):
+        if self.locked:
+            raise PatternLockedError()
+
         if not isinstance(val, numpy.ndarray):
             val = numpy.array(val, dtype=float)
 
@@ -243,7 +258,7 @@ class GridRepetition:
         for a in range(self.a_count):
             for b in range(self.b_count):
                 offset = a * self.a_vector + b * self.b_vector
-                newPat = self.pattern.deepcopy()
+                newPat = self.pattern.deepcopy().deepunlock()
                 newPat.translate_elements(offset)
                 patterns.append(newPat)
 
@@ -343,3 +358,42 @@ class GridRepetition:
         """
         return copy.deepcopy(self)
 
+    def lock(self) -> 'GridRepetition':
+        """
+        Lock the GridRepetition
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', True)
+        return self
+
+    def unlock(self) -> 'GridRepetition':
+        """
+        Unlock the GridRepetition
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', False)
+        return self
+
+    def deeplock(self) -> 'GridRepetition':
+        """
+        Recursively lock the GridRepetition and its contained pattern
+
+        :return: self
+        """
+        self.lock()
+        self.pattern.deeplock()
+        return self
+
+    def deepunlock(self) -> 'GridRepetition':
+        """
+        Recursively unlock the GridRepetition and its contained pattern
+
+        This is dangerous unless you have just performed a deepcopy!
+
+        :return: self
+        """
+        self.unlock()
+        self.pattern.deepunlock()
+        return self

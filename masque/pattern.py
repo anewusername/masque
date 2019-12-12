@@ -17,7 +17,7 @@ from .repetition import GridRepetition
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, vector2, normalize_mirror
-from .error import PatternError
+from .error import PatternError, PatternLockedError
 
 __author__ = 'Jan Petykiewicz'
 
@@ -37,17 +37,19 @@ class Pattern:
             may reference the same Pattern object.
     :var name: An identifier for this object. Not necessarily unique.
     """
-    __slots__ = ('shapes', 'labels', 'subpatterns', 'name')
+    __slots__ = ('shapes', 'labels', 'subpatterns', 'name', 'locked')
     shapes: List[Shape]
     labels: List[Label]
     subpatterns: List[SubPattern or GridRepetition]
     name: str
+    locked: bool
 
     def __init__(self,
                  name: str = '',
                  shapes: List[Shape] = (),
                  labels: List[Label] = (),
                  subpatterns: List[SubPattern] = (),
+                 locked: bool = False,
                  ):
         """
         Basic init; arguments get assigned to member variables.
@@ -57,7 +59,9 @@ class Pattern:
         :param labels: Initial labels in the Pattern
         :param subpatterns: Initial subpatterns in the Pattern
         :param name: An identifier for the Pattern
+        :param locked: Whether to lock the pattern after construction
         """
+        self.unlock()
         if isinstance(shapes, list):
             self.shapes = shapes
         else:
@@ -74,14 +78,27 @@ class Pattern:
             self.subpatterns = list(subpatterns)
 
         self.name = name
+        self.locked = locked
+
+    def __setattr__(self, name, value):
+        if self.locked and name != 'locked':
+            raise PatternLockedError()
+        object.__setattr__(self, name, value)
+
+    def  __copy__(self, memo: Dict = None) -> 'Pattern':
+        return Pattern(name=self.name,
+                       shapes=copy.deepcopy(self.shapes),
+                       labels=copy.deepcopy(self.labels),
+                       subpatterns=[copy.copy(sp) for sp in self.subpatterns],
+                       locked=self.locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Pattern':
         memo = {} if memo is None else memo
-        new = copy.copy(self)
-        new.name = self.name
-        new.shapes = copy.deepcopy(self.shapes, memo)
-        new.labels = copy.deepcopy(self.labels, memo)
-        new.subpatterns = copy.deepcopy(self.subpatterns, memo)
+        new = Pattern(name=self.name,
+                shapes=copy.deepcopy(self.shapes, memo),
+                labels=copy.deepcopy(self.labels, memo),
+                subpatterns=copy.deepcopy(self.subpatterns, memo),
+                locked=self.locked)
         return new
 
     def append(self, other_pattern: 'Pattern') -> 'Pattern':
@@ -363,7 +380,7 @@ class Pattern:
         :return: A list of (Ni, 2) numpy.ndarrays specifying vertices of the polygons. Each ndarray
             is of the form [[x0, y0], [x1, y1],...].
         """
-        pat = copy.deepcopy(self).polygonize().flatten()
+        pat = self.deepcopy().deepunlock().polygonize().flatten()
         return [shape.vertices + shape.offset for shape in pat.shapes]
 
     def referenced_patterns_by_id(self) -> Dict[int, 'Pattern']:
@@ -564,11 +581,7 @@ class Pattern:
 
         :return: A copy of the current Pattern.
         """
-        cp = copy.copy(self)
-        cp.shapes = copy.deepcopy(cp.shapes)
-        cp.labels = copy.deepcopy(cp.labels)
-        cp.subpatterns = [copy.copy(subpat) for subpat in cp.subpatterns]
-        return cp
+        return copy.copy(self)
 
     def deepcopy(self) -> 'Pattern':
         """
@@ -587,6 +600,52 @@ class Pattern:
         return (len(self.subpatterns) == 0 and
                 len(self.shapes) == 0 and
                 len(self.labels) == 0)
+
+    def lock(self) -> 'Pattern':
+        """
+        Lock the pattern
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', True)
+        return self
+
+    def unlock(self) -> 'Pattern':
+        """
+        Unlock the pattern
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', False)
+        return self
+
+    def deeplock(self) -> 'Pattern':
+        """
+        Recursively lock the pattern, all referenced shapes, subpatterns, and labels
+
+        :return: self
+        """
+        self.lock()
+        for ss in self.shapes + self.labels:
+            ss.lock()
+        for sp in self.subpatterns:
+            sp.deeplock()
+        return self
+
+    def deepunlock(self) -> 'Pattern':
+        """
+        Recursively unlock the pattern, all referenced shapes, subpatterns, and labels
+
+        This is dangerous unless you have just performed a deepcopy!
+
+        :return: self
+        """
+        self.unlock()
+        for ss in self.shapes + self.labels:
+            ss.unlock()
+        for sp in self.subpatterns:
+            sp.deepunlock()
+        return self
 
     @staticmethod
     def load(filename: str) -> 'Pattern':

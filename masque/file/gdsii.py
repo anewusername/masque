@@ -76,7 +76,7 @@ def write(patterns: Pattern or List[Pattern],
     :param library_name: Library name written into the GDSII file.
         Default 'masque-gdsii-write'.
     :param modify_originals: If True, the original pattern is modified as part of the writing
-        process. Otherwise, a copy is made.
+        process. Otherwise, a copy is made and deepunlock()-ed.
         Default False.
     :param disambiguate_func: Function which takes a list of patterns and alters them
         to make their names valid and unique. Default is `disambiguate_pattern_names`, which
@@ -90,7 +90,7 @@ def write(patterns: Pattern or List[Pattern],
         disambiguate_func = disambiguate_pattern_names
 
     if not modify_originals:
-        patterns = copy.deepcopy(patterns)
+        patterns = [p.deepcopy().deepunlock() for p in patterns]
 
     # Create library
     lib = gdsii.library.Library(version=600,

@@ -147,7 +147,9 @@ class Arc(Shape):
                  rotation: float = 0,
                  mirrored: Tuple[bool] = (False, False),
                  layer: int = 0,
-                 dose: float = 1.0):
+                 dose: float = 1.0,
+                 locked: bool = False):
+        self.unlock()
         self.identifier = ()
         self.radii = radii
         self.angles = angles
@@ -159,6 +161,7 @@ class Arc(Shape):
         self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
+        self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Arc':
         memo = {} if memo is None else memo

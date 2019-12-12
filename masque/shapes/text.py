@@ -77,7 +77,10 @@ class Text(Shape):
                  rotation: float = 0.0,
                  mirrored: Tuple[bool] = (False, False),
                  layer: int = 0,
-                 dose: float = 1.0):
+                 dose: float = 1.0,
+                 locked: bool = False,
+                 ):
+        self.unlock()
         self.identifier = ()
         self.offset = offset
         self.layer = layer
@@ -87,6 +90,7 @@ class Text(Shape):
         self.rotation = rotation
         self.font_path = font_path
         self.mirrored = mirrored
+        self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Text':
         memo = {} if memo is None else memo

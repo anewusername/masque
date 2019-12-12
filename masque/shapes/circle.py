@@ -44,7 +44,9 @@ class Circle(Shape):
                  poly_max_arclen: float = None,
                  offset: vector2 = (0.0, 0.0),
                  layer: int = 0,
-                 dose: float = 1.0):
+                 dose: float = 1.0,
+                 locked: bool = False):
+        self.unlock()
         self.identifier = ()
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer
@@ -52,6 +54,7 @@ class Circle(Shape):
         self.radius = radius
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
+        self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Circle':
         memo = {} if memo is None else memo

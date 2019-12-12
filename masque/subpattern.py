@@ -9,7 +9,7 @@ import copy
 import numpy
 from numpy import pi
 
-from .error import PatternError
+from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
 
 
@@ -21,7 +21,8 @@ class SubPattern:
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored', 'identifier')
+    __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored',
+                 'identifier', 'locked')
     pattern: 'Pattern'
     _offset: numpy.ndarray
     _rotation: float
@@ -29,14 +30,18 @@ class SubPattern:
     _scale: float
     _mirrored: List[bool]
     identifier: Tuple
+    locked: bool
 
+    #TODO more documentation?
     def __init__(self,
                  pattern: 'Pattern',
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: List[bool] = None,
                  dose: float = 1.0,
-                 scale: float = 1.0):
+                 scale: float = 1.0,
+                 locked: bool = False):
+        self.unlock()
         self.identifier = ()
         self.pattern = pattern
         self.offset = offset
@@ -46,6 +51,12 @@ class SubPattern:
         if mirrored is None:
             mirrored = [False, False]
         self.mirrored = mirrored
+        self.locked = locked
+
+    def __setattr__(self, name, value):
+        if self.locked and name != 'locked':
+            raise PatternLockedError()
+        object.__setattr__(self, name, value)
 
     def  __copy__(self) -> 'SubPattern':
         new = SubPattern(pattern=self.pattern,
@@ -53,7 +64,8 @@ class SubPattern:
                          rotation=self.rotation,
                          dose=self.dose,
                          scale=self.scale,
-                         mirrored=self.mirrored.copy())
+                         mirrored=self.mirrored.copy(),
+                         locked=self.locked)
         return new
 
     def  __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
@@ -130,7 +142,7 @@ class SubPattern:
          SubPattern's properties.
         :return: Copy of self.pattern that has been altered to reflect the SubPattern's properties.
         """
-        pattern = self.pattern.deepcopy()
+        pattern = self.pattern.deepcopy().deepunlock()
         pattern.scale_by(self.scale)
         [pattern.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
         pattern.rotate_around((0.0, 0.0), self.rotation)
@@ -218,3 +230,43 @@ class SubPattern:
         :return: copy.copy(self)
         """
         return copy.deepcopy(self)
+
+    def lock(self) -> 'SubPattern':
+        """
+        Lock the SubPattern
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', True)
+        return self
+
+    def unlock(self) -> 'SubPattern':
+        """
+        Unlock the SubPattern
+
+        :return: self
+        """
+        object.__setattr__(self, 'locked', False)
+        return self
+
+    def deeplock(self) -> 'SubPattern':
+        """
+        Recursively lock the SubPattern and its contained pattern
+
+        :return: self
+        """
+        self.lock()
+        self.pattern.deeplock()
+        return self
+
+    def deepunlock(self) -> 'SubPattern':
+        """
+        Recursively unlock the SubPattern and its contained pattern
+
+        This is dangerous unless you have just performed a deepcopy!
+
+        :return: self
+        """
+        self.unlock()
+        self.pattern.deepunlock()
+        return self

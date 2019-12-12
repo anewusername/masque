@@ -77,7 +77,9 @@ class Polygon(Shape):
                  mirrored: Tuple[bool] = (False, False),
                  layer: int = 0,
                  dose: float = 1.0,
+                 locked: bool = False,
                  ):
+        self.unlock()
         self.identifier = ()
         self.layer = layer
         self.dose = dose
@@ -85,6 +87,7 @@ class Polygon(Shape):
         self.offset = offset
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
+        self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Polygon':
         memo = {} if memo is None else memo
