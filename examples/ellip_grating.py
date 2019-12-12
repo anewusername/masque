@@ -21,7 +21,7 @@ def main():
     pat2 = pat.copy()
     pat2.name = 'grating2'
 
-    masque.file.gdsii.write_dose2dtype((pat, pat2), 'out.gds', 1e-9, 1e-3)
+    masque.file.gdsii.writefile((pat, pat2), 'out.gds.gz', 1e-9, 1e-3)
 
 
 if __name__ == '__main__':
