@@ -379,7 +379,7 @@ def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
                 raise PatternError('Absolute rotation is not implemented yet!')
         # Bit 0 means mirror x-axis
         if get_bit(element.strans, 15 - 0):
-            subpat.mirror(axis=0)
+            subpat.mirrored[0] = 1
     return subpat
 
 
