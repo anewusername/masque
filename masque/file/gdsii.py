@@ -6,7 +6,7 @@ import gdsii.library
 import gdsii.structure
 import gdsii.elements
 
-from typing import List, Any, Dict, Tuple
+from typing import List, Any, Dict, Tuple, Callable
 import re
 import io
 import copy
@@ -46,7 +46,8 @@ def write(patterns: Pattern or List[Pattern],
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
-          modify_originals: bool = False):
+          modify_originals: bool = False,
+          disambiguate_func: Callable[[List[Pattern]], None] = None):
     """
     Write a Pattern or list of patterns to a GDSII file, by first calling
      .polygonize() to change the shapes into polygons, and then writing patterns
@@ -77,12 +78,19 @@ def write(patterns: Pattern or List[Pattern],
     :param modify_originals: If True, the original pattern is modified as part of the writing
         process. Otherwise, a copy is made.
         Default False.
+    :param disambiguate_func: Function which takes a list of patterns and alters them
+        to make their names valid and unique. Default is `disambiguate_pattern_names`, which
+        attempts to adhere to the GDSII standard as well as possible.
+        WARNING: No additional error checking is performed on the results.
     """
-    if not modify_originals:
-        patterns = copy.deepcopy(patterns)
-
     if isinstance(patterns, Pattern):
         patterns = [patterns]
+
+    if disambiguate_func is None:
+        disambiguate_func = disambiguate_pattern_names
+
+    if not modify_originals:
+        patterns = copy.deepcopy(patterns)
 
     # Create library
     lib = gdsii.library.Library(version=600,
@@ -95,7 +103,7 @@ def write(patterns: Pattern or List[Pattern],
     for pattern in patterns:
         patterns_by_id.update(pattern.referenced_patterns_by_id())
 
-    _disambiguate_pattern_names(patterns_by_id.values())
+    disambiguate_func(patterns_by_id.values())
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
@@ -506,12 +514,16 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
     return texts
 
 
-def _disambiguate_pattern_names(patterns):
+def disambiguate_pattern_names(patterns,
+                               max_name_length: int = 32,
+                               suffix_length: int = 6,
+                               dup_warn_filter: Callable[[str,], bool] = None,      # If returns False, don't warn about this name
+                               ):
     used_names = []
     for pat in patterns:
-        if len(pat.name) > 32:
-            shortened_name = pat.name[:26]
-            logger.warning('Pattern name "{}" is too long ({}/32 chars),\n'.format(pat.name, len(pat.name)) +
+        if len(pat.name) > max_name_length:
+            shortened_name = pat.name[:max_name_length - suffix_length]
+            logger.warning('Pattern name "{}" is too long ({}/{} chars),\n'.format(pat.name, len(pat.name), max_name_length) +
                            ' shortening to "{}" before generating suffix'.format(shortened_name))
         else:
             shortened_name = pat.name
@@ -529,15 +541,16 @@ def _disambiguate_pattern_names(patterns):
         if sanitized_name == '':
             logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
         elif suffixed_name != sanitized_name:
-            logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
-                            pat.name, sanitized_name, suffixed_name))
+            if dup_warn_filter is None or dup_warn_filter(pat.name):
+                logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
+                                pat.name, sanitized_name, suffixed_name))
 
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
             raise PatternError('Zero-length name after sanitize+encode,\n originally "{}"'.format(pat.name))
-        if len(encoded_name) > 32:
-            raise PatternError('Pattern name "{}" length > 32 after encode,\n originally "{}"'.format(encoded_name, pat.name))
+        if len(encoded_name) > max_name_length:
+            raise PatternError('Pattern name "{}" length > {} after encode,\n originally "{}"'.format(encoded_name, max_name_length, pat.name))
 
         pat.name = encoded_name
         used_names.append(suffixed_name)
