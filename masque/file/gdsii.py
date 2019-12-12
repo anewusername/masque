@@ -23,6 +23,8 @@ from ..shapes import Polygon, Path
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
 from ..utils import remove_colinear_vertices, normalize_mirror
 
+#TODO document how GDS rotation / mirror works
+#TODO absolute positioning
 
 __author__ = 'Jan Petykiewicz'
 
