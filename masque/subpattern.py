@@ -70,8 +70,9 @@ class SubPattern:
 
     def  __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
         memo = {} if memo is None else memo
-        new = copy.copy(self)
+        new = copy.copy(self).unlock()
         new.pattern = copy.deepcopy(self.pattern, memo)
+        new.locked = self.locked
         return new
 
     # offset property
