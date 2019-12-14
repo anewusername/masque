@@ -94,9 +94,10 @@ class Text(Shape):
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Text':
         memo = {} if memo is None else memo
-        new = copy.copy(self)
+        new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
         new._mirrored = copy.deepcopy(self._mirrored, memo)
+        new.locked = self.locked
         return new
 
     def to_polygons(self,

@@ -58,8 +58,9 @@ class Circle(Shape):
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Circle':
         memo = {} if memo is None else memo
-        new = copy.copy(self)
+        new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
+        new.locked = self.locked
         return new
 
     def to_polygons(self,

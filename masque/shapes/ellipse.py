@@ -104,9 +104,10 @@ class Ellipse(Shape):
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Ellipse':
         memo = {} if memo is None else memo
-        new = copy.copy(self)
+        new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
         new._radii = self._radii.copy()
+        new.locked = self.locked
         return new
 
     def to_polygons(self,
