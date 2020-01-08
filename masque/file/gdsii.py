@@ -90,7 +90,7 @@ def write(patterns: Pattern or List[Pattern],
         disambiguate_func = disambiguate_pattern_names
 
     if not modify_originals:
-        patterns = [p.deepcopy().deepunlock() for p in patterns]
+        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
 
     # Create library
     lib = gdsii.library.Library(version=600,
