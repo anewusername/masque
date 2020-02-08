@@ -39,10 +39,14 @@ class GridRepetition:
     pattern: 'Pattern'
 
     _offset: numpy.ndarray
-    _rotation: float
     _dose: float
+
+    _rotation: float
+    ''' Applies to individual instances in the grid, not the grid vectors '''
     _scale: float
+    ''' Applies to individual instances in the grid, not the grid vectors '''
     _mirrored: List[bool]
+    ''' Applies to individual instances in the grid, not the grid vectors '''
 
     _a_vector: numpy.ndarray
     _b_vector: numpy.ndarray or None
@@ -287,7 +291,7 @@ class GridRepetition:
 
     def rotate_around(self, pivot: vector2, rotation: float) -> 'GridRepetition':
         """
-        Rotate around a point
+        Rotate the array around a point
 
         :param pivot: Point to rotate around
         :param rotation: Angle to rotate by (counterclockwise, radians)
@@ -307,6 +311,19 @@ class GridRepetition:
         :param rotation: Angle to rotate by (counterclockwise, radians)
         :return: self
         """
+        self.rotate_elements(rotation)
+        self.a_vector = numpy.dot(rotation_matrix_2d(rotation), self.a_vector)
+        if self.b_vector is not None:
+            self.b_vector = numpy.dot(rotation_matrix_2d(rotation), self.b_vector)
+        return self
+
+    def rotate_elements(self, rotation: float) -> 'GridRepetition':
+        """
+        Rotate each element around its origin
+
+        :param rotation: Angle to rotate by (counterclockwise, radians)
+        :return: self
+        """
         self.rotation += rotation
         return self
 
@@ -317,11 +334,21 @@ class GridRepetition:
         :param axis: Axis to mirror across.
         :return: self
         """
-        self.mirrored[axis] = not self.mirrored[axis]
-        self.rotation *= -1
+        self.mirror_elements(axis)
         self.a_vector[axis] *= -1
         if self.b_vector is not None:
             self.b_vector[axis] *= -1
+        return self
+
+    def mirror_elements(self, axis: int) -> 'GridRepetition':
+        """
+        Mirror each element across an axis relative to its origin.
+
+        :param axis: Axis to mirror across.
+        :return: self
+        """
+        self.mirrored[axis] = not self.mirrored[axis]
+        self.rotation *= -1
         return self
 
     def get_bounds(self) -> numpy.ndarray or None:
@@ -337,6 +364,18 @@ class GridRepetition:
     def scale_by(self, c: float) -> 'GridRepetition':
         """
         Scale the GridRepetition by a factor
+
+        :param c: scaling factor
+        """
+        self.scale_elements_by(c)
+        self.a_vector *= c
+        if self.b_vector is not None:
+            self.b_vector *= c
+        return self
+
+    def scale_elements_by(self, c: float) -> 'GridRepetition':
+        """
+        Scale each element by a factor
 
         :param c: scaling factor
         """

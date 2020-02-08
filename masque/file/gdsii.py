@@ -404,7 +404,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     rotation = 0
     offset = numpy.array(element.xy[0])
     scale = 1
-    mirror_signs = numpy.ones(2)
+    mirror_across_x = False
 
     if element.strans is not None:
         if element.mag is not None:
@@ -419,15 +419,11 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                 raise PatternError('Absolute rotation is not implemented yet!')
         # Bit 0 means mirror x-axis
         if get_bit(element.strans, 15 - 0):
-            mirror_signs[1] = -1
+            mirror_across_x = True
 
     counts = [element.cols, element.rows]
-    vec_a0 = element.xy[1] - offset
-    vec_b0 = element.xy[2] - offset
-
-    a_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_a0 / scale / counts[0]) * mirror_signs
-    b_vector = numpy.dot(rotation_matrix_2d(-rotation), vec_b0 / scale / counts[1]) * mirror_signs
-
+    a_vector = (element.xy[1] - offset) / counts[0]
+    b_vector = (element.xy[2] - offset) / counts[1]
 
     gridrep = GridRepetition(pattern=None,
                             a_vector=a_vector,
@@ -437,7 +433,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                             offset=offset,
                             rotation=rotation,
                             scale=scale,
-                            mirrored=(mirror_signs[::-1] == -1))
+                            mirrored=(mirror_across_x, False))
     gridrep.identifier = element.struct_name
 
     return gridrep
@@ -450,13 +446,12 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
         encoded_name = subpat.pattern.name
 
         # Note: GDS mirrors first and rotates second
-        mirror_x, extra_angle = normalize_mirror(subpat.mirrored)
+        mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
         if isinstance(subpat, GridRepetition):
-            mirror_signs = [(-1 if mirror_x else 1), 1]
             xy = numpy.array(subpat.offset) + [
                   [0, 0],
-                  numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.a_vector * mirror_signs) * subpat.scale * subpat.a_count,
-                  numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.b_vector * mirror_signs) * subpat.scale * subpat.b_count,
+                  subpat.a_vector * subpat.a_count,
+                  subpat.b_vector * subpat.b_count,
                  ]
             ref = gdsii.elements.ARef(struct_name=encoded_name,
                                        xy=numpy.round(xy).astype(int),
@@ -468,7 +463,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
 
         ref.angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
         #  strans must be non-None for angle and mag to take effect
-        ref.strans = set_bit(0, 15 - 0, mirror_x)
+        ref.strans = set_bit(0, 15 - 0, mirror_across_x)
         ref.mag = subpat.scale
 
         refs.append(ref)
