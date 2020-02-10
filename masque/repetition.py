@@ -335,9 +335,9 @@ class GridRepetition:
         :return: self
         """
         self.mirror_elements(axis)
-        self.a_vector[axis] *= -1
+        self.a_vector[1-axis] *= -1
         if self.b_vector is not None:
-            self.b_vector[axis] *= -1
+            self.b_vector[1-axis] *= -1
         return self
 
     def mirror_elements(self, axis: int) -> 'GridRepetition':
