@@ -78,7 +78,7 @@ class GridRepetition:
         :param b_count: Number of elements in the b_vector direction.
             Should be omitted if b_vector was omitted.
         :param locked: Whether the subpattern is locked after initialization.
-        :raises: InvalidDataError if b_* inputs conflict with each other
+        :raises: PatternError if b_* inputs conflict with each other
             or a_count < 1.
         """
         if b_vector is None:
@@ -88,11 +88,11 @@ class GridRepetition:
                 b_vector = numpy.array([0.0, 0.0])
 
         if a_count < 1:
-            raise InvalidDataError('Repetition has too-small a_count: '
-                                   '{}'.format(a_count))
+            raise PatternError('Repetition has too-small a_count: '
+                               '{}'.format(a_count))
         if b_count < 1:
-            raise InvalidDataError('Repetition has too-small b_count: '
-                                   '{}'.format(b_count))
+            raise PatternError('Repetition has too-small b_count: '
+                               '{}'.format(b_count))
         self.unlock()
         self.a_vector = a_vector
         self.b_vector = b_vector
