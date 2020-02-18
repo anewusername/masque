@@ -15,19 +15,21 @@ class Label:
     A text annotation with a position and layer (but no size; it is not drawn)
     """
     __slots__ = ('_offset', '_layer', '_string', 'identifier', 'locked')
-    # [x_offset, y_offset]
+
     _offset: numpy.ndarray
+    """ [x_offset, y_offset] """
 
-    # Layer (integer >= 0) or 2-Tuple of integers
     _layer: int or Tuple
+    """ Layer (integer >= 0, or 2-Tuple of integers) """
 
-    # Label string
     _string: str
+    """ Label string """
 
-    # Arbitrary identifier tuple
     identifier: Tuple
+    """ Arbitrary identifier tuple, useful for keeping track of history when flattening """
 
-    locked: bool                # If True, any changes to the label will raise a PatternLockedError
+    locked: bool
+    """ If `True`, any changes to the label will raise a `PatternLockedError` """
 
     def __setattr__(self, name, value):
         if self.locked and name != 'locked':
@@ -40,8 +42,6 @@ class Label:
     def offset(self) -> numpy.ndarray:
         """
         [x, y] offset
-
-        :return: [x_offset, y_offset]
         """
         return self._offset
 
@@ -59,8 +59,6 @@ class Label:
     def layer(self) -> int or Tuple[int]:
         """
         Layer number (int or tuple of ints)
-
-        :return: Layer
         """
         return self._layer
 
@@ -73,8 +71,6 @@ class Label:
     def string(self) -> str:
         """
         Label string (str)
-
-        :return: string
         """
         return self._string
 
@@ -109,29 +105,33 @@ class Label:
 
     def copy(self) -> 'Label':
         """
-        Returns a deep copy of the shape.
-
-        :return: Deep copy of self
+        Returns a deep copy of the label.
         """
         return copy.deepcopy(self)
 
     def translate(self, offset: vector2) -> 'Label':
         """
-        Translate the shape by the given offset
+        Translate the label by the given offset
 
-        :param offset: [x_offset, y,offset]
-        :return: self
+        Args:
+            offset: [x_offset, y,offset]
+
+        Returns:
+            self
         """
         self.offset += offset
         return self
 
     def rotate_around(self, pivot: vector2, rotation: float) -> 'Label':
         """
-        Rotate the shape around a point.
+        Rotate the label around a point.
 
-        :param pivot: Point (x, y) to rotate around
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            pivot: Point (x, y) to rotate around
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)
@@ -147,24 +147,27 @@ class Label:
         bounds = [self.offset,
                   self.offset]
 
-        :return: Bounds [[xmin, xmax], [ymin, ymax]]
+        Returns:
+            Bounds [[xmin, xmax], [ymin, ymax]]
         """
         return numpy.array([self.offset, self.offset])
 
     def lock(self) -> 'Label':
         """
-        Lock the Label
+        Lock the Label, causing any modifications to raise an exception.
 
-        :return: self
+        Return:
+            self
         """
         object.__setattr__(self, 'locked', True)
         return self
 
     def unlock(self) -> 'Label':
         """
-        Unlock the Label
+        Unlock the Label, re-allowing changes.
 
-        :return: self
+        Return:
+            self
         """
         object.__setattr__(self, 'locked', False)
         return self

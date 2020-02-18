@@ -24,13 +24,29 @@ class SubPattern:
     __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored',
                  'identifier', 'locked')
     pattern: 'Pattern'
+    """ The `Pattern` being instanced """
+
     _offset: numpy.ndarray
+    """ (x, y) offset for the instance """
+
     _rotation: float
+    """ rotation for the instance, radians counterclockwise """
+
     _dose: float
+    """ dose factor for the instance """
+
     _scale: float
+    """ scale factor for the instance """
+
     _mirrored: List[bool]
+    """ Whether to mirror the instanc across the x and/or y axes. """
+
     identifier: Tuple
+    """ An arbitrary identifier """
+
     locked: bool
+    """ If `True`, disallows changes to the GridRepetition """
+
 
     #TODO more documentation?
     def __init__(self,
@@ -139,9 +155,9 @@ class SubPattern:
 
     def as_pattern(self) -> 'Pattern':
         """
-        Returns a copy of self.pattern which has been scaled, rotated, etc. according to this
-         SubPattern's properties.
-        :return: Copy of self.pattern that has been altered to reflect the SubPattern's properties.
+        Returns:
+            A copy of self.pattern which has been scaled, rotated, etc. according to this
+             `SubPattern`'s properties.
         """
         pattern = self.pattern.deepcopy().deepunlock()
         pattern.scale_by(self.scale)
@@ -155,8 +171,11 @@ class SubPattern:
         """
         Translate by the given offset
 
-        :param offset: Translate by this offset
-        :return: self
+        Args:
+            offset: Offset `[x, y]` to translate by
+
+        Returns:
+            self
         """
         self.offset += offset
         return self
@@ -165,9 +184,12 @@ class SubPattern:
         """
         Rotate around a point
 
-        :param pivot: Point to rotate around
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            pivot: Point `[x, y]` to rotate around
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)
@@ -178,10 +200,13 @@ class SubPattern:
 
     def rotate(self, rotation: float) -> 'SubPattern':
         """
-        Rotate around (0, 0)
+        Rotate the instance around it's origin
 
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         self.rotation += rotation
         return self
@@ -190,8 +215,11 @@ class SubPattern:
         """
         Mirror the subpattern across an axis.
 
-        :param axis: Axis to mirror across.
-        :return: self
+        Args:
+            axis: Axis to mirror across.
+
+        Returns:
+            self
         """
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
@@ -199,11 +227,12 @@ class SubPattern:
 
     def get_bounds(self) -> numpy.ndarray or None:
         """
-        Return a numpy.ndarray containing [[x_min, y_min], [x_max, y_max]], corresponding to the
-         extent of the SubPattern in each dimension.
-        Returns None if the contained Pattern is empty.
+        Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
+         extent of the `SubPattern` in each dimension.
+        Returns `None` if the contained `Pattern` is empty.
 
-        :return: [[x_min, y_min], [x_max, y_max]] or None
+        Returns:
+            `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
         return self.as_pattern().get_bounds()
 
@@ -211,7 +240,11 @@ class SubPattern:
         """
         Scale the subpattern by a factor
 
-        :param c: scaling factor
+        Args:
+            c: scaling factor
+
+        Returns:
+            self
         """
         self.scale *= c
         return self
@@ -220,7 +253,8 @@ class SubPattern:
         """
         Return a shallow copy of the subpattern.
 
-        :return: copy.copy(self)
+        Returns:
+            `copy.copy(self)`
         """
         return copy.copy(self)
 
@@ -228,15 +262,17 @@ class SubPattern:
         """
         Return a deep copy of the subpattern.
 
-        :return: copy.copy(self)
+        Returns:
+            `copy.deepcopy(self)`
         """
         return copy.deepcopy(self)
 
     def lock(self) -> 'SubPattern':
         """
-        Lock the SubPattern
+        Lock the SubPattern, disallowing changes
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', True)
         return self
@@ -245,7 +281,8 @@ class SubPattern:
         """
         Unlock the SubPattern
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', False)
         return self
@@ -254,7 +291,8 @@ class SubPattern:
         """
         Recursively lock the SubPattern and its contained pattern
 
-        :return: self
+        Returns:
+            self
         """
         self.lock()
         self.pattern.deeplock()
@@ -264,9 +302,11 @@ class SubPattern:
         """
         Recursively unlock the SubPattern and its contained pattern
 
-        This is dangerous unless you have just performed a deepcopy!
+        This is dangerous unless you have just performed a deepcopy, since
+        the subpattern and its components may be used in more than one once!
 
-        :return: self
+        Returns:
+            self
         """
         self.unlock()
         self.pattern.deepunlock()

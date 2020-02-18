@@ -12,11 +12,14 @@ __author__ = 'Jan Petykiewicz'
 
 def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     """
-    Create a name using pattern.name, id(pattern), and the dose multiplier.
+    Create a name using `pattern.name`, `id(pattern)`, and the dose multiplier.
 
-    :param pattern: Pattern whose name we want to mangle.
-    :param dose_multiplier: Dose multiplier to mangle with.
-    :return: Mangled name.
+    Args:
+        pattern: Pattern whose name we want to mangle.
+        dose_multiplier: Dose multiplier to mangle with.
+
+    Returns:
+        Mangled name.
     """
     expression = re.compile('[^A-Za-z0-9_\?\$]')
     full_name = '{}_{}_{}'.format(pattern.name, dose_multiplier, id(pattern))
@@ -26,11 +29,14 @@ def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
 
 def make_dose_table(patterns: List[Pattern], dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:
     """
-    Create a set containing (id(pat), written_dose) for each pattern (including subpatterns)
+    Create a set containing `(id(pat), written_dose)` for each pattern (including subpatterns)
 
-    :param pattern: Source Patterns.
-    :param dose_multiplier: Multiplier for all written_dose entries.
-    :return: {(id(subpat.pattern), written_dose), ...}
+    Args:
+        pattern: Source Patterns.
+        dose_multiplier: Multiplier for all written_dose entries.
+
+    Returns:
+        `{(id(subpat.pattern), written_dose), ...}`
     """
     dose_table = {(id(pattern), dose_multiplier) for pattern in patterns}
     for pattern in patterns:

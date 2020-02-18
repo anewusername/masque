@@ -26,12 +26,20 @@ class Shape(metaclass=ABCMeta):
     """
     __slots__ = ('_offset', '_layer', '_dose', 'identifier', 'locked')
 
-    _offset: numpy.ndarray      # [x_offset, y_offset]
-    _layer: int or Tuple        # Layer (integer >= 0 or tuple)
-    _dose: float                # Dose
-    identifier: Tuple           # An arbitrary identifier for the shape,
-                                #  usually empty but used by Pattern.flatten()
-    locked: bool                # If True, any changes to the shape will raise a PatternLockedError
+    _offset: numpy.ndarray
+    """ `[x_offset, y_offset]` """
+
+    _layer: int or Tuple
+    """ Layer (integer >= 0 or tuple) """
+
+    _dose: float
+    """ Dose """
+
+    identifier: Tuple
+    """ An arbitrary identifier for the shape, usually empty but used by `Pattern.flatten()` """
+
+    locked: bool
+    """ If `True`, any changes to the shape will raise a `PatternLockedError` """
 
     def __setattr__(self, name, value):
         if self.locked and name != 'locked':
@@ -51,31 +59,35 @@ class Shape(metaclass=ABCMeta):
         """
         Returns a list of polygons which approximate the shape.
 
-        :param num_vertices: Number of points to use for each polygon. Can be overridden by
-                     max_arclen if that results in more points. Optional, defaults to shapes'
-                      internal defaults.
-        :param max_arclen: Maximum arclength which can be approximated by a single line
-                     segment. Optional, defaults to shapes' internal defaults.
-        :return: List of polygons equivalent to the shape
+        Args:
+            num_vertices: Number of points to use for each polygon. Can be overridden by
+                  max_arclen if that results in more points. Optional, defaults to shapes'
+                  internal defaults.
+            max_arclen: Maximum arclength which can be approximated by a single line
+                  segment. Optional, defaults to shapes' internal defaults.
+
+        Returns:
+            List of polygons equivalent to the shape
         """
         pass
 
     @abstractmethod
     def get_bounds(self) -> numpy.ndarray:
         """
-        Returns [[x_min, y_min], [x_max, y_max]] which specify a minimal bounding box for the shape.
-
-        :return: [[x_min, y_min], [x_max, y_max]]
+        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the shape.
         """
         pass
 
     @abstractmethod
     def rotate(self, theta: float) -> 'Shape':
         """
-        Rotate the shape around its center (0, 0), ignoring its offset.
+        Rotate the shape around its origin (0, 0), ignoring its offset.
 
-        :param theta: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            theta: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         pass
 
@@ -84,8 +96,12 @@ class Shape(metaclass=ABCMeta):
         """
         Mirror the shape across an axis.
 
-        :param axis: Axis to mirror across.
-        :return: self
+        Args:
+            axis: Axis to mirror across.
+                (0: mirror across x axis, 1: mirror across y axis)
+
+        Returns:
+            self
         """
         pass
 
@@ -94,8 +110,11 @@ class Shape(metaclass=ABCMeta):
         """
         Scale the shape's size (eg. radius, for a circle) by a constant factor.
 
-        :param c: Factor to scale by
-        :return: self
+        Args:
+            c: Factor to scale by
+
+        Returns:
+            self
         """
         pass
 
@@ -105,18 +124,21 @@ class Shape(metaclass=ABCMeta):
         Writes the shape in a standardized notation, with offset, scale, rotation, and dose
          information separated out from the remaining values.
 
-        :param norm_value: This value is used to normalize lengths intrinsic to the shape;
+        Args:
+            norm_value: This value is used to normalize lengths intrinsic to the shape;
                 eg. for a circle, the returned intrinsic radius value will be (radius / norm_value), and
-                the returned callable will create a Circle(radius=norm_value, ...). This is useful
+                the returned callable will create a `Circle(radius=norm_value, ...)`. This is useful
                 when you find it important for quantities to remain in a certain range, eg. for
                 GDSII where vertex locations are stored as integers.
-        :return: The returned information takes the form of a 3-element tuple,
-                (intrinsic, extrinsic, constructor). These are further broken down as:
-                intrinsic: A tuple of basic types containing all information about the instance that
-                            is not contained in 'extrinsic'. Usually, intrinsic[0] == type(self).
-                extrinsic: ([x_offset, y_offset], scale, rotation, mirror_across_x_axis, dose)
-                constructor: A callable (no arguments) which returns an instance of type(self) with
-                            internal state equivalent to 'intrinsic'.
+
+        Returns:
+            The returned information takes the form of a 3-element tuple,
+              `(intrinsic, extrinsic, constructor)`. These are further broken down as:
+              `intrinsic`: A tuple of basic types containing all information about the instance that
+                         is not contained in 'extrinsic'. Usually, `intrinsic[0] == type(self)`.
+              `extrinsic`: `([x_offset, y_offset], scale, rotation, mirror_across_x_axis, dose)`
+              `constructor`: A callable (no arguments) which returns an instance of `type(self)` with
+                           internal state equivalent to `intrinsic`.
         """
         pass
 
@@ -126,8 +148,6 @@ class Shape(metaclass=ABCMeta):
     def offset(self) -> numpy.ndarray:
         """
         [x, y] offset
-
-        :return: [x_offset, y_offset]
         """
         return self._offset
 
@@ -145,8 +165,6 @@ class Shape(metaclass=ABCMeta):
     def layer(self) -> int or Tuple[int]:
         """
         Layer number (int or tuple of ints)
-
-        :return: Layer
         """
         return self._layer
 
@@ -159,8 +177,6 @@ class Shape(metaclass=ABCMeta):
     def dose(self) -> float:
         """
         Dose (float >= 0)
-
-        :return: Dose value
         """
         return self._dose
 
@@ -177,7 +193,8 @@ class Shape(metaclass=ABCMeta):
         """
         Returns a deep copy of the shape.
 
-        :return: Deep copy of self
+        Returns:
+            copy.deepcopy(self)
         """
         return copy.deepcopy(self)
 
@@ -185,8 +202,11 @@ class Shape(metaclass=ABCMeta):
         """
         Translate the shape by the given offset
 
-        :param offset: [x_offset, y,offset]
-        :return: self
+        Args:
+            offset: [x_offset, y,offset]
+
+        Returns:
+            self
         """
         self.offset += offset
         return self
@@ -195,9 +215,12 @@ class Shape(metaclass=ABCMeta):
         """
         Rotate the shape around a point.
 
-        :param pivot: Point (x, y) to rotate around
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            pivot: Point (x, y) to rotate around
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)
@@ -214,14 +237,17 @@ class Shape(metaclass=ABCMeta):
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
         This function works by
-            1) Converting the shape to polygons using .to_polygons()
+            1) Converting the shape to polygons using `.to_polygons()`
             2) Approximating each edge with an equivalent Manhattan edge
         This process results in a reasonable Manhattan representation of the shape, but is
           imprecise near non-Manhattan or off-grid corners.
 
-        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
-        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
-        :return: List of Polygon objects with grid-aligned edges.
+        Args:
+            grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+            grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+
+        Returns:
+            List of `Polygon` objects with grid-aligned edges.
         """
         from . import Polygon
 
@@ -319,7 +345,7 @@ class Shape(metaclass=ABCMeta):
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
         This function works by
-            1) Converting the shape to polygons using .to_polygons()
+            1) Converting the shape to polygons using `.to_polygons()`
             2) Accurately rasterizing each polygon on a grid,
                 where the edges of each grid cell correspond to the allowed coordinates
             3) Thresholding the (anti-aliased) rasterized image
@@ -328,7 +354,7 @@ class Shape(metaclass=ABCMeta):
           caveats include:
             a) If high accuracy is important, perform any polygonization and clipping operations
                 prior to calling this function. This allows you to specify any arguments you may
-                need for .to_polygons(), and also avoids calling .manhattanize() multiple times for
+                need for `.to_polygons()`, and also avoids calling `.manhattanize()` multiple times for
                 the same grid location (which causes inaccuracies in the final representation).
             b) If the shape is very large or the grid very fine, memory requirements can be reduced
                 by breaking the shape apart into multiple, smaller shapes.
@@ -336,19 +362,22 @@ class Shape(metaclass=ABCMeta):
                 equidistant from allowed edge location.
 
         Implementation notes:
-            i) Rasterization is performed using float_raster, giving a high-precision anti-aliased
+            i) Rasterization is performed using `float_raster`, giving a high-precision anti-aliased
                 rasterized image.
             ii) To find the exact polygon edges, the thresholded rasterized image is supersampled
-                  prior to calling skimage.measure.find_contours(), which uses marching squares
-                  to find the contours. This is done because find_contours() performs interpolation,
+                  prior to calling `skimage.measure.find_contours()`, which uses marching squares
+                  to find the contours. This is done because `find_contours()` performs interpolation,
                   which has to be undone in order to regain the axis-aligned contours. A targetted
-                  rewrite of find_contours() for this specific application, or use of a different
+                  rewrite of `find_contours()` for this specific application, or use of a different
                   boundary tracing method could remove this requirement, but for now this seems to
                   be the most performant approach.
 
-        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
-        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
-        :return: List of Polygon objects with grid-aligned edges.
+        Args:
+            grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+            grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+
+        Returns:
+            List of `Polygon` objects with grid-aligned edges.
         """
         from . import Polygon
         import skimage.measure
@@ -403,9 +432,10 @@ class Shape(metaclass=ABCMeta):
 
     def lock(self) -> 'Shape':
         """
-        Lock the Shape
+        Lock the Shape, disallowing further changes
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', True)
         return self
@@ -414,7 +444,8 @@ class Shape(metaclass=ABCMeta):
         """
         Unlock the Shape
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', False)
         return self

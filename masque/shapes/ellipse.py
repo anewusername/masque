@@ -20,17 +20,22 @@ class Ellipse(Shape):
     __slots__ = ('_radii', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
     _radii: numpy.ndarray
+    """ Ellipse radii """
+
     _rotation: float
+    """ Angle from x-axis to first radius (ccw, radians) """
+
     poly_num_points: int
+    """ Sets the default number of points for `.polygonize()` """
+
     poly_max_arclen: float
+    """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
     @property
     def radii(self) -> numpy.ndarray:
         """
-        Return the radii [rx, ry]
-
-        :return: [rx, ry]
+        Return the radii `[rx, ry]`
         """
         return self._radii
 
@@ -70,7 +75,8 @@ class Ellipse(Shape):
         Rotation of rx from the x axis. Uses the interval [0, pi) in radians (counterclockwise
          is positive)
 
-        :return: counterclockwise rotation in radians
+        Returns:
+            counterclockwise rotation in radians
         """
         return self._rotation
 

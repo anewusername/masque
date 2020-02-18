@@ -16,18 +16,17 @@ class Polygon(Shape):
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
        implicitly-closed boundary, and an offset.
 
-    A normalized_form(...) is available, but can be quite slow with lots of vertices.
+    A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
     __slots__ = ('_vertices',)
     _vertices: numpy.ndarray
+    """ Nx2 ndarray of vertices `[[x0, y0], [x1, y1], ...]` """
 
     # vertices property
     @property
     def vertices(self) -> numpy.ndarray:
         """
-        Vertices of the polygon (Nx2 ndarray: [[x0, y0], [x1, y1], ...]
-
-        :return: vertices
+        Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
         return self._vertices
 
@@ -107,12 +106,15 @@ class Polygon(Shape):
         """
         Draw a square given side_length, centered on the origin.
 
-        :param side_length: Length of one side
-        :param rotation: Rotation counterclockwise, in radians
-        :param offset: Offset, default (0, 0)
-        :param layer: Layer, default 0
-        :param dose: Dose, default 1.0
-        :return: A Polygon object containing the requested square
+        Args:
+            side_length: Length of one side
+            rotation: Rotation counterclockwise, in radians
+            offset: Offset, default `(0, 0)`
+            layer: Layer, default `0`
+            dose: Dose, default `1.0`
+
+        Returns:
+            A Polygon object containing the requested square
         """
         norm_square = numpy.array([[-1, -1],
                                    [-1, +1],
@@ -134,13 +136,16 @@ class Polygon(Shape):
         """
         Draw a rectangle with side lengths lx and ly, centered on the origin.
 
-        :param lx: Length along x (before rotation)
-        :param ly: Length along y (before rotation)
-        :param rotation: Rotation counterclockwise, in radians
-        :param offset: Offset, default (0, 0)
-        :param layer: Layer, default 0
-        :param dose: Dose, default 1.0
-        :return: A Polygon object containing the requested rectangle
+        Args:
+            lx: Length along x (before rotation)
+            ly: Length along y (before rotation)
+            rotation: Rotation counterclockwise, in radians
+            offset: Offset, default `(0, 0)`
+            layer: Layer, default `0`
+            dose: Dose, default `1.0`
+
+        Returns:
+            A Polygon object containing the requested rectangle
         """
         vertices = 0.5 * numpy.array([[-lx, -ly],
                                       [-lx, +ly],
@@ -168,17 +173,20 @@ class Polygon(Shape):
         Must provide 2 of (xmin, xctr, xmax, lx),
         and 2 of (ymin, yctr, ymax, ly).
 
-        :param xmin: Minimum x coordinate
-        :param xctr: Center x coordinate
-        :param xmax: Maximum x coordinate
-        :param lx: Length along x direction
-        :param ymin: Minimum y coordinate
-        :param yctr: Center y coordinate
-        :param ymax: Maximum y coordinate
-        :param ly: Length along y direction
-        :param layer: Layer, default 0
-        :param dose: Dose, default 1.0
-        :return: A Polygon object containing the requested rectangle
+        Args:
+            xmin: Minimum x coordinate
+            xctr: Center x coordinate
+            xmax: Maximum x coordinate
+            lx: Length along x direction
+            ymin: Minimum y coordinate
+            yctr: Center y coordinate
+            ymax: Maximum y coordinate
+            ly: Length along y direction
+            layer: Layer, default `0`
+            dose: Dose, default `1.0`
+
+        Returns:
+            A Polygon object containing the requested rectangle
         """
         if lx is None:
             if xctr is None:
@@ -278,7 +286,8 @@ class Polygon(Shape):
         """
         Removes duplicate, co-linear and otherwise redundant vertices.
 
-        :returns: self
+        Returns:
+            self
         """
         self.remove_colinear_vertices()
         return self
@@ -287,7 +296,8 @@ class Polygon(Shape):
         '''
         Removes all consecutive duplicate (repeated) vertices.
 
-        :returns: self
+        Returns:
+            self
         '''
         self.vertices = remove_duplicate_vertices(self.vertices, closed_path=True)
         return self
@@ -296,7 +306,8 @@ class Polygon(Shape):
         '''
         Removes consecutive co-linear vertices.
 
-        :returns: self
+        Returns:
+            self
         '''
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=True)
         return self

@@ -173,12 +173,15 @@ def get_char_as_polygons(font_path: str,
 
     The output is normalized so that the font size is 1 unit.
 
-    :param font_path: File path specifying a font loadable by freetype
-    :param char: Character to convert to polygons
-    :param resolution: Internal resolution setting (used for freetype
-            Face.set_font_size(resolution)). Modify at your own peril!
-    :return: List of polygons [[[x0, y0], [x1, y1], ...], ...] and 'advance' distance (distance
-            from the start of this glyph to the start of the next one)
+    Args:
+        font_path: File path specifying a font loadable by freetype
+        char: Character to convert to polygons
+        resolution: Internal resolution setting (used for freetype
+            `Face.set_font_size(resolution))`. Modify at your own peril!
+
+    Returns:
+        List of polygons `[[[x0, y0], [x1, y1], ...], ...]` and
+        'advance' distance (distance from the start of this glyph to the start of the next one)
     """
     if len(char) != 1:
         raise Exception('get_char_as_polygons called with non-char')

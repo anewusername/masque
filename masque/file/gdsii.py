@@ -49,39 +49,40 @@ def write(patterns: Pattern or List[Pattern],
           modify_originals: bool = False,
           disambiguate_func: Callable[[List[Pattern]], None] = None):
     """
-    Write a Pattern or list of patterns to a GDSII file, by first calling
-     .polygonize() to change the shapes into polygons, and then writing patterns
+    Write a `Pattern` or list of patterns to a GDSII file, by first calling
+     `.polygonize()` to change the shapes into polygons, and then writing patterns
      as GDSII structures, polygons as boundary elements, and subpatterns as structure
      references (sref).
 
      For each shape,
-        layer is chosen to be equal to shape.layer if it is an int,
-            or shape.layer[0] if it is a tuple
-        datatype is chosen to be shape.layer[1] if available,
-            otherwise 0
+        layer is chosen to be equal to `shape.layer` if it is an int,
+            or `shape.layer[0]` if it is a tuple
+        datatype is chosen to be `shape.layer[1]` if available,
+            otherwise `0`
 
-    It is often a good idea to run pattern.subpatternize() prior to calling this function,
-     especially if calling .polygonize() will result in very many vertices.
+    It is often a good idea to run `pattern.subpatternize()` prior to calling this function,
+     especially if calling `.polygonize()` will result in very many vertices.
 
-    If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
+    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
 
-    :param patterns: A Pattern or list of patterns to write to file.
-    :param file: Filename or stream object to write to.
-    :param meters_per_unit: Written into the GDSII file, meters per (database) length unit.
-        All distances are assumed to be an integer multiple of this unit, and are stored as such.
-    :param logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
-        "logical" unit which is different from the "database" unit, for display purposes.
-        Default 1.
-    :param library_name: Library name written into the GDSII file.
-        Default 'masque-gdsii-write'.
-    :param modify_originals: If True, the original pattern is modified as part of the writing
-        process. Otherwise, a copy is made and deepunlock()-ed.
-        Default False.
-    :param disambiguate_func: Function which takes a list of patterns and alters them
-        to make their names valid and unique. Default is `disambiguate_pattern_names`, which
-        attempts to adhere to the GDSII standard as well as possible.
-        WARNING: No additional error checking is performed on the results.
+    Args:
+        patterns: A Pattern or list of patterns to write to file.
+        file: Filename or stream object to write to.
+        meters_per_unit: Written into the GDSII file, meters per (database) length unit.
+            All distances are assumed to be an integer multiple of this unit, and are stored as such.
+        logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
+            "logical" unit which is different from the "database" unit, for display purposes.
+            Default `1`.
+        library_name: Library name written into the GDSII file.
+            Default 'masque-gdsii-write'.
+        modify_originals: If `True`, the original pattern is modified as part of the writing
+            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            Default `False`.
+        disambiguate_func: Function which takes a list of patterns and alters them
+            to make their names valid and unique. Default is `disambiguate_pattern_names`, which
+            attempts to adhere to the GDSII standard as well as possible.
+            WARNING: No additional error checking is performed on the results.
     """
     if isinstance(patterns, Pattern):
         patterns = [patterns]
@@ -124,9 +125,15 @@ def writefile(patterns: List[Pattern] or Pattern,
               **kwargs,
               ):
     """
-    Wrapper for gdsii.write() that takes a filename or path instead of a stream.
+    Wrapper for `gdsii.write()` that takes a filename or path instead of a stream.
 
     Will automatically compress the file if it has a .gz suffix.
+
+    Args:
+        patterns: `Pattern` or list of patterns to save
+        filename: Filename to save to.
+        *args: passed to `gdsii.write`
+        **kwargs: passed to `gdsii.write`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -153,8 +160,11 @@ def dose2dtype(patterns: List[Pattern],
 
     Note that this function modifies the input Pattern(s).
 
-    :param patterns: A Pattern or list of patterns to write to file. Modified by this function.
-    :returns: (patterns, dose_list)
+    Args:
+        patterns: A `Pattern` or list of patterns to write to file. Modified by this function.
+
+    Returns:
+        (patterns, dose_list)
             patterns: modified input patterns
             dose_list: A list of doses, providing a mapping between datatype (int, list index)
                        and dose (float, list entry).
@@ -221,9 +231,14 @@ def readfile(filename: str or pathlib.Path,
              **kwargs,
              ) -> (Dict[str, Pattern], Dict[str, Any]):
     """
-    Wrapper for gdsii.read() that takes a filename or path instead of a stream.
+    Wrapper for `gdsii.read()` that takes a filename or path instead of a stream.
 
-    Tries to autodetermine file type based on suffixes
+    Will automatically decompress files with a .gz suffix.
+
+    Args:
+        filename: Filename to save to.
+        *args: passed to `gdsii.read`
+        **kwargs: passed to `gdsii.read`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -251,14 +266,18 @@ def read(stream: io.BufferedIOBase,
       'logical_units_per_unit': number of "logical" units displayed by layout tools (typically microns)
                                 per database unit
 
-    :param filename: Filename specifying a GDSII file to read from.
-    :param use_dtype_as_dose: If false, set each polygon's layer to (gds_layer, gds_datatype).
-            If true, set the layer to gds_layer and the dose to gds_datatype.
-            Default False.
-    :param clean_vertices: If true, remove any redundant vertices when loading polygons.
+    Args:
+        filename: Filename specifying a GDSII file to read from.
+        use_dtype_as_dose: If `False`, set each polygon's layer to `(gds_layer, gds_datatype)`.
+            If `True`, set the layer to `gds_layer` and the dose to `gds_datatype`.
+            Default `False`.
+        clean_vertices: If `True`, remove any redundant vertices when loading polygons.
             The cleaning process removes any polygons with zero area or <3 vertices.
-            Default True.
-    :return: Tuple: (Dict of pattern_name:Patterns generated from GDSII structures, Dict of GDSII library info)
+            Default `True`.
+
+    Returns:
+        - Dict of pattern_name:Patterns generated from GDSII structures
+        - Dict of GDSII library info
     """
 
     lib = gdsii.library.Library.load(stream)
@@ -353,6 +372,7 @@ def read(stream: io.BufferedIOBase,
 
 
 def _mlayer2gds(mlayer):
+    """ Helper to turn a layer tuple-or-int into a layer and datatype"""
     if is_scalar(mlayer):
         layer = mlayer
         data_type = 0
@@ -366,12 +386,15 @@ def _mlayer2gds(mlayer):
 
 
 def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
-    # Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
-    #  and sets the instance .identifier to the struct_name.
-    #
-    # BUG: "Absolute" means not affected by parent elements.
-    #       That's not currently supported by masque at all, so need to either tag it and
-    #       undo the parent transformations, or implement it in masque.
+    """
+    Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
+     and sets the instance .identifier to the struct_name.
+
+    BUG:
+        "Absolute" means not affected by parent elements.
+          That's not currently supported by masque at all, so need to either tag it and
+          undo the parent transformations, or implement it in masque.
+    """
     subpat = SubPattern(pattern=None, offset=element.xy)
     subpat.identifier = element.struct_name
     if element.strans is not None:
@@ -394,13 +417,15 @@ def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
 
 
 def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
-    # Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
-    #  and sets the instance .identifier to the struct_name.
-    #
-    # BUG: "Absolute" means not affected by parent elements.
-    #       That's not currently supported by masque at all, so need to either tag it and
-    #       undo the parent transformations, or implement it in masque.i
+    """
+    Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
+     and sets the instance .identifier to the struct_name.
 
+    BUG:
+        "Absolute" means not affected by parent elements.
+          That's not currently supported by masque at all, so need to either tag it and
+          undo the parent transformations, or implement it in masque.
+    """
     rotation = 0
     offset = numpy.array(element.xy[0])
     scale = 1

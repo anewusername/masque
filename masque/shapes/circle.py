@@ -17,16 +17,19 @@ class Circle(Shape):
     """
     __slots__ = ('_radius', 'poly_num_points', 'poly_max_arclen')
     _radius: float
+    """ Circle radius """
+
     poly_num_points: int
+    """ Sets the default number of points for `.polygonize()` """
+
     poly_max_arclen: float
+    """ Sets the default max segement length for `.polygonize()` """
 
     # radius property
     @property
     def radius(self) -> float:
         """
         Circle's radius (float, >= 0)
-
-        :return: radius
         """
         return self._radius
 

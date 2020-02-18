@@ -27,22 +27,32 @@ visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray]
 
 class Pattern:
     """
-    2D layout consisting of some set of shapes and references to other Pattern objects
-     (via SubPattern). Shapes are assumed to inherit from .shapes.Shape or provide equivalent
-     functions.
-
-    :var shapes: List of all shapes in this Pattern. Elements in this list are assumed to inherit
-            from Shape or provide equivalent functions.
-    :var subpatterns: List of all SubPattern objects in this Pattern. Multiple SubPattern objects
-            may reference the same Pattern object.
-    :var name: An identifier for this object. Not necessarily unique.
+    2D layout consisting of some set of shapes, labels, and references to other Pattern objects
+     (via SubPattern and GridRepetition). Shapes are assumed to inherit from
+     masque.shapes.Shape or provide equivalent functions.
     """
     __slots__ = ('shapes', 'labels', 'subpatterns', 'name', 'locked')
+
     shapes: List[Shape]
+    """ List of all shapes in this Pattern.
+    Elements in this list are assumed to inherit from Shape or provide equivalent functions.
+    """
+
     labels: List[Label]
+    """ List of all labels in this Pattern. """
+
     subpatterns: List[SubPattern or GridRepetition]
+    """ List of all objects referencing other patterns in this Pattern.
+    Examples are SubPattern (gdsii "instances") or GridRepetition (gdsii "arrays")
+    Multiple objects in this list may reference the same Pattern object
+    (multiple instances of the same object).
+    """
+
     name: str
+    """ A name for this pattern """
+
     locked: bool
+    """ When the pattern is locked, no changes may be made. """
 
     def __init__(self,
                  name: str = '',
@@ -55,11 +65,12 @@ class Pattern:
         Basic init; arguments get assigned to member variables.
          Non-list inputs for shapes and subpatterns get converted to lists.
 
-        :param shapes: Initial shapes in the Pattern
-        :param labels: Initial labels in the Pattern
-        :param subpatterns: Initial subpatterns in the Pattern
-        :param name: An identifier for the Pattern
-        :param locked: Whether to lock the pattern after construction
+        Args:
+            shapes: Initial shapes in the Pattern
+            labels: Initial labels in the Pattern
+            subpatterns: Initial subpatterns in the Pattern
+            name: An identifier for the Pattern
+            locked: Whether to lock the pattern after construction
         """
         self.unlock()
         if isinstance(shapes, list):
@@ -106,8 +117,11 @@ class Pattern:
         Appends all shapes, labels and subpatterns from other_pattern to self's shapes,
           labels, and supbatterns.
 
-        :param other_pattern: The Pattern to append
-        :return: self
+        Args:
+           other_pattern: The Pattern to append
+
+        Returns:
+            self
         """
         self.subpatterns += other_pattern.subpatterns
         self.shapes += other_pattern.shapes
@@ -125,16 +139,19 @@ class Pattern:
           given entity_func returns True.
         Self is _not_ altered, but shapes, labels, and subpatterns are _not_ copied.
 
-        :param shapes_func: Given a shape, returns a boolean denoting whether the shape is a member
-             of the subset. Default always returns False.
-        :param labels_func: Given a label, returns a boolean denoting whether the label is a member
-             of the subset. Default always returns False.
-        :param subpatterns_func: Given a subpattern, returns a boolean denoting if it is a member
-             of the subset. Default always returns False.
-        :param recursive: If True, also calls .subset() recursively on patterns referenced by this
-             pattern.
-        :return: A Pattern containing all the shapes and subpatterns for which the parameter
-             functions return True
+        Args:
+            shapes_func: Given a shape, returns a boolean denoting whether the shape is a member
+                of the subset. Default always returns False.
+            labels_func: Given a label, returns a boolean denoting whether the label is a member
+                of the subset. Default always returns False.
+            subpatterns_func: Given a subpattern, returns a boolean denoting if it is a member
+                of the subset. Default always returns False.
+            recursive: If True, also calls .subset() recursively on patterns referenced by this
+                pattern.
+
+        Returns:
+            A Pattern containing all the shapes and subpatterns for which the parameter
+                functions return True
         """
         def do_subset(src):
             pat = Pattern(name=src.name)
@@ -163,12 +180,17 @@ class Pattern:
         It is only applied to any given pattern once, regardless of how many times it is
             referenced.
 
-        :param func: Function which accepts a Pattern, and returns a pattern.
-        :param memo: Dictionary used to avoid re-running on multiply-referenced patterns.
-            Stores {id(pattern): func(pattern)} for patterns which have already been processed.
-            Default None (no already-processed patterns).
-        :return: The result of applying func() to this pattern and all subpatterns.
-        :raises: PatternError if called on a pattern containing a circular reference.
+        Args:
+            func: Function which accepts a Pattern, and returns a pattern.
+            memo: Dictionary used to avoid re-running on multiply-referenced patterns.
+                Stores `{id(pattern): func(pattern)}` for patterns which have already been processed.
+                Default `None` (no already-processed patterns).
+
+        Returns:
+            The result of applying func() to this pattern and all subpatterns.
+
+        Raises:
+            PatternError if called on a pattern containing a circular reference.
         """
         if memo is None:
             memo = {}
@@ -212,19 +234,24 @@ class Pattern:
                           for the instance being visited
             `memo`:  Arbitrary dict (not altered except by visit_*())
 
-        :param visit_before: Function to call before traversing subpatterns.
+        Args:
+            visit_before: Function to call before traversing subpatterns.
+                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
+                pattern. Default `None` (not called).
+            visit_after: Function to call after traversing subpatterns.
                 Should accept a Pattern and **visit_args, and return the (possibly modified)
-                pattern. Default None (not called).
-        :param visit_after: Function to call after traversing subpatterns.
-                Should accept a Pattern and **visit_args, and return the (possibly modified)
-                pattern. Default None (not called).
-        :param transform: Initial value for `visit_args['transform']`.
+                pattern. Default `None` (not called).
+            transform: Initial value for `visit_args['transform']`.
                 Can be `False`, in which case the transform is not calculated.
-                `True` or `None` is interpreted as [0, 0, 0, 0].
-        :param memo: Arbitrary dict for use by visit_*() functions. Default None (empty dict).
-        :param hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
+                `True` or `None` is interpreted as `[0, 0, 0, 0]`.
+            memo: Arbitrary dict for use by `visit_*()` functions. Default `None` (empty dict).
+            hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
                 Appended to the start of the generated `visit_args['hierarchy']`.
                 Default is an empty tuple.
+
+        Returns:
+            The result, including `visit_before(self, ...)` and `visit_after(self, ...)`.
+            Note that `self` may also be altered!
         """
         if memo is None:
             memo = {}
@@ -267,16 +294,19 @@ class Pattern:
                    poly_max_arclen: float = None,
                    ) -> 'Pattern':
         """
-        Calls .to_polygons(...) on all the shapes in this Pattern and any referenced patterns,
+        Calls `.to_polygons(...)` on all the shapes in this Pattern and any referenced patterns,
          replacing them with the returned polygons.
-        Arguments are passed directly to shape.to_polygons(...).
+        Arguments are passed directly to `shape.to_polygons(...)`.
 
-        :param poly_num_points: Number of points to use for each polygon. Can be overridden by
-             poly_max_arclen if that results in more points. Optional, defaults to shapes'
-             internal defaults.
-        :param poly_max_arclen: Maximum arclength which can be approximated by a single line
+        Args:
+            poly_num_points: Number of points to use for each polygon. Can be overridden by
+                `poly_max_arclen` if that results in more points. Optional, defaults to shapes'
+                internal defaults.
+            poly_max_arclen: Maximum arclength which can be approximated by a single line
              segment. Optional, defaults to shapes' internal defaults.
-        :return: self
+
+        Returns:
+            self
         """
         old_shapes = self.shapes
         self.shapes = list(itertools.chain.from_iterable(
@@ -291,12 +321,15 @@ class Pattern:
                      grid_y: numpy.ndarray,
                      ) -> 'Pattern':
         """
-        Calls .polygonize() and .flatten on the pattern, then calls .manhattanize() on all the
+        Calls `.polygonize()` and `.flatten()` on the pattern, then calls `.manhattanize()` on all the
          resulting shapes, replacing them with the returned Manhattan polygons.
 
-        :param grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
-        :param grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
-        :return: self
+        Args:
+            grid_x: List of allowed x-coordinates for the Manhattanized polygon edges.
+            grid_y: List of allowed y-coordinates for the Manhattanized polygon edges.
+
+        Returns:
+            self
         """
 
         self.polygonize().flatten()
@@ -311,21 +344,25 @@ class Pattern:
                       exclude_types: Tuple[Shape] = (Polygon,)
                       ) -> 'Pattern':
         """
-        Iterates through this Pattern and all referenced Patterns. Within each Pattern, it iterates
-         over all shapes, calling .normalized_form(norm_value) on them to retrieve a scale-,
+        Iterates through this `Pattern` and all referenced `Pattern`s. Within each `Pattern`, it iterates
+         over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
          offset-, dose-, and rotation-independent form. Each shape whose normalized form appears
          more than once is removed and re-added using subpattern objects referencing a newly-created
-         Pattern containing only the normalized form of the shape.
+         `Pattern` containing only the normalized form of the shape.
 
-        Note that the default norm_value was chosen to give a reasonable precision when converting
-         to GDSII, which uses integer values for pixel coordinates.
+        Note:
+            The default norm_value was chosen to give a reasonable precision when converting
+            to GDSII, which uses integer values for pixel coordinates.
 
-        :param recursive: Whether to call recursively on self's subpatterns. Default True.
-        :param norm_value: Passed to shape.normalized_form(norm_value). Default 1e6 (see function
+        Args:
+            recursive: Whether to call recursively on self's subpatterns. Default `True`.
+            norm_value: Passed to `shape.normalized_form(norm_value)`. Default `1e6` (see function
                 note about GDSII)
-        :param exclude_types: Shape types passed in this argument are always left untouched, for
-                speed or convenience. Default: (Shapes.Polygon,)
-        :return: self
+            exclude_types: Shape types passed in this argument are always left untouched, for
+                speed or convenience. Default: `(shapes.Polygon,)`
+
+        Returns:
+            self
         """
 
         if exclude_types is None:
@@ -337,9 +374,9 @@ class Pattern:
                                              norm_value=norm_value,
                                              exclude_types=exclude_types)
 
-        # Create a dict which uses the label tuple from .normalized_form() as a key, and which
-        #  stores (function_to_create_normalized_shape, [(index_in_shapes, values), ...]), where
-        #  values are the (offset, scale, rotation, dose) values as calculated by .normalized_form()
+        # Create a dict which uses the label tuple from `.normalized_form()` as a key, and which
+        #  stores `(function_to_create_normalized_shape, [(index_in_shapes, values), ...])`, where
+        #  values are the `(offset, scale, rotation, dose)` values as calculated by `.normalized_form()`
         shape_table = defaultdict(lambda: [None, list()])
         for i, shape in enumerate(self.shapes):
             if not any((isinstance(shape, t) for t in exclude_types)):
@@ -348,9 +385,9 @@ class Pattern:
                 shape_table[label][1].append((i, values))
 
         # Iterate over the normalized shapes in the table. If any normalized shape occurs more than
-        #  once, create a Pattern holding a normalized shape object, and add self.subpatterns
+        #  once, create a `Pattern` holding a normalized shape object, and add `self.subpatterns`
         #  entries for each occurrence in self. Also, note down that we should delete the
-        #  self.shapes entries for which we made SubPatterns.
+        #  `self.shapes` entries for which we made SubPatterns.
         shapes_to_remove = []
         for label in shape_table:
             if len(shape_table[label][1]) > 1:
@@ -374,21 +411,23 @@ class Pattern:
         """
         Represents the pattern as a list of polygons.
 
-        Deep-copies the pattern, then calls .polygonize() and .flatten() on the copy in order to
+        Deep-copies the pattern, then calls `.polygonize()` and `.flatten()` on the copy in order to
          generate the list of polygons.
 
-        :return: A list of (Ni, 2) numpy.ndarrays specifying vertices of the polygons. Each ndarray
-            is of the form [[x0, y0], [x1, y1],...].
+        Returns:
+            A list of `(Ni, 2)` `numpy.ndarray`s specifying vertices of the polygons. Each ndarray
+             is of the form `[[x0, y0], [x1, y1],...]`.
         """
         pat = self.deepcopy().deepunlock().polygonize().flatten()
         return [shape.vertices + shape.offset for shape in pat.shapes]
 
     def referenced_patterns_by_id(self) -> Dict[int, 'Pattern']:
         """
-        Create a dictionary of {id(pat): pat} for all Pattern objects referenced by this
+        Create a dictionary of `{id(pat): pat}` for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well)
 
-        :return: Dictionary of {id(pat): pat} for all referenced Pattern objects
+        Returns:
+            Dictionary of `{id(pat): pat}` for all referenced Pattern objects
         """
         ids = {}
         for subpat in self.subpatterns:
@@ -399,11 +438,12 @@ class Pattern:
 
     def get_bounds(self) -> Union[numpy.ndarray, None]:
         """
-        Return a numpy.ndarray containing [[x_min, y_min], [x_max, y_max]], corresponding to the
+        Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the Pattern's contents in each dimension.
-        Returns None if the Pattern is empty.
+        Returns `None` if the Pattern is empty.
 
-        :return: [[x_min, y_min], [x_max, y_max]] or None
+        Returns:
+            `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
         entries = self.shapes + self.subpatterns + self.labels
         if not entries:
@@ -428,13 +468,16 @@ class Pattern:
 
         Shape identifiers are changed to represent their original position in the
          pattern hierarchy:
-         (L1_name (str), L1_index (int), L2_name, L2_index, ..., *original_shape_identifier)
-         where L1_name is the first-level subpattern's name (e.g. self.subpatterns[0].pattern.name),
-         L2_name is the next-level subpattern's name (e.g.
-         self.subpatterns[0].pattern.subpatterns[0].pattern.name) and L1_index is an integer
-         used to differentiate between multiple instance of the same (or same-named) subpatterns.
+         `(L1_name (str), L1_index (int), L2_name, L2_index, ..., *original_shape_identifier)`
+         where
+         `L1_name` is the first-level subpattern's name (e.g. `self.subpatterns[0].pattern.name`),
+         `L2_name` is the next-level subpattern's name (e.g.
+            `self.subpatterns[0].pattern.subpatterns[0].pattern.name`) and
+         `L1_index` is an integer used to differentiate between multiple instance ofi the same
+            (or same-named) subpatterns.
 
-        :return: self
+        Returns:
+            self
         """
         subpatterns = copy.deepcopy(self.subpatterns)
         self.subpatterns = []
@@ -457,22 +500,28 @@ class Pattern:
         """
         Translates all shapes, label, and subpatterns by the given offset.
 
-        :param offset: Offset to translate by
-        :return: self
+        Args:
+            offset: (x, y) to translate by
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns + self.labels:
             entry.translate(offset)
         return self
 
-    def scale_elements(self, scale: float) -> 'Pattern':
+    def scale_elements(self, c: float) -> 'Pattern':
         """"
         Scales all shapes and subpatterns by the given value.
 
-        :param scale: value to scale by
-        :return: self
+        Args:
+            c: factor to scale by
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns:
-            entry.scale(scale)
+            entry.scale(c)
         return self
 
     def scale_by(self, c: float) -> 'Pattern':
@@ -480,8 +529,11 @@ class Pattern:
         Scale this Pattern by the given value
          (all shapes and subpatterns and their offsets are scaled)
 
-        :param c: value to scale by
-        :return: self
+        Args:
+            c: factor to scale by
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns:
             entry.offset *= c
@@ -494,9 +546,12 @@ class Pattern:
         """
         Rotate the Pattern around the a location.
 
-        :param pivot: Location to rotate around
-        :param rotation: Angle to rotate by (counter-clockwise, radians)
-        :return: self
+        Args:
+            pivot: (x, y) location to rotate around
+            rotation: Angle to rotate by (counter-clockwise, radians)
+
+        Returns:
+            self
         """
         pivot = numpy.array(pivot)
         self.translate_elements(-pivot)
@@ -509,8 +564,11 @@ class Pattern:
         """
         Rotate the offsets of all shapes, labels, and subpatterns around (0, 0)
 
-        :param rotation: Angle to rotate by (counter-clockwise, radians)
-        :return: self
+        Args:
+            rotation: Angle to rotate by (counter-clockwise, radians)
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns + self.labels:
             entry.offset = numpy.dot(rotation_matrix_2d(rotation), entry.offset)
@@ -520,8 +578,11 @@ class Pattern:
         """
         Rotate each shape and subpattern around its center (offset)
 
-        :param rotation: Angle to rotate by (counter-clockwise, radians)
-        :return: self
+        Args:
+            rotation: Angle to rotate by (counter-clockwise, radians)
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns:
             entry.rotate(rotation)
@@ -531,8 +592,12 @@ class Pattern:
         """
         Mirror the offsets of all shapes, labels, and subpatterns across an axis
 
-        :param axis: Axis to mirror across
-        :return: self
+        Args:
+            axis: Axis to mirror across
+                (0: mirror across x axis, 1: mirror across y axis)
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns + self.labels:
             entry.offset[axis - 1] *= -1
@@ -541,10 +606,14 @@ class Pattern:
     def mirror_elements(self, axis: int) -> 'Pattern':
         """
         Mirror each shape and subpattern across an axis, relative to its
-          center (offset)
+          offset
 
-        :param axis: Axis to mirror across
-        :return: self
+        Args:
+            axis: Axis to mirror across
+                (0: mirror across x axis, 1: mirror across y axis)
+
+        Returns:
+            self
         """
         for entry in self.shapes + self.subpatterns:
             entry.mirror(axis)
@@ -554,22 +623,29 @@ class Pattern:
         """
         Mirror the Pattern across an axis
 
-        :param axis: Axis to mirror across
-        :return: self
+        Args:
+            axis: Axis to mirror across
+                (0: mirror across x axis, 1: mirror across y axis)
+
+        Returns:
+            self
         """
         self.mirror_elements(axis)
         self.mirror_element_centers(axis)
         return self
 
-    def scale_element_doses(self, factor: float) -> 'Pattern':
+    def scale_element_doses(self, c: float) -> 'Pattern':
         """
         Multiply all shape and subpattern doses by a factor
 
-        :param factor: Factor to multiply doses by
-        :return: self
+        Args:
+            c: Factor to multiply doses by
+
+        Return:
+            self
         """
         for entry in self.shapes + self.subpatterns:
-            entry.dose *= factor
+            entry.dose *= c
         return self
 
     def copy(self) -> 'Pattern':
@@ -577,25 +653,26 @@ class Pattern:
         Return a copy of the Pattern, deep-copying shapes and copying subpattern
          entries, but not deep-copying any referenced patterns.
 
-        See also: Pattern.deepcopy()
+        See also: `Pattern.deepcopy()`
 
-        :return: A copy of the current Pattern.
+        Returns:
+            A copy of the current Pattern.
         """
         return copy.copy(self)
 
     def deepcopy(self) -> 'Pattern':
         """
-        Convenience method for copy.deepcopy(pattern)
+        Convenience method for `copy.deepcopy(pattern)`
 
-        :return: A deep copy of the current Pattern.
+        Returns:
+            A deep copy of the current Pattern.
         """
         return copy.deepcopy(self)
 
     def is_empty(self) -> bool:
         """
-        Returns true if the Pattern contains no shapes, labels, or subpatterns.
-
-        :return: True if the pattern is empty.
+        Returns:
+            True if the pattern is contains no shapes, labels, or subpatterns.
         """
         return (len(self.subpatterns) == 0 and
                 len(self.shapes) == 0 and
@@ -603,9 +680,11 @@ class Pattern:
 
     def lock(self) -> 'Pattern':
         """
-        Lock the pattern
+        Lock the pattern, raising an exception if it is modified.
+        Also see `deeplock()`.
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', True)
         return self
@@ -614,16 +693,18 @@ class Pattern:
         """
         Unlock the pattern
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', False)
         return self
 
     def deeplock(self) -> 'Pattern':
         """
-        Recursively lock the pattern, all referenced shapes, subpatterns, and labels
+        Recursively lock the pattern, all referenced shapes, subpatterns, and labels.
 
-        :return: self
+        Returns:
+            self
         """
         self.lock()
         for ss in self.shapes + self.labels:
@@ -634,11 +715,13 @@ class Pattern:
 
     def deepunlock(self) -> 'Pattern':
         """
-        Recursively unlock the pattern, all referenced shapes, subpatterns, and labels
+        Recursively unlock the pattern, all referenced shapes, subpatterns, and labels.
 
-        This is dangerous unless you have just performed a deepcopy!
+        This is dangerous unless you have just performed a deepcopy, since anything
+          you change will be changed everywhere it is referenced!
 
-        :return: self
+        Return:
+            self
         """
         self.unlock()
         for ss in self.shapes + self.labels:
@@ -650,10 +733,13 @@ class Pattern:
     @staticmethod
     def load(filename: str) -> 'Pattern':
         """
-        Load a Pattern from a file
+        Load a Pattern from a file using pickle
 
-        :param filename: Filename to load from
-        :return: Loaded Pattern
+        Args:
+            filename: Filename to load from
+
+        Returns:
+            Loaded Pattern
         """
         with open(filename, 'rb') as f:
             pattern = pickle.load(f)
@@ -662,10 +748,13 @@ class Pattern:
 
     def save(self, filename: str) -> 'Pattern':
         """
-        Save the Pattern to a file
+        Save the Pattern to a file using pickle
 
-        :param filename: Filename to save to
-        :return: self
+        Args:
+            filename: Filename to save to
+
+        Returns:
+            self
         """
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -679,12 +768,16 @@ class Pattern:
         """
         Draw a picture of the Pattern and wait for the user to inspect it
 
-        Imports matplotlib.
+        Imports `matplotlib`.
 
-        :param offset: Coordinates to offset by before drawing
-        :param line_color: Outlines are drawn with this color (passed to matplotlib PolyCollection)
-        :param fill_color: Interiors are drawn with this color (passed to matplotlib PolyCollection)
-        :param overdraw: Whether to create a new figure or draw on a pre-existing one
+        Note that this can be slow; it is often faster to export to GDSII and use
+         klayout or a different GDS viewer!
+
+        Args:
+            offset: Coordinates to offset by before drawing
+            line_color: Outlines are drawn with this color (passed to `matplotlib.collections.PolyCollection`)
+            fill_color: Interiors are drawn with this color (passed to `matplotlib.collections.PolyCollection`)
+            overdraw: Whether to create a new figure or draw on a pre-existing one
         """
         # TODO: add text labels to visualize()
         from matplotlib import pyplot

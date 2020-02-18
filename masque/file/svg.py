@@ -23,20 +23,21 @@ def writefile(pattern: Pattern,
 
     Note that this function modifies the Pattern.
 
-    If custom_attributes is True, non-standard pattern_layer and pattern_dose attributes
+    If `custom_attributes` is `True`, non-standard `pattern_layer` and `pattern_dose` attributes
      are written to the relevant elements.
 
-    It is often a good idea to run pattern.subpatternize() on pattern prior to
-     calling this function, especially if calling .polygonize() will result in very
+    It is often a good idea to run `pattern.subpatternize()` on pattern prior to
+     calling this function, especially if calling `.polygonize()` will result in very
      many vertices.
 
-    If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
+    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
 
-    :param pattern: Pattern to write to file. Modified by this function.
-    :param filename: Filename to write to.
-    :param custom_attributes: Whether to write non-standard pattern_layer and
-            pattern_dose attributes to the SVG elements.
+    Args:
+        pattern: Pattern to write to file. Modified by this function.
+        filename: Filename to write to.
+        custom_attributes: Whether to write non-standard `pattern_layer` and
+            `pattern_dose` attributes to the SVG elements.
     """
 
     # Polygonize pattern
@@ -85,18 +86,19 @@ def writefile(pattern: Pattern,
 
 def writefile_inverted(pattern: Pattern, filename: str):
     """
-    Write an inverted Pattern to an SVG file, by first calling .polygonize() and
-     .flatten() on it to change the shapes into polygons, then drawing a bounding
+    Write an inverted Pattern to an SVG file, by first calling `.polygonize()` and
+     `.flatten()` on it to change the shapes into polygons, then drawing a bounding
      box and drawing the polygons with reverse vertex order inside it, all within
-     one <path> element.
+     one `<path>` element.
 
     Note that this function modifies the Pattern.
 
-    If you want pattern polygonized with non-default arguments, just call pattern.polygonize()
+    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
 
-    :param pattern: Pattern to write to file. Modified by this function.
-    :param filename: Filename to write to.
+    Args:
+        pattern: Pattern to write to file. Modified by this function.
+        filename: Filename to write to.
     """
     # Polygonize and flatten pattern
     pattern.polygonize().flatten()
@@ -129,8 +131,11 @@ def poly2path(vertices: numpy.ndarray) -> str:
     """
     Create an SVG path string from an Nx2 list of vertices.
 
-    :param vertices: Nx2 array of vertices.
-    :return: SVG path-string.
+    Args:
+        vertices: Nx2 array of vertices.
+
+    Returns:
+        SVG path-string.
     """
     commands = 'M{:g},{:g} '.format(vertices[0][0], vertices[0][1])
     for vertex in vertices[1:]:

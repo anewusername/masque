@@ -20,8 +20,8 @@ __author__ = 'Jan Petykiewicz'
 
 class GridRepetition:
     """
-    GridRepetition provides support for efficiently embedding multiple copies of a Pattern
-     into another Pattern at regularly-spaced offsets.
+    GridRepetition provides support for efficiently embedding multiple copies of a `Pattern`
+     into another `Pattern` at regularly-spaced offsets.
     """
     __slots__ = ('pattern',
                  '_offset',
@@ -37,24 +37,49 @@ class GridRepetition:
                  'locked')
 
     pattern: 'Pattern'
+    """ The `Pattern` being instanced """
 
     _offset: numpy.ndarray
+    """ (x, y) offset for the base instance """
+
     _dose: float
+    """ Dose factor """
 
     _rotation: float
-    ''' Applies to individual instances in the grid, not the grid vectors '''
+    """ Rotation of the individual instances in the grid (not the grid vectors).
+    Radians, counterclockwise.
+    """
+
     _scale: float
-    ''' Applies to individual instances in the grid, not the grid vectors '''
+    """ Scaling factor applied to individual instances in the grid (not the grid vectors) """
+
     _mirrored: List[bool]
-    ''' Applies to individual instances in the grid, not the grid vectors '''
+    """ Whether to mirror individual instances across the x and y axes
+    (Applies to individual instances in the grid, not the grid vectors)
+    """
 
     _a_vector: numpy.ndarray
-    _b_vector: numpy.ndarray or None
+    """ Vector `[x, y]` specifying the first lattice vector of the grid.
+        Specifies center-to-center spacing between adjacent elements.
+    """
+
     _a_count: int
+    """ Number of instances along the direction specified by the `a_vector` """
+
+    _b_vector: numpy.ndarray or None
+    """ Vector `[x, y]` specifying a second lattice vector for the grid.
+        Specifies center-to-center spacing between adjacent elements.
+        Can be `None` for a 1D array.
+    """
+
     _b_count: int
+    """ Number of instances along the direction specified by the `b_vector` """
 
     identifier: Tuple
+    """ Arbitrary identifier """
+
     locked: bool
+    """ If `True`, disallows changes to the GridRepetition """
 
     def __init__(self,
                  pattern: 'Pattern',
@@ -69,17 +94,20 @@ class GridRepetition:
                  scale: float = 1.0,
                  locked: bool = False):
         """
-        :param a_vector: First lattice vector, of the form [x, y].
-            Specifies center-to-center spacing between adjacent elements.
-        :param a_count: Number of elements in the a_vector direction.
-        :param b_vector: Second lattice vector, of the form [x, y].
-            Specifies center-to-center spacing between adjacent elements.
-            Can be omitted when specifying a 1D array.
-        :param b_count: Number of elements in the b_vector direction.
-            Should be omitted if b_vector was omitted.
-        :param locked: Whether the subpattern is locked after initialization.
-        :raises: PatternError if b_* inputs conflict with each other
-            or a_count < 1.
+        Args:
+            a_vector: First lattice vector, of the form `[x, y]`.
+                Specifies center-to-center spacing between adjacent elements.
+            a_count: Number of elements in the a_vector direction.
+            b_vector: Second lattice vector, of the form `[x, y]`.
+                Specifies center-to-center spacing between adjacent elements.
+                Can be omitted when specifying a 1D array.
+            b_count: Number of elements in the `b_vector` direction.
+                Should be omitted if `b_vector` was omitted.
+            locked: Whether the `GridRepetition` is locked after initialization.
+
+        Raises:
+            PatternError if `b_*` inputs conflict with each other
+            or `a_count < 1`.
         """
         if b_vector is None:
             if b_count > 1:
@@ -254,9 +282,11 @@ class GridRepetition:
     def as_pattern(self) -> 'Pattern':
         """
         Returns a copy of self.pattern which has been scaled, rotated, repeated, etc.
-          etc. according to this GridRepetitions's properties.
-        :return: Copy of self.pattern that has been repeated / altered as implied by
-          this object's other properties.
+          etc. according to this `GridRepetition`'s properties.
+
+        Returns:
+            A copy of self.pattern which has been scaled, rotated, repeated, etc.
+             etc. according to this `GridRepetition`'s properties.
         """
         patterns = []
 
@@ -283,8 +313,11 @@ class GridRepetition:
         """
         Translate by the given offset
 
-        :param offset: Translate by this offset
-        :return: self
+        Args:
+            offset: `[x, y]` to translate by
+
+        Returns:
+            self
         """
         self.offset += offset
         return self
@@ -293,9 +326,12 @@ class GridRepetition:
         """
         Rotate the array around a point
 
-        :param pivot: Point to rotate around
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            pivot: Point `[x, y]` to rotate around
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)
@@ -308,8 +344,11 @@ class GridRepetition:
         """
         Rotate around (0, 0)
 
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         self.rotate_elements(rotation)
         self.a_vector = numpy.dot(rotation_matrix_2d(rotation), self.a_vector)
@@ -321,8 +360,11 @@ class GridRepetition:
         """
         Rotate each element around its origin
 
-        :param rotation: Angle to rotate by (counterclockwise, radians)
-        :return: self
+        Args:
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
         """
         self.rotation += rotation
         return self
@@ -331,8 +373,12 @@ class GridRepetition:
         """
         Mirror the GridRepetition across an axis.
 
-        :param axis: Axis to mirror across.
-        :return: self
+        Args:
+            axis: Axis to mirror across.
+                (0: mirror across x-axis, 1: mirror across y-axis)
+
+        Returns:
+            self
         """
         self.mirror_elements(axis)
         self.a_vector[1-axis] *= -1
@@ -344,8 +390,12 @@ class GridRepetition:
         """
         Mirror each element across an axis relative to its origin.
 
-        :param axis: Axis to mirror across.
-        :return: self
+        Args:
+            axis: Axis to mirror across.
+                (0: mirror across x-axis, 1: mirror across y-axis)
+
+        Returns:
+            self
         """
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
@@ -353,11 +403,12 @@ class GridRepetition:
 
     def get_bounds(self) -> numpy.ndarray or None:
         """
-        Return a numpy.ndarray containing [[x_min, y_min], [x_max, y_max]], corresponding to the
-         extent of the GridRepetition in each dimension.
-        Returns None if the contained Pattern is empty.
+        Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
+         extent of the `GridRepetition` in each dimension.
+        Returns `None` if the contained `Pattern` is empty.
 
-        :return: [[x_min, y_min], [x_max, y_max]] or None
+        Returns:
+            `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
         return self.as_pattern().get_bounds()
 
@@ -365,7 +416,11 @@ class GridRepetition:
         """
         Scale the GridRepetition by a factor
 
-        :param c: scaling factor
+        Args:
+            c: scaling factor
+
+        Returns:
+            self
         """
         self.scale_elements_by(c)
         self.a_vector *= c
@@ -377,7 +432,11 @@ class GridRepetition:
         """
         Scale each element by a factor
 
-        :param c: scaling factor
+        Args:
+            c: scaling factor
+
+        Returns:
+            self
         """
         self.scale *= c
         return self
@@ -386,7 +445,8 @@ class GridRepetition:
         """
         Return a shallow copy of the repetition.
 
-        :return: copy.copy(self)
+        Returns:
+            `copy.copy(self)`
         """
         return copy.copy(self)
 
@@ -394,33 +454,37 @@ class GridRepetition:
         """
         Return a deep copy of the repetition.
 
-        :return: copy.copy(self)
+        Returns:
+            `copy.deepcopy(self)`
         """
         return copy.deepcopy(self)
 
     def lock(self) -> 'GridRepetition':
         """
-        Lock the GridRepetition
+        Lock the `GridRepetition`, disallowing changes.
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', True)
         return self
 
     def unlock(self) -> 'GridRepetition':
         """
-        Unlock the GridRepetition
+        Unlock the `GridRepetition`
 
-        :return: self
+        Returns:
+            self
         """
         object.__setattr__(self, 'locked', False)
         return self
 
     def deeplock(self) -> 'GridRepetition':
         """
-        Recursively lock the GridRepetition and its contained pattern
+        Recursively lock the `GridRepetition` and its contained pattern
 
-        :return: self
+        Returns:
+            self
         """
         self.lock()
         self.pattern.deeplock()
@@ -428,11 +492,13 @@ class GridRepetition:
 
     def deepunlock(self) -> 'GridRepetition':
         """
-        Recursively unlock the GridRepetition and its contained pattern
+        Recursively unlock the `GridRepetition` and its contained pattern
 
-        This is dangerous unless you have just performed a deepcopy!
+        This is dangerous unless you have just performed a deepcopy, since
+            the component parts may be reused elsewhere.
 
-        :return: self
+        Returns:
+            self
         """
         self.unlock()
         self.pattern.deepunlock()

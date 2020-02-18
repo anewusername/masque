@@ -24,19 +24,28 @@ class Arc(Shape):
     __slots__ = ('_radii', '_angles', '_width', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
     _radii: numpy.ndarray
-    _angles: numpy.ndarray
-    _width: float
+    """ Two radii for defining an ellipse """
+
     _rotation: float
+    """ Rotation (ccw, radians) from the x axis to the first radius """
+
+    _angles: numpy.ndarray
+    """ Start and stop angles (ccw, radians) for choosing an arc from the ellipse, measured from the first radius """
+
+    _width: float
+    """ Width of the arc """
+
     poly_num_points: int
+    """ Sets the default number of points for `.polygonize()` """
+
     poly_max_arclen: float
+    """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
     @property
     def radii(self) -> numpy.ndarray:
         """
-        Return the radii [rx, ry]
-
-        :return: [rx, ry]
+        Return the radii `[rx, ry]`
         """
         return self._radii
 
@@ -73,10 +82,11 @@ class Arc(Shape):
     @property
     def angles(self) -> vector2:
         """
-        Return the start and stop angles [a_start, a_stop].
+        Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation
 
-        :return: [a_start, a_stop]
+        Returns:
+            `[a_start, a_stop]`
         """
         return self._angles
 
@@ -109,7 +119,8 @@ class Arc(Shape):
         """
         Rotation of radius_x from x_axis, counterclockwise, in radians. Stored mod 2*pi
 
-        :return: rotation counterclockwise in radians
+        Returns:
+            rotation counterclockwise in radians
         """
         return self._rotation
 
@@ -125,7 +136,8 @@ class Arc(Shape):
         """
         Width of the arc (difference between inner and outer radii)
 
-        :return: width
+        Returns:
+            width
         """
         return self._width
 
@@ -225,12 +237,12 @@ class Arc(Shape):
     def get_bounds(self) -> numpy.ndarray:
         '''
         Equation for rotated ellipse is
-            x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)
-            y = y0 + a * cos(t) * sin(rot) + b * sin(t) * cos(rot)
-          where t is our parameter.
+            `x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)`
+            `y = y0 + a * cos(t) * sin(rot) + b * sin(t) * cos(rot)`
+          where `t` is our parameter.
 
-        Differentiating and solving for 0 slope wrt. t, we find
-            tan(t) = -+ b/a cot(phi)
+        Differentiating and solving for 0 slope wrt. `t`, we find
+            `tan(t) = -+ b/a cot(phi)`
           where -+ is for x, y cases, so that's where the extrema are.
 
         If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
@@ -329,8 +341,11 @@ class Arc(Shape):
 
     def get_cap_edges(self) -> numpy.ndarray:
         '''
-        :returns: [[[x0, y0], [x1, y1]],   array of 4 points, specifying the two cuts which
-                   [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
+        Returns:
+            ```
+            [[[x0, y0], [x1, y1]],   array of 4 points, specifying the two cuts which
+             [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
+            ```
         '''
         a_ranges = self._angles_to_parameters()
 
@@ -356,8 +371,9 @@ class Arc(Shape):
 
     def _angles_to_parameters(self) -> numpy.ndarray:
         '''
-        :return: "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
-                   [[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]
+        Returns:
+            "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
+                   `[[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]`
         '''
         a = []
         for sgn in (-1, +1):

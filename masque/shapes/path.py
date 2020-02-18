@@ -37,8 +37,6 @@ class Path(Shape):
     def width(self) -> float:
         """
         Path width (float, >= 0)
-
-        :return: width
         """
         return self._width
 
@@ -55,8 +53,6 @@ class Path(Shape):
     def cap(self) -> 'Path.Cap':
         """
         Path end-cap
-
-        :return: Path.Cap enum
         """
         return self._cap
 
@@ -74,9 +70,10 @@ class Path(Shape):
     @property
     def cap_extensions(self) -> numpy.ndarray or None:
         """
-        Path end-cap extensionf
+        Path end-cap extension
 
-        :return: 2-element ndarray or None
+        Returns:
+            2-element ndarray or `None`
         """
         return self._cap_extensions
 
@@ -96,9 +93,7 @@ class Path(Shape):
     @property
     def vertices(self) -> numpy.ndarray:
         """
-        Vertices of the path (Nx2 ndarray: [[x0, y0], [x1, y1], ...]
-
-        :return: vertices
+        Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
         return self._vertices
 
@@ -194,22 +189,25 @@ class Path(Shape):
         Build a path by specifying the turn angles and travel distances
           rather than setting the distances directly.
 
-        :param travel_pairs: A list of (angle, distance) pairs that define
-            the path. Angles are counterclockwise, in radians, and are relative
-            to the previous segment's direction (the initial angle is relative
-            to the +x axis).
-        :param width: Path width, default 0
-        :param cap: End-cap type, default Path.Cap.Flush (no end-cap)
-        :param cap_extensions: End-cap extension distances, when using Path.Cap.CustomSquare.
-            Default (0, 0) or None, depending on cap type
-        :param offset: Offset, default (0, 0)
-        :param rotation: Rotation counterclockwise, in radians. Default 0
-        :param mirrored: Whether to mirror across the x or y axes. For example,
-            mirrored=(True, False) results in a reflection across the x-axis,
-            multiplying the path's y-coordinates by -1. Default (False, False)
-        :param layer: Layer, default 0
-        :param dose: Dose, default 1.0
-        :return: The resulting Path object
+        Args:
+            travel_pairs: A list of (angle, distance) pairs that define
+                the path. Angles are counterclockwise, in radians, and are relative
+                to the previous segment's direction (the initial angle is relative
+                to the +x axis).
+            width: Path width, default `0`
+            cap: End-cap type, default `Path.Cap.Flush` (no end-cap)
+            cap_extensions: End-cap extension distances, when using `Path.Cap.CustomSquare`.
+                Default `(0, 0)` or `None`, depending on cap type
+            offset: Offset, default `(0, 0)`
+            rotation: Rotation counterclockwise, in radians. Default `0`
+            mirrored: Whether to mirror across the x or y axes. For example,
+                `mirrored=(True, False)` results in a reflection across the x-axis,
+                multiplying the path's y-coordinates by -1. Default `(False, False)`
+            layer: Layer, default `0`
+            dose: Dose, default `1.0`
+
+        Returns:
+            The resulting Path object
         """
         #TODO: needs testing
         direction = numpy.array([1, 0])
@@ -359,7 +357,8 @@ class Path(Shape):
         """
         Removes duplicate, co-linear and otherwise redundant vertices.
 
-        :returns: self
+        Returns:
+            self
         """
         self.remove_colinear_vertices()
         return self
@@ -368,7 +367,8 @@ class Path(Shape):
         '''
         Removes all consecutive duplicate (repeated) vertices.
 
-        :returns: self
+        Returns:
+            self
         '''
         self.vertices = remove_duplicate_vertices(self.vertices, closed_path=False)
         return self
@@ -377,7 +377,8 @@ class Path(Shape):
         '''
         Removes consecutive co-linear vertices.
 
-        :returns: self
+        Returns:
+            self
         '''
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=False)
         return self
