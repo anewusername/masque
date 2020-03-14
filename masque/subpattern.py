@@ -23,7 +23,7 @@ class SubPattern:
     """
     __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored',
                  'identifier', 'locked')
-    pattern: 'Pattern'
+    pattern: 'Pattern' or None
     """ The `Pattern` being instanced """
 
     _offset: numpy.ndarray
@@ -50,13 +50,17 @@ class SubPattern:
 
     #TODO more documentation?
     def __init__(self,
-                 pattern: 'Pattern',
+                 pattern: 'Pattern' or None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: List[bool] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
                  locked: bool = False):
+        if pattern is not None and not hasattr(pattern, 'lock'):
+            raise PatternError('Provided pattern has no "lock()" method.\n'
+                               'Maybe it''s not a Pattern instance?')
+
         self.unlock()
         self.identifier = ()
         self.pattern = pattern
