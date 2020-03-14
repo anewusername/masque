@@ -2,7 +2,7 @@
  Base object for containing a lithography mask.
 """
 
-from typing import List, Callable, Tuple, Dict, Union
+from typing import List, Callable, Tuple, Dict, Union, Set
 import copy
 import itertools
 import pickle
@@ -824,3 +824,35 @@ class Pattern:
 
         if not overdraw:
             pyplot.show()
+
+    @staticmethod
+    def find_toplevel(patterns: List['Pattern']) -> List['Pattern']:
+        """
+        Given a list of Pattern objects, return those that are not referenced by
+         any other pattern.
+
+        Args:
+            patterns: A list of patterns to filter.
+
+        Returns:
+            A filtered list in which no pattern is referenced by any other pattern.
+        """
+        def get_children(pat: Pattern, memo: Set) -> Set:
+            if pat in memo:
+                return memo
+
+            children = set(sp.pattern for sp in pat.subpatterns)
+            new_children = children - memo
+            memo |= children
+
+            for child_pat in new_children:
+                memo |= get_children(child_pat, memo)
+            return memo
+
+        patterns = set(patterns)
+        not_toplevel = set()
+        for pattern in patterns:
+            not_toplevel |= get_children(pattern, not_toplevel)
+
+        toplevel = list(patterns - not_toplevel)
+        return toplevel
