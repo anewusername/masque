@@ -423,11 +423,11 @@ class Pattern:
 
     def referenced_patterns_by_id(self) -> Dict[int, 'Pattern']:
         """
-        Create a dictionary of `{id(pat): pat}` for all Pattern objects referenced by this
+        Create a dictionary with `{id(pat): pat}` for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well)
 
         Returns:
-            Dictionary of `{id(pat): pat}` for all referenced Pattern objects
+            Dictionary with `{id(pat): pat}` for all referenced Pattern objects
         """
         ids = {}
         for subpat in self.subpatterns:
