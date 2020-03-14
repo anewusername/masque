@@ -436,6 +436,21 @@ class Pattern:
                 ids.update(subpat.pattern.referenced_patterns_by_id())
         return ids
 
+    def referenced_patterns_by_name(self) -> List[Tuple[str, 'Pattern']]:
+        """
+        Create a list of `(pat.name, pat)` tuples for all Pattern objects referenced by this
+         Pattern (operates recursively on all referenced Patterns as well).
+
+        Note that names are not necessarily unique, so a list of tuples is returned
+         rather than a dict.
+
+        Returns:
+            List of `(pat.name, pat)` tuples for all referenced Pattern objects
+        """
+        pats_by_id = self.referenced_patterns_by_id()
+        pat_list = [(p.name, p) for p in pats_by_id.values()]
+        return pat_list
+
     def get_bounds(self) -> Union[numpy.ndarray, None]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
