@@ -3,7 +3,7 @@
      instances of a Pattern in the same parent Pattern.
 """
 
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING
 import copy
 
 import numpy
@@ -21,7 +21,7 @@ class GridRepetition:
     GridRepetition provides support for efficiently embedding multiple copies of a `Pattern`
      into another `Pattern` at regularly-spaced offsets.
     """
-    __slots__ = ('pattern',
+    __slots__ = ('_pattern',
                  '_offset',
                  '_rotation',
                  '_dose',
@@ -34,7 +34,7 @@ class GridRepetition:
                  'identifier',
                  'locked')
 
-    pattern: 'Pattern'
+    _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """
 
     _offset: numpy.ndarray
@@ -161,6 +161,18 @@ class GridRepetition:
         new.pattern = copy.deepcopy(self.pattern, memo)
         new.locked = self.locked
         return new
+
+    # pattern property
+    @property
+    def pattern(self) -> Optional['Pattern']:
+        return self._pattern
+
+    @pattern.setter
+    def pattern(self, val: Optional['Pattern']):
+        from .pattern import Pattern
+        if val is not None and not isinstance(val, Pattern):
+            raise PatternError('Provided pattern {} is not a Pattern object or None!'.format(val))
+        self._pattern = val
 
     # offset property
     @property

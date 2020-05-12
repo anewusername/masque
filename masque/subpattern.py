@@ -3,7 +3,7 @@
   offset, rotation, scaling, and other such properties to the reference.
 """
 
-from typing import Union, List, Dict, Tuple
+from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING
 import copy
 
 import numpy
@@ -19,9 +19,16 @@ class SubPattern:
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('pattern', '_offset', '_rotation', '_dose', '_scale', '_mirrored',
-                 'identifier', 'locked')
-    pattern: 'Pattern' or None
+    __slots__ = ('_pattern',
+                 '_offset',
+                 '_rotation',
+                 '_dose',
+                 '_scale',
+                 '_mirrored',
+                 'identifier',
+                 'locked')
+
+    _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """
 
     _offset: numpy.ndarray
@@ -55,10 +62,6 @@ class SubPattern:
                  dose: float = 1.0,
                  scale: float = 1.0,
                  locked: bool = False):
-        if pattern is not None and not hasattr(pattern, 'lock'):
-            raise PatternError('Provided pattern has no "lock()" method.\n'
-                               'Maybe it''s not a Pattern instance?')
-
         self.unlock()
         self.identifier = ()
         self.pattern = pattern
@@ -92,6 +95,18 @@ class SubPattern:
         new.pattern = copy.deepcopy(self.pattern, memo)
         new.locked = self.locked
         return new
+
+    # pattern property
+    @property
+    def pattern(self) -> Optional['Pattern']:
+        return self._pattern
+
+    @pattern.setter
+    def pattern(self, val: Optional['Pattern']):
+        from .pattern import Pattern
+        if val is not None and not isinstance(val, Pattern):
+            raise PatternError('Provided pattern {} is not a Pattern object or None!'.format(val))
+        self._pattern = val
 
     # offset property
     @property
