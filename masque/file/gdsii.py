@@ -367,7 +367,7 @@ def read(stream: io.BufferedIOBase,
     patterns_dict = dict(((p.name, p) for p in patterns))
     for p in patterns_dict.values():
         for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.identifier.decode('ASCII')]
+            sp.pattern = patterns_dict[sp.identifier[0].decode('ASCII')]
             del sp.identifier
 
     return patterns_dict, library_info
@@ -390,7 +390,7 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
 def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
     """
     Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
-     and sets the instance .identifier to the struct_name.
+     and sets the instance .identifier to (struct_name,).
 
     BUG:
         "Absolute" means not affected by parent elements.
@@ -398,7 +398,7 @@ def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
           undo the parent transformations, or implement it in masque.
     """
     subpat = SubPattern(pattern=None, offset=element.xy)
-    subpat.identifier = element.struct_name
+    subpat.identifier = (element.struct_name,)
     if element.strans is not None:
         if element.mag is not None:
             subpat.scale = element.mag
@@ -421,7 +421,7 @@ def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
 def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     """
     Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
-     and sets the instance .identifier to the struct_name.
+     and sets the instance .identifier to (struct_name,).
 
     BUG:
         "Absolute" means not affected by parent elements.
@@ -461,7 +461,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
                             rotation=rotation,
                             scale=scale,
                             mirrored=(mirror_across_x, False))
-    gridrep.identifier = element.struct_name
+    gridrep.identifier = (element.struct_name,)
 
     return gridrep
 
