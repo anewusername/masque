@@ -4,6 +4,7 @@ SVG file format readers and writers
 
 import svgwrite
 import numpy
+import warnings
 
 from .utils import mangle_name
 from .. import Pattern
@@ -40,7 +41,12 @@ def writefile(pattern: Pattern,
     # Polygonize pattern
     pattern.polygonize()
 
-    [bounds_min, bounds_max] = pattern.get_bounds()
+    bounds = pattern.get_bounds()
+    if bounds is None:
+        bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
+        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')
+    else:
+        bounds_min, bounds_max = bounds
 
     viewbox = numpy.hstack((bounds_min - 1, (bounds_max - bounds_min) + 2))
     viewbox_string = '{:g} {:g} {:g} {:g}'.format(*viewbox)
@@ -100,7 +106,12 @@ def writefile_inverted(pattern: Pattern, filename: str):
     # Polygonize and flatten pattern
     pattern.polygonize().flatten()
 
-    [bounds_min, bounds_max] = pattern.get_bounds()
+    bounds = pattern.get_bounds()
+    if bounds is None:
+        bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
+        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')
+    else:
+        bounds_min, bounds_max = bounds
 
     viewbox = numpy.hstack((bounds_min - 1, (bounds_max - bounds_min) + 2))
     viewbox_string = '{:g} {:g} {:g} {:g}'.format(*viewbox)
