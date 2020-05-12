@@ -55,7 +55,7 @@ class SubPattern:
 
     #TODO more documentation?
     def __init__(self,
-                 pattern: 'Pattern' or None,
+                 pattern: Optional['Pattern'],
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: List[bool] = None,
@@ -176,6 +176,7 @@ class SubPattern:
             A copy of self.pattern which has been scaled, rotated, etc. according to this
              `SubPattern`'s properties.
         """
+        assert(self.pattern is not None)
         pattern = self.pattern.deepcopy().deepunlock()
         pattern.scale_by(self.scale)
         [pattern.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
@@ -242,7 +243,7 @@ class SubPattern:
         self.rotation *= -1
         return self
 
-    def get_bounds(self) -> numpy.ndarray or None:
+    def get_bounds(self) -> Optional[numpy.ndarray]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `SubPattern` in each dimension.
@@ -251,6 +252,8 @@ class SubPattern:
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
+        if self.pattern is None:
+            return None
         return self.as_pattern().get_bounds()
 
     def scale_by(self, c: float) -> 'SubPattern':
@@ -311,6 +314,7 @@ class SubPattern:
         Returns:
             self
         """
+        assert(self.pattern is not None)
         self.lock()
         self.pattern.deeplock()
         return self
@@ -325,6 +329,7 @@ class SubPattern:
         Returns:
             self
         """
+        assert(self.pattern is not None)
         self.unlock()
         self.pattern.deepunlock()
         return self

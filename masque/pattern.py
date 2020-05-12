@@ -151,7 +151,9 @@ class Pattern:
             A Pattern containing all the shapes and subpatterns for which the parameter
                 functions return True
         """
-        def do_subset(src):
+        def do_subset(src: Optional['Pattern']) -> Optional['Pattern']:
+            if src is None:
+                return None
             pat = Pattern(name=src.name)
             if shapes_func is not None:
                 pat.shapes = [s for s in src.shapes if shapes_func(s)]
@@ -165,6 +167,8 @@ class Pattern:
             pat = self.apply(do_subset)
         else:
             pat = do_subset(self)
+
+        assert(pat is not None)
         return pat
 
     def apply(self,
@@ -197,8 +201,12 @@ class Pattern:
         if pat_id not in memo:
             memo[pat_id] = None
             pat = func(self)
-            for subpat in pat.subpatterns:
-                subpat.pattern = subpat.pattern.apply(func, memo)
+            if pat is not None:
+                for subpat in pat.subpatterns:
+                    if subpat.pattern is None:
+                        subpat.pattern = func(None)
+                    else:
+                        subpat.pattern = subpat.pattern.apply(func, memo)
             memo[pat_id] = pat
         elif memo[pat_id] is None:
             raise PatternError('.apply() called on pattern with circular reference')
@@ -277,11 +285,12 @@ class Pattern:
             else:
                 sp_transform = False
 
-            subpattern.pattern = subpattern.pattern.dfs(visit_before=visit_before,
-                                                        visit_after=visit_after,
-                                                        transform=sp_transform,
-                                                        memo=memo,
-                                                        hierarchy=hierarchy + (self,))
+            if subpattern.pattern is not None:
+                subpattern.pattern = subpattern.pattern.dfs(visit_before=visit_before,
+                                                            visit_after=visit_after,
+                                                            transform=sp_transform,
+                                                            memo=memo,
+                                                            hierarchy=hierarchy + (self,))
 
         if visit_after is not None:
             pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)
@@ -311,7 +320,8 @@ class Pattern:
                         (shape.to_polygons(poly_num_points, poly_max_arclen)
                          for shape in old_shapes)))
         for subpat in self.subpatterns:
-            subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
+            if subpat.pattern is not None:
+                subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
         return self
 
     def manhattanize(self,
@@ -368,6 +378,8 @@ class Pattern:
 
         if recursive:
             for subpat in self.subpatterns:
+                if subpat.pattern is None:
+                    continue
                 subpat.pattern.subpatternize(recursive=True,
                                              norm_value=norm_value,
                                              exclude_types=exclude_types)
@@ -431,7 +443,8 @@ class Pattern:
         for subpat in self.subpatterns:
             if id(subpat.pattern) not in ids:
                 ids[id(subpat.pattern)] = subpat.pattern
-                ids.update(subpat.pattern.referenced_patterns_by_id())
+                if subpat.pattern is not None:
+                    ids.update(subpat.pattern.referenced_patterns_by_id())
         return ids
 
     def referenced_patterns_by_name(self) -> List[Tuple[str, 'Pattern']]:
@@ -446,7 +459,7 @@ class Pattern:
             List of `(pat.name, pat)` tuples for all referenced Pattern objects
         """
         pats_by_id = self.referenced_patterns_by_id()
-        pat_list = [(p.name, p) for p in pats_by_id.values()]
+        pat_list = [(p.name if p is not None else None, p) for p in pats_by_id.values()]
         return pat_list
 
     def get_bounds(self) -> Union[numpy.ndarray, None]:
@@ -496,6 +509,8 @@ class Pattern:
         self.subpatterns = []
         shape_counts = {}
         for subpat in subpatterns:
+            if subpat.pattern is None:
+                continue
             subpat.pattern.flatten()
             p = subpat.as_pattern()
 
@@ -839,7 +854,7 @@ class Pattern:
             if pat in memo:
                 return memo
 
-            children = set(sp.pattern for sp in pat.subpatterns)
+            children = set(sp.pattern for sp in pat.subpatterns if sp.pattern is not None)
             new_children = children - memo
             memo |= children
 

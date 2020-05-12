@@ -100,7 +100,9 @@ def write(patterns: Pattern or List[Pattern],
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
     for pattern in patterns:
-        patterns_by_id.update(pattern.referenced_patterns_by_id())
+        for i, p in pattern.referenced_patterns_by_id().items():
+            if p is not None:
+                patterns_by_id[i] = p
 
     disambiguate_func(patterns_by_id.values())
 
@@ -170,7 +172,9 @@ def dose2dtype(patterns: List[Pattern],
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
     for pattern in patterns:
-        patterns_by_id.update(pattern.referenced_patterns_by_id())
+        for i, p in pattern.referenced_patterns_by_id().items():
+            if p is not None:
+                patterns_by_id[i] = p
 
     # Get a table of (id(pat), written_dose) for each pattern and subpattern
     sd_table = make_dose_table(patterns)
@@ -466,6 +470,8 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
                         ) -> List[gdsii.elements.ARef or gdsii.elements.SRef]:
     refs = []
     for subpat in subpatterns:
+        if subpat.pattern is None:
+            continue
         encoded_name = subpat.pattern.name
 
         # Note: GDS mirrors first and rotates second

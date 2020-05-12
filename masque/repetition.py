@@ -298,6 +298,7 @@ class GridRepetition:
             A copy of self.pattern which has been scaled, rotated, repeated, etc.
              etc. according to this `GridRepetition`'s properties.
         """
+        assert(self.pattern is not None)
         patterns = []
 
         for a in range(self.a_count):
@@ -411,7 +412,7 @@ class GridRepetition:
         self.rotation *= -1
         return self
 
-    def get_bounds(self) -> numpy.ndarray or None:
+    def get_bounds(self) -> Optional[numpy.ndarray]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `GridRepetition` in each dimension.
@@ -420,6 +421,8 @@ class GridRepetition:
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
+        if self.pattern is None:
+            return None
         return self.as_pattern().get_bounds()
 
     def scale_by(self, c: float) -> 'GridRepetition':
@@ -496,6 +499,7 @@ class GridRepetition:
         Returns:
             self
         """
+        assert(self.pattern is not None)
         self.lock()
         self.pattern.deeplock()
         return self
@@ -510,6 +514,7 @@ class GridRepetition:
         Returns:
             self
         """
+        assert(self.pattern is not None)
         self.unlock()
         self.pattern.deepunlock()
         return self

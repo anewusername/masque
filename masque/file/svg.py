@@ -61,6 +61,8 @@ def writefile(pattern: Pattern,
     # Now create a group for each row in sd_table (ie, each pattern + dose combination)
     #  and add in any Boundary and Use elements
     for pat in patterns_by_id.values():
+        if pat is None:
+            continue
         svg_group = svg.g(id=mangle_name(pat), fill='blue', stroke='red')
 
         for shape in pat.shapes:
@@ -75,6 +77,8 @@ def writefile(pattern: Pattern,
                 svg_group.add(path)
 
         for subpat in pat.subpatterns:
+            if subpat.pattern is None:
+                continue
             transform = 'scale({:g}) rotate({:g}) translate({:g},{:g})'.format(
                 subpat.scale, subpat.rotation, subpat.offset[0], subpat.offset[1])
             use = svg.use(href='#' + mangle_name(subpat.pattern), transform=transform)

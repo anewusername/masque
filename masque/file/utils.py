@@ -38,6 +38,8 @@ def make_dose_table(patterns: List[Pattern], dose_multiplier: float=1.0) -> Set[
     dose_table = {(id(pattern), dose_multiplier) for pattern in patterns}
     for pattern in patterns:
         for subpat in pattern.subpatterns:
+            if subpat.pattern is None:
+                continue
             subpat_dose_entry = (id(subpat.pattern), subpat.dose * dose_multiplier)
             if subpat_dose_entry not in dose_table:
                 subpat_dose_table = make_dose_table([subpat.pattern], subpat.dose * dose_multiplier)
