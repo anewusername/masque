@@ -549,7 +549,7 @@ class Pattern:
             self
         """
         for entry in self.shapes + self.subpatterns:
-            entry.scale(c)
+            entry.scale_by(c)
         return self
 
     def scale_by(self, c: float) -> 'Pattern':
