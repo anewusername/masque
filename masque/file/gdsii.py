@@ -304,15 +304,15 @@ def read(stream: io.BufferedIOBase,
                 else:
                     args['layer'] = (element.layer, element.data_type)
 
-                shape = Polygon(**args)
+                poly = Polygon(**args)
 
                 if clean_vertices:
                     try:
-                        shape.clean_vertices()
+                        poly.clean_vertices()
                     except PatternError:
                         continue
 
-                pat.shapes.append(shape)
+                pat.shapes.append(poly)
 
             if isinstance(element, gdsii.elements.Path):
                 if element.path_type in path_cap_map:
@@ -338,15 +338,15 @@ def read(stream: io.BufferedIOBase,
                 else:
                     args['layer'] = (element.layer, element.data_type)
 
-                shape = Path(**args)
+                path = Path(**args)
 
                 if clean_vertices:
                     try:
-                        shape.clean_vertices()
+                        path.clean_vertices()
                     except PatternError as err:
                         continue
 
-                pat.shapes.append(shape)
+                pat.shapes.append(path)
 
             elif isinstance(element, gdsii.elements.Text):
                 label = Label(offset=element.xy,
