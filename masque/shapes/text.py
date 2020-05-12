@@ -12,9 +12,6 @@ from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t
 # from matplotlib.path import Path
 
 
-__author__ = 'Jan Petykiewicz'
-
-
 class Text(Shape):
     """
     Text (to be printed e.g. as a set of polygons).

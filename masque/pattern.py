@@ -19,8 +19,6 @@ from .label import Label
 from .utils import rotation_matrix_2d, vector2, normalize_mirror
 from .error import PatternError, PatternLockedError
 
-__author__ = 'Jan Petykiewicz'
-
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
 

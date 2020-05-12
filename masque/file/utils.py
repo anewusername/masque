@@ -7,9 +7,6 @@ from typing import Set, Tuple, List
 from masque.pattern import Pattern
 
 
-__author__ = 'Jan Petykiewicz'
-
-
 def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     """
     Create a name using `pattern.name`, `id(pattern)`, and the dose multiplier.

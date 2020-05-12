@@ -9,7 +9,6 @@ from .. import PatternError
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
-__author__ = 'Jan Petykiewicz'
 
 
 class Path(Shape):

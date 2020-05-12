@@ -26,8 +26,6 @@ from ..utils import remove_colinear_vertices, normalize_mirror
 #TODO document how GDS rotation / mirror works
 #TODO absolute positioning
 
-__author__ = 'Jan Petykiewicz'
-
 
 logger = logging.getLogger(__name__)
 

@@ -13,8 +13,6 @@ from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
 
 
-__author__ = 'Jan Petykiewicz'
-
 
 # TODO need top-level comment about what order rotation/scale/offset/mirror/array are applied
 

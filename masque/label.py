@@ -4,9 +4,6 @@ import numpy
 from numpy import pi
 
 from .error import PatternError, PatternLockedError
-
-
-__author__ = 'Jan Petykiewicz'
 from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t
 
 

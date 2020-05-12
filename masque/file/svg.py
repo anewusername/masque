@@ -9,9 +9,6 @@ from .utils import mangle_name
 from .. import Pattern
 
 
-__author__ = 'Jan Petykiewicz'
-
-
 def writefile(pattern: Pattern,
           filename: str,
           custom_attributes: bool=False):

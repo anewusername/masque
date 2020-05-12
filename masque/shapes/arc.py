@@ -6,9 +6,6 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-
-
-__author__ = 'Jan Petykiewicz'
 from ..utils import is_scalar, vector2, layer_t
 
 
