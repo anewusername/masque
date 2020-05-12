@@ -1,4 +1,4 @@
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 import copy
 import numpy
@@ -6,6 +6,8 @@ import numpy
 from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 
+if TYPE_CHECKING:
+    from . import Polygon
 
 
 # Type definitions
@@ -16,6 +18,9 @@ normalized_shape_tuple = Tuple[Tuple,
 # ## Module-wide defaults
 # Default number of points per polygon for shapes
 DEFAULT_POLY_NUM_POINTS = 24
+
+
+T = TypeVar('T', bound='Shape')
 
 
 class Shape(metaclass=ABCMeta):
@@ -53,7 +58,10 @@ class Shape(metaclass=ABCMeta):
 
     # --- Abstract methods
     @abstractmethod
-    def to_polygons(self, num_vertices: int, max_arclen: float) -> List['Polygon']:
+    def to_polygons(self,
+                    num_vertices: Optional[int] = None,
+                    max_arclen: Optional[float] = None,
+                    ) -> List['Polygon']:
         """
         Returns a list of polygons which approximate the shape.
 
@@ -77,7 +85,7 @@ class Shape(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def rotate(self, theta: float) -> 'Shape':
+    def rotate(self: T, theta: float) -> T:
         """
         Rotate the shape around its origin (0, 0), ignoring its offset.
 
@@ -90,7 +98,7 @@ class Shape(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def mirror(self, axis: int) -> 'Shape':
+    def mirror(self: T, axis: int) -> T:
         """
         Mirror the shape across an axis.
 
@@ -104,7 +112,7 @@ class Shape(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def scale_by(self, c: float) -> 'Shape':
+    def scale_by(self: T, c: float) -> T:
         """
         Scale the shape's size (eg. radius, for a circle) by a constant factor.
 
@@ -117,7 +125,7 @@ class Shape(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def normalized_form(self, norm_value: int) -> normalized_shape_tuple:
+    def normalized_form(self: T, norm_value: int) -> normalized_shape_tuple:
         """
         Writes the shape in a standardized notation, with offset, scale, rotation, and dose
          information separated out from the remaining values.
@@ -187,7 +195,7 @@ class Shape(metaclass=ABCMeta):
         self._dose = val
 
     # ---- Non-abstract methods
-    def copy(self) -> 'Shape':
+    def copy(self: T) -> T:
         """
         Returns a deep copy of the shape.
 
@@ -196,7 +204,7 @@ class Shape(metaclass=ABCMeta):
         """
         return copy.deepcopy(self)
 
-    def translate(self, offset: vector2) -> 'Shape':
+    def translate(self: T, offset: vector2) -> T:
         """
         Translate the shape by the given offset
 
@@ -209,7 +217,7 @@ class Shape(metaclass=ABCMeta):
         self.offset += offset
         return self
 
-    def rotate_around(self, pivot: vector2, rotation: float) -> 'Shape':
+    def rotate_around(self: T, pivot: vector2, rotation: float) -> T:
         """
         Rotate the shape around a point.
 
@@ -428,7 +436,7 @@ class Shape(metaclass=ABCMeta):
 
         return manhattan_polygons
 
-    def lock(self) -> 'Shape':
+    def lock(self: T) -> T:
         """
         Lock the Shape, disallowing further changes
 
@@ -438,7 +446,7 @@ class Shape(metaclass=ABCMeta):
         object.__setattr__(self, 'locked', True)
         return self
 
-    def unlock(self) -> 'Shape':
+    def unlock(self: T) -> T:
         """
         Unlock the Shape
 

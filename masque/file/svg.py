@@ -1,7 +1,7 @@
 """
 SVG file format readers and writers
 """
-
+from typing import Dict, Optional
 import svgwrite
 import numpy
 import warnings
@@ -56,7 +56,7 @@ def writefile(pattern: Pattern,
                            debug=(not custom_attributes))
 
     # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}
+    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}        # type: Dict[int, Optional[Pattern]]
 
     # Now create a group for each row in sd_table (ie, each pattern + dose combination)
     #  and add in any Boundary and Use elements

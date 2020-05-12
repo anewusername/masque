@@ -12,6 +12,8 @@ from numpy import pi
 from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
 
+if TYPE_CHECKING:
+    from . import Pattern
 
 
 # TODO need top-level comment about what order rotation/scale/offset/mirror/array are applied
@@ -51,7 +53,7 @@ class GridRepetition:
     _scale: float
     """ Scaling factor applied to individual instances in the grid (not the grid vectors) """
 
-    _mirrored: List[bool]
+    _mirrored: numpy.ndarray        # ndarray[bool]
     """ Whether to mirror individual instances across the x and y axes
     (Applies to individual instances in the grid, not the grid vectors)
     """
@@ -64,7 +66,7 @@ class GridRepetition:
     _a_count: int
     """ Number of instances along the direction specified by the `a_vector` """
 
-    _b_vector: numpy.ndarray or None
+    _b_vector: Optional[numpy.ndarray]
     """ Vector `[x, y]` specifying a second lattice vector for the grid.
         Specifies center-to-center spacing between adjacent elements.
         Can be `None` for a 1D array.
@@ -80,14 +82,14 @@ class GridRepetition:
     """ If `True`, disallows changes to the GridRepetition """
 
     def __init__(self,
-                 pattern: 'Pattern',
+                 pattern: Optional['Pattern'],
                  a_vector: numpy.ndarray,
                  a_count: int,
-                 b_vector: numpy.ndarray = None,
+                 b_vector: Optional[numpy.ndarray] = None,
                  b_count: int = 1,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
-                 mirrored: List[bool] = None,
+                 mirrored: Optional[Sequence[bool]] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
                  locked: bool = False):
@@ -155,7 +157,7 @@ class GridRepetition:
                              locked=self.locked)
         return new
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'GridReptition':
+    def  __deepcopy__(self, memo: Dict = None) -> 'GridRepetition':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new.pattern = copy.deepcopy(self.pattern, memo)
@@ -230,11 +232,11 @@ class GridRepetition:
 
     # Mirrored property
     @property
-    def mirrored(self) -> List[bool]:
+    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: List[bool]):
+    def mirrored(self, val: Sequence[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.array(val, dtype=bool, copy=True)

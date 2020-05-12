@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional, Sequence
 import copy
 from enum import Enum
 import numpy
@@ -28,8 +28,8 @@ class Path(Shape):
     __slots__ = ('_vertices', '_width', '_cap', '_cap_extensions')
     _vertices: numpy.ndarray
     _width: float
-    _cap_extensions: numpy.ndarray or None
     _cap: PathCap
+    _cap_extensions: Optional[numpy.ndarray]
 
     Cap = PathCap
 
@@ -69,7 +69,7 @@ class Path(Shape):
 
     # cap_extensions property
     @property
-    def cap_extensions(self) -> numpy.ndarray or None:
+    def cap_extensions(self) -> Optional[numpy.ndarray]:
         """
         Path end-cap extension
 
@@ -144,11 +144,11 @@ class Path(Shape):
                  cap_extensions: numpy.ndarray = None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
-                 mirrored: Tuple[bool] = (False, False),
+                 mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
-                 ) -> 'Path':
+                 ):
         self.unlock()
         self._cap_extensions = None     # Since .cap setter might access it
 
@@ -182,7 +182,7 @@ class Path(Shape):
                cap_extensions = None,
                offset: vector2 = (0.0, 0.0),
                rotation: float = 0,
-               mirrored: Tuple[bool] = (False, False),
+               mirrored: Sequence[bool] = (False, False),
                layer: layer_t = 0,
                dose: float = 1.0,
                ) -> 'Path':

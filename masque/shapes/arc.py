@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional, Sequence
 import copy
 import math
 import numpy
@@ -32,10 +32,10 @@ class Arc(Shape):
     _width: float
     """ Width of the arc """
 
-    poly_num_points: int
+    poly_num_points: Optional[int]
     """ Sets the default number of points for `.polygonize()` """
 
-    poly_max_arclen: float
+    poly_max_arclen: Optional[float]
     """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
@@ -77,7 +77,7 @@ class Arc(Shape):
 
     # arc start/stop angle properties
     @property
-    def angles(self) -> vector2:
+    def angles(self) -> numpy.ndarray:          #ndarray[float]
         """
         Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation
@@ -150,11 +150,11 @@ class Arc(Shape):
                  radii: vector2,
                  angles: vector2,
                  width: float,
-                 poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: float = None,
+                 poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
+                 poly_max_arclen: Optional[float] = None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
-                 mirrored: Tuple[bool] = (False, False),
+                 mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
@@ -182,8 +182,8 @@ class Arc(Shape):
         return new
 
     def to_polygons(self,
-                    poly_num_points: int = None,
-                    poly_max_arclen: float = None,
+                    poly_num_points: Optional[int] = None,
+                    poly_max_arclen: Optional[float] = None,
                     ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points

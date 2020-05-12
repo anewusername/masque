@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional, Sequence
 import copy
 import numpy
 from numpy import pi
@@ -71,7 +71,7 @@ class Polygon(Shape):
                  vertices: numpy.ndarray,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
-                 mirrored: Tuple[bool] = (False, False),
+                 mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
@@ -86,7 +86,7 @@ class Polygon(Shape):
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
         self.locked = locked
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Polygon':
+    def  __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -154,14 +154,14 @@ class Polygon(Shape):
         return poly
 
     @staticmethod
-    def rect(xmin: float = None,
-             xctr: float = None,
-             xmax: float = None,
-             lx: float = None,
-             ymin: float = None,
-             yctr: float = None,
-             ymax: float = None,
-             ly: float = None,
+    def rect(xmin: Optional[float] = None,
+             xctr: Optional[float] = None,
+             xmax: Optional[float] = None,
+             lx: Optional[float] = None,
+             ymin: Optional[float] = None,
+             yctr: Optional[float] = None,
+             ymax: Optional[float] = None,
+             ly: Optional[float] = None,
              layer: layer_t = 0,
              dose: float = 1.0,
              ) -> 'Polygon':
@@ -188,11 +188,17 @@ class Polygon(Shape):
         """
         if lx is None:
             if xctr is None:
+                assert(xmin is not None)
+                assert(xmax is not None)
                 xctr = 0.5 * (xmax + xmin)
                 lx = xmax - xmin
             elif xmax is None:
+                assert(xmin is not None)
+                assert(xctr is not None)
                 lx = 2 * (xctr - xmin)
             elif xmin is None:
+                assert(xctr is not None)
+                assert(xmax is not None)
                 lx = 2 * (xmax - xctr)
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
@@ -200,19 +206,29 @@ class Polygon(Shape):
             if xctr is not None:
                 pass
             elif xmax is None:
+                assert(xmin is not None)
+                assert(lx is not None)
                 xctr = xmin + 0.5 * lx
             elif xmin is None:
+                assert(xmax is not None)
+                assert(lx is not None)
                 xctr = xmax - 0.5 * lx
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
 
         if ly is None:
             if yctr is None:
+                assert(ymin is not None)
+                assert(ymax is not None)
                 yctr = 0.5 * (ymax + ymin)
                 ly = ymax - ymin
             elif ymax is None:
+                assert(ymin is not None)
+                assert(yctr is not None)
                 ly = 2 * (yctr - ymin)
             elif ymin is None:
+                assert(yctr is not None)
+                assert(ymax is not None)
                 ly = 2 * (ymax - yctr)
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
@@ -220,8 +236,12 @@ class Polygon(Shape):
             if yctr is not None:
                 pass
             elif ymax is None:
+                assert(ymin is not None)
+                assert(ly is not None)
                 yctr = ymin + 0.5 * ly
             elif ymin is None:
+                assert(ly is not None)
+                assert(ymax is not None)
                 yctr = ymax - 0.5 * ly
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')

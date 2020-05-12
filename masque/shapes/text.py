@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Sequence, Optional, MutableSequence
 import copy
 import numpy
 from numpy import pi, inf
@@ -21,7 +21,7 @@ class Text(Shape):
     _string: str
     _height: float
     _rotation: float
-    _mirrored: List[str]
+    _mirrored: numpy.ndarray        #ndarray[bool]
     font_path: str
 
     # vertices property
@@ -57,11 +57,11 @@ class Text(Shape):
 
     # Mirrored property
     @property
-    def mirrored(self) -> List[bool]:
+    def mirrored(self) -> numpy.ndarray:        #ndarray[bool]
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: List[bool]):
+    def mirrored(self, val: Sequence[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.ndarray(val, dtype=bool, copy=True)
@@ -72,7 +72,7 @@ class Text(Shape):
                  font_path: str,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
-                 mirrored: Tuple[bool] = (False, False),
+                 mirrored: Tuple[bool, bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
@@ -98,11 +98,11 @@ class Text(Shape):
         return new
 
     def to_polygons(self,
-                    poly_num_points: int = None,        # unused
-                    poly_max_arclen: float = None,      # unused
+                    poly_num_points: Optional[int] = None,        # unused
+                    poly_max_arclen: Optional[float] = None,      # unused
                     ) -> List[Polygon]:
         all_polygons = []
-        total_advance = 0
+        total_advance = 0.0
         for char in self.string:
             raw_polys, advance = get_char_as_polygons(self.font_path, char)
 
@@ -198,7 +198,7 @@ def get_char_as_polygons(font_path: str,
         tags = outline.tags[start:end + 1]
         tags.append(tags[0])
 
-        segments = []
+        segments: List[List[List[float]]] = []
         for j, point in enumerate(points):
             # If we already have a segment, add this point to it
             if j > 0:

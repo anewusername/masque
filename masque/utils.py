@@ -2,12 +2,12 @@
 Various helper functions
 """
 
-from typing import Any, Union, Tuple
+from typing import Any, Union, Tuple, Sequence
 
 import numpy
 
 # Type definitions
-vector2 = Union[numpy.ndarray, Tuple[float, float]]
+vector2 = Union[numpy.ndarray, Tuple[float, float], Sequence[float]]
 layer_t = Union[int, Tuple[int, int]]
 
 
@@ -68,7 +68,7 @@ def rotation_matrix_2d(theta: float) -> numpy.ndarray:
                         [numpy.sin(theta), +numpy.cos(theta)]])
 
 
-def normalize_mirror(mirrored: Tuple[bool, bool]) -> Tuple[bool, float]:
+def normalize_mirror(mirrored: Sequence[bool]) -> Tuple[bool, float]:
     """
     Converts 0-2 mirror operations `(mirror_across_x_axis, mirror_across_y_axis)`
     into 0-1 mirror operations and a rotation

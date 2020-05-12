@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 import copy
 import numpy
 from numpy import pi
@@ -16,10 +16,10 @@ class Circle(Shape):
     _radius: float
     """ Circle radius """
 
-    poly_num_points: int
+    poly_num_points: Optional[int]
     """ Sets the default number of points for `.polygonize()` """
 
-    poly_max_arclen: float
+    poly_max_arclen: Optional[float]
     """ Sets the default max segement length for `.polygonize()` """
 
     # radius property
@@ -40,8 +40,8 @@ class Circle(Shape):
 
     def __init__(self,
                  radius: float,
-                 poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: float = None,
+                 poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
+                 poly_max_arclen: Optional[float] = None,
                  offset: vector2 = (0.0, 0.0),
                  layer: layer_t = 0,
                  dose: float = 1.0,
@@ -64,8 +64,8 @@ class Circle(Shape):
         return new
 
     def to_polygons(self,
-                    poly_num_points: int = None,
-                    poly_max_arclen: float = None,
+                    poly_num_points: Optional[int] = None,
+                    poly_max_arclen: Optional[float] = None,
                     ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points

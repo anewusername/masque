@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Sequence, Optional
 import copy
 import math
 import numpy
@@ -22,10 +22,10 @@ class Ellipse(Shape):
     _rotation: float
     """ Angle from x-axis to first radius (ccw, radians) """
 
-    poly_num_points: int
+    poly_num_points: Optional[int]
     """ Sets the default number of points for `.polygonize()` """
 
-    poly_max_arclen: float
+    poly_max_arclen: Optional[float]
     """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
@@ -85,11 +85,11 @@ class Ellipse(Shape):
 
     def __init__(self,
                  radii: vector2,
-                 poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: float = None,
+                 poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
+                 poly_max_arclen: Optional[float] = None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
-                 mirrored: Tuple[bool] = (False, False),
+                 mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
@@ -114,8 +114,8 @@ class Ellipse(Shape):
         return new
 
     def to_polygons(self,
-                    poly_num_points: int = None,
-                    poly_max_arclen: float = None,
+                    poly_num_points: Optional[int] = None,
+                    poly_max_arclen: Optional[float] = None,
                     ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points

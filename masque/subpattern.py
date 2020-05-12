@@ -12,6 +12,8 @@ from numpy import pi
 from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
 
+if TYPE_CHECKING:
+    from . import Pattern
 
 
 class SubPattern:
@@ -43,7 +45,7 @@ class SubPattern:
     _scale: float
     """ scale factor for the instance """
 
-    _mirrored: List[bool]
+    _mirrored: numpy.ndarray        # ndarray[bool]
     """ Whether to mirror the instanc across the x and/or y axes. """
 
     identifier: Tuple
@@ -58,11 +60,11 @@ class SubPattern:
                  pattern: Optional['Pattern'],
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
-                 mirrored: List[bool] = None,
+                 mirrored: Optional[Sequence[bool]] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
                  locked: bool = False):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.pattern = pattern
         self.offset = offset
@@ -161,11 +163,11 @@ class SubPattern:
 
     # Mirrored property
     @property
-    def mirrored(self) -> List[bool]:
+    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: List[bool]):
+    def mirrored(self, val: Sequence[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.array(val, dtype=bool, copy=True)

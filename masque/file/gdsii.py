@@ -6,7 +6,7 @@ import gdsii.library
 import gdsii.structure
 import gdsii.elements
 
-from typing import List, Any, Dict, Tuple, Callable
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
 import re
 import io
 import copy
@@ -39,13 +39,13 @@ path_cap_map = {
                }
 
 
-def write(patterns: Pattern or List[Pattern],
+def write(patterns: Union[Pattern, List[Pattern]],
           stream: io.BufferedIOBase,
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
           modify_originals: bool = False,
-          disambiguate_func: Callable[[List[Pattern]], None] = None):
+          disambiguate_func: Callable[[Iterable[Pattern]], None] = None):
     """
     Write a `Pattern` or list of patterns to a GDSII file, by first calling
      `.polygonize()` to change the shapes into polygons, and then writing patterns
@@ -119,8 +119,8 @@ def write(patterns: Pattern or List[Pattern],
     return
 
 
-def writefile(patterns: List[Pattern] or Pattern,
-              filename: str or pathlib.Path,
+def writefile(patterns: Union[List[Pattern], Pattern],
+              filename: Union[str, pathlib.Path],
               *args,
               **kwargs,
               ):
@@ -137,7 +137,7 @@ def writefile(patterns: List[Pattern] or Pattern,
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
-        open_func = gzip.open
+        open_func: Callable = gzip.open
     else:
         open_func = open
 
@@ -185,7 +185,8 @@ def dose2dtype(patterns: List[Pattern],
     dose_vals = set()
     for pat_id, pat_dose in sd_table:
         pat = patterns_by_id[pat_id]
-        [dose_vals.add(shape.dose * pat_dose) for shape in pat.shapes]
+        for shape in pat.shapes:
+            dose_vals.add(shape.dose * pat_dose)
 
     if len(dose_vals) > 256:
         raise PatternError('Too many dose values: {}, maximum 256 when using dtypes.'.format(len(dose_vals)))
@@ -228,10 +229,10 @@ def dose2dtype(patterns: List[Pattern],
     return patterns, dose_vals_list
 
 
-def readfile(filename: str or pathlib.Path,
+def readfile(filename: Union[str, pathlib.Path],
              *args,
              **kwargs,
-             ) -> (Dict[str, Pattern], Dict[str, Any]):
+             ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Wrapper for `gdsii.read()` that takes a filename or path instead of a stream.
 
@@ -244,7 +245,7 @@ def readfile(filename: str or pathlib.Path,
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
-        open_func = gzip.open
+        open_func: Callable = gzip.open
     else:
         open_func = open
 
@@ -256,7 +257,7 @@ def readfile(filename: str or pathlib.Path,
 def read(stream: io.BufferedIOBase,
          use_dtype_as_dose: bool = False,
          clean_vertices: bool = True,
-         ) -> (Dict[str, Pattern], Dict[str, Any]):
+         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
@@ -466,8 +467,8 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     return gridrep
 
 
-def _subpatterns_to_refs(subpatterns: List[SubPattern or GridRepetition]
-                        ) -> List[gdsii.elements.ARef or gdsii.elements.SRef]:
+def _subpatterns_to_refs(subpatterns: List[Union[SubPattern, GridRepetition]]
+                        ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -574,7 +575,7 @@ def disambiguate_pattern_names(patterns,
             # Should never happen since zero-length names are replaced
             raise PatternError('Zero-length name after sanitize+encode,\n originally "{}"'.format(pat.name))
         if len(encoded_name) > max_name_length:
-            raise PatternError('Pattern name "{}" length > {} after encode,\n originally "{}"'.format(encoded_name, max_name_length, pat.name))
+            raise PatternError('Pattern name "{!r}" length > {} after encode,\n originally "{}"'.format(encoded_name, max_name_length, pat.name))
 
         pat.name = encoded_name
         used_names.append(suffixed_name)
