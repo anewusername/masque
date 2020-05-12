@@ -56,7 +56,9 @@ class Shape(metaclass=ABCMeta):
             object.__setattr__(new, name, getattr(self, name))
         return new
 
-    # --- Abstract methods
+    '''
+    --- Abstract methods
+    '''
     @abstractmethod
     def to_polygons(self,
                     num_vertices: Optional[int] = None,
@@ -148,7 +150,9 @@ class Shape(metaclass=ABCMeta):
         """
         pass
 
-    # ---- Non-abstract properties
+    '''
+    ---- Non-abstract properties
+    '''
     # offset property
     @property
     def offset(self) -> numpy.ndarray:
@@ -194,7 +198,9 @@ class Shape(metaclass=ABCMeta):
             raise PatternError('Dose must be non-negative')
         self._dose = val
 
-    # ---- Non-abstract methods
+    '''
+    ---- Non-abstract methods
+    '''
     def copy(self: T) -> T:
         """
         Returns a deep copy of the shape.
