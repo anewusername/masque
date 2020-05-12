@@ -4,7 +4,7 @@ import copy
 import numpy
 
 from ..error import PatternError, PatternLockedError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 
 
 __author__ = 'Jan Petykiewicz'
@@ -29,7 +29,7 @@ class Shape(metaclass=ABCMeta):
     _offset: numpy.ndarray
     """ `[x_offset, y_offset]` """
 
-    _layer: int or Tuple
+    _layer: layer_t
     """ Layer (integer >= 0 or tuple) """
 
     _dose: float
@@ -162,14 +162,14 @@ class Shape(metaclass=ABCMeta):
 
     # layer property
     @property
-    def layer(self) -> int or Tuple[int]:
+    def layer(self) -> layer_t:
         """
         Layer number (int or tuple of ints)
         """
         return self._layer
 
     @layer.setter
-    def layer(self, val: int or List[int]):
+    def layer(self, val: layer_t):
         self._layer = val
 
     # dose property

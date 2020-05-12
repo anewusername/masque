@@ -5,10 +5,10 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-from ..utils import is_scalar, vector2
 
 
 __author__ = 'Jan Petykiewicz'
+from ..utils import is_scalar, vector2, layer_t
 
 
 class Circle(Shape):
@@ -46,7 +46,7 @@ class Circle(Shape):
                  poly_num_points: int = DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: float = None,
                  offset: vector2 = (0.0, 0.0),
-                 layer: int = 0,
+                 layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
         self.unlock()

@@ -4,10 +4,10 @@ import numpy
 from numpy import pi
 
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, vector2, rotation_matrix_2d
 
 
 __author__ = 'Jan Petykiewicz'
+from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t
 
 
 class Label:
@@ -19,7 +19,7 @@ class Label:
     _offset: numpy.ndarray
     """ [x_offset, y_offset] """
 
-    _layer: int or Tuple
+    _layer: layer_t
     """ Layer (integer >= 0, or 2-Tuple of integers) """
 
     _string: str
@@ -56,14 +56,14 @@ class Label:
 
     # layer property
     @property
-    def layer(self) -> int or Tuple[int]:
+    def layer(self) -> layer_t:
         """
         Layer number (int or tuple of ints)
         """
         return self._layer
 
     @layer.setter
-    def layer(self, val: int or List[int]):
+    def layer(self, val: layer_t):
         self._layer = val
 
     # string property
@@ -81,7 +81,7 @@ class Label:
     def __init__(self,
                  string: str,
                  offset: vector2=(0.0, 0.0),
-                 layer: int=0,
+                 layer: layer_t = 0,
                  locked: bool = False):
         self.unlock()
         self.identifier = ()

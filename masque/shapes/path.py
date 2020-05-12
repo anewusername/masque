@@ -6,7 +6,7 @@ from numpy import pi, inf
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 __author__ = 'Jan Petykiewicz'
@@ -144,7 +144,7 @@ class Path(Shape):
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int = 0,
+                 layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
                  ) -> 'Path':
@@ -182,7 +182,7 @@ class Path(Shape):
                offset: vector2 = (0.0, 0.0),
                rotation: float = 0,
                mirrored: Tuple[bool] = (False, False),
-               layer: int = 0,
+               layer: layer_t = 0,
                dose: float = 1.0,
                ) -> 'Path':
         """

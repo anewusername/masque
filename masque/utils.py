@@ -8,6 +8,7 @@ import numpy
 
 # Type definitions
 vector2 = Union[numpy.ndarray, Tuple[float, float]]
+layer_t = Union[int, Tuple[int, int]]
 
 
 def is_scalar(var: Any) -> bool:

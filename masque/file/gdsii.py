@@ -20,7 +20,7 @@ import gzip
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
 from ..shapes import Polygon, Path
-from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar
+from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
 
 #TODO document how GDS rotation / mirror works
@@ -210,7 +210,7 @@ def dose2dtype(patterns: List[Pattern],
 
         for shape in pat.shapes:
             data_type = dose_vals_list.index(shape.dose * pat_dose)
-            if is_scalar(shape.layer):
+            if isinstance(shape.layer, int):
                 shape.layer = (shape.layer, data_type)
             else:
                 shape.layer = (shape.layer[0], data_type)
@@ -371,7 +371,7 @@ def read(stream: io.BufferedIOBase,
     return patterns_dict, library_info
 
 
-def _mlayer2gds(mlayer):
+def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     """ Helper to turn a layer tuple-or-int into a layer and datatype"""
     if is_scalar(mlayer):
         layer = mlayer

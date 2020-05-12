@@ -5,7 +5,7 @@ from numpy import pi
 
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 __author__ = 'Jan Petykiewicz'
@@ -74,7 +74,7 @@ class Polygon(Shape):
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int = 0,
+                 layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
                  ):
@@ -100,7 +100,7 @@ class Polygon(Shape):
     def square(side_length: float,
                rotation: float = 0.0,
                offset: vector2 = (0.0, 0.0),
-               layer: int = 0,
+               layer: layer_t = 0,
                dose: float = 1.0,
                ) -> 'Polygon':
         """
@@ -130,7 +130,7 @@ class Polygon(Shape):
                   ly: float,
                   rotation: float = 0,
                   offset: vector2 = (0.0, 0.0),
-                  layer: int = 0,
+                  layer: layer_t = 0,
                   dose: float = 1.0,
                   ) -> 'Polygon':
         """
@@ -164,7 +164,7 @@ class Polygon(Shape):
              yctr: float = None,
              ymax: float = None,
              ly: float = None,
-             layer: int = 0,
+             layer: layer_t = 0,
              dose: float = 1.0,
              ) -> 'Polygon':
         """

@@ -5,7 +5,7 @@ from numpy import pi, inf
 
 from . import Shape, Polygon, normalized_shape_tuple
 from .. import PatternError
-from ..utils import is_scalar, vector2, get_bit, normalize_mirror
+from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t
 
 # Loaded on use:
 # from freetype import Face
@@ -76,7 +76,7 @@ class Text(Shape):
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int = 0,
+                 layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False,
                  ):

@@ -6,10 +6,10 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
 
 
 __author__ = 'Jan Petykiewicz'
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 
 
 class Ellipse(Shape):
@@ -93,7 +93,7 @@ class Ellipse(Shape):
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
                  mirrored: Tuple[bool] = (False, False),
-                 layer: int = 0,
+                 layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
         self.unlock()
