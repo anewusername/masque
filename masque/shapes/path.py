@@ -10,6 +10,13 @@ from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 
+class PathCap(Enum):
+    Flush = 0       # Path ends at final vertices
+    Circle = 1      # Path extends past final vertices with a semicircle of radius width/2
+    Square = 2      # Path extends past final vertices with a width-by-width/2 rectangle
+    SquareCustom = 4  # Path extends past final vertices with a rectangle of length
+                      #     defined by path.cap_extensions
+
 
 class Path(Shape):
     """
@@ -21,15 +28,10 @@ class Path(Shape):
     __slots__ = ('_vertices', '_width', '_cap', '_cap_extensions')
     _vertices: numpy.ndarray
     _width: float
-    _cap: 'Path.Cap'
     _cap_extensions: numpy.ndarray or None
+    _cap: PathCap
 
-    class Cap(Enum):
-        Flush = 0       # Path ends at final vertices
-        Circle = 1      # Path extends past final vertices with a semicircle of radius width/2
-        Square = 2      # Path extends past final vertices with a width-by-width/2 rectangle
-        SquareCustom = 4  # Path extends past final vertices with a rectangle of length
-                          #     defined by path.cap_extensions
+    Cap = PathCap
 
     # width property
     @property
@@ -49,17 +51,17 @@ class Path(Shape):
 
     # cap property
     @property
-    def cap(self) -> 'Path.Cap':
+    def cap(self) -> PathCap:
         """
         Path end-cap
         """
         return self._cap
 
     @cap.setter
-    def cap(self, val: 'Path.Cap'):
+    def cap(self, val: PathCap):
         # TODO: Document that setting cap can change cap_extensions
-        self._cap = Path.Cap(val)
-        if self.cap != Path.Cap.SquareCustom:
+        self._cap = PathCap(val)
+        if self.cap != PathCap.SquareCustom:
             self.cap_extensions = None
         elif self.cap_extensions is None:
             # just got set to SquareCustom
@@ -77,8 +79,8 @@ class Path(Shape):
         return self._cap_extensions
 
     @cap_extensions.setter
-    def cap_extensions(self, vals: numpy.ndarray or None):
-        custom_caps = (Path.Cap.SquareCustom,)
+    def cap_extensions(self, vals: Optional[numpy.ndarray]):
+        custom_caps = (PathCap.SquareCustom,)
         if self.cap in custom_caps:
             if vals is None:
                 raise Exception('Tried to set cap extensions to None on path with custom cap type')
@@ -138,7 +140,7 @@ class Path(Shape):
     def __init__(self,
                  vertices: numpy.ndarray,
                  width: float = 0.0,
-                 cap: 'Path.Cap' = Cap.Flush,
+                 cap: PathCap = PathCap.Flush,
                  cap_extensions: numpy.ndarray = None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
@@ -176,7 +178,7 @@ class Path(Shape):
     @staticmethod
     def travel(travel_pairs: Tuple[Tuple[float, float]],
                width: float = 0.0,
-               cap: 'Path.Cap' = Cap.Flush,
+               cap: PathCap = PathCap.Flush,
                cap_extensions = None,
                offset: vector2 = (0.0, 0.0),
                rotation: float = 0,
@@ -285,7 +287,7 @@ class Path(Shape):
 
         polys = [Polygon(offset=self.offset, vertices=verts, dose=self.dose, layer=self.layer)]
 
-        if self.cap == Path.Cap.Circle:
+        if self.cap == PathCap.Circle:
             #for vert in v:         # not sure if every vertex, or just ends?
             for vert in [v[0], v[-1]]:
                 circ = Circle(offset=vert, radius=self.width / 2, dose=self.dose, layer=self.layer)
@@ -294,12 +296,12 @@ class Path(Shape):
         return polys
 
     def get_bounds(self) -> numpy.ndarray:
-        if self.cap == Path.Cap.Circle:
+        if self.cap == PathCap.Circle:
             bounds = self.offset + numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
                                                  numpy.max(self.vertices, axis=0) + self.width / 2))
-        elif self.cap in (Path.Cap.Flush,
-                          Path.Cap.Square,
-                          Path.Cap.SquareCustom):
+        elif self.cap in (PathCap.Flush,
+                          PathCap.Square,
+                          PathCap.SquareCustom):
             bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
             polys = self.to_polygons()
             for poly in polys:
@@ -383,9 +385,9 @@ class Path(Shape):
         return self
 
     def _calculate_cap_extensions(self) -> numpy.ndarray:
-        if self.cap == Path.Cap.Square:
+        if self.cap == PathCap.Square:
             extensions = numpy.full(2, self.width / 2)
-        elif self.cap == Path.Cap.SquareCustom:
+        elif self.cap == PathCap.SquareCustom:
             extensions =  self.cap_extensions
         else:
             # Flush or Circle
