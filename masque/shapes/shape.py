@@ -436,6 +436,19 @@ class Shape(metaclass=ABCMeta):
 
         return manhattan_polygons
 
+    def set_layer(self: T, layer: layer_t) -> T:
+        """
+        Chainable method for changing the layer.
+
+        Args:
+            layer: new value for self.layer
+
+        Returns:
+            self
+        """
+        self.layer = layer
+        return self
+
     def lock(self: T) -> T:
         """
         Lock the Shape, disallowing further changes
