@@ -539,6 +539,6 @@ class GridRepetition:
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
         locked = ' L' if self.locked else ''
-        bv = f', {self.b_vector}' if b_vector is not None else ''
+        bv = f', {self.b_vector}' if self.b_vector is not None else ''
         return (f'<GridRepetition "{name}" at {self.offset} {rotation}{scale}{mirrored}{dose}'
                 f' {self.a_count}x{self.b_count} ({self.a_vector}{bv}){locked}>')
