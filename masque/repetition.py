@@ -121,7 +121,8 @@ class GridRepetition:
         if b_count < 1:
             raise PatternError('Repetition has too-small b_count: '
                                '{}'.format(b_count))
-        self.unlock()
+
+        object.__setattr__(self, 'locked', False)
         self.a_vector = a_vector
         self.b_vector = b_vector
         self.a_count = a_count
@@ -481,6 +482,11 @@ class GridRepetition:
         Returns:
             self
         """
+        self.offset.flags.writeable = False
+        self.a_vector.flags.writeable = False
+        self.mirrored.flags.writeable = False
+        if self.b_vector is not None:
+            self.b_vector.flags.writeable = False
         object.__setattr__(self, 'locked', True)
         return self
 
@@ -491,6 +497,11 @@ class GridRepetition:
         Returns:
             self
         """
+        self.offset.flags.writeable = True
+        self.a_vector.flags.writeable = True
+        self.mirrored.flags.writeable = True
+        if self.b_vector is not None:
+            self.b_vector.flags.writeable = True
         object.__setattr__(self, 'locked', False)
         return self
 

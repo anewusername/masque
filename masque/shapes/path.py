@@ -149,7 +149,7 @@ class Path(Shape):
                  dose: float = 1.0,
                  locked: bool = False,
                  ):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self._cap_extensions = None     # Since .cap setter might access it
 
         self.identifier = ()
@@ -394,3 +394,16 @@ class Path(Shape):
             extensions = numpy.zeros(2)
         return extensions
 
+    def lock(self) -> 'Path':
+        self.vertices.flags.writeable = False
+        if self.cap_extensions is not None:
+            self.cap_extensions.flags.writeable = False
+        Shape.lock(self)
+        return self
+
+    def unlock(self) -> 'Path':
+        Shape.unlock(self)
+        self.vertices.flags.writeable = True
+        if self.cap_extensions is not None:
+            self.cap_extensions.flags.writeable = True
+        return self

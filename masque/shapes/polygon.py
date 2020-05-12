@@ -76,7 +76,7 @@ class Polygon(Shape):
                  dose: float = 1.0,
                  locked: bool = False,
                  ):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.layer = layer
         self.dose = dose
@@ -328,4 +328,14 @@ class Polygon(Shape):
             self
         '''
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=True)
+        return self
+
+    def lock(self) -> 'Polygon':
+        self.vertices.flags.writeable = False
+        Shape.lock(self)
+        return self
+
+    def unlock(self) -> 'Polygon':
+        Shape.unlock(self)
+        self.vertices.flags.writeable = True
         return self

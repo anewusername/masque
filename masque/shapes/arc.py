@@ -158,7 +158,7 @@ class Arc(Shape):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.radii = radii
         self.angles = angles
@@ -386,3 +386,15 @@ class Arc(Shape):
 
             a.append((a0, a1))
         return numpy.array(a)
+
+    def lock(self) -> 'Arc':
+        self.radii.flags.writeable = False
+        self.angles.flags.writeable = False
+        Shape.lock(self)
+        return self
+
+    def unlock(self) -> 'Arc':
+        Shape.unlock(self)
+        self.radii.flags.writeable = True
+        self.angles.flags.writeable = True
+        return self

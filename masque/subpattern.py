@@ -296,6 +296,8 @@ class SubPattern:
         Returns:
             self
         """
+        self.offset.flags.writeable = False
+        self.mirrored.flags.writeable = False
         object.__setattr__(self, 'locked', True)
         return self
 
@@ -306,6 +308,8 @@ class SubPattern:
         Returns:
             self
         """
+        self.offset.flags.writeable = True
+        self.mirrored.flags.writeable = True
         object.__setattr__(self, 'locked', False)
         return self
 

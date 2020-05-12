@@ -71,7 +71,7 @@ class Pattern:
             name: An identifier for the Pattern
             locked: Whether to lock the pattern after construction
         """
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         if isinstance(shapes, list):
             self.shapes = shapes
         else:
@@ -715,6 +715,9 @@ class Pattern:
         Returns:
             self
         """
+        self.shapes = tuple(self.shapes)
+        self.labels = tuple(self.labels)
+        self.subpatterns = tuple(self.subpatterns)
         object.__setattr__(self, 'locked', True)
         return self
 
@@ -726,6 +729,9 @@ class Pattern:
             self
         """
         object.__setattr__(self, 'locked', False)
+        self.shapes = list(self.shapes)
+        self.labels = list(self.labels)
+        self.subpatterns = list(self.subpatterns)
         return self
 
     def deeplock(self) -> 'Pattern':

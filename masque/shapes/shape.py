@@ -443,6 +443,7 @@ class Shape(metaclass=ABCMeta):
         Returns:
             self
         """
+        self.offset.flags.writeable = False
         object.__setattr__(self, 'locked', True)
         return self
 
@@ -454,4 +455,5 @@ class Shape(metaclass=ABCMeta):
             self
         """
         object.__setattr__(self, 'locked', False)
+        self.offset.flags.writeable = True
         return self

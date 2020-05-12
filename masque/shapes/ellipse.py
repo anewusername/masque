@@ -93,7 +93,7 @@ class Ellipse(Shape):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.radii = radii
         self.offset = offset
@@ -180,3 +180,12 @@ class Ellipse(Shape):
                (self.offset, scale/norm_value, angle, False, self.dose), \
                lambda: Ellipse(radii=radii*norm_value, layer=self.layer)
 
+    def lock(self) -> 'Ellipse':
+        self.radii.flags.writeable = False
+        Shape.lock(self)
+        return self
+
+    def unlock(self) -> 'Ellipse':
+        Shape.unlock(self)
+        self.radii.flags.writeable = True
+        return self

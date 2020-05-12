@@ -77,7 +77,7 @@ class Text(Shape):
                  dose: float = 1.0,
                  locked: bool = False,
                  ):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.offset = offset
         self.layer = layer
@@ -243,3 +243,13 @@ def get_char_as_polygons(font_path: str,
         polygons = path.to_polygons()
 
     return polygons, advance
+
+    def lock(self) -> 'Text':
+        self.mirrored.flags.writeable = False
+        Shape.lock(self)
+        return self
+
+    def unlock(self) -> 'Text':
+        Shape.unlock(self)
+        self.mirrored.flags.writeable = True
+        return self

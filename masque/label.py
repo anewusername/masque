@@ -80,7 +80,7 @@ class Label:
                  offset: vector2 = (0.0, 0.0),
                  layer: layer_t = 0,
                  locked: bool = False):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
@@ -156,6 +156,7 @@ class Label:
         Return:
             self
         """
+        self.offset.flags.writeable = False
         object.__setattr__(self, 'locked', True)
         return self
 
@@ -167,4 +168,5 @@ class Label:
             self
         """
         object.__setattr__(self, 'locked', False)
+        self.offset.flags.writeable = True
         return self

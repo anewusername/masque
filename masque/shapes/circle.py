@@ -46,7 +46,7 @@ class Circle(Shape):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  locked: bool = False):
-        self.unlock()
+        object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.offset = numpy.array(offset, dtype=float)
         self.layer = layer
