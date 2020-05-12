@@ -77,7 +77,7 @@ class Label:
 
     def __init__(self,
                  string: str,
-                 offset: vector2=(0.0, 0.0),
+                 offset: vector2 = (0.0, 0.0),
                  layer: layer_t = 0,
                  locked: bool = False):
         self.unlock()

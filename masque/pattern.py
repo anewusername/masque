@@ -1,5 +1,5 @@
 """
- Base object for containing a lithography mask.
+ Base object representing a lithography mask.
 """
 
 from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type
