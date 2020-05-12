@@ -376,7 +376,7 @@ def read(stream: io.BufferedIOBase,
 
 def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     """ Helper to turn a layer tuple-or-int into a layer and datatype"""
-    if is_scalar(mlayer):
+    if isinstance(mlayer, int):
         layer = mlayer
         data_type = 0
     else:
@@ -477,6 +477,7 @@ def _subpatterns_to_refs(subpatterns: List[subpattern_t]
 
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
+        ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
         if isinstance(subpat, GridRepetition):
             xy = numpy.array(subpat.offset) + [
                   [0, 0],
@@ -502,8 +503,8 @@ def _subpatterns_to_refs(subpatterns: List[subpattern_t]
 
 def _shapes_to_elements(shapes: List[Shape],
                         polygonize_paths: bool = False
-                       ) -> List[gdsii.elements.Boundary]:
-    elements = []
+                       ) -> List[Union[gdsii.elements.Boundary, gdsii.elements.Path]]:
+    elements: List[Union[gdsii.elements.Boundary, gdsii.elements.Path]] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
         layer, data_type = _mlayer2gds(shape.layer)
