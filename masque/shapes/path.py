@@ -351,8 +351,8 @@ class Path(Shape):
 
         return (type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer), \
                (offset, scale/norm_value, rotation, False, self.dose), \
-               lambda: Polygon(reordered_vertices*norm_value, width=self.width*norm_value,
-                               cap=self.cap, layer=self.layer)
+               lambda: Path(reordered_vertices*norm_value, width=self.width*norm_value,
+                            cap=self.cap, layer=self.layer)
 
     def clean_vertices(self) -> 'Path':
         """
