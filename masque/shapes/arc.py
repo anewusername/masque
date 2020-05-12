@@ -398,3 +398,10 @@ class Arc(Shape):
         self.radii.flags.writeable = True
         self.angles.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        angles = f' a°{self.angles*180/pi}'
+        rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}{dose}{locked}>'

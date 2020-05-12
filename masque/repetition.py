@@ -531,3 +531,14 @@ class GridRepetition:
         self.unlock()
         self.pattern.deepunlock()
         return self
+
+    def __repr__(self) -> str:
+        name = self.pattern.name if self.pattern is not None else None
+        rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        scale = f' d{self.scale:g}' if self.scale != 1 else ''
+        mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        bv = f', {self.b_vector}' if b_vector is not None else ''
+        return (f'<GridRepetition "{name}" at {self.offset} {rotation}{scale}{mirrored}{dose}'
+                f' {self.a_count}x{self.b_count} ({self.a_vector}{bv}){locked}>')

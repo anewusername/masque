@@ -170,3 +170,7 @@ class Label:
         object.__setattr__(self, 'locked', False)
         self.offset.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        locked = ' L' if self.locked else ''
+        return f'<Label "{self.string}" l{self.layer} o{self.offset}{locked}>'

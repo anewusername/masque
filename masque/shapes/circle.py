@@ -110,3 +110,7 @@ class Circle(Shape):
                (self.offset, magnitude, rotation, False, self.dose), \
                lambda: Circle(radius=norm_value, layer=self.layer)
 
+    def __repr__(self) -> str:
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}{dose}{locked}>'

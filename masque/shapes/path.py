@@ -407,3 +407,9 @@ class Path(Shape):
         if self.cap_extensions is not None:
             self.cap_extensions.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        centroid = self.offset + self.vertices.mean(axis=0)
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}{dose}{locked}>'

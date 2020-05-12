@@ -339,3 +339,12 @@ class SubPattern:
         self.unlock()
         self.pattern.deepunlock()
         return self
+
+    def __repr__(self) -> str:
+        name = self.pattern.name if self.pattern is not None else None
+        rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        scale = f' d{self.scale:g}' if self.scale != 1 else ''
+        mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<SubPattern "{name}" at {self.offset}{rotation}{scale}{mirrored}{dose}{locked}>'

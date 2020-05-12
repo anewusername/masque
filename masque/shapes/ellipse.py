@@ -189,3 +189,9 @@ class Ellipse(Shape):
         Shape.unlock(self)
         self.radii.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<Ellipse l{self.layer} o{self.offset} r{self.radii}{rotation}{dose}{locked}>'

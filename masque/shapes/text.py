@@ -253,3 +253,10 @@ def get_char_as_polygons(font_path: str,
         Shape.unlock(self)
         self.mirrored.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
+        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}{dose}{locked}>'

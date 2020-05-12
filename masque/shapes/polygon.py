@@ -339,3 +339,9 @@ class Polygon(Shape):
         Shape.unlock(self)
         self.vertices.flags.writeable = True
         return self
+
+    def __repr__(self) -> str:
+        centroid = self.offset + self.vertices.mean(axis=0)
+        dose = f' d{self.dose:g}' if self.dose != 1 else ''
+        locked = ' L' if self.locked else ''
+        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}{dose}{locked}>'

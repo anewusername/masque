@@ -876,3 +876,7 @@ class Pattern:
 
         toplevel = list(patterns - not_toplevel)
         return toplevel
+
+    def __repr__(self) -> str:
+        locked = ' L' if self.locked else ''
+        return (f'<Pattern "{self.name}": sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)}{locked}>')
