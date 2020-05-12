@@ -98,7 +98,7 @@ class Path(Shape):
 
     @vertices.setter
     def vertices(self, val: numpy.ndarray):
-        val = numpy.array(val, dtype=float)
+        val = numpy.array(val, dtype=float)                 #TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 2:

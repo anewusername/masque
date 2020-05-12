@@ -49,7 +49,7 @@ class Label:
 
         if val.size != 2:
             raise PatternError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten()
+        self._offset = val.flatten().astype(float)
 
     # layer property
     @property
@@ -83,7 +83,7 @@ class Label:
         self.unlock()
         self.identifier = ()
         self.string = string
-        self.offset = numpy.array(offset, dtype=float)
+        self.offset = numpy.array(offset, dtype=float, copy=True)
         self.layer = layer
         self.locked = locked
 

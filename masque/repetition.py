@@ -225,7 +225,7 @@ class GridRepetition:
     def mirrored(self, val: List[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = numpy.array(val, dtype=bool)
+        self._mirrored = numpy.array(val, dtype=bool, copy=True)
 
     # a_vector property
     @property
@@ -239,7 +239,7 @@ class GridRepetition:
 
         if val.size != 2:
             raise PatternError('a_vector must be convertible to size-2 ndarray')
-        self._a_vector = val.flatten()
+        self._a_vector = val.flatten().astype(float)
 
     # b_vector property
     @property
@@ -249,7 +249,7 @@ class GridRepetition:
     @b_vector.setter
     def b_vector(self, val: vector2):
         if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float)
+            val = numpy.array(val, dtype=float, copy=True)
 
         if val.size != 2:
             raise PatternError('b_vector must be convertible to size-2 ndarray')

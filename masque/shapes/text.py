@@ -64,7 +64,7 @@ class Text(Shape):
     def mirrored(self, val: List[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = list(val)
+        self._mirrored = numpy.ndarray(val, dtype=bool, copy=True)
 
     def __init__(self,
                  string: str,
