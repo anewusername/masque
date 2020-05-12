@@ -11,6 +11,8 @@ from numpy import pi
 
 from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2
+from .repetition import GridRepetition
+
 
 if TYPE_CHECKING:
     from . import Pattern
@@ -348,3 +350,6 @@ class SubPattern:
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
         locked = ' L' if self.locked else ''
         return f'<SubPattern "{name}" at {self.offset}{rotation}{scale}{mirrored}{dose}{locked}>'
+
+
+subpattern_t = Union[SubPattern, GridRepetition]

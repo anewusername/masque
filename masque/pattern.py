@@ -13,7 +13,7 @@ import numpy
 from numpy import inf
 # .visualize imports matplotlib and matplotlib.collections
 
-from .subpattern import SubPattern
+from .subpattern import SubPattern, subpattern_t
 from .repetition import GridRepetition
 from .shapes import Shape, Polygon
 from .label import Label
@@ -40,7 +40,7 @@ class Pattern:
     labels: List[Label]
     """ List of all labels in this Pattern. """
 
-    subpatterns: List[Union[SubPattern, GridRepetition]]
+    subpatterns: List[subpattern_t]
     """ List of all objects referencing other patterns in this Pattern.
     Examples are SubPattern (gdsii "instances") or GridRepetition (gdsii "arrays")
     Multiple objects in this list may reference the same Pattern object
@@ -57,7 +57,7 @@ class Pattern:
                  name: str = '',
                  shapes: Sequence[Shape] = (),
                  labels: Sequence[Label] = (),
-                 subpatterns: Sequence[Union[SubPattern, GridRepetition]] = (),
+                 subpatterns: Sequence[subpattern_t] = (),
                  locked: bool = False,
                  ):
         """
@@ -130,7 +130,7 @@ class Pattern:
     def subset(self,
                shapes_func: Callable[[Shape], bool] = None,
                labels_func: Callable[[Label], bool] = None,
-               subpatterns_func: Callable[[Union[SubPattern, GridRepetition]], bool] = None,
+               subpatterns_func: Callable[[subpattern_t], bool] = None,
                recursive: bool = False,
                ) -> 'Pattern':
         """

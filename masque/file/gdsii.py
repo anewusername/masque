@@ -18,7 +18,7 @@ import pathlib
 import gzip
 
 from .utils import mangle_name, make_dose_table
-from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape
+from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape, subpattern_t
 from ..shapes import Polygon, Path
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
@@ -467,7 +467,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     return gridrep
 
 
-def _subpatterns_to_refs(subpatterns: List[Union[SubPattern, GridRepetition]]
+def _subpatterns_to_refs(subpatterns: List[subpattern_t]
                         ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
     refs = []
     for subpat in subpatterns:

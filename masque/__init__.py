@@ -31,7 +31,7 @@ import pathlib
 from .error import PatternError, PatternLockedError
 from .shapes import Shape
 from .label import Label
-from .subpattern import SubPattern
+from .subpattern import SubPattern, subpattern_t
 from .repetition import GridRepetition
 from .pattern import Pattern
 
