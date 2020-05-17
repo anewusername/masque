@@ -3,7 +3,7 @@
   offset, rotation, scaling, and other such properties to the reference.
 """
 
-from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING
+from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
 import copy
 
 import numpy
@@ -50,7 +50,7 @@ class SubPattern:
     _mirrored: numpy.ndarray        # ndarray[bool]
     """ Whether to mirror the instanc across the x and/or y axes. """
 
-    identifier: Tuple
+    identifier: Tuple[Any, ...]
     """ An arbitrary identifier """
 
     locked: bool
@@ -65,9 +65,10 @@ class SubPattern:
                  mirrored: Optional[Sequence[bool]] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
-                 locked: bool = False):
+                 locked: bool = False,
+                 identifier: Tuple[Any, ...] = ()):
         object.__setattr__(self, 'locked', False)
-        self.identifier = ()
+        self.identifier = identifier
         self.pattern = pattern
         self.offset = offset
         self.rotation = rotation

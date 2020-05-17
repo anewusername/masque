@@ -3,7 +3,7 @@
      instances of a Pattern in the same parent Pattern.
 """
 
-from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING
+from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
 import copy
 
 import numpy
@@ -75,7 +75,7 @@ class GridRepetition:
     _b_count: int
     """ Number of instances along the direction specified by the `b_vector` """
 
-    identifier: Tuple
+    identifier: Tuple[Any, ...]
     """ Arbitrary identifier """
 
     locked: bool
@@ -92,7 +92,8 @@ class GridRepetition:
                  mirrored: Optional[Sequence[bool]] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
-                 locked: bool = False):
+                 locked: bool = False,
+                 identifier: Tuple[Any, ...] = ()):
         """
         Args:
             a_vector: First lattice vector, of the form `[x, y]`.
@@ -128,7 +129,7 @@ class GridRepetition:
         self.a_count = a_count
         self.b_count = b_count
 
-        self.identifier = ()
+        self.identifier = identifier
         self.pattern = pattern
         self.offset = offset
         self.rotation = rotation
