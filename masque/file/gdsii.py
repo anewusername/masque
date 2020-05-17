@@ -151,7 +151,7 @@ def dose2dtype(patterns: List[Pattern],
      For each shape in each pattern, set shape.layer to the tuple
      (base_layer, datatype), where:
         layer is chosen to be equal to the original shape.layer if it is an int,
-            or shape.layer[0] if it is a tuple
+            or shape.layer[0] if it is a tuple. `str` layers raise a PatterError.
         datatype is chosen arbitrarily, based on calcualted dose for each shape.
             Shapes with equal calcualted dose will have the same datatype.
             A list of doses is retured, providing a mapping between datatype
@@ -213,8 +213,10 @@ def dose2dtype(patterns: List[Pattern],
             data_type = dose_vals_list.index(shape.dose * pat_dose)
             if isinstance(shape.layer, int):
                 shape.layer = (shape.layer, data_type)
-            else:
+            elif isinstance(shape.layer, tuple):
                 shape.layer = (shape.layer[0], data_type)
+            else:
+                raise PatternError(f'Invalid layer for gdsii: {shape.layer}')
 
         new_pats[(pat_id, pat_dose)] = pat
 
@@ -377,12 +379,14 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     if isinstance(mlayer, int):
         layer = mlayer
         data_type = 0
-    else:
+    elif isinstance(mlayer, tuple):
         layer = mlayer[0]
         if len(mlayer) > 1:
             data_type = mlayer[1]
         else:
             data_type = 0
+    else:
+        raise PatternError(f'Invalid layer for gdsii: {layer}. Note that gdsii layers cannot be strings.')
     return layer, data_type
 
 

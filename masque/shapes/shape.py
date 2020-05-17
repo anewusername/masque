@@ -174,7 +174,7 @@ class Shape(metaclass=ABCMeta):
     @property
     def layer(self) -> layer_t:
         """
-        Layer number (int or tuple of ints)
+        Layer number or name (int, tuple of ints, or string)
         """
         return self._layer
 
