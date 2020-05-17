@@ -2,7 +2,7 @@
  Base object representing a lithography mask.
 """
 
-from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type
+from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload
 from typing import MutableMapping, Iterable
 import copy
 import itertools
@@ -432,23 +432,40 @@ class Pattern:
         pat = self.deepcopy().deepunlock().polygonize().flatten()
         return [shape.vertices + shape.offset for shape in pat.shapes]      # type: ignore      # mypy can't figure out that shapes are all Polygons now
 
-    def referenced_patterns_by_id(self) -> Dict[int, Optional['Pattern']]:
+    @overload
+    def referenced_patterns_by_id(self) -> Dict[int, 'Pattern']:
+        pass
+
+    @overload
+    def referenced_patterns_by_id(self, include_none: bool) -> Dict[int, Optional['Pattern']]:
+        pass
+
+    def referenced_patterns_by_id(self,
+                                  include_none: bool = False
+                                  ) -> Union[Dict[int, Optional['Pattern']],
+                                             Dict[int, 'Pattern']]:
+
         """
         Create a dictionary with `{id(pat): pat}` for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well)
 
+        Args:
+            include_none: If `True`, references to `None` will be included. Default `False`.
+
         Returns:
             Dictionary with `{id(pat): pat}` for all referenced Pattern objects
         """
-        ids = {}
+        ids: Dict[int, Optional['Pattern']] = {}
         for subpat in self.subpatterns:
             if id(subpat.pattern) not in ids:
-                ids[id(subpat.pattern)] = subpat.pattern
                 if subpat.pattern is not None:
+                    ids[id(subpat.pattern)] = subpat.pattern
                     ids.update(subpat.pattern.referenced_patterns_by_id())
+                elif include_none:
+                    ids[id(subpat.pattern)] = subpat.pattern
         return ids
 
-    def referenced_patterns_by_name(self) -> List[Tuple[Optional[str], Optional['Pattern']]]:
+    def referenced_patterns_by_name(self, **kwargs) -> List[Tuple[Optional[str], Optional['Pattern']]]:
         """
         Create a list of `(pat.name, pat)` tuples for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well).
@@ -456,10 +473,13 @@ class Pattern:
         Note that names are not necessarily unique, so a list of tuples is returned
          rather than a dict.
 
+        Args:
+            **kwargs: passed to `referenced_patterns_by_id()`.
+
         Returns:
             List of `(pat.name, pat)` tuples for all referenced Pattern objects
         """
-        pats_by_id = self.referenced_patterns_by_id()
+        pats_by_id = self.referenced_patterns_by_id(**kwargs)
         pat_list = [(p.name if p is not None else None, p) for p in pats_by_id.values()]
         return pat_list
 

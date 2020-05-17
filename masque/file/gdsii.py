@@ -101,8 +101,7 @@ def write(patterns: Union[Pattern, List[Pattern]],
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
     for pattern in patterns:
         for i, p in pattern.referenced_patterns_by_id().items():
-            if p is not None:
-                patterns_by_id[i] = p
+            patterns_by_id[i] = p
 
     disambiguate_func(patterns_by_id.values())
 
@@ -173,8 +172,7 @@ def dose2dtype(patterns: List[Pattern],
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
     for pattern in patterns:
         for i, p in pattern.referenced_patterns_by_id().items():
-            if p is not None:
-                patterns_by_id[i] = p
+            patterns_by_id[i] = p
 
     # Get a table of (id(pat), written_dose) for each pattern and subpattern
     sd_table = make_dose_table(patterns)
