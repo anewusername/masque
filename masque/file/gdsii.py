@@ -270,7 +270,7 @@ def read(stream: io.BufferedIOBase,
                                 per database unit
 
     Args:
-        filename: Filename specifying a GDSII file to read from.
+        stream: Stream to read from.
         use_dtype_as_dose: If `False`, set each polygon's layer to `(gds_layer, gds_datatype)`.
             If `True`, set the layer to `gds_layer` and the dose to `gds_datatype`.
             Default `False`.
