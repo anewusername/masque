@@ -13,8 +13,11 @@ def main():
         pat.shapes.append(shapes.Arc(
             radii=(rmin, rmin),
             width=0.1,
-            angles=(-numpy.pi/4, numpy.pi/4)
+            angles=(-numpy.pi/4, numpy.pi/4),
+            layer=(0, 0),
         ))
+
+    pat.labels.append(masque.Label(string='grating centerline', offset=(1, 0), layer=(1, 2)))
 
     pat.scale_by(1000)
     pat.visualize()
