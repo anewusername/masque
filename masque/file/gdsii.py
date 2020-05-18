@@ -1,5 +1,15 @@
 """
 GDSII file format readers and writers
+
+Note that GDSII references follow the same convention as `masque`,
+  with this order of operations:
+   1. Mirroring
+   2. Rotation
+   3. Scaling
+   4. Offset and array expansion (no mirroring/rotation/scaling applied to offsets)
+
+  Scaling, rotation, and mirroring apply to individual instances, not grid
+   vectors or offsets.
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
 import re
@@ -23,7 +33,6 @@ from ..shapes import Polygon, Path
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
 
-#TODO document how GDS rotation / mirror works
 #TODO absolute positioning
 
 
@@ -65,8 +74,8 @@ def write(patterns: Union[Pattern, List[Pattern]],
      prior to calling this function.
 
     Args:
-        patterns: A Pattern or list of patterns to write to file.
-        file: Filename or stream object to write to.
+        patterns: A Pattern or list of patterns to write to the stream.
+        stream: Stream object to write to.
         meters_per_unit: Written into the GDSII file, meters per (database) length unit.
             All distances are assumed to be an integer multiple of this unit, and are stored as such.
         logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a

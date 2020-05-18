@@ -59,8 +59,8 @@ def write(pattern: Pattern,
      array with rotated instances must be manhattan _after_ having a compensating rotation applied.
 
     Args:
-        patterns: A Pattern or list of patterns to write to file.
-        file: Filename or stream object to write to.
+        patterns: A Pattern or list of patterns to write to the stream.
+        stream: Stream object to write to.
         modify_original: If `True`, the original pattern is modified as part of the writing
             process. Otherwise, a copy is made and `deepunlock()`-ed.
             Default `False`.

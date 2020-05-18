@@ -22,6 +22,22 @@ class GridRepetition:
     """
     GridRepetition provides support for efficiently embedding multiple copies of a `Pattern`
      into another `Pattern` at regularly-spaced offsets.
+
+    Note that rotation, scaling, and mirroring are applied to individual instances of the
+     pattern, not to the grid vectors.
+
+    The order of operations is
+        1. A single refernce instance to the target pattern is mirrored
+        2. The single instance is rotated.
+        3. The instance is scaled by the scaling factor.
+        4. The instance is shifted by the provided offset
+            (no mirroring/scaling/rotation is applied to the offset).
+        5. Additional copies of the instance will appear at coordinates specified by
+            `(offset + aa * a_vector + bb * b_vector)`, with `aa in range(0, a_count)`
+            and `bb in range(0, b_count)`. All instance locations remain unaffected by
+            mirroring/scaling/rotation, though each instance's data will be transformed
+            relative to the instance's location (i.e. relative to the contained pattern's
+            (0, 0) point).
     """
     __slots__ = ('_pattern',
                  '_offset',
@@ -43,7 +59,7 @@ class GridRepetition:
     """ (x, y) offset for the base instance """
 
     _dose: float
-    """ Dose factor """
+    """ Scaling factor applied to the dose """
 
     _rotation: float
     """ Rotation of the individual instances in the grid (not the grid vectors).
@@ -76,7 +92,7 @@ class GridRepetition:
     """ Number of instances along the direction specified by the `b_vector` """
 
     identifier: Tuple[Any, ...]
-    """ Arbitrary identifier """
+    """ Arbitrary identifier, used internally by some `masque` functions. """
 
     locked: bool
     """ If `True`, disallows changes to the GridRepetition """
@@ -96,15 +112,23 @@ class GridRepetition:
                  identifier: Tuple[Any, ...] = ()):
         """
         Args:
+            pattern: Pattern to reference.
             a_vector: First lattice vector, of the form `[x, y]`.
-                Specifies center-to-center spacing between adjacent elements.
+                Specifies center-to-center spacing between adjacent instances.
             a_count: Number of elements in the a_vector direction.
             b_vector: Second lattice vector, of the form `[x, y]`.
-                Specifies center-to-center spacing between adjacent elements.
+                Specifies center-to-center spacing between adjacent instances.
                 Can be omitted when specifying a 1D array.
             b_count: Number of elements in the `b_vector` direction.
                 Should be omitted if `b_vector` was omitted.
+            offset: (x, y) offset applied to all instances.
+            rotation: Rotation (radians, counterclockwise) applied to each instance.
+                       Relative to each instance's (0, 0).
+            mirrored: Whether to mirror individual instances across the x and y axes.
+            dose: Scaling factor applied to the dose.
+            scale: Scaling factor applied to the instances' geometry.
             locked: Whether the `GridRepetition` is locked after initialization.
+            identifier: Arbitrary tuple, used internally by some `masque` functions.
 
         Raises:
             PatternError if `b_*` inputs conflict with each other

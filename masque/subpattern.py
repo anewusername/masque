@@ -2,6 +2,7 @@
  SubPattern provides basic support for nesting Pattern objects within each other, by adding
   offset, rotation, scaling, and other such properties to the reference.
 """
+#TODO more top-level documentation
 
 from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
 import copy
@@ -51,13 +52,11 @@ class SubPattern:
     """ Whether to mirror the instanc across the x and/or y axes. """
 
     identifier: Tuple[Any, ...]
-    """ An arbitrary identifier """
+    """ Arbitrary identifier, used internally by some `masque` functions. """
 
     locked: bool
     """ If `True`, disallows changes to the GridRepetition """
 
-
-    #TODO more documentation?
     def __init__(self,
                  pattern: Optional['Pattern'],
                  offset: vector2 = (0.0, 0.0),
@@ -67,6 +66,17 @@ class SubPattern:
                  scale: float = 1.0,
                  locked: bool = False,
                  identifier: Tuple[Any, ...] = ()):
+        """
+        Args:
+            pattern: Pattern to reference.
+            offset: (x, y) offset applied to the referenced pattern. Not affected by rotation etc.
+            rotation: Rotation (radians, counterclockwise) relative to the referenced pattern's (0, 0).
+            mirrored: Whether to mirror the referenced pattern across its x and y axes.
+            dose: Scaling factor applied to the dose.
+            scale: Scaling factor applied to the pattern's geometry.
+            locked: Whether the `SubPattern` is locked after initialization.
+            identifier: Arbitrary tuple, used internally by some `masque` functions.
+        """
         object.__setattr__(self, 'locked', False)
         self.identifier = identifier
         self.pattern = pattern
