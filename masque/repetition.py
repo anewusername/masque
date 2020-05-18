@@ -102,7 +102,7 @@ class GridRepetition:
                  a_vector: numpy.ndarray,
                  a_count: int,
                  b_vector: Optional[numpy.ndarray] = None,
-                 b_count: int = 1,
+                 b_count: Optional[int] = 1,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Optional[Sequence[bool]] = None,
@@ -134,6 +134,9 @@ class GridRepetition:
             PatternError if `b_*` inputs conflict with each other
             or `a_count < 1`.
         """
+        if b_count is None:
+            b_count = 1
+
         if b_vector is None:
             if b_count > 1:
                 raise PatternError('Repetition has b_count > 1 but no b_vector')
