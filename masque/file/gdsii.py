@@ -1,11 +1,6 @@
 """
 GDSII file format readers and writers
 """
-# python-gdsii
-import gdsii.library
-import gdsii.structure
-import gdsii.elements
-
 from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
 import re
 import io
@@ -16,6 +11,11 @@ import struct
 import logging
 import pathlib
 import gzip
+
+# python-gdsii
+import gdsii.library
+import gdsii.structure
+import gdsii.elements
 
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape, subpattern_t
