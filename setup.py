@@ -18,7 +18,9 @@ setup(name='masque',
       url='https://mpxd.net/code/jan/masque',
       packages=find_packages(),
       package_data={
-          'masque': ['VERSION']
+          'masque': ['VERSION',
+                     'py.typed',
+                     ]
       },
       install_requires=[
             'numpy',
