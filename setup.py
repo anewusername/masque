@@ -26,9 +26,11 @@ setup(name='masque',
             'numpy',
       ],
       extras_require={
-          'visualization': ['matplotlib'],
           'gdsii': ['python-gdsii'],
+          'oasis': ['fatamorgana>=0.7'],
+          'dxf': ['ezdxf'],
           'svg': ['svgwrite'],
+          'visualization': ['matplotlib'],
           'text': ['freetype-py', 'matplotlib'],
       },
       classifiers=[
