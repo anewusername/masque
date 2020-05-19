@@ -48,15 +48,15 @@ path_cap_map = {
                }
 
 
-def write(patterns: Union[Pattern, List[Pattern]],
-          stream: io.BufferedIOBase,
+def build(patterns: Union[Pattern, List[Pattern]],
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
           modify_originals: bool = False,
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None):
+          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+          ) -> gdsii.library.Library:
     """
-    Write a `Pattern` or list of patterns to a GDSII file, by first calling
+    Convert a `Pattern` or list of patterns to a GDSII stream, by first calling
      `.polygonize()` to change the shapes into polygons, and then writing patterns
      as GDSII structures, polygons as boundary elements, and subpatterns as structure
      references (sref).
@@ -74,8 +74,7 @@ def write(patterns: Union[Pattern, List[Pattern]],
      prior to calling this function.
 
     Args:
-        patterns: A Pattern or list of patterns to write to the stream.
-        stream: Stream object to write to.
+        patterns: A Pattern or list of patterns to convert.
         meters_per_unit: Written into the GDSII file, meters per (database) length unit.
             All distances are assumed to be an integer multiple of this unit, and are stored as such.
         logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
@@ -90,6 +89,9 @@ def write(patterns: Union[Pattern, List[Pattern]],
             to make their names valid and unique. Default is `disambiguate_pattern_names`, which
             attempts to adhere to the GDSII standard as well as possible.
             WARNING: No additional error checking is performed on the results.
+
+    Returns:
+        `gdsii.library.Library`
     """
     if isinstance(patterns, Pattern):
         patterns = [patterns]
@@ -123,9 +125,26 @@ def write(patterns: Union[Pattern, List[Pattern]],
         structure += _labels_to_texts(pat.labels)
         structure += _subpatterns_to_refs(pat.subpatterns)
 
+    return lib
+
+
+def write(patterns: Union[Pattern, List[Pattern]],
+          stream: io.BufferedIOBase,
+          *args,
+          **kwargs):
+    """
+    Write a `Pattern` or list of patterns to a GDSII file.
+    See `masque.file.gdsii.build()` for details.
+
+    Args:
+        patterns: A Pattern or list of patterns to write to file.
+        stream: Stream to write to.
+        *args: passed to `oasis.build()`
+        **kwargs: passed to `oasis.build()`
+    """
+    lib = build(patterns, *args, **kwargs)
     lib.save(stream)
     return
-
 
 def writefile(patterns: Union[List[Pattern], Pattern],
               filename: Union[str, pathlib.Path],
@@ -133,15 +152,15 @@ def writefile(patterns: Union[List[Pattern], Pattern],
               **kwargs,
               ):
     """
-    Wrapper for `gdsii.write()` that takes a filename or path instead of a stream.
+    Wrapper for `masque.file.gdsii.write()` that takes a filename or path instead of a stream.
 
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
         patterns: `Pattern` or list of patterns to save
         filename: Filename to save to.
-        *args: passed to `gdsii.write`
-        **kwargs: passed to `gdsii.write`
+        *args: passed to `masque.file.gdsii.write`
+        **kwargs: passed to `masque.file.gdsii.write`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -243,14 +262,14 @@ def readfile(filename: Union[str, pathlib.Path],
              **kwargs,
              ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
-    Wrapper for `gdsii.read()` that takes a filename or path instead of a stream.
+    Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
 
     Will automatically decompress files with a .gz suffix.
 
     Args:
         filename: Filename to save to.
-        *args: passed to `gdsii.read`
-        **kwargs: passed to `gdsii.read`
+        *args: passed to `masque.file.gdsii.read`
+        **kwargs: passed to `masque.file.gdsii.read`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -591,4 +610,3 @@ def disambiguate_pattern_names(patterns,
 
         pat.name = encoded_name
         used_names.append(suffixed_name)
-
