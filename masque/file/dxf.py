@@ -24,6 +24,7 @@ from ..utils import remove_colinear_vertices, normalize_mirror
 
 logger = logging.getLogger(__name__)
 
+
 logger.warning('DXF support is experimental and only slightly tested!')
 
 
