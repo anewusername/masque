@@ -764,10 +764,11 @@ class Pattern:
         Returns:
             self
         """
-        self.shapes = tuple(self.shapes)
-        self.labels = tuple(self.labels)
-        self.subpatterns = tuple(self.subpatterns)
-        object.__setattr__(self, 'locked', True)
+        if not self.locked:
+            self.shapes = tuple(self.shapes)
+            self.labels = tuple(self.labels)
+            self.subpatterns = tuple(self.subpatterns)
+            object.__setattr__(self, 'locked', True)
         return self
 
     def unlock(self) -> 'Pattern':
@@ -777,10 +778,11 @@ class Pattern:
         Returns:
             self
         """
-        object.__setattr__(self, 'locked', False)
-        self.shapes = list(self.shapes)
-        self.labels = list(self.labels)
-        self.subpatterns = list(self.subpatterns)
+        if self.locked:
+            object.__setattr__(self, 'locked', False)
+            self.shapes = list(self.shapes)
+            self.labels = list(self.labels)
+            self.subpatterns = list(self.subpatterns)
         return self
 
     def deeplock(self) -> 'Pattern':
