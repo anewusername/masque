@@ -498,7 +498,7 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             be displayed. Default displays all warnings.
     """
     used_names = []
-    for pat in patterns:
+    for pat in set(patterns):
         # Shorten names which already exceed max-length
         if len(pat.name) > max_name_length:
             shortened_name = pat.name[:max_name_length - suffix_length]
