@@ -11,7 +11,7 @@ Note that GDSII references follow the same convention as `masque`,
   Scaling, rotation, and mirroring apply to individual instances, not grid
    vectors or offsets.
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional, Sequence
 import re
 import io
 import copy
@@ -482,13 +482,24 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
     return texts
 
 
-def disambiguate_pattern_names(patterns,
+def disambiguate_pattern_names(patterns: Sequence[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
-                               dup_warn_filter: Callable[[str,], bool] = None,      # If returns False, don't warn about this name
+                               dup_warn_filter: Optional[Callable[[str,], bool]] = None,
                                ):
+    """
+    Args:
+        patterns: List of patterns to disambiguate
+        max_name_length: Names longer than this will be truncated
+        suffix_length: Names which get truncated are truncated by this many extra characters. This is to
+            leave room for a suffix if one is necessary.
+        dup_warn_filter: (optional) Function for suppressing warnings about cell names changing. Receives
+            the cell name and returns `False` if the warning should be suppressed and `True` if it should
+            be displayed. Default displays all warnings.
+    """
     used_names = []
     for pat in patterns:
+        # Shorten names which already exceed max-length
         if len(pat.name) > max_name_length:
             shortened_name = pat.name[:max_name_length - suffix_length]
             logger.warning('Pattern name "{}" is too long ({}/{} chars),\n'.format(pat.name, len(pat.name), max_name_length) +
@@ -496,8 +507,10 @@ def disambiguate_pattern_names(patterns,
         else:
             shortened_name = pat.name
 
+        # Remove invalid characters
         sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
 
+        # Add a suffix that makes the name unique
         i = 0
         suffixed_name = sanitized_name
         while suffixed_name in used_names or suffixed_name == '':
@@ -513,6 +526,7 @@ def disambiguate_pattern_names(patterns,
                 logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
                                 pat.name, sanitized_name, suffixed_name))
 
+        # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
