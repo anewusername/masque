@@ -441,28 +441,31 @@ class Pattern:
         pass
 
     def referenced_patterns_by_id(self,
-                                  include_none: bool = False
+                                  include_none: bool = False,
+                                  recursive: bool = True,
                                   ) -> Union[Dict[int, Optional['Pattern']],
                                              Dict[int, 'Pattern']]:
 
         """
         Create a dictionary with `{id(pat): pat}` for all Pattern objects referenced by this
-         Pattern (operates recursively on all referenced Patterns as well)
+         Pattern (by default, operates recursively on all referenced Patterns as well).
 
         Args:
             include_none: If `True`, references to `None` will be included. Default `False`.
+            recursive: If `True`, operates recursively on all referenced patterns. Default `True`.
 
         Returns:
             Dictionary with `{id(pat): pat}` for all referenced Pattern objects
         """
         ids: Dict[int, Optional['Pattern']] = {}
         for subpat in self.subpatterns:
-            if id(subpat.pattern) not in ids:
-                if subpat.pattern is not None:
-                    ids[id(subpat.pattern)] = subpat.pattern
-                    ids.update(subpat.pattern.referenced_patterns_by_id())
-                elif include_none:
-                    ids[id(subpat.pattern)] = subpat.pattern
+            pat = subpat.pattern
+            if id(pat) in ids:
+                continue
+            if include_none or pat is not None:
+                ids[id(pat)] = pat
+            if recursive and pat is not None:
+                ids.update(pat.referenced_patterns_by_id())
         return ids
 
     def referenced_patterns_by_name(self, **kwargs) -> List[Tuple[Optional[str], Optional['Pattern']]]:
