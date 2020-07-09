@@ -332,22 +332,20 @@ class GridRepetition:
         assert(self.pattern is not None)
         patterns = []
 
+        pat = self.pattern.deepcopy().deepunlock()
+        pat.scale_by(self.scale)
+        [pat.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
+        pat.rotate_around((0.0, 0.0), self.rotation)
+        pat.translate_elements(self.offset)
+        pat.scale_element_doses(self.dose)
+
+        combined = type(pat)(name='__GridRepetition__')
         for a in range(self.a_count):
             for b in range(self.b_count):
                 offset = a * self.a_vector + b * self.b_vector
-                newPat = self.pattern.deepcopy().deepunlock()
+                newPat = pat.deepcopy()
                 newPat.translate_elements(offset)
-                patterns.append(newPat)
-
-        combined = patterns[0]
-        for p in patterns[1:]:
-            combined.append(p)
-
-        combined.scale_by(self.scale)
-        [combined.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
-        combined.rotate_around((0.0, 0.0), self.rotation)
-        combined.translate_elements(self.offset)
-        combined.scale_element_doses(self.dose)
+                combined.append(newPat)
 
         return combined
 
