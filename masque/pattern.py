@@ -111,6 +111,10 @@ class Pattern:
                 locked=self.locked)
         return new
 
+    def rename(self, name: str) -> 'Pattern':
+        self.name = name
+        return self
+
     def append(self, other_pattern: 'Pattern') -> 'Pattern':
         """
         Appends all shapes, labels and subpatterns from other_pattern to self's shapes,
