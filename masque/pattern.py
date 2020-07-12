@@ -913,9 +913,6 @@ class Pattern:
             A filtered list in which no pattern is referenced by any other pattern.
         """
         def get_children(pat: Pattern, memo: Set) -> Set:
-            if pat in memo:
-                return memo
-
             children = set(sp.pattern for sp in pat.subpatterns if sp.pattern is not None)
             new_children = children - memo
             memo |= children
