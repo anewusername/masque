@@ -915,7 +915,7 @@ class Pattern:
         def get_children(pat: Pattern, memo: Set) -> Set:
             children = set(sp.pattern for sp in pat.subpatterns if sp.pattern is not None)
             new_children = children - memo
-            memo |= children
+            memo |= new_children
 
             for child_pat in new_children:
                 memo |= get_children(child_pat, memo)
