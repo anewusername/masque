@@ -212,8 +212,9 @@ class Arc(Shape):
             n += [poly_num_points]
         if poly_max_arclen is not None:
             n += [perimeter / poly_max_arclen]
-        thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], max(n), endpoint=True)
-        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], max(n), endpoint=True)
+        num_points = int(round(max(n)))
+        thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
+        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_points, endpoint=True)
 
         sin_th_i, cos_th_i = (numpy.sin(thetas_inner), numpy.cos(thetas_inner))
         sin_th_o, cos_th_o = (numpy.sin(thetas_outer), numpy.cos(thetas_outer))

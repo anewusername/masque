@@ -81,7 +81,8 @@ class Circle(Shape):
             n += [poly_num_points]
         if poly_max_arclen is not None:
             n += [2 * pi * self.radius / poly_max_arclen]
-        thetas = numpy.linspace(2 * pi, 0, max(n), endpoint=False)
+        num_points = int(round(max(n)))
+        thetas = numpy.linspace(2 * pi, 0, num_points, endpoint=False)
         xs = numpy.cos(thetas) * self.radius
         ys = numpy.sin(thetas) * self.radius
         xys = numpy.vstack((xs, ys)).T

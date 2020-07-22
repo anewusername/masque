@@ -139,7 +139,8 @@ class Ellipse(Shape):
             n += [poly_num_points]
         if poly_max_arclen is not None:
             n += [perimeter / poly_max_arclen]
-        thetas = numpy.linspace(2 * pi, 0, max(n), endpoint=False)
+        num_points = int(round(max(n)))
+        thetas = numpy.linspace(2 * pi, 0, num_points, endpoint=False)
 
         sin_th, cos_th = (numpy.sin(thetas), numpy.cos(thetas))
         xs = r0 * cos_th
