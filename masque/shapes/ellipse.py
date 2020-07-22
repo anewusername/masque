@@ -6,16 +6,17 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
 
 
-class Ellipse(Shape):
+class Ellipse(Shape, metaclass=AutoSlots):
     """
     An ellipse, which has a position, two radii, and a rotation.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.
     """
     __slots__ = ('_radii', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
+
     _radii: numpy.ndarray
     """ Ellipse radii """
 

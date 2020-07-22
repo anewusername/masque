@@ -8,12 +8,10 @@
 
  `Pattern` is a basic object containing a 2D lithography mask, composed of a list of `Shape`
   objects, a list of `Label` objects, and a list of references to other `Patterns` (using
-  `SubPattern` and `GridRepetition`).
+  `SubPattern`).
 
  `SubPattern` provides basic support for nesting `Pattern` objects within each other, by adding
-  offset, rotation, scaling, and other such properties to a Pattern reference.
-
- `GridRepetition` provides support for nesting regular arrays of `Pattern` objects.
+  offset, rotation, scaling, repetition, and other such properties to a Pattern reference.
 
  Note that the methods for these classes try to avoid copying wherever possible, so unless
   otherwise noted, assume that arguments are stored by-reference.
@@ -31,8 +29,7 @@ import pathlib
 from .error import PatternError, PatternLockedError
 from .shapes import Shape
 from .label import Label
-from .subpattern import SubPattern, subpattern_t
-from .repetition import GridRepetition
+from .subpattern import SubPattern
 from .pattern import Pattern
 
 

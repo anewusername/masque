@@ -6,10 +6,10 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-from ..utils import is_scalar, vector2, layer_t
+from ..utils import is_scalar, vector2, layer_t, AutoSlots
 
 
-class Arc(Shape):
+class Arc(Shape, metaclass=AutoSlots):
     """
     An elliptical arc, formed by cutting off an elliptical ring with two rays which exit from its
      center. It has a position, two radii, a start and stop angle, a rotation, and a width.
@@ -20,6 +20,7 @@ class Arc(Shape):
     """
     __slots__ = ('_radii', '_angles', '_width', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
+
     _radii: numpy.ndarray
     """ Two radii for defining an ellipse """
 

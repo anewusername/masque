@@ -4,20 +4,15 @@ import numpy
 from numpy import pi
 
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t
+from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t, AutoSlots
+from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl
 
 
-class Label:
+class Label(PositionableImpl, LayerableImpl, LockableImpl, Pivotable, Copyable, metaclass=AutoSlots):
     """
     A text annotation with a position and layer (but no size; it is not drawn)
     """
-    __slots__ = ('_offset', '_layer', '_string', 'identifier', 'locked')
-
-    _offset: numpy.ndarray
-    """ [x_offset, y_offset] """
-
-    _layer: layer_t
-    """ Layer (integer >= 0, or 2-Tuple of integers) """
+    __slots__ = ( '_string', 'identifier')
 
     _string: str
     """ Label string """
@@ -25,44 +20,9 @@ class Label:
     identifier: Tuple
     """ Arbitrary identifier tuple, useful for keeping track of history when flattening """
 
-    locked: bool
-    """ If `True`, any changes to the label will raise a `PatternLockedError` """
-
-    def __setattr__(self, name, value):
-        if self.locked and name != 'locked':
-            raise PatternLockedError()
-        object.__setattr__(self, name, value)
-
-    # ---- Properties
-    # offset property
-    @property
-    def offset(self) -> numpy.ndarray:
-        """
-        [x, y] offset
-        """
-        return self._offset
-
-    @offset.setter
-    def offset(self, val: vector2):
-        if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float)
-
-        if val.size != 2:
-            raise PatternError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten().astype(float)
-
-    # layer property
-    @property
-    def layer(self) -> layer_t:
-        """
-        Layer number or name (int, tuple of ints, or string)
-        """
-        return self._layer
-
-    @layer.setter
-    def layer(self, val: layer_t):
-        self._layer = val
-
+    '''
+    ---- Properties
+    '''
     # string property
     @property
     def string(self) -> str:
@@ -100,25 +60,6 @@ class Label:
         new.locked = self.locked
         return new
 
-    def copy(self) -> 'Label':
-        """
-        Returns a deep copy of the label.
-        """
-        return copy.deepcopy(self)
-
-    def translate(self, offset: vector2) -> 'Label':
-        """
-        Translate the label by the given offset
-
-        Args:
-            offset: [x_offset, y,offset]
-
-        Returns:
-            self
-        """
-        self.offset += offset
-        return self
-
     def rotate_around(self, pivot: vector2, rotation: float) -> 'Label':
         """
         Rotate the label around a point.
@@ -150,25 +91,13 @@ class Label:
         return numpy.array([self.offset, self.offset])
 
     def lock(self) -> 'Label':
-        """
-        Lock the Label, causing any modifications to raise an exception.
-
-        Return:
-            self
-        """
-        self.offset.flags.writeable = False
-        object.__setattr__(self, 'locked', True)
+        PositionableImpl._lock(self)
+        LockableImpl.lock(self)
         return self
 
     def unlock(self) -> 'Label':
-        """
-        Unlock the Label, re-allowing changes.
-
-        Return:
-            self
-        """
-        object.__setattr__(self, 'locked', False)
-        self.offset.flags.writeable = True
+        LockableImpl.unlock(self)
+        PositionableImpl._unlock(self)
         return self
 
     def __repr__(self) -> str:

@@ -3,6 +3,7 @@ Various helper functions
 """
 
 from typing import Any, Union, Tuple, Sequence
+from abc import ABCMeta
 
 import numpy
 
@@ -133,3 +134,25 @@ def remove_colinear_vertices(vertices: numpy.ndarray, closed_path: bool = True) 
         slopes_equal[[0, -1]] = False
 
     return vertices[~slopes_equal]
+
+
+class AutoSlots(ABCMeta):
+    """
+    Metaclass for automatically generating __slots__ based on superclass type annotations.
+
+    Superclasses must set `__slots__ = ()` to make this work properly.
+
+    This is a workaround for the fact that non-empty `__slots__` can't be used
+    with multiple inheritance. Since we only use multiple inheritance with abstract
+    classes, they can have empty `__slots__` and their attribute type annotations
+    can be used to generate a full `__slots__` for the concrete class.
+    """
+    def __new__(cls, name, bases, dctn):
+        slots = tuple(dctn.get('__slots__', tuple()))
+        for base in bases:
+            if not hasattr(base, '__annotations__'):
+                continue
+            slots += tuple(getattr(base, '__annotations__').keys())
+        dctn['__slots__'] = slots
+        return super().__new__(cls,name,bases,dctn)
+
