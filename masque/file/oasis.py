@@ -28,8 +28,9 @@ import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme
 
 from .utils import mangle_name, make_dose_table
-from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape, subpattern_t
+from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path, Circle
+from ..repetition import Grid, Arbitrary, Repetition
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
 
@@ -221,7 +222,7 @@ def read(stream: io.BufferedIOBase,
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
-     are translated into SubPattern or GridRepetition objects.
+     are translated into SubPattern objects.
 
     Additional library info is returned in a dict, containing:
       'units_per_micrometer': number of database units per micrometer (all values are in database units)
@@ -417,7 +418,7 @@ def read(stream: io.BufferedIOBase,
                 continue
 
         for placement in cell.placements:
-            pat.subpatterns += _placement_to_subpats(placement)
+            pat.subpatterns.append(_placement_to_subpat(placement))
 
         patterns.append(pat)
 
@@ -451,7 +452,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _placement_to_subpats(placement: fatrec.Placement) -> List[subpattern_t]:
+def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
     """
     Helper function to create a SubPattern from a placment. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
@@ -468,27 +469,24 @@ def _placement_to_subpats(placement: fatrec.Placement) -> List[subpattern_t]:
        'identifier': (name,),
        }
 
-    subpats: List[subpattern_t]
+    mrep: Repetition
     rep = placement.repetition
     if isinstance(rep, fatamorgana.GridRepetition):
-        subpat = GridRepetition(a_vector=rep.a_vector,
-                                b_vector=rep.b_vector,
-                                a_count=rep.a_count,
-                                b_count=rep.b_count,
-                                offset=xy,
-                                **args)
-        subpats = [subpat]
+        mrep = Grid(a_vector=rep.a_vector,
+                    b_vector=rep.b_vector,
+                    a_count=rep.a_count,
+                    b_count=rep.b_count)
     elif isinstance(rep, fatamorgana.ArbitraryRepetition):
-        subpats = []
-        for rep_offset in numpy.cumsum(numpy.column_stack((rep.x_displacements,
-                                                           rep.y_displacements))):
-            subpats.append(SubPattern(offset=xy + rep_offset, **args))
+        mrep = Arbitrary(numpy.cumsum(numpy.column_stack((rep.x_displacements,
+                                                          rep.y_displacements))))
     elif rep is None:
-        subpats = [SubPattern(offset=xy, **args)]
-    return subpats
+        mrep = None
+
+    subpat = SubPattern(offset=xy, repetition=mrep, **args)
+    return subpat
 
 
-def _subpatterns_to_refs(subpatterns: List[subpattern_t]
+def _subpatterns_to_refs(subpatterns: List[SubPattern]
                         ) -> List[fatrec.Placement]:
     refs = []
     for subpat in subpatterns:
@@ -503,14 +501,21 @@ def _subpatterns_to_refs(subpatterns: List[subpattern_t]
             'y': xy[1],
             }
 
-        if isinstance(subpat, GridRepetition):
+        rep = subpat.repetition
+        if isinstance(rep, Grid):
             args['repetition'] = fatamorgana.GridRepetition(
-                              a_vector=numpy.round(subpat.a_vector).astype(int),
-                              b_vector=numpy.round(subpat.b_vector).astype(int),
-                              a_count=numpy.round(subpat.a_count).astype(int),
-                              b_count=numpy.round(subpat.b_count).astype(int))
+                              a_vector=numpy.round(rep.a_vector).astype(int),
+                              b_vector=numpy.round(rep.b_vector).astype(int),
+                              a_count=numpy.round(rep.a_count).astype(int),
+                              b_count=numpy.round(rep.b_count).astype(int))
+        elif isinstance(rep, Arbitrary):
+            diffs = numpy.diff(rep.displacements, axis=0)
+            args['repetition'] = fatamorgana.ArbitraryRepetition(
+                                    numpy.round(diffs).astype(int))
+        else:
+            assert(rep is None)
 
-        angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
+        angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
                 name=subpat.pattern.name,
                 flip=mirror_across_x,

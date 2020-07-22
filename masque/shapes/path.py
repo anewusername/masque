@@ -6,7 +6,7 @@ from numpy import pi, inf
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 
@@ -18,7 +18,7 @@ class PathCap(Enum):
                       #     defined by path.cap_extensions
 
 
-class Path(Shape):
+class Path(Shape, metaclass=AutoSlots):
     """
     A path, consisting of a bunch of vertices (Nx2 ndarray), a width, an end-cap shape,
         and an offset.

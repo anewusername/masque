@@ -5,22 +5,23 @@ from numpy import pi, inf
 
 from . import Shape, Polygon, normalized_shape_tuple
 from .. import PatternError
-from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t
+from ..traits import RotatableImpl
+from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t, AutoSlots
 
 # Loaded on use:
 # from freetype import Face
 # from matplotlib.path import Path
 
 
-class Text(Shape):
+class Text(RotatableImpl, Shape, metaclass=AutoSlots):
     """
     Text (to be printed e.g. as a set of polygons).
     This is distinct from non-printed Label objects.
     """
-    __slots__ = ('_string', '_height', '_rotation', '_mirrored', 'font_path')
+    __slots__ = ('_string', '_height', '_mirrored', 'font_path')
+
     _string: str
     _height: float
-    _rotation: float
     _mirrored: numpy.ndarray        #ndarray[bool]
     font_path: str
 
@@ -32,17 +33,6 @@ class Text(Shape):
     @string.setter
     def string(self, val: str):
         self._string = val
-
-    # Rotation property
-    @property
-    def rotation(self) -> float:
-        return self._rotation
-
-    @rotation.setter
-    def rotation(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Rotation must be a scalar')
-        self._rotation = val % (2 * pi)
 
     # Height property
     @property
@@ -119,10 +109,6 @@ class Text(Shape):
             total_advance += advance * self.height
 
         return all_polygons
-
-    def rotate(self, theta: float) -> 'Text':
-        self.rotation += theta
-        return self
 
     def mirror(self, axis: int) -> 'Text':
         self.mirrored[axis] = not self.mirrored[axis]

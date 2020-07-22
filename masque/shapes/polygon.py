@@ -5,11 +5,11 @@ from numpy import pi
 
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
+from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
 
-class Polygon(Shape):
+class Polygon(Shape, metaclass=AutoSlots):
     """
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
        implicitly-closed boundary, and an offset.
@@ -17,6 +17,7 @@ class Polygon(Shape):
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
     __slots__ = ('_vertices',)
+
     _vertices: numpy.ndarray
     """ Nx2 ndarray of vertices `[[x0, y0], [x1, y1], ...]` """
 

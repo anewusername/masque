@@ -5,14 +5,15 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
-from ..utils import is_scalar, vector2, layer_t
+from ..utils import is_scalar, vector2, layer_t, AutoSlots
 
 
-class Circle(Shape):
+class Circle(Shape, metaclass=AutoSlots):
     """
     A circle, which has a position and radius.
     """
     __slots__ = ('_radius', 'poly_num_points', 'poly_max_arclen')
+
     _radius: float
     """ Circle radius """
 

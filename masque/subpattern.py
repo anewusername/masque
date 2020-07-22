@@ -11,51 +11,50 @@ import numpy
 from numpy import pi
 
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, rotation_matrix_2d, vector2
-from .repetition import GridRepetition
+from .utils import is_scalar, rotation_matrix_2d, vector2, AutoSlots
+from .repetition import Repetition
+from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
+                     Mirrorable, Pivotable, Copyable, LockableImpl, RepeatableImpl)
 
 
 if TYPE_CHECKING:
     from . import Pattern
 
 
-class SubPattern:
+class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
+                 Pivotable, Copyable, RepeatableImpl, LockableImpl, metaclass=AutoSlots):
     """
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
     __slots__ = ('_pattern',
-                 '_offset',
-                 '_rotation',
-                 '_dose',
-                 '_scale',
                  '_mirrored',
                  'identifier',
-                 'locked')
+                 )
 
     _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """
 
-    _offset: numpy.ndarray
-    """ (x, y) offset for the instance """
+#    _offset: numpy.ndarray
+#    """ (x, y) offset for the instance """
 
-    _rotation: float
-    """ rotation for the instance, radians counterclockwise """
+#    _rotation: float
+#    """ rotation for the instance, radians counterclockwise """
 
-    _dose: float
-    """ dose factor for the instance """
+#    _dose: float
+#    """ dose factor for the instance """
 
-    _scale: float
-    """ scale factor for the instance """
+#    _scale: float
+#    """ scale factor for the instance """
 
     _mirrored: numpy.ndarray        # ndarray[bool]
-    """ Whether to mirror the instanc across the x and/or y axes. """
+    """ Whether to mirror the instance across the x and/or y axes. """
 
     identifier: Tuple[Any, ...]
     """ Arbitrary identifier, used internally by some `masque` functions. """
 
-    locked: bool
-    """ If `True`, disallows changes to the GridRepetition """
+#    locked: bool
+#    """ If `True`, disallows changes to the SubPattern"""
 
     def __init__(self,
                  pattern: Optional['Pattern'],
@@ -64,6 +63,7 @@ class SubPattern:
                  mirrored: Optional[Sequence[bool]] = None,
                  dose: float = 1.0,
                  scale: float = 1.0,
+                 repetition: Optional[Repetition] = None,
                  locked: bool = False,
                  identifier: Tuple[Any, ...] = ()):
         """
@@ -74,10 +74,12 @@ class SubPattern:
             mirrored: Whether to mirror the referenced pattern across its x and y axes.
             dose: Scaling factor applied to the dose.
             scale: Scaling factor applied to the pattern's geometry.
+            repetition: TODO
             locked: Whether the `SubPattern` is locked after initialization.
             identifier: Arbitrary tuple, used internally by some `masque` functions.
         """
-        object.__setattr__(self, 'locked', False)
+        LockableImpl.unlock(self)
+#        object.__setattr__(self, 'locked', False)
         self.identifier = identifier
         self.pattern = pattern
         self.offset = offset
@@ -87,12 +89,8 @@ class SubPattern:
         if mirrored is None:
             mirrored = [False, False]
         self.mirrored = mirrored
+        self.repetition = repetition
         self.locked = locked
-
-    def __setattr__(self, name, value):
-        if self.locked and name != 'locked':
-            raise PatternLockedError()
-        object.__setattr__(self, name, value)
 
     def  __copy__(self) -> 'SubPattern':
         new = SubPattern(pattern=self.pattern,
@@ -123,57 +121,6 @@ class SubPattern:
             raise PatternError('Provided pattern {} is not a Pattern object or None!'.format(val))
         self._pattern = val
 
-    # offset property
-    @property
-    def offset(self) -> numpy.ndarray:
-        return self._offset
-
-    @offset.setter
-    def offset(self, val: vector2):
-        if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float)
-
-        if val.size != 2:
-            raise PatternError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten().astype(float)
-
-    # dose property
-    @property
-    def dose(self) -> float:
-        return self._dose
-
-    @dose.setter
-    def dose(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Dose must be a scalar')
-        if not val >= 0:
-            raise PatternError('Dose must be non-negative')
-        self._dose = val
-
-    # scale property
-    @property
-    def scale(self) -> float:
-        return self._scale
-
-    @scale.setter
-    def scale(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Scale must be a scalar')
-        if not val > 0:
-            raise PatternError('Scale must be positive')
-        self._scale = val
-
-    # Rotation property [ccw]
-    @property
-    def rotation(self) -> float:
-        return self._rotation
-
-    @rotation.setter
-    def rotation(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Rotation must be a scalar')
-        self._rotation = val % (2 * pi)
-
     # Mirrored property
     @property
     def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
@@ -198,51 +145,16 @@ class SubPattern:
         pattern.rotate_around((0.0, 0.0), self.rotation)
         pattern.translate_elements(self.offset)
         pattern.scale_element_doses(self.dose)
+
+        if pattern.repetition is not None:
+            combined = type(pat)(name='__repetition__')
+            for dd in pattern.repetition.displacements:
+                temp_pat = pattern.deepcopy()
+                temp_pat.translate_elements(dd)
+                combined.append(temp_pat)
+            pattern = combined
+
         return pattern
-
-    def translate(self, offset: vector2) -> 'SubPattern':
-        """
-        Translate by the given offset
-
-        Args:
-            offset: Offset `[x, y]` to translate by
-
-        Returns:
-            self
-        """
-        self.offset += offset
-        return self
-
-    def rotate_around(self, pivot: vector2, rotation: float) -> 'SubPattern':
-        """
-        Rotate around a point
-
-        Args:
-            pivot: Point `[x, y]` to rotate around
-            rotation: Angle to rotate by (counterclockwise, radians)
-
-        Returns:
-            self
-        """
-        pivot = numpy.array(pivot, dtype=float)
-        self.translate(-pivot)
-        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)
-        self.rotate(rotation)
-        self.translate(+pivot)
-        return self
-
-    def rotate(self, rotation: float) -> 'SubPattern':
-        """
-        Rotate the instance around it's origin
-
-        Args:
-            rotation: Angle to rotate by (counterclockwise, radians)
-
-        Returns:
-            self
-        """
-        self.rotation += rotation
-        return self
 
     def mirror(self, axis: int) -> 'SubPattern':
         """
@@ -271,37 +183,6 @@ class SubPattern:
             return None
         return self.as_pattern().get_bounds()
 
-    def scale_by(self, c: float) -> 'SubPattern':
-        """
-        Scale the subpattern by a factor
-
-        Args:
-            c: scaling factor
-
-        Returns:
-            self
-        """
-        self.scale *= c
-        return self
-
-    def copy(self) -> 'SubPattern':
-        """
-        Return a shallow copy of the subpattern.
-
-        Returns:
-            `copy.copy(self)`
-        """
-        return copy.copy(self)
-
-    def deepcopy(self) -> 'SubPattern':
-        """
-        Return a deep copy of the subpattern.
-
-        Returns:
-            `copy.deepcopy(self)`
-        """
-        return copy.deepcopy(self)
-
     def lock(self) -> 'SubPattern':
         """
         Lock the SubPattern, disallowing changes
@@ -309,9 +190,9 @@ class SubPattern:
         Returns:
             self
         """
-        self.offset.flags.writeable = False
         self.mirrored.flags.writeable = False
-        object.__setattr__(self, 'locked', True)
+        PositionableImpl._lock(self)
+        LockableImpl.lock(self)
         return self
 
     def unlock(self) -> 'SubPattern':
@@ -321,9 +202,9 @@ class SubPattern:
         Returns:
             self
         """
-        self.offset.flags.writeable = True
+        LockableImpl.unlock(self)
+        PositionableImpl._unlock(self)
         self.mirrored.flags.writeable = True
-        object.__setattr__(self, 'locked', False)
         return self
 
     def deeplock(self) -> 'SubPattern':
@@ -361,6 +242,3 @@ class SubPattern:
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
         locked = ' L' if self.locked else ''
         return f'<SubPattern "{name}" at {self.offset}{rotation}{scale}{mirrored}{dose}{locked}>'
-
-
-subpattern_t = Union[SubPattern, GridRepetition]

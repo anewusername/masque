@@ -13,8 +13,7 @@ import numpy
 from numpy import inf
 # .visualize imports matplotlib and matplotlib.collections
 
-from .subpattern import SubPattern, subpattern_t
-from .repetition import GridRepetition
+from .subpattern import SubPattern
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, vector2, normalize_mirror
@@ -27,8 +26,7 @@ visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray]
 class Pattern:
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
-     (via SubPattern and GridRepetition). Shapes are assumed to inherit from
-     masque.shapes.Shape or provide equivalent functions.
+     (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
     __slots__ = ('shapes', 'labels', 'subpatterns', 'name', 'locked')
 
@@ -40,11 +38,10 @@ class Pattern:
     labels: List[Label]
     """ List of all labels in this Pattern. """
 
-    subpatterns: List[subpattern_t]
-    """ List of all objects referencing other patterns in this Pattern.
-    Examples are SubPattern (gdsii "instances") or GridRepetition (gdsii "arrays")
+    subpatterns: List[SubPattern]
+    """ List of all references to other patterns (`SubPattern`s) in this `Pattern`.
     Multiple objects in this list may reference the same Pattern object
-    (multiple instances of the same object).
+      (i.e. multiple instances of the same object).
     """
 
     name: str
@@ -57,7 +54,7 @@ class Pattern:
                  name: str = '',
                  shapes: Sequence[Shape] = (),
                  labels: Sequence[Label] = (),
-                 subpatterns: Sequence[subpattern_t] = (),
+                 subpatterns: Sequence[SubPattern] = (),
                  locked: bool = False,
                  ):
         """
@@ -134,7 +131,7 @@ class Pattern:
     def subset(self,
                shapes_func: Callable[[Shape], bool] = None,
                labels_func: Callable[[Label], bool] = None,
-               subpatterns_func: Callable[[subpattern_t], bool] = None,
+               subpatterns_func: Callable[[SubPattern], bool] = None,
                recursive: bool = False,
                ) -> 'Pattern':
         """
@@ -493,7 +490,7 @@ class Pattern:
     def subpatterns_by_id(self,
                           include_none: bool = False,
                           recursive: bool = True,
-                          ) -> Dict[int, List[subpattern_t]]:
+                          ) -> Dict[int, List[SubPattern]]:
         """
         Create a dictionary which maps `{id(referenced_pattern): [subpattern0, ...]}`
          for all SubPattern objects referenced by this Pattern (by default, operates
@@ -506,7 +503,7 @@ class Pattern:
         Returns:
             Dictionary mapping each pattern id to a list of subpattern objects referencing the pattern.
         """
-        ids: Dict[int, List[subpattern_t]] = defaultdict(list)
+        ids: Dict[int, List[SubPattern]] = defaultdict(list)
         for subpat in self.subpatterns:
             pat = subpat.pattern
             if include_none or pat is not None:

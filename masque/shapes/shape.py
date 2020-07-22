@@ -5,6 +5,9 @@ import numpy
 
 from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
+from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
+                      Rotatable, Mirrorable, Copyable, Scalable,
+                      PivotableImpl, LockableImpl)
 
 if TYPE_CHECKING:
     from . import Polygon
@@ -23,38 +26,20 @@ DEFAULT_POLY_NUM_POINTS = 24
 T = TypeVar('T', bound='Shape')
 
 
-class Shape(metaclass=ABCMeta):
+class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable, PivotableImpl, LockableImpl, metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """
-    __slots__ = ('_offset', '_layer', '_dose', 'identifier', 'locked')
-
-    _offset: numpy.ndarray
-    """ `[x_offset, y_offset]` """
-
-    _layer: layer_t
-    """ Layer (integer >= 0 or tuple) """
-
-    _dose: float
-    """ Dose """
 
     identifier: Tuple
     """ An arbitrary identifier for the shape, usually empty but used by `Pattern.flatten()` """
 
-    locked: bool
-    """ If `True`, any changes to the shape will raise a `PatternLockedError` """
-
-    def __setattr__(self, name, value):
-        if self.locked and name != 'locked':
-            raise PatternLockedError()
-        object.__setattr__(self, name, value)
-
-    def __copy__(self) -> 'Shape':
-        cls = self.__class__
-        new = cls.__new__(cls)
-        for name in Shape.__slots__ + self.__slots__:
-            object.__setattr__(new, name, getattr(self, name))
-        return new
+#    def __copy__(self) -> 'Shape':
+#        cls = self.__class__
+#        new = cls.__new__(cls)
+#        for name in Shape.__slots__ + self.__slots__:
+#            object.__setattr__(new, name, getattr(self, name))
+#        return new
 
     '''
     --- Abstract methods
@@ -76,53 +61,6 @@ class Shape(metaclass=ABCMeta):
 
         Returns:
             List of polygons equivalent to the shape
-        """
-        pass
-
-    @abstractmethod
-    def get_bounds(self) -> numpy.ndarray:
-        """
-        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the shape.
-        """
-        pass
-
-    @abstractmethod
-    def rotate(self: T, theta: float) -> T:
-        """
-        Rotate the shape around its origin (0, 0), ignoring its offset.
-
-        Args:
-            theta: Angle to rotate by (counterclockwise, radians)
-
-        Returns:
-            self
-        """
-        pass
-
-    @abstractmethod
-    def mirror(self: T, axis: int) -> T:
-        """
-        Mirror the shape across an axis.
-
-        Args:
-            axis: Axis to mirror across.
-                (0: mirror across x axis, 1: mirror across y axis)
-
-        Returns:
-            self
-        """
-        pass
-
-    @abstractmethod
-    def scale_by(self: T, c: float) -> T:
-        """
-        Scale the shape's size (eg. radius, for a circle) by a constant factor.
-
-        Args:
-            c: Factor to scale by
-
-        Returns:
-            self
         """
         pass
 
@@ -151,96 +89,8 @@ class Shape(metaclass=ABCMeta):
         pass
 
     '''
-    ---- Non-abstract properties
-    '''
-    # offset property
-    @property
-    def offset(self) -> numpy.ndarray:
-        """
-        [x, y] offset
-        """
-        return self._offset
-
-    @offset.setter
-    def offset(self, val: vector2):
-        if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float)
-
-        if val.size != 2:
-            raise PatternError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten()
-
-    # layer property
-    @property
-    def layer(self) -> layer_t:
-        """
-        Layer number or name (int, tuple of ints, or string)
-        """
-        return self._layer
-
-    @layer.setter
-    def layer(self, val: layer_t):
-        self._layer = val
-
-    # dose property
-    @property
-    def dose(self) -> float:
-        """
-        Dose (float >= 0)
-        """
-        return self._dose
-
-    @dose.setter
-    def dose(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Dose must be a scalar')
-        if not val >= 0:
-            raise PatternError('Dose must be non-negative')
-        self._dose = val
-
-    '''
     ---- Non-abstract methods
     '''
-    def copy(self: T) -> T:
-        """
-        Returns a deep copy of the shape.
-
-        Returns:
-            copy.deepcopy(self)
-        """
-        return copy.deepcopy(self)
-
-    def translate(self: T, offset: vector2) -> T:
-        """
-        Translate the shape by the given offset
-
-        Args:
-            offset: [x_offset, y,offset]
-
-        Returns:
-            self
-        """
-        self.offset += offset
-        return self
-
-    def rotate_around(self: T, pivot: vector2, rotation: float) -> T:
-        """
-        Rotate the shape around a point.
-
-        Args:
-            pivot: Point (x, y) to rotate around
-            rotation: Angle to rotate by (counterclockwise, radians)
-
-        Returns:
-            self
-        """
-        pivot = numpy.array(pivot, dtype=float)
-        self.translate(-pivot)
-        self.rotate(rotation)
-        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)
-        self.translate(+pivot)
-        return self
-
     def manhattanize_fast(self,
                           grid_x: numpy.ndarray,
                           grid_y: numpy.ndarray,
@@ -442,37 +292,12 @@ class Shape(metaclass=ABCMeta):
 
         return manhattan_polygons
 
-    def set_layer(self: T, layer: layer_t) -> T:
-        """
-        Chainable method for changing the layer.
-
-        Args:
-            layer: new value for self.layer
-
-        Returns:
-            self
-        """
-        self.layer = layer
-        return self
-
     def lock(self: T) -> T:
-        """
-        Lock the Shape, disallowing further changes
-
-        Returns:
-            self
-        """
-        self.offset.flags.writeable = False
-        object.__setattr__(self, 'locked', True)
+        PositionableImpl._lock(self)
+        LockableImpl.lock(self)
         return self
 
     def unlock(self: T) -> T:
-        """
-        Unlock the Shape
-
-        Returns:
-            self
-        """
-        object.__setattr__(self, 'locked', False)
-        self.offset.flags.writeable = True
+        LockableImpl.unlock(self)
+        PositionableImpl._unlock(self)
         return self

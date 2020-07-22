@@ -28,8 +28,9 @@ import gdsii.structure
 import gdsii.elements
 
 from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose
-from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape, subpattern_t
+from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
+from ..repetition import Grid
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
 
@@ -291,11 +292,9 @@ def read(stream: io.BufferedIOBase,
                               string=element.string.decode('ASCII'))
                 pat.labels.append(label)
 
-            elif isinstance(element, gdsii.elements.SRef):
-                pat.subpatterns.append(_sref_to_subpat(element))
-
-            elif isinstance(element, gdsii.elements.ARef):
-                pat.subpatterns.append(_aref_to_gridrep(element))
+            elif (isinstance(element, gdsii.elements.SRef) or
+                  isinstance(element, gdsii.elements.ARef)):
+                pat.subpatterns.append(_ref_to_subpat(element))
 
         if use_dtype_as_dose:
             logger.warning('use_dtype_as_dose will be removed in the future!')
@@ -330,40 +329,11 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _sref_to_subpat(element: gdsii.elements.SRef) -> SubPattern:
+def _ref_to_subpat(element: Union[gdsii.elements.SRef,
+                                  gdsii.elements.ARef]
+                   ) -> SubPattern:
     """
-    Helper function to create a SubPattern from an SREF. Sets subpat.pattern to None
-     and sets the instance .identifier to (struct_name,).
-
-    BUG:
-        "Absolute" means not affected by parent elements.
-          That's not currently supported by masque at all, so need to either tag it and
-          undo the parent transformations, or implement it in masque.
-    """
-    subpat = SubPattern(pattern=None, offset=element.xy)
-    subpat.identifier = (element.struct_name,)
-    if element.strans is not None:
-        if element.mag is not None:
-            subpat.scale = element.mag
-            # Bit 13 means absolute scale
-            if get_bit(element.strans, 15 - 13):
-                #subpat.offset *= subpat.scale
-                raise PatternError('Absolute scale is not implemented yet!')
-        if element.angle is not None:
-            subpat.rotation = element.angle * numpy.pi / 180
-            # Bit 14 means absolute rotation
-            if get_bit(element.strans, 15 - 14):
-                #subpat.offset = numpy.dot(rotation_matrix_2d(subpat.rotation), subpat.offset)
-                raise PatternError('Absolute rotation is not implemented yet!')
-        # Bit 0 means mirror x-axis
-        if get_bit(element.strans, 15 - 0):
-            subpat.mirrored[0] = 1
-    return subpat
-
-
-def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
-    """
-    Helper function to create a GridRepetition from an AREF. Sets gridrep.pattern to None
+    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
 
     BUG:
@@ -375,6 +345,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
     offset = numpy.array(element.xy[0])
     scale = 1
     mirror_across_x = False
+    repetition = None
 
     if element.strans is not None:
         if element.mag is not None:
@@ -383,7 +354,7 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
             if get_bit(element.strans, 15 - 13):
                 raise PatternError('Absolute scale is not implemented yet!')
         if element.angle is not None:
-            rotation = element.angle * numpy.pi / 180
+            rotation = numpy.deg2rad(element.angle)
             # Bit 14 means absolute rotation
             if get_bit(element.strans, 15 - 14):
                 raise PatternError('Absolute rotation is not implemented yet!')
@@ -391,25 +362,24 @@ def _aref_to_gridrep(element: gdsii.elements.ARef) -> GridRepetition:
         if get_bit(element.strans, 15 - 0):
             mirror_across_x = True
 
-    counts = [element.cols, element.rows]
-    a_vector = (element.xy[1] - offset) / counts[0]
-    b_vector = (element.xy[2] - offset) / counts[1]
+    if isinstance(element, gdsii.elements.ARef):
+        a_count = element.cols
+        b_count = element.rows
+        a_vector = (element.xy[1] - offset) / counts[0]
+        b_vector = (element.xy[2] - offset) / counts[1]
+        repetition = Grid(a_vector=a_vector, b_vector=b_vector,
+                          a_count=a_count, b_count=b_count)
 
-    gridrep = GridRepetition(pattern=None,
-                            a_vector=a_vector,
-                            b_vector=b_vector,
-                            a_count=counts[0],
-                            b_count=counts[1],
-                            offset=offset,
-                            rotation=rotation,
-                            scale=scale,
-                            mirrored=(mirror_across_x, False))
-    gridrep.identifier = (element.struct_name,)
-
-    return gridrep
+    subpat = SubPattern(pattern=None,
+                        offset=offset,
+                        rotation=rotation,
+                        scale=scale,
+                        mirrored=(mirror_across_x, False))
+    subpat.identifier = (element.struct_name,)
+    return subpat
 
 
-def _subpatterns_to_refs(subpatterns: List[subpattern_t]
+def _subpatterns_to_refs(subpatterns: List[SubPattern]
                         ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
     refs = []
     for subpat in subpatterns:
@@ -420,26 +390,35 @@ def _subpatterns_to_refs(subpatterns: List[subpattern_t]
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
         ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
-        if isinstance(subpat, GridRepetition):
+
+        rep = subpat.repetition
+        if isinstance(rep, Grid):
             xy = numpy.array(subpat.offset) + [
                   [0, 0],
-                  subpat.a_vector * subpat.a_count,
-                  subpat.b_vector * subpat.b_count,
+                  rep.a_vector * rep.a_count,
+                  rep.b_vector * rep.b_count,
                  ]
             ref = gdsii.elements.ARef(struct_name=encoded_name,
                                        xy=numpy.round(xy).astype(int),
-                                       cols=numpy.round(subpat.a_count).astype(int),
-                                       rows=numpy.round(subpat.b_count).astype(int))
-        else:
+                                       cols=numpy.round(rep.a_count).astype(int),
+                                       rows=numpy.round(rep.b_count).astype(int))
+            new_refs = [ref]
+        elif rep is None:
             ref = gdsii.elements.SRef(struct_name=encoded_name,
                                       xy=numpy.round([subpat.offset]).astype(int))
+            new_refs = [ref]
+        else:
+            new_refs = [gdsii.elements.SRef(struct_name=encoded_name,
+                                            xy=numpy.round([subpat.offset + dd]).astype(int))
+                        for dd in rep.displacements]
 
-        ref.angle = ((subpat.rotation + extra_angle) * 180 / numpy.pi) % 360
-        #  strans must be non-None for angle and mag to take effect
-        ref.strans = set_bit(0, 15 - 0, mirror_across_x)
-        ref.mag = subpat.scale
+        for ref in new_refs:
+            ref.angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
+            #  strans must be non-None for angle and mag to take effect
+            ref.strans = set_bit(0, 15 - 0, mirror_across_x)
+            ref.mag = subpat.scale
 
-        refs.append(ref)
+        refs += new_refs
     return refs
 
 

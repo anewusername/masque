@@ -16,8 +16,9 @@ from numpy import pi
 import ezdxf
 
 from .utils import mangle_name, make_dose_table
-from .. import Pattern, SubPattern, GridRepetition, PatternError, Label, Shape, subpattern_t
+from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
+from ..repetition import Grid
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror
 
@@ -55,7 +56,7 @@ def write(pattern: Pattern,
     If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
 
-    Only `GridRepetition` objects with manhattan basis vectors are preserved as arrays. Since DXF
+    Only `Grid` repetition objects with manhattan basis vectors are preserved as arrays. Since DXF
      rotations apply to basis vectors while `masque`'s rotations do not, the basis vectors of an
      array with rotated instances must be manhattan _after_ having a compensating rotation applied.
 
@@ -276,7 +277,7 @@ def _read_block(block, clean_vertices):
 
 
 def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                         subpatterns: List[subpattern_t]):
+                         subpatterns: List[SubPattern]):
     for subpat in subpatterns:
         if subpat.pattern is None:
             continue
@@ -289,9 +290,12 @@ def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.M
             'rotation': rotation,
             }
 
-        if isinstance(subpat, GridRepetition):
-            a = subpat.a_vector
-            b = subpat.b_vector if subpat.b_vector is not None else numpy.zeros(2)
+        rep = subpat.repetition
+        if rep is None:
+            block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
+        elif isinstance(rep, Grid):
+            a = rep.a_vector
+            b = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
             rotated_a = rotation_matrix_2d(-subpat.rotation) @ a
             rotated_b = rotation_matrix_2d(-subpat.rotation) @ b
             if rotated_a[1] == 0 and rotated_b[0] == 0:
@@ -310,11 +314,11 @@ def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.M
                 #NOTE: We could still do non-manhattan (but still orthogonal) grids by getting
                 #       creative with counter-rotated nested patterns, but probably not worth it.
                 # Instead, just break appart the grid into individual elements:
-                for aa in numpy.arange(subpat.a_count):
-                    for bb in numpy.arange(subpat.b_count):
-                        block.add_blockref(encoded_name, subpat.offset + aa * a + bb * b, dxfattribs=attribs)
+                for dd in rep.displacements:
+                    block.add_blockref(encoded_name, subpat.offset + dd, dxfattribs=attribs)
         else:
-            block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
+            for dd in rep.displacements:
+                block.add_blockref(encoded_name, subpat.offset + dd, dxfattribs=attribs)
 
 
 def _shapes_to_elements(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
