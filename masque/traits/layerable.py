@@ -25,12 +25,12 @@ class Layerable(metaclass=ABCMeta):
         """
         Layer number or name (int, tuple of ints, or string)
         """
-        return self._layer
+        pass
 
-    @layer.setter
-    @abstractmethod
-    def layer(self, val: layer_t):
-        self._layer = val
+#    @layer.setter
+#    @abstractmethod
+#    def layer(self, val: layer_t):
+#        pass
 
     '''
     ---- Methods

@@ -299,14 +299,14 @@ def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.M
             rotated_a = rotation_matrix_2d(-subpat.rotation) @ a
             rotated_b = rotation_matrix_2d(-subpat.rotation) @ b
             if rotated_a[1] == 0 and rotated_b[0] == 0:
-                attribs['column_count'] = subpat.a_count
-                attribs['row_count'] = subpat.b_count
+                attribs['column_count'] = rep.a_count
+                attribs['row_count'] = rep.b_count
                 attribs['column_spacing'] = rotated_a[0]
                 attribs['row_spacing'] = rotated_b[1]
                 block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
             elif rotated_a[0] == 0 and rotated_b[1] == 0:
-                attribs['column_count'] = subpat.b_count
-                attribs['row_count'] = subpat.a_count
+                attribs['column_count'] = rep.b_count
+                attribs['row_count'] = rep.a_count
                 attribs['column_spacing'] = rotated_b[0]
                 attribs['row_spacing'] = rotated_a[1]
                 block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)

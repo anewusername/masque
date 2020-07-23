@@ -6,7 +6,7 @@ import numpy
 from ..error import PatternError, PatternLockedError
 
 T = TypeVar('T', bound='Mirrorable')
-T = TypeVar('T', bound='MirrorableImpl')
+#I = TypeVar('I', bound='MirrorableImpl')
 
 
 class Mirrorable(metaclass=ABCMeta):

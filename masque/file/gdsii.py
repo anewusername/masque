@@ -365,8 +365,8 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
     if isinstance(element, gdsii.elements.ARef):
         a_count = element.cols
         b_count = element.rows
-        a_vector = (element.xy[1] - offset) / counts[0]
-        b_vector = (element.xy[2] - offset) / counts[1]
+        a_vector = (element.xy[1] - offset) / a_count
+        b_vector = (element.xy[2] - offset) / b_count
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
@@ -389,9 +389,10 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
 
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
-        ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
-
         rep = subpat.repetition
+
+        new_refs: List[Union[gdsii.elements.SRef, gdsii.elements.ARef]]
+        ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
         if isinstance(rep, Grid):
             xy = numpy.array(subpat.offset) + [
                   [0, 0],

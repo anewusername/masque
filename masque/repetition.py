@@ -217,7 +217,7 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
 
         corners = ((0, 0), a_extent, b_extent, a_extent + b_extent)
         xy_min = numpy.min(corners, axis=0)
-        xy_max = numpy.min(corners, axis=0)
+        xy_max = numpy.max(corners, axis=0)
         return numpy.array((xy_min, xy_max))
 
     def scale_by(self, c: float) -> 'Grid':
@@ -298,9 +298,6 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
           of the instances.
     """
 
-    locked: bool
-    """ If `True`, disallows changes to the object. """
-
     @property
     def displacements(self) -> numpy.ndarray:
         return self._displacements
@@ -310,6 +307,18 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
         val = numpy.array(val, float)
         val = numpy.sort(val.view([('', val.dtype)] * val.shape[1]), 0).view(val.dtype)    # sort rows
         self._displacements = val
+
+    def __init__(self,
+                 displacements: numpy.ndarray,
+                 locked: bool = False,):
+        """
+        Args:
+            displacements: List of vectors (Nx2 ndarray) specifying displacements.
+            locked: Whether the object is locked after initialization.
+        """
+        object.__setattr__(self, 'locked', False)
+        self.displacements = displacements
+        self.locked = locked
 
     def lock(self) -> 'Arbitrary':
         """
@@ -343,3 +352,56 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
         if self.locked != other.locked:
             return False
         return numpy.array_equal(self.displacements, other.displacements)
+
+    def rotate(self, rotation: float) -> 'Arbitrary':
+        """
+        Rotate dispacements (around (0, 0))
+
+        Args:
+            rotation: Angle to rotate by (counterclockwise, radians)
+
+        Returns:
+            self
+        """
+        self.displacements = numpy.dot(rotation_matrix_2d(rotation), self.displacements.T).T
+        return self
+
+    def mirror(self, axis: int) -> 'Arbitrary':
+        """
+        Mirror the displacements across an axis.
+
+        Args:
+            axis: Axis to mirror across.
+                (0: mirror across x-axis, 1: mirror across y-axis)
+
+        Returns:
+            self
+        """
+        self.displacements[1-axis] *= -1
+        return self
+
+    def get_bounds(self) -> Optional[numpy.ndarray]:
+        """
+        Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
+         extent of the `displacements` in each dimension.
+
+        Returns:
+            `[[x_min, y_min], [x_max, y_max]]` or `None`
+        """
+        xy_min = numpy.min(self.displacements, axis=0)
+        xy_max = numpy.max(self.displacements, axis=0)
+        return numpy.array((xy_min, xy_max))
+
+    def scale_by(self, c: float) -> 'Arbitrary':
+        """
+        Scale the displacements by a factor
+
+        Args:
+            c: scaling factor
+
+        Returns:
+            self
+        """
+        self.displacements *= c
+        return self
+

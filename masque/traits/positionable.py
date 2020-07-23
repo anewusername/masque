@@ -30,10 +30,10 @@ class Positionable(metaclass=ABCMeta):
         """
         pass
 
-    @offset.setter
-    @abstractmethod
-    def offset(self, val: vector2):
-        pass
+#    @offset.setter
+#    @abstractmethod
+#    def offset(self, val: vector2):
+#        pass
 
     '''
     --- Abstract methods

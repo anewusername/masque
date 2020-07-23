@@ -469,7 +469,7 @@ def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
        'identifier': (name,),
        }
 
-    mrep: Repetition
+    mrep: Optional[Repetition]
     rep = placement.repetition
     if isinstance(rep, fatamorgana.GridRepetition):
         mrep = Grid(a_vector=rep.a_vector,
@@ -477,8 +477,10 @@ def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
                     a_count=rep.a_count,
                     b_count=rep.b_count)
     elif isinstance(rep, fatamorgana.ArbitraryRepetition):
-        mrep = Arbitrary(numpy.cumsum(numpy.column_stack((rep.x_displacements,
-                                                          rep.y_displacements))))
+        displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
+                                                         rep.y_displacements)))
+        displacements = numpy.vstack(([0, 0], displacements))
+        mrep = Arbitrary(displacements)
     elif rep is None:
         mrep = None
 
@@ -510,8 +512,10 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
                               b_count=numpy.round(rep.b_count).astype(int))
         elif isinstance(rep, Arbitrary):
             diffs = numpy.diff(rep.displacements, axis=0)
-            args['repetition'] = fatamorgana.ArbitraryRepetition(
-                                    numpy.round(diffs).astype(int))
+            diff_ints = numpy.round(diffs).astype(int)
+            args['repetition'] = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])
+            args['x'] += rep.displacements[0, 0]
+            args['y'] += rep.displacements[0, 1]
         else:
             assert(rep is None)
 

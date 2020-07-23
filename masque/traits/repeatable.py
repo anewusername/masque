@@ -1,9 +1,13 @@
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 import copy
 import numpy
 
 from ..error import PatternError, PatternLockedError
+
+
+if TYPE_CHECKING:
+    from ..repetition import Repetition
 
 
 T = TypeVar('T', bound='Repeatable')
@@ -27,14 +31,15 @@ class Repeatable(metaclass=ABCMeta):
         """
         pass
 
-    @repetition.setter
-    @abstractmethod
-    def repetition(self, repetition: Optional['Repetition']):
-        pass
+#    @repetition.setter
+#    @abstractmethod
+#    def repetition(self, repetition: Optional['Repetition']):
+#        pass
 
     '''
     ---- Methods
     '''
+    @abstractmethod
     def set_repetition(self: T, repetition: Optional['Repetition']) -> T:
         """
         Set the repetition
@@ -74,6 +79,6 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def set_repetition(self: I, repetition: 'Repetition') -> I:
+    def set_repetition(self: I, repetition: Optional['Repetition']) -> I:
         self.repetition = repetition
         return self
