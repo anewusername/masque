@@ -119,7 +119,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
-        structure = gdsii.structure.Structure(name=pat.name)
+        structure = gdsii.structure.Structure(name=pat.name.encode('ASCII'))
         lib.append(structure)
 
         structure += _shapes_to_elements(pat.shapes)
@@ -385,7 +385,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
     for subpat in subpatterns:
         if subpat.pattern is None:
             continue
-        encoded_name = subpat.pattern.name
+        encoded_name = subpat.pattern.name.encode('ASCII')
 
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
@@ -514,5 +514,5 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
         if len(encoded_name) > max_name_length:
             raise PatternError('Pattern name "{!r}" length > {} after encode,\n originally "{}"'.format(encoded_name, max_name_length, pat.name))
 
-        pat.name = encoded_name
+        pat.name = suffixed_name
         used_names.append(suffixed_name)
