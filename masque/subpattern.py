@@ -35,26 +35,11 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """
 
-#    _offset: numpy.ndarray
-#    """ (x, y) offset for the instance """
-
-#    _rotation: float
-#    """ rotation for the instance, radians counterclockwise """
-
-#    _dose: float
-#    """ dose factor for the instance """
-
-#    _scale: float
-#    """ scale factor for the instance """
-
     _mirrored: numpy.ndarray        # ndarray[bool]
     """ Whether to mirror the instance across the x and/or y axes. """
 
     identifier: Tuple[Any, ...]
     """ Arbitrary identifier, used internally by some `masque` functions. """
-
-#    locked: bool
-#    """ If `True`, disallows changes to the SubPattern"""
 
     def __init__(self,
                  pattern: Optional['Pattern'],
@@ -79,7 +64,6 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             identifier: Arbitrary tuple, used internally by some `masque` functions.
         """
         LockableImpl.unlock(self)
-#        object.__setattr__(self, 'locked', False)
         self.identifier = identifier
         self.pattern = pattern
         self.offset = offset
@@ -146,9 +130,9 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         pattern.translate_elements(self.offset)
         pattern.scale_element_doses(self.dose)
 
-        if pattern.repetition is not None:
-            combined = type(pat)(name='__repetition__')
-            for dd in pattern.repetition.displacements:
+        if self.repetition is not None:
+            combined = type(pattern)(name='__repetition__')
+            for dd in self.repetition.displacements:
                 temp_pat = pattern.deepcopy()
                 temp_pat.translate_elements(dd)
                 combined.append(temp_pat)

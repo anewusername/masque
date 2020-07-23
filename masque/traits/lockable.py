@@ -19,18 +19,6 @@ class Lockable(metaclass=ABCMeta):
     '''
     ---- Methods
     '''
-    def set_dose(self: T, dose: float) -> T:
-        """
-        Set the dose
-
-        Args:
-            dose: new value for dose
-
-        Returns:
-            self
-        """
-        pass
-
     def lock(self: T) -> T:
         """
         Lock the object, disallowing further changes

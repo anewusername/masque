@@ -28,10 +28,10 @@ class Doseable(metaclass=ABCMeta):
         """
         pass
 
-    @dose.setter
-    @abstractmethod
-    def dose(self, val: float):
-        pass
+#    @dose.setter
+#    @abstractmethod
+#    def dose(self, val: float):
+#        pass
 
     '''
     ---- Methods
