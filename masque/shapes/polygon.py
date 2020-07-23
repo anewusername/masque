@@ -5,6 +5,7 @@ from numpy import pi
 
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
+from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices
 
@@ -75,6 +76,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                  mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
+                 repetition: Optional[Repetition] = None,
                  locked: bool = False,
                  ):
         object.__setattr__(self, 'locked', False)
@@ -85,6 +87,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         self.offset = offset
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
+        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':

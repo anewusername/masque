@@ -7,7 +7,7 @@ from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
-                      PivotableImpl, LockableImpl)
+                      PivotableImpl, LockableImpl, RepeatableImpl)
 
 if TYPE_CHECKING:
     from . import Polygon
@@ -26,7 +26,8 @@ DEFAULT_POLY_NUM_POINTS = 24
 T = TypeVar('T', bound='Shape')
 
 
-class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable, PivotableImpl, LockableImpl, metaclass=ABCMeta):
+class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable,
+            PivotableImpl, RepeatableImpl, LockableImpl, metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """

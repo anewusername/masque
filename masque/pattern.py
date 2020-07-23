@@ -575,6 +575,52 @@ class Pattern:
             self.append(p)
         return self
 
+    def wrap_repeated_shapes(self,
+                             name_func: Callable[['Pattern', Union[Shape, Label]], str] = lambda p, s: '_repetition',
+                             recursive: bool = True,
+                             ) -> 'Pattern':
+        """
+        Wraps all shapes and labels with a non-`None` `repetition` attribute
+          into a `SubPattern`/`Pattern` combination, and applies the `repetition`
+          to each `SubPattern` instead of its contained shape.
+
+        Args:
+            name_func: Function f(this_pattern, shape) which generates a name for the
+                        wrapping pattern. Default always returns '_repetition'.
+            recursive: If `True`, this function is also applied to all referenced patterns
+                        recursively. Default `True`.
+
+        Returns:
+            self
+        """
+        def do_wrap(pat: Optional[Pattern]) -> Optional[Pattern]:
+            if pat is None:
+                return pat
+
+            new_subpatterns = []
+            for shape in pat.shapes:
+                if shape.repetition is None:
+                    continue
+                new_subpatterns.append(SubPattern(Pattern(name_func(pat, shape), shapes=[shape])))
+                shape.repetition = None
+
+            for label in self.labels:
+                if label.repetition is None:
+                    continue
+                new_subpatterns.append(SubPattern(Pattern(name_func(pat, shape), labels=[label])))
+                label.repetition = None
+
+            pat.subpatterns += new_subpatterns
+            return pat
+
+        if recursive:
+            self.apply(do_wrap)
+        else:
+            do_wrap(self)
+
+        return self
+
+
     def translate_elements(self, offset: vector2) -> 'Pattern':
         """
         Translates all shapes, label, and subpatterns by the given offset.

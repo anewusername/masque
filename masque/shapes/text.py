@@ -5,6 +5,7 @@ from numpy import pi, inf
 
 from . import Shape, Polygon, normalized_shape_tuple
 from .. import PatternError
+from ..repetition import Repetition
 from ..traits import RotatableImpl
 from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t, AutoSlots
 
@@ -65,6 +66,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
                  mirrored: Tuple[bool, bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
+                 repetition: Optional[Repetition] = None,
                  locked: bool = False,
                  ):
         object.__setattr__(self, 'locked', False)
@@ -77,6 +79,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         self.rotation = rotation
         self.font_path = font_path
         self.mirrored = mirrored
+        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Text':

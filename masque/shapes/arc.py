@@ -6,6 +6,7 @@ from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
+from ..repetition import Repetition
 from ..utils import is_scalar, vector2, layer_t, AutoSlots
 
 
@@ -158,6 +159,7 @@ class Arc(Shape, metaclass=AutoSlots):
                  mirrored: Sequence[bool] = (False, False),
                  layer: layer_t = 0,
                  dose: float = 1.0,
+                 repetition: Optional[Repetition] = None,
                  locked: bool = False):
         object.__setattr__(self, 'locked', False)
         self.identifier = ()
@@ -171,6 +173,7 @@ class Arc(Shape, metaclass=AutoSlots):
         self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
+        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Arc':
