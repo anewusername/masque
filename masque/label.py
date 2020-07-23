@@ -1,14 +1,16 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import copy
 import numpy
 from numpy import pi
 
+from .repetition import Repetition
 from .error import PatternError, PatternLockedError
 from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t, AutoSlots
-from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl
+from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
 
 
-class Label(PositionableImpl, LayerableImpl, LockableImpl, Pivotable, Copyable, metaclass=AutoSlots):
+class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl,
+            Pivotable, Copyable, metaclass=AutoSlots):
     """
     A text annotation with a position and layer (but no size; it is not drawn)
     """
@@ -39,18 +41,21 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, Pivotable, Copyable, 
                  string: str,
                  offset: vector2 = (0.0, 0.0),
                  layer: layer_t = 0,
+                 repetition: Optional[Repetition] = None,
                  locked: bool = False):
         object.__setattr__(self, 'locked', False)
         self.identifier = ()
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
         self.layer = layer
+        self.repetition = repetition
         self.locked = locked
 
     def __copy__(self) -> 'Label':
         return Label(string=self.string,
                      offset=self.offset.copy(),
                      layer=self.layer,
+                     repetition=self.repetition,
                      locked=self.locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Label':
