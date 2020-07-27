@@ -103,6 +103,8 @@ def build(patterns: Union[Pattern, List[Pattern]],
     if not modify_originals:
         patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
 
+    patterns = [p.wrap_repeated_shapes() for p in patterns]
+
     # Create library
     lib = gdsii.library.Library(version=600,
                                 name=library_name.encode('ASCII'),

@@ -260,18 +260,19 @@ def read(stream: io.BufferedIOBase,
         for element in cell.geometry:
             if isinstance(element, fatrec.XElement):
                 logger.warning('Skipping XElement record')
+                # note XELEMENT has no repetition
                 continue
 
-            if element.repetition is not None:
-                # note XELEMENT has no repetition
-                raise PatternError('masque OASIS reader does not implement repetitions for shapes yet')
+
+            repetition = repetition_fata2masq(element.repetition)
 
             # Switch based on element type:
             if isinstance(element, fatrec.Polygon):
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list())), axis=0)
                 poly = Polygon(vertices=vertices,
                                layer=element.get_layer_tuple(),
-                               offset=element.get_xy())
+                               offset=element.get_xy(),
+                               repetition=repetition)
 
                 if clean_vertices:
                     try:
@@ -297,6 +298,7 @@ def read(stream: io.BufferedIOBase,
                 path = Path(vertices=vertices,
                             layer=element.get_layer_tuple(),
                             offset=element.get_xy(),
+                            repeition=repetition,
                             width=element.get_half_width() * 2,
                             cap=cap,
                             **path_args)
@@ -314,6 +316,7 @@ def read(stream: io.BufferedIOBase,
                 height = element.get_height()
                 rect = Polygon(layer=element.get_layer_tuple(),
                                offset=element.get_xy(),
+                               repetition=repetition,
                                vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
                                )
                 pat.shapes.append(rect)
@@ -345,6 +348,7 @@ def read(stream: io.BufferedIOBase,
 
                 trapz = Polygon(layer=element.get_layer_tuple(),
                                 offset=element.get_xy(),
+                                repetition=repetition,
                                 vertices=vertices,
                                 )
                 pat.shapes.append(trapz)
@@ -396,20 +400,23 @@ def read(stream: io.BufferedIOBase,
                     vertices[0, 1] += width
 
                 ctrapz = Polygon(layer=element.get_layer_tuple(),
-                                offset=element.get_xy(),
-                                vertices=vertices,
-                                )
+                                 offset=element.get_xy(),
+                                 repetition=repetition,
+                                 vertices=vertices,
+                                 )
                 pat.shapes.append(ctrapz)
 
             elif isinstance(element, fatrec.Circle):
                 circle = Circle(layer=element.get_layer_tuple(),
                                 offset=element.get_xy(),
+                                repetition=repetition,
                                 radius=float(element.get_radius()))
                 pat.shapes.append(circle)
 
             elif isinstance(element, fatrec.Text):
                 label = Label(layer=element.get_layer_tuple(),
                               offset=element.get_xy(),
+                              repetition=repetition,
                               string=str(element.get_string()))
                 pat.labels.append(label)
 
@@ -467,24 +474,10 @@ def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
        'rotation': float(placement.angle * pi/180),
        'scale': mag,
        'identifier': (name,),
+       'repetition': repetition_fata2masq(placement.repetition),
        }
 
-    mrep: Optional[Repetition]
-    rep = placement.repetition
-    if isinstance(rep, fatamorgana.GridRepetition):
-        mrep = Grid(a_vector=rep.a_vector,
-                    b_vector=rep.b_vector,
-                    a_count=rep.a_count,
-                    b_count=rep.b_count)
-    elif isinstance(rep, fatamorgana.ArbitraryRepetition):
-        displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
-                                                         rep.y_displacements)))
-        displacements = numpy.vstack(([0, 0], displacements))
-        mrep = Arbitrary(displacements)
-    elif rep is None:
-        mrep = None
-
-    subpat = SubPattern(offset=xy, repetition=mrep, **args)
+    subpat = SubPattern(offset=xy, **args)
     return subpat
 
 
@@ -497,27 +490,14 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
 
         # Note: OASIS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
-        xy = numpy.round(subpat.offset).astype(int)
-        args: Dict[str, Any] = {
-            'x': xy[0],
-            'y': xy[1],
-            }
+        frep, rep_offset = repetition_masq2fata(subpat.repetition)
 
-        rep = subpat.repetition
-        if isinstance(rep, Grid):
-            args['repetition'] = fatamorgana.GridRepetition(
-                              a_vector=numpy.round(rep.a_vector).astype(int),
-                              b_vector=numpy.round(rep.b_vector).astype(int),
-                              a_count=numpy.round(rep.a_count).astype(int),
-                              b_count=numpy.round(rep.b_count).astype(int))
-        elif isinstance(rep, Arbitrary):
-            diffs = numpy.diff(rep.displacements, axis=0)
-            diff_ints = numpy.round(diffs).astype(int)
-            args['repetition'] = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])
-            args['x'] += rep.displacements[0, 0]
-            args['y'] += rep.displacements[0, 1]
-        else:
-            assert(rep is None)
+        offset = numpy.round(subpat.offset + rep_offset).astype(int)
+        args: Dict[str, Any] = {
+            'x': offset[0],
+            'y': offset[1],
+            'repetition': frep,
+            }
 
         angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
@@ -538,17 +518,19 @@ def _shapes_to_elements(shapes: List[Shape],
     elements: List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]] = []
     for shape in shapes:
         layer, datatype = layer2oas(shape.layer)
+        repetition, rep_offset = repetition_masq2fata(shape.repetition)
         if isinstance(shape, Circle):
-            offset = numpy.round(shape.offset).astype(int)
+            offset = numpy.round(shape.offset + rep_offset).astype(int)
             radius = numpy.round(shape.radius).astype(int)
             circle = fatrec.Circle(layer=layer,
                                    datatype=datatype,
                                    radius=radius,
                                    x=offset[0],
-                                   y=offset[1])
+                                   y=offset[1],
+                                   repetition=repetition)
             elements.append(circle)
         elif isinstance(shape, Path):
-            xy = numpy.round(shape.offset + shape.vertices[0]).astype(int)
+            xy = numpy.round(shape.offset + shape.vertices[0] + rep_offset).astype(int)
             deltas = numpy.round(numpy.diff(shape.vertices, axis=0)).astype(int)
             half_width = numpy.round(shape.width / 2).astype(int)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    #reverse lookup
@@ -562,17 +544,19 @@ def _shapes_to_elements(shapes: List[Shape],
                                y=xy[1],
                                extension_start=extension_start,       #TODO implement multiple cap types?
                                extension_end=extension_end,
+                               repetition=repetition,
                                )
             elements.append(path)
         else:
             for polygon in shape.to_polygons():
-                xy = numpy.round(polygon.offset + polygon.vertices[0]).astype(int)
+                xy = numpy.round(polygon.offset + polygon.vertices[0] + rep_offset).astype(int)
                 points = numpy.round(numpy.diff(polygon.vertices, axis=0)).astype(int)
                 elements.append(fatrec.Polygon(layer=layer,
                                                datatype=datatype,
                                                x=xy[0],
                                                y=xy[1],
-                                               point_list=points))
+                                               point_list=points,
+                                               repetition=repetition))
     return elements
 
 
@@ -582,12 +566,14 @@ def _labels_to_texts(labels: List[Label],
     texts = []
     for label in labels:
         layer, datatype = layer2oas(label.layer)
-        xy = numpy.round(label.offset).astype(int)
+        repetition, rep_offset = repetition_masq2fata(shape.repetition)
+        xy = numpy.round(label.offset + rep_offset).astype(int)
         texts.append(fatrec.Text(layer=layer,
                                  datatype=datatype,
                                  x=xy[0],
                                  y=xy[1],
-                                 string=label.string))
+                                 string=label.string,
+                                 repetition=repetition))
     return texts
 
 
@@ -619,3 +605,40 @@ def disambiguate_pattern_names(patterns,
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)
+
+
+def repetition_fata2masq(rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
+                         ) -> Optional[Repetition]:
+    if isinstance(rep, fatamorgana.GridRepetition):
+        mrep = Grid(a_vector=rep.a_vector,
+                    b_vector=rep.b_vector,
+                    a_count=rep.a_count,
+                    b_count=rep.b_count)
+    elif isinstance(rep, fatamorgana.ArbitraryRepetition):
+        displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
+                                                         rep.y_displacements)))
+        displacements = numpy.vstack(([0, 0], displacements))
+        mrep = Arbitrary(displacements)
+    elif rep is None:
+        mrep = None
+    return mrep
+
+
+def repetition_masq2fata(rep: Optional[Repetition]):
+    if isinstance(rep, Grid):
+        frep = fatamorgana.GridRepetition(
+                          a_vector=numpy.round(rep.a_vector).astype(int),
+                          b_vector=numpy.round(rep.b_vector).astype(int),
+                          a_count=numpy.round(rep.a_count).astype(int),
+                          b_count=numpy.round(rep.b_count).astype(int))
+        offset = (0, 0)
+    elif isinstance(rep, Arbitrary):
+        diffs = numpy.diff(rep.displacements, axis=0)
+        diff_ints = numpy.round(diffs).astype(int)
+        frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])
+        offset = rep.displacements[0, :]
+    else:
+        assert(rep is None)
+        frep = None
+        offset = (0, 0)
+    return frep, offset
