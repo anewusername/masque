@@ -266,7 +266,8 @@ class Polygon(Shape, metaclass=AutoSlots):
                              self.offset + numpy.max(self.vertices, axis=0)))
 
     def rotate(self, theta: float) -> 'Polygon':
-        self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
+        if theta != 0:
+            self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
         return self
 
     def mirror(self, axis: int) -> 'Polygon':
