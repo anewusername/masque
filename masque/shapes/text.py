@@ -68,18 +68,29 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
                  locked: bool = False,
+                 raw: bool = False,
                  ):
         object.__setattr__(self, 'locked', False)
         self.identifier = ()
-        self.offset = offset
-        self.layer = layer
-        self.dose = dose
-        self.string = string
-        self.height = height
-        self.rotation = rotation
+        if raw:
+            self._offset = offset
+            self._layer = layer
+            self._dose = dose
+            self._string = string
+            self._height = height
+            self._rotation = rotation
+            self._mirrored = mirrored
+            self._repetition = repetition
+        else:
+            self.offset = offset
+            self.layer = layer
+            self.dose = dose
+            self.string = string
+            self.height = height
+            self.rotation = rotation
+            self.mirrored = mirrored
+            self.repetition = repetition
         self.font_path = font_path
-        self.mirrored = mirrored
-        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Text':

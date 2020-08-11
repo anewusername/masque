@@ -95,18 +95,28 @@ class Ellipse(Shape, metaclass=AutoSlots):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
-                 locked: bool = False):
+                 locked: bool = False,
+                 raw: bool = False,
+                 ):
         object.__setattr__(self, 'locked', False)
         self.identifier = ()
-        self.radii = radii
-        self.offset = offset
-        self.rotation = rotation
+        if raw:
+            self._radii = radii
+            self._offset = offset
+            self._rotation = rotation
+            self._repetition = repetition
+            self._layer = layer
+            self._dose = dose
+        else:
+            self.radii = radii
+            self.offset = offset
+            self.rotation = rotation
+            self.repetition = repetition
+            self.layer = layer
+            self.dose = dose
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.layer = layer
-        self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
-        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Ellipse':

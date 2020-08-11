@@ -78,16 +78,24 @@ class Polygon(Shape, metaclass=AutoSlots):
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
                  locked: bool = False,
+                 raw: bool = False,
                  ):
         object.__setattr__(self, 'locked', False)
         self.identifier = ()
-        self.layer = layer
-        self.dose = dose
-        self.vertices = vertices
-        self.offset = offset
+        if raw:
+            self._vertices = vertices
+            self._offset = offset
+            self._repetition = repetition
+            self._layer = layer
+            self._dose = dose
+        else:
+            self.vertices = vertices
+            self.offset = offset
+            self.repetition = repetition
+            self.layer = layer
+            self.dose = dose
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
