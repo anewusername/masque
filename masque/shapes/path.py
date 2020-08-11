@@ -314,7 +314,8 @@ class Path(Shape):
         return bounds
 
     def rotate(self, theta: float) -> 'Path':
-        self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
+        if theta != 0:
+            self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
         return self
 
     def mirror(self, axis: int) -> 'Path':
