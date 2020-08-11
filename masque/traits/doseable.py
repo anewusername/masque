@@ -67,8 +67,6 @@ class DoseableImpl(Doseable, metaclass=ABCMeta):
 
     @dose.setter
     def dose(self, val: float):
-        if not is_scalar(val):
-            raise PatternError('Dose must be a scalar')
         if not val >= 0:
             raise PatternError('Dose must be non-negative')
         self._dose = val
