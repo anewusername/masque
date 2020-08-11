@@ -150,22 +150,32 @@ class Path(Shape, metaclass=AutoSlots):
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
                  locked: bool = False,
+                 raw: bool = False,
                  ):
         object.__setattr__(self, 'locked', False)
         self._cap_extensions = None     # Since .cap setter might access it
 
         self.identifier = ()
-        self.offset = offset
-        self.layer = layer
-        self.dose = dose
-        self.vertices = vertices
-        self.width = width
-        self.cap = cap
-        if cap_extensions is not None:
+        if raw:
+            self._vertices = vertices
+            self._offset = offset
+            self._repetition = repetition
+            self._layer = layer
+            self._dose = dose
+            self._width = width
+            self._cap = cap
+            self._cap_extensions = cap_extensions
+        else:
+            self.vertices = vertices
+            self.offset = offset
+            self.repetition = repetition
+            self.layer = layer
+            self.dose = dose
+            self.width = width
+            self.cap = cap
             self.cap_extensions = cap_extensions
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.repetition = repetition
         self.locked = locked
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Path':
