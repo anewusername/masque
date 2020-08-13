@@ -109,6 +109,7 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
     """
     __slots__ = ()
 
+    @abstractmethod
     def rotate_around(self: J, pivot: vector2, rotation: float) -> J:
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)

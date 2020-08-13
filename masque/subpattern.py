@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
-                 Pivotable, Copyable, RepeatableImpl, LockableImpl, metaclass=AutoSlots):
+                 PivotableImpl, Copyable, RepeatableImpl, LockableImpl, metaclass=AutoSlots):
     """
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
@@ -83,6 +83,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
                          dose=self.dose,
                          scale=self.scale,
                          mirrored=self.mirrored.copy(),
+                         repetition=copy.deepcopy(self.repetition),
                          locked=self.locked)
         return new
 
@@ -90,6 +91,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new.pattern = copy.deepcopy(self.pattern, memo)
+        new.repetition = copy.deepcopy(self.repetition, memo)
         new.locked = self.locked
         return new
 
@@ -140,18 +142,17 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
         return pattern
 
+    def rotate(self, rotation: float) -> 'SubPattern':
+        self.rotation += rotation
+        if self.repetition is not None:
+            self.repetition.rotate(rotation)
+        return self
+
     def mirror(self, axis: int) -> 'SubPattern':
-        """
-        Mirror the subpattern across an axis.
-
-        Args:
-            axis: Axis to mirror across.
-
-        Returns:
-            self
-        """
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
+        if self.repetition is not None:
+            self.repetiton.mirror(axis)
         return self
 
     def get_bounds(self) -> Optional[numpy.ndarray]:

@@ -148,11 +148,16 @@ class AutoSlots(ABCMeta):
     can be used to generate a full `__slots__` for the concrete class.
     """
     def __new__(cls, name, bases, dctn):
-        slots = tuple(dctn.get('__slots__', tuple()))
+        parents = set()
         for base in bases:
-            if not hasattr(base, '__annotations__'):
+            parents |= set(base.mro())
+
+        slots = tuple(dctn.get('__slots__', tuple()))
+        for parent in parents:
+            if not hasattr(parent, '__annotations__'):
                 continue
-            slots += tuple(getattr(base, '__annotations__').keys())
+            slots += tuple(getattr(parent, '__annotations__').keys())
+
         dctn['__slots__'] = slots
-        return super().__new__(cls,name,bases,dctn)
+        return super().__new__(cls, name, bases, dctn)
 
