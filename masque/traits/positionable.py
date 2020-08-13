@@ -94,7 +94,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
 
     @offset.setter
     def offset(self, val: vector2):
-        if not isinstance(val, numpy.ndarray):
+        if not isinstance(val, numpy.ndarray) or val.dtype != numpy.float64:
             val = numpy.array(val, dtype=float)
 
         if val.size != 2:
@@ -108,7 +108,6 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     def set_offset(self: I, offset: vector2) -> I:
         self.offset = offset
         return self
-
 
     def translate(self: I, offset: vector2) -> I:
         self._offset += offset

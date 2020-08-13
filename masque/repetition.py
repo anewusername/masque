@@ -170,8 +170,8 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
     @property
     def displacements(self) -> numpy.ndarray:
         aa, bb = numpy.meshgrid(numpy.arange(self.a_count), numpy.arange(self.b_count), indexing='ij')
-        return (aa.flat[:, None] * self.a_vector[None, :] +
-                bb.flat[:, None] * self.b_vector[None, :])
+        return (aa.flatten()[:, None] * self.a_vector[None, :] +
+                bb.flatten()[:, None] * self.b_vector[None, :])
 
     def rotate(self, rotation: float) -> 'Grid':
         """
