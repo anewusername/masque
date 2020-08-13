@@ -376,7 +376,8 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
                         offset=offset,
                         rotation=rotation,
                         scale=scale,
-                        mirrored=(mirror_across_x, False))
+                        mirrored=(mirror_across_x, False),
+                        repetition=repetition)
     subpat.identifier = (element.struct_name,)
     return subpat
 
