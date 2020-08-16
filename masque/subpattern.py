@@ -14,7 +14,7 @@ from .error import PatternError, PatternLockedError
 from .utils import is_scalar, rotation_matrix_2d, vector2, AutoSlots
 from .repetition import Repetition
 from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
-                     Mirrorable, Pivotable, Copyable, LockableImpl, RepeatableImpl)
+                     Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl)
 
 
 if TYPE_CHECKING:
@@ -152,7 +152,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
         if self.repetition is not None:
-            self.repetiton.mirror(axis)
+            self.repetition.mirror(axis)
         return self
 
     def get_bounds(self) -> Optional[numpy.ndarray]:
