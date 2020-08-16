@@ -298,7 +298,7 @@ def read(stream: io.BufferedIOBase,
                 path = Path(vertices=vertices,
                             layer=element.get_layer_tuple(),
                             offset=element.get_xy(),
-                            repeition=repetition,
+                            repetition=repetition,
                             width=element.get_half_width() * 2,
                             cap=cap,
                             **path_args)
@@ -566,7 +566,7 @@ def _labels_to_texts(labels: List[Label],
     texts = []
     for label in labels:
         layer, datatype = layer2oas(label.layer)
-        repetition, rep_offset = repetition_masq2fata(shape.repetition)
+        repetition, rep_offset = repetition_masq2fata(label.repetition)
         xy = numpy.round(label.offset + rep_offset).astype(int)
         texts.append(fatrec.Text(layer=layer,
                                  datatype=datatype,
