@@ -104,7 +104,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     def pattern(self, val: Optional['Pattern']):
         from .pattern import Pattern
         if val is not None and not isinstance(val, Pattern):
-            raise PatternError('Provided pattern {} is not a Pattern object or None!'.format(val))
+            raise PatternError(f'Provided pattern {val} is not a Pattern object or None!')
         self._pattern = val
 
     # Mirrored property

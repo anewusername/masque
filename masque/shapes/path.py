@@ -322,7 +322,7 @@ class Path(Shape, metaclass=AutoSlots):
                 bounds[0, :] = numpy.minimum(bounds[0, :], poly_bounds[0, :])
                 bounds[1, :] = numpy.maximum(bounds[1, :], poly_bounds[1, :])
         else:
-            raise PatternError('get_bounds() not implemented for endcaps: {}'.format(self.cap))
+            raise PatternError(f'get_bounds() not implemented for endcaps: {self.cap}')
 
         return bounds
 
