@@ -202,7 +202,6 @@ def readfile(filename: Union[str, pathlib.Path],
 
 
 def read(stream: io.BufferedIOBase,
-         use_dtype_as_dose: bool = False,
          clean_vertices: bool = True,
          ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
@@ -218,11 +217,6 @@ def read(stream: io.BufferedIOBase,
 
     Args:
         stream: Stream to read from.
-        use_dtype_as_dose: If `False`, set each polygon's layer to `(gds_layer, gds_datatype)`.
-            If `True`, set the layer to `gds_layer` and the dose to `gds_datatype`.
-            Default `False`.
-            NOTE: This will be deprecated in the future in favor of
-                    `pattern.apply(masque.file.utils.dtype2dose)`.
         clean_vertices: If `True`, remove any redundant vertices when loading polygons.
             The cleaning process removes any polygons with zero area or <3 vertices.
             Default `True`.
@@ -297,10 +291,6 @@ def read(stream: io.BufferedIOBase,
             elif (isinstance(element, gdsii.elements.SRef) or
                   isinstance(element, gdsii.elements.ARef)):
                 pat.subpatterns.append(_ref_to_subpat(element))
-
-        if use_dtype_as_dose:
-            logger.warning('use_dtype_as_dose will be removed in the future!')
-            pat = dtype2dose(pat)
 
         patterns.append(pat)
 
