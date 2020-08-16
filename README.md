@@ -39,4 +39,4 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
 * Construct from bitmap
 * Boolean operations on polygons (using pyclipper)
 * Implement shape/cell properties
-* Implement OASIS-style repetitions for shapes
+* Deal with shape repetitions for dxf, svg

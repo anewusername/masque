@@ -142,8 +142,8 @@ def write(patterns: Union[Pattern, List[Pattern]],
     Args:
         patterns: A Pattern or list of patterns to write to file.
         stream: Stream to write to.
-        *args: passed to `oasis.build()`
-        **kwargs: passed to `oasis.build()`
+        *args: passed to `masque.file.gdsii.build()`
+        **kwargs: passed to `masque.file.gdsii.build()`
     """
     lib = build(patterns, *args, **kwargs)
     lib.save(stream)
