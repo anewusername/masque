@@ -233,57 +233,33 @@ def read(stream: io.BufferedIOBase,
                     'logical_units_per_unit': lib.logical_unit,
                     }
 
+    raw_mode = True     # Whether to construct shapes in raw mode (less error checking)
+
     patterns = []
     for structure in lib:
         pat = Pattern(name=structure.name.decode('ASCII'))
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
-                args = {'vertices': element.xy[:-1],
-                        'layer': (element.layer, element.data_type),
-                       }
-
-                poly = Polygon(**args)
-
+                poly = _boundary_to_polygon(element, raw_mode)
                 if clean_vertices:
                     try:
                         poly.clean_vertices()
                     except PatternError:
                         continue
-
                 pat.shapes.append(poly)
 
             if isinstance(element, gdsii.elements.Path):
-                if element.path_type in path_cap_map:
-                    cap = path_cap_map[element.path_type]
-                else:
-                    raise PatternError('Unrecognized path type: {}'.format(element.path_type))
-
-                args = {'vertices': element.xy,
-                        'layer': (element.layer, element.data_type),
-                        'width': element.width if element.width is not None else 0.0,
-                        'cap': cap,
-                       }
-
-                if cap == Path.Cap.SquareCustom:
-                    args['cap_extensions'] = numpy.zeros(2)
-                    if element.bgn_extn is not None:
-                        args['cap_extensions'][0] = element.bgn_extn
-                    if element.end_extn is not None:
-                        args['cap_extensions'][1] = element.end_extn
-
-                path = Path(**args)
-
+                path = _gpath_to_mpath(element, raw_mode)
                 if clean_vertices:
                     try:
                         path.clean_vertices()
                     except PatternError as err:
                         continue
-
                 pat.shapes.append(path)
 
             elif isinstance(element, gdsii.elements.Text):
-                label = Label(offset=element.xy,
+                label = Label(offset=element.xy.astype(float),
                               layer=(element.layer, element.text_type),
                               string=element.string.decode('ASCII'))
                 pat.labels.append(label)
@@ -333,9 +309,9 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
           That's not currently supported by masque at all, so need to either tag it and
           undo the parent transformations, or implement it in masque.
     """
-    rotation = 0
-    offset = numpy.array(element.xy[0])
-    scale = 1
+    rotation = 0.0
+    offset = numpy.array(element.xy[0], dtype=float)
+    scale = 1.0
     mirror_across_x = False
     repetition = None
 
@@ -370,6 +346,39 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
                         repetition=repetition)
     subpat.identifier = (element.struct_name,)
     return subpat
+
+
+def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
+    if element.path_type in path_cap_map:
+        cap = path_cap_map[element.path_type]
+    else:
+        raise PatternError(f'Unrecognized path type: {element.path_type}')
+
+    args = {'vertices': element.xy.astype(float),
+            'layer': (element.layer, element.data_type),
+            'width': element.width if element.width is not None else 0.0,
+            'cap': cap,
+            'offset': numpy.zeros(2),
+            'raw': raw_mode,
+           }
+
+    if cap == Path.Cap.SquareCustom:
+        args['cap_extensions'] = numpy.zeros(2)
+        if element.bgn_extn is not None:
+            args['cap_extensions'][0] = element.bgn_extn
+        if element.end_extn is not None:
+            args['cap_extensions'][1] = element.end_extn
+
+    return Path(**args)
+
+
+def _boundary_to_polygon(element: gdsii.elements.Boundary, raw_mode: bool) -> Polygon:
+    args = {'vertices': element.xy[:-1].astype(float),
+            'layer': (element.layer, element.data_type),
+            'offset': numpy.zeros(2),
+            'raw': raw_mode,
+           }
+    return Polygon(**args)
 
 
 def _subpatterns_to_refs(subpatterns: List[SubPattern]
