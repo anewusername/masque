@@ -370,17 +370,18 @@ def disambiguate_pattern_names(patterns,
             i += 1
 
         if sanitized_name == '':
-            logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
+            logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
-                                pat.name, sanitized_name, suffixed_name))
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
+                               f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError('Zero-length name after sanitize,\n originally "{}"'.format(pat.name))
+            raise PatternError(f'Zero-length name after sanitize,\n originally "{pat.name}"')
         if len(suffixed_name) > max_name_length:
-            raise PatternError('Pattern name "{!r}" length > {} after encode,\n originally "{}"'.format(suffixed_name, max_name_length, pat.name))
+            raise PatternError(f'Pattern name "{suffixed_name!r}" length > {max_name_length} after encode,\n' +
+                               f' originally "{pat.name}"')
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)

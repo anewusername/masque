@@ -484,8 +484,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
         # Shorten names which already exceed max-length
         if len(pat.name) > max_name_length:
             shortened_name = pat.name[:max_name_length - suffix_length]
-            logger.warning('Pattern name "{}" is too long ({}/{} chars),\n'.format(pat.name, len(pat.name), max_name_length) +
-                           ' shortening to "{}" before generating suffix'.format(shortened_name))
+            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n' +
+                           f' shortening to "{shortened_name}" before generating suffix')
         else:
             shortened_name = pat.name
 
@@ -502,19 +502,20 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             i += 1
 
         if sanitized_name == '':
-            logger.warning('Empty pattern name saved as "{}"'.format(suffixed_name))
+            logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning('Pattern name "{}" ({}) appears multiple times;\n renaming to "{}"'.format(
-                                pat.name, sanitized_name, suffixed_name))
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
+                               f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError('Zero-length name after sanitize+encode,\n originally "{}"'.format(pat.name))
+            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
         if len(encoded_name) > max_name_length:
-            raise PatternError('Pattern name "{!r}" length > {} after encode,\n originally "{}"'.format(encoded_name, max_name_length, pat.name))
+            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n' +
+                               f' originally "{pat.name}"')
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)

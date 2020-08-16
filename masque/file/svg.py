@@ -79,8 +79,7 @@ def writefile(pattern: Pattern,
         for subpat in pat.subpatterns:
             if subpat.pattern is None:
                 continue
-            transform = 'scale({:g}) rotate({:g}) translate({:g},{:g})'.format(
-                subpat.scale, subpat.rotation, subpat.offset[0], subpat.offset[1])
+            transform = f'scale({subpat.scale:g}) rotate({subpat.rotation:g}) translate({subpat.offset[0]:g},{subpat.offset[1]:g})'
             use = svg.use(href='#' + mangle_name(subpat.pattern), transform=transform)
             if custom_attributes:
                 use['pattern_dose'] = subpat.dose
