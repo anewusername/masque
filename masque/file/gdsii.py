@@ -293,7 +293,7 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
         else:
             data_type = 0
     else:
-        raise PatternError(f'Invalid layer for gdsii: {layer}. Note that gdsii layers cannot be strings.')
+        raise PatternError(f'Invalid layer for gdsii: {mlayer}. Note that gdsii layers cannot be strings.')
     return layer, data_type
 
 
