@@ -2,6 +2,7 @@
 
 from setuptools import setup, find_packages
 
+
 with open('README.md', 'r') as f:
     long_description = f.read()
 
@@ -41,10 +42,42 @@ setup(name='masque',
             'Intended Audience :: Manufacturing',
             'Intended Audience :: Science/Research',
             'License :: OSI Approved :: GNU Affero General Public License v3',
-            'Operating System :: POSIX :: Linux',
-            'Operating System :: Microsoft :: Windows',
             'Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)',
             'Topic :: Scientific/Engineering :: Visualization',
+      ],
+      keywords=[
+          'layout',
+          'design',
+          'CAD',
+          'EDA',
+          'electronics',
+          'photonics',
+          'IC',
+          'mask',
+          'pattern',
+          'drawing',
+          'lithography',
+          'litho',
+          'geometry',
+          'geometric',
+          'polygon',
+          'curve',
+          'ellipse',
+          'oas',
+          'gds',
+          'dxf',
+          'svg',
+          'OASIS',
+          'gdsii',
+          'gds2',
+          'convert',
+          'stream',
+          'custom',
+          'visualize',
+          'vector',
+          'freeform',
+          'manhattan',
+          'angle',
       ],
       )
 
