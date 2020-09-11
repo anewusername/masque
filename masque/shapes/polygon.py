@@ -73,6 +73,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     def __init__(self,
                  vertices: numpy.ndarray,
+                 *,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Sequence[bool] = (False, False),

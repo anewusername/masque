@@ -154,6 +154,7 @@ class Arc(Shape, metaclass=AutoSlots):
                  radii: vector2,
                  angles: vector2,
                  width: float,
+                 *,
                  poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: Optional[float] = None,
                  offset: vector2 = (0.0, 0.0),

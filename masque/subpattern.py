@@ -45,6 +45,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
     def __init__(self,
                  pattern: Optional['Pattern'],
+                 *,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Optional[Sequence[bool]] = None,
