@@ -1,9 +1,9 @@
 from typing import List, Tuple, Callable, TypeVar, Optional
 from abc import ABCMeta, abstractmethod
 import copy
-import numpy
 
 from ..error import PatternError, PatternLockedError
+
 
 T = TypeVar('T', bound='Mirrorable')
 #I = TypeVar('I', bound='MirrorableImpl')

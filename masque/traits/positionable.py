@@ -3,7 +3,7 @@
 from typing import List, Tuple, Callable, TypeVar, Optional
 from abc import ABCMeta, abstractmethod
 import copy
-import numpy
+import numpy        # type: ignore
 
 from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2

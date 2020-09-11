@@ -7,14 +7,15 @@
 from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
 import copy
 
-import numpy
+import numpy        # type: ignore
 from numpy import pi
 
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, rotation_matrix_2d, vector2, AutoSlots
+from .utils import is_scalar, rotation_matrix_2d, vector2, AutoSlots, annotations_t
 from .repetition import Repetition
 from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
-                     Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl)
+                     Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl,
+                     AnnotatableImpl)
 
 
 if TYPE_CHECKING:
@@ -22,7 +23,8 @@ if TYPE_CHECKING:
 
 
 class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
-                 PivotableImpl, Copyable, RepeatableImpl, LockableImpl, metaclass=AutoSlots):
+                 PivotableImpl, Copyable, RepeatableImpl, LockableImpl, AnnotatableImpl,
+                 metaclass=AutoSlots):
     """
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
@@ -49,8 +51,10 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
                  dose: float = 1.0,
                  scale: float = 1.0,
                  repetition: Optional[Repetition] = None,
+                 annotations: Optional[annotations_t] = None,
                  locked: bool = False,
-                 identifier: Tuple[Any, ...] = ()):
+                 identifier: Tuple[Any, ...] = (),
+                 ):
         """
         Args:
             pattern: Pattern to reference.
@@ -74,7 +78,8 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             mirrored = [False, False]
         self.mirrored = mirrored
         self.repetition = repetition
-        self.locked = locked
+        self.annotations = annotations if annotations is not None else {}
+        self.set_locked(locked)
 
     def  __copy__(self) -> 'SubPattern':
         new = SubPattern(pattern=self.pattern,
@@ -84,6 +89,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
                          scale=self.scale,
                          mirrored=self.mirrored.copy(),
                          repetition=copy.deepcopy(self.repetition),
+                         annotations=copy.deepcopy(self.annotations),
                          locked=self.locked)
         return new
 
@@ -92,7 +98,8 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         new = copy.copy(self).unlock()
         new.pattern = copy.deepcopy(self.pattern, memo)
         new.repetition = copy.deepcopy(self.repetition, memo)
-        new.locked = self.locked
+        new.annotations = copy.deepcopy(self.annotations, memo)
+        new.set_locked(self.locked)
         return new
 
     # pattern property

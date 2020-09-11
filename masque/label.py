@@ -1,15 +1,16 @@
 from typing import List, Tuple, Dict, Optional
 import copy
-import numpy
+import numpy        # type: ignore
 from numpy import pi
 
 from .repetition import Repetition
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t, AutoSlots
+from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
+from .traits import AnnotatableImpl
 
 
-class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl,
+class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, AnnotatableImpl,
             Pivotable, Copyable, metaclass=AutoSlots):
     """
     A text annotation with a position and layer (but no size; it is not drawn)
@@ -42,14 +43,17 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl,
                  offset: vector2 = (0.0, 0.0),
                  layer: layer_t = 0,
                  repetition: Optional[Repetition] = None,
-                 locked: bool = False):
-        object.__setattr__(self, 'locked', False)
+                 annotations: Optional[annotations_t] = None,
+                 locked: bool = False,
+                 ):
+        LockableImpl.unlock(self)
         self.identifier = ()
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
         self.layer = layer
         self.repetition = repetition
-        self.locked = locked
+        self.annotations = annotations if annotations is not None else {}
+        self.set_locked(locked)
 
     def __copy__(self) -> 'Label':
         return Label(string=self.string,
@@ -62,7 +66,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl,
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
-        new.locked = self.locked
+        new.set_locked(self.locked)
         return new
 
     def rotate_around(self, pivot: vector2, rotation: float) -> 'Label':

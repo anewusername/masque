@@ -1,14 +1,16 @@
 from typing import List, Tuple, Dict, Optional, Sequence
 import copy
 from enum import Enum
-import numpy
+
+import numpy        # type: ignore
 from numpy import pi, inf
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
-from ..utils import remove_colinear_vertices, remove_duplicate_vertices
+from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
+from ..traits import LockableImpl
 
 
 class PathCap(Enum):
@@ -149,10 +151,11 @@ class Path(Shape, metaclass=AutoSlots):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
+                 annotations: Optional[annotations_t] = None,
                  locked: bool = False,
                  raw: bool = False,
                  ):
-        object.__setattr__(self, 'locked', False)
+        LockableImpl.unlock(self)
         self._cap_extensions = None     # Since .cap setter might access it
 
         self.identifier = ()
@@ -160,6 +163,7 @@ class Path(Shape, metaclass=AutoSlots):
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
+            self._annotations = annotations if annotations is not None else {}
             self._layer = layer
             self._dose = dose
             self._width = width
@@ -169,6 +173,7 @@ class Path(Shape, metaclass=AutoSlots):
             self.vertices = vertices
             self.offset = offset
             self.repetition = repetition
+            self.annotations = annotations if annotations is not None else {}
             self.layer = layer
             self.dose = dose
             self.width = width
@@ -176,7 +181,7 @@ class Path(Shape, metaclass=AutoSlots):
             self.cap_extensions = cap_extensions
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.locked = locked
+        self.set_locked(locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Path':
         memo = {} if memo is None else memo
@@ -185,7 +190,8 @@ class Path(Shape, metaclass=AutoSlots):
         new._vertices = self._vertices.copy()
         new._cap = copy.deepcopy(self._cap, memo)
         new._cap_extensions = copy.deepcopy(self._cap_extensions, memo)
-        new.locked = self.locked
+        new._annotations = copy.deepcopy(self._annotations)
+        new.set_locked(self.locked)
         return new
 
     @staticmethod

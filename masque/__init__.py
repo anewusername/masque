@@ -31,7 +31,7 @@ from .shapes import Shape
 from .label import Label
 from .subpattern import SubPattern
 from .pattern import Pattern
-from .utils import layer_t
+from .utils import layer_t, annotations_t
 
 
 __author__ = 'Jan Petykiewicz'

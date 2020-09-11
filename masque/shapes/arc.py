@@ -1,13 +1,15 @@
 from typing import List, Tuple, Dict, Optional, Sequence
 import copy
 import math
-import numpy
+
+import numpy        # type: ignore
 from numpy import pi
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, vector2, layer_t, AutoSlots
+from ..utils import is_scalar, vector2, layer_t, AutoSlots, annotations_t
+from ..traits import LockableImpl
 
 
 class Arc(Shape, metaclass=AutoSlots):
@@ -160,10 +162,11 @@ class Arc(Shape, metaclass=AutoSlots):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
+                 annotations: Optional[annotations_t] = None,
                  locked: bool = False,
                  raw: bool = False,
                  ):
-        object.__setattr__(self, 'locked', False)
+        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             self._radii = radii
@@ -172,6 +175,7 @@ class Arc(Shape, metaclass=AutoSlots):
             self._offset = offset
             self._rotation = rotation
             self._repetition = repetition
+            self._annotations = annotations if annotations is not None else {}
             self._layer = layer
             self._dose = dose
         else:
@@ -181,12 +185,13 @@ class Arc(Shape, metaclass=AutoSlots):
             self.offset = offset
             self.rotation = rotation
             self.repetition = repetition
+            self.annotations = annotations if annotations is not None else {}
             self.layer = layer
             self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.locked = locked
+        self.set_locked(locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Arc':
         memo = {} if memo is None else memo
@@ -194,7 +199,8 @@ class Arc(Shape, metaclass=AutoSlots):
         new._offset = self._offset.copy()
         new._radii = self._radii.copy()
         new._angles = self._angles.copy()
-        new.locked = self.locked
+        new._annotations = copy.deepcopy(self._annotations)
+        new.set_locked(self.locked)
         return new
 
     def to_polygons(self,

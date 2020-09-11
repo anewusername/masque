@@ -1,7 +1,6 @@
 from typing import List, Tuple, Callable, TypeVar, Optional
 from abc import ABCMeta, abstractmethod
 import copy
-import numpy
 
 from ..error import PatternError, PatternLockedError
 from ..utils import layer_t
