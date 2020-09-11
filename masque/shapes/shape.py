@@ -1,13 +1,15 @@
 from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 import copy
-import numpy
+
+import numpy        # type: ignore
 
 from ..error import PatternError, PatternLockedError
 from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
-                      PivotableImpl, LockableImpl, RepeatableImpl)
+                      PivotableImpl, LockableImpl, RepeatableImpl,
+                      AnnotatableImpl)
 
 if TYPE_CHECKING:
     from . import Polygon
@@ -27,7 +29,7 @@ T = TypeVar('T', bound='Shape')
 
 
 class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable,
-            PivotableImpl, RepeatableImpl, LockableImpl, metaclass=ABCMeta):
+            PivotableImpl, RepeatableImpl, LockableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """
@@ -39,7 +41,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     def __copy__(self) -> 'Shape':
         cls = self.__class__
         new = cls.__new__(cls)
-        for name in self.__slots__:
+        for name in self.__slots__:     # type: str
             object.__setattr__(new, name, getattr(self, name))
         return new
 

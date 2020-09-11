@@ -9,26 +9,27 @@ import itertools
 import pickle
 from collections import defaultdict
 
-import numpy
+import numpy        # type: ignore
 from numpy import inf
 # .visualize imports matplotlib and matplotlib.collections
 
 from .subpattern import SubPattern
 from .shapes import Shape, Polygon
 from .label import Label
-from .utils import rotation_matrix_2d, vector2, normalize_mirror
+from .utils import rotation_matrix_2d, vector2, normalize_mirror, AutoSlots, annotations_t
 from .error import PatternError, PatternLockedError
+from .traits import LockableImpl, AnnotatableImpl
 
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
 
 
-class Pattern:
+class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
-    __slots__ = ('shapes', 'labels', 'subpatterns', 'name', 'locked')
+    __slots__ = ('shapes', 'labels', 'subpatterns', 'name')
 
     shapes: List[Shape]
     """ List of all shapes in this Pattern.
@@ -47,14 +48,12 @@ class Pattern:
     name: str
     """ A name for this pattern """
 
-    locked: bool
-    """ When the pattern is locked, no changes may be made. """
-
     def __init__(self,
                  name: str = '',
                  shapes: Sequence[Shape] = (),
                  labels: Sequence[Label] = (),
                  subpatterns: Sequence[SubPattern] = (),
+                 annotations: Optional[annotations_t] = None,
                  locked: bool = False,
                  ):
         """
@@ -68,7 +67,7 @@ class Pattern:
             name: An identifier for the Pattern
             locked: Whether to lock the pattern after construction
         """
-        object.__setattr__(self, 'locked', False)
+        LockableImpl.unlock(self)
         if isinstance(shapes, list):
             self.shapes = shapes
         else:
@@ -84,8 +83,9 @@ class Pattern:
         else:
             self.subpatterns = list(subpatterns)
 
+        self.annotations = annotations if annotations is not None else {}
         self.name = name
-        self.locked = locked
+        self.set_locked(locked)
 
     def __setattr__(self, name, value):
         if self.locked and name != 'locked':
@@ -97,6 +97,7 @@ class Pattern:
                        shapes=copy.deepcopy(self.shapes),
                        labels=copy.deepcopy(self.labels),
                        subpatterns=[copy.copy(sp) for sp in self.subpatterns],
+                       annotations=copy.deepcopy(self.annotations),
                        locked=self.locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Pattern':
@@ -105,6 +106,7 @@ class Pattern:
                 shapes=copy.deepcopy(self.shapes, memo),
                 labels=copy.deepcopy(self.labels, memo),
                 subpatterns=copy.deepcopy(self.subpatterns, memo),
+                annotations=copy.deepcopy(self.annotations, memo),
                 locked=self.locked)
         return new
 
@@ -815,7 +817,7 @@ class Pattern:
             self.shapes = tuple(self.shapes)
             self.labels = tuple(self.labels)
             self.subpatterns = tuple(self.subpatterns)
-            object.__setattr__(self, 'locked', True)
+            LockableImpl.lock(self)
         return self
 
     def unlock(self) -> 'Pattern':
@@ -826,7 +828,7 @@ class Pattern:
             self
         """
         if self.locked:
-            object.__setattr__(self, 'locked', False)
+            LockableImpl.unlock(self)
             self.shapes = list(self.shapes)
             self.labels = list(self.labels)
             self.subpatterns = list(self.subpatterns)

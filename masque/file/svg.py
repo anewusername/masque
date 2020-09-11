@@ -2,9 +2,10 @@
 SVG file format readers and writers
 """
 from typing import Dict, Optional
-import svgwrite
-import numpy
 import warnings
+
+import numpy        # type: ignore
+import svgwrite     # type: ignore
 
 from .utils import mangle_name
 from .. import Pattern

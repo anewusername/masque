@@ -7,3 +7,4 @@ from .scalable import Scalable, ScalableImpl
 from .mirrorable import Mirrorable
 from .copyable import Copyable
 from .lockable import Lockable, LockableImpl
+from .annotatable import Annotatable, AnnotatableImpl

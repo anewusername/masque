@@ -1,6 +1,7 @@
 from typing import List, Tuple, Dict, Sequence, Optional, MutableSequence
 import copy
-import numpy
+
+import numpy        # type: ignore
 from numpy import pi, inf
 
 from . import Shape, Polygon, normalized_shape_tuple
@@ -8,6 +9,8 @@ from .. import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
 from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t, AutoSlots
+from ..utils import annotations_t
+from ..traits import LockableImpl
 
 # Loaded on use:
 # from freetype import Face
@@ -67,10 +70,11 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
                  layer: layer_t = 0,
                  dose: float = 1.0,
                  repetition: Optional[Repetition] = None,
+                 annotations: Optional[annotations_t] = None,
                  locked: bool = False,
                  raw: bool = False,
                  ):
-        object.__setattr__(self, 'locked', False)
+        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             self._offset = offset
@@ -81,6 +85,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             self._rotation = rotation
             self._mirrored = mirrored
             self._repetition = repetition
+            self._annotations = annotations if annotations is not None else {}
         else:
             self.offset = offset
             self.layer = layer
@@ -90,15 +95,17 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             self.rotation = rotation
             self.mirrored = mirrored
             self.repetition = repetition
+            self.annotations = annotations if annotations is not None else {}
         self.font_path = font_path
-        self.locked = locked
+        self.set_locked(locked)
 
     def  __deepcopy__(self, memo: Dict = None) -> 'Text':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
         new._mirrored = copy.deepcopy(self._mirrored, memo)
-        new.locked = self.locked
+        new._annotations = copy.deepcopy(self._annotations)
+        new.set_locked(self.locked)
         return new
 
     def to_polygons(self,

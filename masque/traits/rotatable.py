@@ -2,7 +2,7 @@ from typing import List, Tuple, Callable, TypeVar, Optional
 from abc import ABCMeta, abstractmethod
 import copy
 
-import numpy
+import numpy        # type: ignore
 from numpy import pi
 
 from .positionable import Positionable

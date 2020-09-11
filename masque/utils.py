@@ -1,15 +1,16 @@
 """
 Various helper functions
 """
-
-from typing import Any, Union, Tuple, Sequence
+from typing import Any, Union, Tuple, Sequence, Dict, List
 from abc import ABCMeta
 
-import numpy
+import numpy        # type: ignore
+
 
 # Type definitions
 vector2 = Union[numpy.ndarray, Tuple[float, float], Sequence[float]]
 layer_t = Union[int, Tuple[int, int], str]
+annotations_t = Dict[str, List[Union[int, float, str]]]
 
 
 def is_scalar(var: Any) -> bool:

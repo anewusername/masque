@@ -7,7 +7,7 @@ from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, 
 import copy
 from abc import ABCMeta, abstractmethod
 
-import numpy
+import numpy        # type: ignore
 
 from .error import PatternError, PatternLockedError
 from .utils import rotation_matrix_2d, vector2, AutoSlots

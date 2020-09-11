@@ -20,19 +20,19 @@ import struct
 import logging
 import pathlib
 import gzip
-import numpy
-from numpy import pi
 
+import numpy        # type: ignore
+from numpy import pi
 import fatamorgana
 import fatamorgana.records as fatrec
-from fatamorgana.basic import PathExtensionScheme
+from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
 from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
-from ..utils import remove_colinear_vertices, normalize_mirror
+from ..utils import remove_colinear_vertices, normalize_mirror, annotations_t
 
 
 logger = logging.getLogger(__name__)
@@ -52,9 +52,11 @@ path_cap_map = {
 
 def build(patterns: Union[Pattern, List[Pattern]],
           units_per_micron: int,
-          layer_map: Dict[str, Union[int, Tuple[int, int]]] = None,
+          layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
+          *,
           modify_originals: bool = False,
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+          disambiguate_func: Optional[Callable[[Iterable[Pattern]], None]] = None,
+          annotations: Optional[annotations_t] = None
           ) -> fatamorgana.OasisLayout:
     """
     Convert a `Pattern` or list of patterns to an OASIS stream, writing patterns
@@ -91,6 +93,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
             Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
+        annotations: dictionary of key-value pairs which are saved as library-level properties
 
     Returns:
         `fatamorgana.OasisLayout`
@@ -104,11 +107,15 @@ def build(patterns: Union[Pattern, List[Pattern]],
     if disambiguate_func is None:
         disambiguate_func = disambiguate_pattern_names
 
+    if annotations is None:
+        annotations = {}
+
     if not modify_originals:
         patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
 
     # Create library
     lib = fatamorgana.OasisLayout(unit=units_per_micron, validation=None)
+    lib.properties = annotations_to_properties(annotations)
 
     if layer_map:
         for name, layer_num in layer_map.items():
@@ -139,9 +146,11 @@ def build(patterns: Union[Pattern, List[Pattern]],
         structure = fatamorgana.Cell(name=pat.name)
         lib.cells.append(structure)
 
+        structure.properties += annotations_to_properties(pat.annotations)
+
         structure.geometry += _shapes_to_elements(pat.shapes, layer2oas)
         structure.geometry += _labels_to_texts(pat.labels, layer2oas)
-        structure.placements += _subpatterns_to_refs(pat.subpatterns)
+        structure.placements += _subpatterns_to_placements(pat.subpatterns)
 
     return lib
 
@@ -226,6 +235,8 @@ def read(stream: io.BufferedIOBase,
 
     Additional library info is returned in a dict, containing:
       'units_per_micrometer': number of database units per micrometer (all values are in database units)
+      'layer_map': Mapping from layer names to fatamorgana.LayerName objects
+      'annotations': Mapping of {key: value} pairs from library's properties
 
     Args:
         stream: Stream to read from.
@@ -242,6 +253,7 @@ def read(stream: io.BufferedIOBase,
 
     library_info: Dict[str, Any] = {
             'units_per_micrometer': lib.unit,
+            'annotations': properties_to_annotations(lib.properties, lib.propnames, lib.propstrings),
             }
 
     layer_map = {}
@@ -252,7 +264,7 @@ def read(stream: io.BufferedIOBase,
     patterns = []
     for cell in lib.cells:
         if isinstance(cell.name, int):
-            cell_name = lib.cellnames[cell.name].string
+            cell_name = lib.cellnames[cell.name].nstring.string
         else:
             cell_name = cell.name.string
 
@@ -263,15 +275,16 @@ def read(stream: io.BufferedIOBase,
                 # note XELEMENT has no repetition
                 continue
 
-
             repetition = repetition_fata2masq(element.repetition)
 
             # Switch based on element type:
             if isinstance(element, fatrec.Polygon):
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list())), axis=0)
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 poly = Polygon(vertices=vertices,
                                layer=element.get_layer_tuple(),
                                offset=element.get_xy(),
+                               annotations=annotations,
                                repetition=repetition)
 
                 if clean_vertices:
@@ -295,10 +308,13 @@ def read(stream: io.BufferedIOBase,
                 if cap == Path.Cap.SquareCustom:
                     path_args['cap_extensions'] = numpy.array((element.get_extension_start()[1],
                                                                element.get_extension_end()[1]))
+
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 path = Path(vertices=vertices,
                             layer=element.get_layer_tuple(),
                             offset=element.get_xy(),
                             repetition=repetition,
+                            annotations=annotations,
                             width=element.get_half_width() * 2,
                             cap=cap,
                             **path_args)
@@ -314,10 +330,12 @@ def read(stream: io.BufferedIOBase,
             elif isinstance(element, fatrec.Rectangle):
                 width = element.get_width()
                 height = element.get_height()
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 rect = Polygon(layer=element.get_layer_tuple(),
                                offset=element.get_xy(),
                                repetition=repetition,
                                vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
+                               annotations=annotations,
                                )
                 pat.shapes.append(rect)
 
@@ -346,10 +364,12 @@ def read(stream: io.BufferedIOBase,
                     else:
                         vertices[2, 0] -= b
 
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 trapz = Polygon(layer=element.get_layer_tuple(),
                                 offset=element.get_xy(),
                                 repetition=repetition,
                                 vertices=vertices,
+                                annotations=annotations,
                                 )
                 pat.shapes.append(trapz)
 
@@ -399,24 +419,30 @@ def read(stream: io.BufferedIOBase,
                     vertices = vertices[[0, 2, 3], :]
                     vertices[0, 1] += width
 
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 ctrapz = Polygon(layer=element.get_layer_tuple(),
                                  offset=element.get_xy(),
                                  repetition=repetition,
                                  vertices=vertices,
+                                 annotations=annotations,
                                  )
                 pat.shapes.append(ctrapz)
 
             elif isinstance(element, fatrec.Circle):
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 circle = Circle(layer=element.get_layer_tuple(),
                                 offset=element.get_xy(),
                                 repetition=repetition,
+                                annotations=annotations,
                                 radius=float(element.get_radius()))
                 pat.shapes.append(circle)
 
             elif isinstance(element, fatrec.Text):
+                annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 label = Label(layer=element.get_layer_tuple(),
                               offset=element.get_xy(),
                               repetition=repetition,
+                              annotations=annotations,
                               string=str(element.get_string()))
                 pat.labels.append(label)
 
@@ -425,7 +451,7 @@ def read(stream: io.BufferedIOBase,
                 continue
 
         for placement in cell.placements:
-            pat.subpatterns.append(_placement_to_subpat(placement))
+            pat.subpatterns.append(_placement_to_subpat(placement, lib))
 
         patterns.append(pat)
 
@@ -435,7 +461,7 @@ def read(stream: io.BufferedIOBase,
     for p in patterns_dict.values():
         for sp in p.subpatterns:
             ident = sp.identifier[0]
-            name = ident if isinstance(ident, str) else lib.cellnames[ident].string
+            name = ident if isinstance(ident, str) else lib.cellnames[ident].nstring.string
             sp.pattern = patterns_dict[name]
             del sp.identifier
 
@@ -459,7 +485,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
+def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> SubPattern:
     """
     Helper function to create a SubPattern from a placment. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
@@ -468,21 +494,20 @@ def _placement_to_subpat(placement: fatrec.Placement) -> SubPattern:
     mag = placement.magnification if placement.magnification is not None else 1
     pname = placement.get_name()
     name = pname if isinstance(pname, int) else pname.string
-    args: Dict[str, Any] = {
-       'pattern': None,
-       'mirrored': (placement.flip, False),
-       'rotation': float(placement.angle * pi/180),
-       'scale': mag,
-       'identifier': (name,),
-       'repetition': repetition_fata2masq(placement.repetition),
-       }
-
-    subpat = SubPattern(offset=xy, **args)
+    annotations = properties_to_annotations(placement.properties, lib.propnames, lib.propstrings)
+    subpat = SubPattern(offset=xy,
+                        pattern=None,
+                        mirrored=(placement.flip, False),
+                        rotation=float(placement.angle * pi/180),
+                        scale=float(mag),
+                        identifier=(name,),
+                        repetition=repetition_fata2masq(placement.repetition),
+                        annotations=annotations)
     return subpat
 
 
-def _subpatterns_to_refs(subpatterns: List[SubPattern]
-                        ) -> List[fatrec.Placement]:
+def _subpatterns_to_placements(subpatterns: List[SubPattern]
+                               ) -> List[fatrec.Placement]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -493,19 +518,16 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
         frep, rep_offset = repetition_masq2fata(subpat.repetition)
 
         offset = numpy.round(subpat.offset + rep_offset).astype(int)
-        args: Dict[str, Any] = {
-            'x': offset[0],
-            'y': offset[1],
-            'repetition': frep,
-            }
-
         angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
                 name=subpat.pattern.name,
                 flip=mirror_across_x,
                 angle=angle,
                 magnification=subpat.scale,
-                **args)
+                properties=annotations_to_properties(subpat.annotations),
+                x=offset[0],
+                y=offset[1],
+                repetition=frep)
 
         refs.append(ref)
     return refs
@@ -519,6 +541,7 @@ def _shapes_to_elements(shapes: List[Shape],
     for shape in shapes:
         layer, datatype = layer2oas(shape.layer)
         repetition, rep_offset = repetition_masq2fata(shape.repetition)
+        properties = annotations_to_properties(shape.annotations)
         if isinstance(shape, Circle):
             offset = numpy.round(shape.offset + rep_offset).astype(int)
             radius = numpy.round(shape.radius).astype(int)
@@ -527,6 +550,7 @@ def _shapes_to_elements(shapes: List[Shape],
                                    radius=radius,
                                    x=offset[0],
                                    y=offset[1],
+                                   properties=properties,
                                    repetition=repetition)
             elements.append(circle)
         elif isinstance(shape, Path):
@@ -544,6 +568,7 @@ def _shapes_to_elements(shapes: List[Shape],
                                y=xy[1],
                                extension_start=extension_start,       #TODO implement multiple cap types?
                                extension_end=extension_end,
+                               properties=properties,
                                repetition=repetition,
                                )
             elements.append(path)
@@ -556,6 +581,7 @@ def _shapes_to_elements(shapes: List[Shape],
                                                x=xy[0],
                                                y=xy[1],
                                                point_list=points,
+                                               properties=properties,
                                                repetition=repetition))
     return elements
 
@@ -568,11 +594,13 @@ def _labels_to_texts(labels: List[Label],
         layer, datatype = layer2oas(label.layer)
         repetition, rep_offset = repetition_masq2fata(label.repetition)
         xy = numpy.round(label.offset + rep_offset).astype(int)
+        properties = annotations_to_properties(label.annotations)
         texts.append(fatrec.Text(layer=layer,
                                  datatype=datatype,
                                  x=xy[0],
                                  y=xy[1],
                                  string=label.string,
+                                 properties=properties,
                                  repetition=repetition))
     return texts
 
@@ -609,6 +637,7 @@ def disambiguate_pattern_names(patterns,
 
 def repetition_fata2masq(rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
                          ) -> Optional[Repetition]:
+    mrep: Optional[Repetition]
     if isinstance(rep, fatamorgana.GridRepetition):
         mrep = Grid(a_vector=rep.a_vector,
                     b_vector=rep.b_vector,
@@ -624,7 +653,12 @@ def repetition_fata2masq(rep: Union[fatamorgana.GridRepetition, fatamorgana.Arbi
     return mrep
 
 
-def repetition_masq2fata(rep: Optional[Repetition]):
+def repetition_masq2fata(rep: Optional[Repetition]
+                        ) -> Tuple[Union[fatamorgana.GridRepetition,
+                                         fatamorgana.ArbitraryRepetition,
+                                         None],
+                                   Tuple[int, int]]:
+    frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
     if isinstance(rep, Grid):
         frep = fatamorgana.GridRepetition(
                           a_vector=numpy.round(rep.a_vector).astype(int),
@@ -642,3 +676,46 @@ def repetition_masq2fata(rep: Optional[Repetition]):
         frep = None
         offset = (0, 0)
     return frep, offset
+
+
+def annotations_to_properties(annotations: annotations_t) -> List[fatrec.Property]:
+    #TODO determine is_standard based on key?
+    properties = []
+    for key, values in annotations.items():
+        vals = [AString(v) if isinstance(v, str) else v
+                for v in values]
+        properties.append(fatrec.Property(key, vals, is_standard=False))
+    return properties
+
+
+def properties_to_annotations(properties: List[fatrec.Property],
+                              propnames: Dict[int, NString],
+                              propstrings: Dict[int, AString],
+                              ) -> annotations_t:
+    annotations = {}
+    for proprec in properties:
+        assert(proprec.name is not None)
+        if isinstance(proprec.name, int):
+            key = propnames[proprec.name].string
+        else:
+            key = proprec.name.string
+        values: List[Union[str, float, int]] = []
+
+        assert(proprec.values is not None)
+        for value in proprec.values:
+            if isinstance(value, (float, int)):
+                values.append(value)
+            elif isinstance(value, (NString, AString)):
+                values.append(value.string)
+            elif isinstance(value, PropStringReference):
+                values.append(propstrings[value.ref].string)  # dereference
+            else:
+                string = repr(value)
+                logger.warning(f'Converting property value for key ({key}) to string ({string})')
+                values.append(string)
+        annotations[key] = values
+    return annotations
+
+    properties = [fatrec.Property(key, vals, is_standard=False)
+                  for key, vals in annotations.items()]
+    return properties

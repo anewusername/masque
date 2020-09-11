@@ -17,7 +17,8 @@ def main():
         pat.shapes.append(shapes.Arc(
             radii=(rmin, rmin),
             width=0.1,
-            angles=(0*-numpy.pi/4, numpy.pi/4)
+            angles=(0*-numpy.pi/4, numpy.pi/4),
+            annotations={'1': ['blah']},
         ))
 
     pat.scale_by(1000)
@@ -27,7 +28,7 @@ def main():
 
     pat3 = Pattern('sref_test')
     pat3.subpatterns = [
-        SubPattern(pat, offset=(1e5, 3e5)),
+        SubPattern(pat, offset=(1e5, 3e5), annotations={'4': ['Hello I am the base subpattern']}),
         SubPattern(pat, offset=(2e5, 3e5), rotation=pi/3),
         SubPattern(pat, offset=(3e5, 3e5), rotation=pi/2),
         SubPattern(pat, offset=(4e5, 3e5), rotation=pi),
