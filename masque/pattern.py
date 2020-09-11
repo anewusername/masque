@@ -50,6 +50,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
 
     def __init__(self,
                  name: str = '',
+                 *,
                  shapes: Sequence[Shape] = (),
                  labels: Sequence[Label] = (),
                  subpatterns: Sequence[SubPattern] = (),

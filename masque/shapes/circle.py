@@ -44,6 +44,7 @@ class Circle(Shape, metaclass=AutoSlots):
 
     def __init__(self,
                  radius: float,
+                 *,
                  poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
                  poly_max_arclen: Optional[float] = None,
                  offset: vector2 = (0.0, 0.0),

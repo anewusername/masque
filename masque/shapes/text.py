@@ -64,6 +64,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
                  string: str,
                  height: float,
                  font_path: str,
+                 *,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0.0,
                  mirrored: Tuple[bool, bool] = (False, False),
