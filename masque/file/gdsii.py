@@ -54,6 +54,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
+          *,
           modify_originals: bool = False,
           disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
           ) -> gdsii.library.Library:

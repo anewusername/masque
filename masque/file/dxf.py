@@ -34,6 +34,7 @@ DEFAULT_LAYER = 'DEFAULT'
 
 def write(pattern: Pattern,
           stream: io.TextIOBase,
+          *,
           modify_originals: bool = False,
           dxf_version='AC1024',
           disambiguate_func: Callable[[Iterable[Pattern]], None] = None):
