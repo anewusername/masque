@@ -33,10 +33,19 @@ Alternatively, install from git
 pip3 install git+https://mpxd.net/code/jan/masque.git@release
 ```
 
+## Translation
+- `Pattern`: OASIS or GDS "Cell", DXF "Block"
+- `SubPattern`: GDS "AREF/SREF", OASIS "Placement"
+- `Shape`: OASIS or GDS "Geometry element", DXF "LWPolyline" or "Polyline"
+- `repetition`: OASIS "repetition". GDS "AREF" is a `SubPattern` combined with a `Grid` repetition.
+- `Label`: OASIS, GDS, DXF "Text".
+- `annotation`: OASIS or GDS "property"
+
+
 ## TODO
 
-* Polygon de-embedding
-* Construct from bitmap
-* Boolean operations on polygons (using pyclipper)
-* Implement shape/cell properties
+* Better interface for polygon operations (e.g. with `pyclipper`)
+    - de-embedding
+    - boolean ops
+* Construct polygons from bitmap using `skimage.find_contours`
 * Deal with shape repetitions for dxf, svg
