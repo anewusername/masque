@@ -1,3 +1,6 @@
+"""
+Traits (mixins) and default implementations
+"""
 from .positionable import Positionable, PositionableImpl
 from .layerable import Layerable, LayerableImpl
 from .doseable import Doseable, DoseableImpl

@@ -5,7 +5,7 @@ from numpy import pi
 
 from .repetition import Repetition
 from .error import PatternError, PatternLockedError
-from .utils import is_scalar, vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
+from .utils import vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
 from .traits import AnnotatableImpl
 
