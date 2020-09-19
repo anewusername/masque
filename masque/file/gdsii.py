@@ -127,7 +127,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
         structure = gdsii.structure.Structure(name=pat.name.encode('ASCII'))
         lib.append(structure)
 
-        structure.properties = _annotations_to_properties(pat.annotations, 512)
+#        structure.properties = _annotations_to_properties(pat.annotations, 512)
 
         structure += _shapes_to_elements(pat.shapes)
         structure += _labels_to_texts(pat.labels)
