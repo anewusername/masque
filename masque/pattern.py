@@ -5,8 +5,8 @@
 from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload
 from typing import MutableMapping, Iterable
 import copy
-import itertools
 import pickle
+from itertools import chain
 from collections import defaultdict
 
 import numpy        # type: ignore
@@ -321,7 +321,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self
         """
         old_shapes = self.shapes
-        self.shapes = list(itertools.chain.from_iterable(
+        self.shapes = list(chain.from_iterable(
                         (shape.to_polygons(poly_num_points, poly_max_arclen)
                          for shape in old_shapes)))
         for subpat in self.subpatterns:
@@ -347,7 +347,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
 
         self.polygonize().flatten()
         old_shapes = self.shapes
-        self.shapes = list(itertools.chain.from_iterable(
+        self.shapes = list(chain.from_iterable(
                         (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
@@ -525,13 +525,12 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
-        entries = self.shapes + self.subpatterns + self.labels
-        if not entries:
+        if self.is_empty():
             return None
 
         min_bounds = numpy.array((+inf, +inf))
         max_bounds = numpy.array((-inf, -inf))
-        for entry in entries:
+        for entry in chain(self.shapes, self.subpatterns, self.labels):
             bounds = entry.get_bounds()
             if bounds is None:
                 continue
@@ -634,7 +633,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns + self.labels:
+        for entry in chain(self.shapes, self.subpatterns, self.labels):
             entry.translate(offset)
         return self
 
@@ -648,7 +647,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in chain(self.shapes, self.subpatterns):
             entry.scale_by(c)
         return self
 
@@ -663,7 +662,8 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns:
+        entry: Scalable
+        for entry in chain(self.shapes, self.subpatterns):
             entry.offset *= c
             entry.scale_by(c)
         for label in self.labels:
@@ -698,7 +698,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns + self.labels:
+        for entry in chain(self.shapes, self.subpatterns, self.labels):
             entry.offset = numpy.dot(rotation_matrix_2d(rotation), entry.offset)
         return self
 
@@ -712,7 +712,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in chain(self.shapes, self.subpatterns):
             entry.rotate(rotation)
         return self
 
@@ -727,7 +727,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns + self.labels:
+        for entry in chain(self.shapes, self.subpatterns, self.labels):
             entry.offset[axis - 1] *= -1
         return self
 
@@ -743,7 +743,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in chain(self.shapes, self.subpatterns):
             entry.mirror(axis)
         return self
 
@@ -772,7 +772,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Return:
             self
         """
-        for entry in self.shapes + self.subpatterns:
+        for entry in chain(self.shapes, self.subpatterns):
             entry.dose *= c
         return self
 
@@ -843,7 +843,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self
         """
         self.lock()
-        for ss in self.shapes + self.labels:
+        for ss in chain(self.shapes, self.labels):
             ss.lock()
         for sp in self.subpatterns:
             sp.deeplock()
@@ -860,7 +860,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self
         """
         self.unlock()
-        for ss in self.shapes + self.labels:
+        for ss in chain(self.shapes, self.labels):
             ss.unlock()
         for sp in self.subpatterns:
             sp.deepunlock()
