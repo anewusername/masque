@@ -128,6 +128,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
                     for tt in (True, False)]
 
         def layer2oas(mlayer: layer_t) -> Tuple[int, int]:
+            assert(layer_map is not None)
             layer_num = layer_map[mlayer] if isinstance(mlayer, str) else mlayer
             return _mlayer2oas(layer_num)
     else:
@@ -275,6 +276,7 @@ def read(stream: io.BufferedIOBase,
                 # note XELEMENT has no repetition
                 continue
 
+            assert(not isinstance(element.repetition, fatamorgana.ReuseRepetition))
             repetition = repetition_fata2masq(element.repetition)
 
             # Switch based on element type:
@@ -490,6 +492,7 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
     Helper function to create a SubPattern from a placment. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
     """
+    assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
     xy = numpy.array((placement.x, placement.y))
     mag = placement.magnification if placement.magnification is not None else 1
     pname = placement.get_name()
