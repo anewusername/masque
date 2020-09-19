@@ -5,7 +5,7 @@ import copy
 import numpy        # type: ignore
 
 from ..error import PatternError, PatternLockedError
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t
+from ..utils import rotation_matrix_2d, vector2, layer_t
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
                       PivotableImpl, LockableImpl, RepeatableImpl,

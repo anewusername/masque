@@ -916,8 +916,8 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             overdraw: Whether to create a new figure or draw on a pre-existing one
         """
         # TODO: add text labels to visualize()
-        from matplotlib import pyplot
-        import matplotlib.collections
+        from matplotlib import pyplot       # type: ignore
+        import matplotlib.collections       # type: ignore
 
         offset = numpy.array(offset, dtype=float)
 
