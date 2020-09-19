@@ -50,7 +50,7 @@ path_cap_map = {
 #TODO implement properties
 #TODO implement more shape types?
 
-def build(patterns: Union[Pattern, List[Pattern]],
+def build(patterns: Union[Pattern, Sequence[Pattern]],
           units_per_micron: int,
           layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
           *,
@@ -156,7 +156,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
     return lib
 
 
-def write(patterns: Union[List[Pattern], Pattern],
+def write(patterns: Union[Sequence[Pattern], Pattern],
           stream: io.BufferedIOBase,
           *args,
           **kwargs):
@@ -174,7 +174,7 @@ def write(patterns: Union[List[Pattern], Pattern],
     lib.write(stream)
 
 
-def writefile(patterns: Union[List[Pattern], Pattern],
+def writefile(patterns: Union[Sequence[Pattern], Pattern],
               filename: Union[str, pathlib.Path],
               *args,
               **kwargs,

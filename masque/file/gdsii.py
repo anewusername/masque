@@ -50,7 +50,7 @@ path_cap_map = {
                }
 
 
-def build(patterns: Union[Pattern, List[Pattern]],
+def build(patterns: Union[Pattern, Sequence[Pattern]],
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
           library_name: str = 'masque-gdsii-write',
@@ -136,7 +136,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
     return lib
 
 
-def write(patterns: Union[Pattern, List[Pattern]],
+def write(patterns: Union[Pattern, Sequence[Pattern]],
           stream: io.BufferedIOBase,
           *args,
           **kwargs):
@@ -154,7 +154,7 @@ def write(patterns: Union[Pattern, List[Pattern]],
     lib.save(stream)
     return
 
-def writefile(patterns: Union[List[Pattern], Pattern],
+def writefile(patterns: Union[Sequence[Pattern], Pattern],
               filename: Union[str, pathlib.Path],
               *args,
               **kwargs,
