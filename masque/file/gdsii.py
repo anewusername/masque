@@ -100,7 +100,7 @@ def build(patterns: Union[Pattern, List[Pattern]],
         patterns = [patterns]
 
     if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names
+        disambiguate_func = disambiguate_pattern_names          # type: ignore
     assert(disambiguate_func is not None)       # placate mypy
 
     if not modify_originals:
