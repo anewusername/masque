@@ -15,13 +15,6 @@
 
  Note that the methods for these classes try to avoid copying wherever possible, so unless
   otherwise noted, assume that arguments are stored by-reference.
-
-
- Dependencies:
-    - `numpy`
-    - `matplotlib`    [Pattern.visualize(...)]
-    - `python-gdsii`  [masque.file.gdsii]
-    - `svgwrite`      [masque.file.svg]
 """
 
 import pathlib
