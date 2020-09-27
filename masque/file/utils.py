@@ -6,6 +6,7 @@ import re
 import copy
 
 from .. import Pattern, PatternError
+from ..shapes import Polygon, Path
 
 
 def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
@@ -23,6 +24,30 @@ def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     full_name = '{}_{}_{}'.format(pattern.name, dose_multiplier, id(pattern))
     sanitized_name = expression.sub('_', full_name)
     return sanitized_name
+
+
+def clean_pattern_vertices(pat: Pattern) -> Pattern:
+    """
+    Given a pattern, remove any redundant vertices in its polygons and paths.
+    The cleaning process completely removes any polygons with zero area or <3 vertices.
+
+    Args:
+        pat: Pattern to clean
+
+    Returns:
+        pat
+    """
+    remove_inds = []
+    for ii, shape in enumerate(pat.shapes):
+        if not isinstance(shape, (Polygon, Path)):
+            continue
+        try:
+            shape.clean_vertices()
+        except PatternError:
+            remove_inds.append(ii)
+    for ii in sorted(remove_inds, reverse=True):
+        del pat.shapes[ii]
+    return pat
 
 
 def make_dose_table(patterns: List[Pattern], dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:

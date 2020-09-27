@@ -27,7 +27,7 @@ import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
-from .utils import mangle_name, make_dose_table
+from .utils import mangle_name, make_dose_table, clean_pattern_vertices
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
@@ -289,12 +289,6 @@ def read(stream: io.BufferedIOBase,
                                annotations=annotations,
                                repetition=repetition)
 
-                if clean_vertices:
-                    try:
-                        poly.clean_vertices()
-                    except PatternError:
-                        continue
-
                 pat.shapes.append(poly)
 
             elif isinstance(element, fatrec.Path):
@@ -320,12 +314,6 @@ def read(stream: io.BufferedIOBase,
                             width=element.get_half_width() * 2,
                             cap=cap,
                             **path_args)
-
-                if clean_vertices:
-                    try:
-                        path.clean_vertices()
-                    except PatternError as err:
-                        continue
 
                 pat.shapes.append(path)
 
@@ -455,6 +443,8 @@ def read(stream: io.BufferedIOBase,
         for placement in cell.placements:
             pat.subpatterns.append(_placement_to_subpat(placement, lib))
 
+        if clean_vertices:
+            clean_pattern_vertices(pat)
         patterns.append(pat)
 
     # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries

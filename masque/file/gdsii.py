@@ -28,7 +28,7 @@ import gdsii.library
 import gdsii.structure
 import gdsii.elements
 
-from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose
+from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose, clean_pattern_vertices
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
@@ -250,20 +250,10 @@ def read(stream: io.BufferedIOBase,
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
                 poly = _boundary_to_polygon(element, raw_mode)
-                if clean_vertices:
-                    try:
-                        poly.clean_vertices()
-                    except PatternError:
-                        continue
                 pat.shapes.append(poly)
 
             if isinstance(element, gdsii.elements.Path):
                 path = _gpath_to_mpath(element, raw_mode)
-                if clean_vertices:
-                    try:
-                        path.clean_vertices()
-                    except PatternError as err:
-                        continue
                 pat.shapes.append(path)
 
             elif isinstance(element, gdsii.elements.Text):
@@ -276,6 +266,8 @@ def read(stream: io.BufferedIOBase,
                   isinstance(element, gdsii.elements.ARef)):
                 pat.subpatterns.append(_ref_to_subpat(element))
 
+        if clean_vertices:
+            clean_pattern_vertices(pat)
         patterns.append(pat)
 
     # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
