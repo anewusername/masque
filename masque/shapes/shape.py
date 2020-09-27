@@ -246,7 +246,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
             List of `Polygon` objects with grid-aligned edges.
         """
         from . import Polygon
-        import skimage.measure
+        import skimage.measure      # type: ignore
         import float_raster
 
         grid_x = numpy.unique(grid_x)

@@ -18,7 +18,7 @@ from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, vector2, normalize_mirror, AutoSlots, annotations_t
 from .error import PatternError, PatternLockedError
-from .traits import LockableImpl, AnnotatableImpl
+from .traits import LockableImpl, AnnotatableImpl, Scalable
 
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']

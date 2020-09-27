@@ -10,6 +10,12 @@ Note that GDSII references follow the same convention as `masque`,
 
   Scaling, rotation, and mirroring apply to individual instances, not grid
    vectors or offsets.
+
+Notes:
+ * absolute positioning is not supported
+ * PLEX is not supported
+ * ELFLAGS are not supported
+ * GDS does not support library- or structure-level annotations
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
 from typing import Sequence, Mapping
@@ -34,8 +40,6 @@ from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
 from ..utils import remove_colinear_vertices, normalize_mirror, annotations_t
-
-#TODO absolute positioning
 
 
 logger = logging.getLogger(__name__)
@@ -126,8 +130,6 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
     for pat in patterns_by_id.values():
         structure = gdsii.structure.Structure(name=pat.name.encode('ASCII'))
         lib.append(structure)
-
-#        structure.properties = _annotations_to_properties(pat.annotations, 512)
 
         structure += _shapes_to_elements(pat.shapes)
         structure += _labels_to_texts(pat.labels)
@@ -243,9 +245,6 @@ def read(stream: io.BufferedIOBase,
     patterns = []
     for structure in lib:
         pat = Pattern(name=structure.name.decode('ASCII'))
-        if pat.annotations:
-            logger.warning('Dropping Pattern-level annotations; they are not supported by python-gdsii')
-#        pat.annotations = {str(k): v for k, v in structure.properties}
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
@@ -304,10 +303,8 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
     Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
 
-    BUG:
-        "Absolute" means not affected by parent elements.
-          That's not currently supported by masque at all, so need to either tag it and
-          undo the parent transformations, or implement it in masque.
+    NOTE: "Absolute" means not affected by parent elements.
+           That's not currently supported by masque at all (and not planned).
     """
     rotation = 0.0
     offset = numpy.array(element.xy[0], dtype=float)
@@ -320,12 +317,12 @@ def _ref_to_subpat(element: Union[gdsii.elements.SRef,
             scale = element.mag
             # Bit 13 means absolute scale
             if get_bit(element.strans, 15 - 13):
-                raise PatternError('Absolute scale is not implemented yet!')
+                raise PatternError('Absolute scale is not implemented in masque!')
         if element.angle is not None:
             rotation = numpy.deg2rad(element.angle)
             # Bit 14 means absolute rotation
             if get_bit(element.strans, 15 - 14):
-                raise PatternError('Absolute rotation is not implemented yet!')
+                raise PatternError('Absolute rotation is not implemented in masque!')
         # Bit 0 means mirror x-axis
         if get_bit(element.strans, 15 - 0):
             mirror_across_x = True

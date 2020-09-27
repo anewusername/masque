@@ -170,8 +170,8 @@ def get_char_as_polygons(font_path: str,
                          char: str,
                          resolution: float = 48*64,
                          ) -> Tuple[List[List[List[float]]], float]:
-    from freetype import Face
-    from matplotlib.path import Path
+    from freetype import Face           # type: ignore
+    from matplotlib.path import Path    # type: ignore
 
     """
     Get a list of polygons representing a single character.

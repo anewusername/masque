@@ -47,7 +47,6 @@ path_cap_map = {
                 PathExtensionScheme.Arbitrary: Path.Cap.SquareCustom,
                }
 
-#TODO implement properties
 #TODO implement more shape types?
 
 def build(patterns: Union[Pattern, Sequence[Pattern]],
