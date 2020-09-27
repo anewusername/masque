@@ -7,7 +7,7 @@ with some vectorized element types (eg. circles, not just polygons), better supp
 E-beam doses, and the ability to output to multiple formats.
 
 - [Source repository](https://mpxd.net/code/jan/masque)
-- [PyPi](https://pypi.org/project/masque)
+- [PyPI](https://pypi.org/project/masque)
 
 
 ## Installation
