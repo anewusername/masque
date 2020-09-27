@@ -539,3 +539,48 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)
+
+
+def load_library(stream: BinaryIO,
+                 tag: str,
+                 is_secondary: Optional[Callable[[str], bool]] = None,
+                 ) -> Tuple[Library, Dict[str, Any]]:
+    """
+    Scan a GDSII file to determine what structures are present, and create
+        a library from them. This enables deferred reading of structures
+        on an as-needed basis.
+    All structures are loaded as secondary
+
+    Args:
+        stream: Seekable stream. Position 0 should be the start of the file.
+                The caller should leave the stream open while the library
+                is still in use, since the library will need to access it
+                in order to read the structure contents.
+        tag: Unique identifier that will be used to identify this data source
+        is_secondary: Function which takes a structure name and returns
+                      True if the structure should only be used as a subcell
+                      and not appear in the main Library interface.
+                      Default always returns False.
+
+    Returns:
+        Library object, allowing for deferred load of structures.
+        Additional library info (dict, same format as from `read`).
+    """
+    if is_secondary is None:
+        is_secondary = lambda k: False
+
+    stream.seek(0)
+    library_info = _read_header(stream)
+    structs = klamath.library.scan_structs(stream)
+
+    lib = Library()
+    for name_bytes, pos in structs.items():
+        name = name_bytes.decode('ASCII')
+
+        def mkstruct(pos: int = pos, name: str = name) -> Pattern:
+            stream.seek(pos)
+            return read_elements(stream, name, raw_mode=True)
+
+        lib.set_value(name, tag, mkstruct, secondary=is_secondary(name))
+
+    return lib

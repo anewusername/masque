@@ -15,3 +15,12 @@ class PatternLockedError(PatternError):
     """
     def __init__(self):
         PatternError.__init__(self, 'Tried to modify a locked Pattern, subpattern, or shape')
+
+
+class LibraryError(Exception):
+    """
+    Exception raised by Library classes
+    """
+    pass
+
+
