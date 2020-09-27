@@ -28,6 +28,7 @@ setup(name='masque',
       ],
       extras_require={
           'gdsii': ['python-gdsii'],
+          'klamath': ['klamath'],
           'oasis': ['fatamorgana>=0.7'],
           'dxf': ['ezdxf'],
           'svg': ['svgwrite'],

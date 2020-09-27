@@ -17,6 +17,7 @@ Requirements:
 * numpy
 * matplotlib (optional, used for `visualization` functions and `text`)
 * python-gdsii (optional, used for `gdsii` i/o)
+* klamath (optional, used for `gdsii` i/o and library management)
 * ezdxf (optional, used for `dxf` i/o)
 * fatamorgana (optional, used for `oasis` i/o)
 * svgwrite (optional, used for `svg` output)
@@ -25,7 +26,7 @@ Requirements:
 
 Install with pip:
 ```bash
-pip3 install 'masque[visualization,gdsii,oasis,dxf,svg,text]'
+pip3 install 'masque[visualization,gdsii,oasis,dxf,svg,text,klamath]'
 ```
 
 Alternatively, install from git
