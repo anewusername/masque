@@ -237,9 +237,9 @@ def _read_block(block, clean_vertices):
                    }
             string = element.dxfattribs().get('text', '')
             height = element.dxfattribs().get('height', 0)
-            if height != 0:
-                logger.warning('Interpreting DXF TEXT as a label despite nonzero height. '
-                               'This could be changed in the future by setting a font path in the masque DXF code.')
+#            if height != 0:
+#                logger.warning('Interpreting DXF TEXT as a label despite nonzero height. '
+#                               'This could be changed in the future by setting a font path in the masque DXF code.')
             pat.labels.append(Label(string=string, **args))
 #            else:
 #                pat.shapes.append(Text(string=string, height=height, font_path=????))
