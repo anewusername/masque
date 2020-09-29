@@ -84,6 +84,11 @@ class Library:
     def __getitem__(self, key: str) -> 'Pattern':
         return self.get_primary(key)
 
+    def __iter__(self) -> Iterator[str]:
+        return self.keys()
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.primary
 
     def get_primary(self, key: str) -> 'Pattern':
         if self.enable_cache and key in self.cache:
@@ -126,6 +131,15 @@ class Library:
 
             raise LibraryError(f'Broken reference to {key} (tag {tag})')
         return pat
+
+    def keys(self) -> Iterator[str]:
+        return self.primary.keys()
+
+    def values(self) -> Iterator['Pattern']:
+        return (self[key] for key in self.keys())
+
+    def items(self) -> Iterator[Tuple[str, 'Pattern']]:
+        return ((key, self[key]) for key in self.keys())
 
     def __repr__(self) -> str:
         return '<Library with keys ' + repr(list(self.primary.keys())) + '>'
