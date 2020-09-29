@@ -34,7 +34,7 @@ import numpy        # type: ignore
 import klamath
 from klamath import records
 
-from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose
+from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose, is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
@@ -170,7 +170,7 @@ def readfile(filename: Union[str, pathlib.Path],
     """
     Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
 
-    Will automatically decompress files with a .gz suffix.
+    Will automatically decompress gzipped files.
 
     Args:
         filename: Filename to save to.
@@ -178,7 +178,7 @@ def readfile(filename: Union[str, pathlib.Path],
         **kwargs: passed to `masque.file.gdsii.read`
     """
     path = pathlib.Path(filename)
-    if path.suffix == '.gz':
+    if is_gzipped(path):
         open_func: Callable = gzip.open
     else:
         open_func = open

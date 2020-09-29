@@ -4,6 +4,8 @@ Helper functions for file reading and writing
 from typing import Set, Tuple, List
 import re
 import copy
+import gzip
+import pathlib
 
 from .. import Pattern, PatternError
 from ..shapes import Polygon, Path
@@ -176,3 +178,9 @@ def dose2dtype(patterns: List[Pattern],
             subpat.pattern = new_pats[(id(subpat.pattern), dose_mult)]
 
     return patterns, dose_vals_list
+
+
+def is_gzipped(path: pathlib.Path) -> bool:
+    with open(path, 'rb') as stream:
+        magic_bytes = stream.read(2)
+        return magic_bytes == b'\x1f\x8b'
