@@ -2,7 +2,8 @@
 Library class for managing unique name->pattern mappings and
  deferred loading or creation.
 """
-from typing import Dict, Callable, TypeVar, Generic, TYPE_CHECKING, Any, Tuple, Union
+from typing import Dict, Callable, TypeVar, Generic, TYPE_CHECKING
+from typing import Any, Tuple, Union, Iterator
 import logging
 from pprint import pformat
 from dataclasses import dataclass
@@ -81,6 +82,10 @@ class Library:
             del self.cache[key]
 
     def __getitem__(self, key: str) -> 'Pattern':
+        return self.get_primary(key)
+
+
+    def get_primary(self, key: str) -> 'Pattern':
         if self.enable_cache and key in self.cache:
             logger.debug(f'found {key} in cache')
             return self.cache[key]
@@ -91,9 +96,6 @@ class Library:
         self.resolve_subpatterns(pat, pg.tag)
         self.cache[key] = pat
         return pat
-
-    def get_primary(self, key: str) -> 'Pattern':
-        return self[key]
 
     def get_secondary(self, key: str, tag: str) -> 'Pattern':
         logger.debug(f'get_secondary({key}, {tag})')
@@ -115,7 +117,7 @@ class Library:
 
             key = sp.identifier[0]
             if key in self.primary:
-                sp.pattern = self[key]
+                sp.pattern = self.get_primary(key)
                 continue
 
             if (key, tag) in self.secondary:
