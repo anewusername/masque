@@ -22,6 +22,7 @@ from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, 
 from typing import Sequence, Mapping, BinaryIO
 import re
 import io
+import mmap
 import copy
 import base64
 import struct
@@ -546,7 +547,7 @@ def load_library(stream: BinaryIO,
                  is_secondary: Optional[Callable[[str], bool]] = None,
                  ) -> Tuple[Library, Dict[str, Any]]:
     """
-    Scan a GDSII file to determine what structures are present, and create
+    Scan a GDSII stream to determine what structures are present, and create
         a library from them. This enables deferred reading of structures
         on an as-needed basis.
     All structures are loaded as secondary
@@ -584,3 +585,47 @@ def load_library(stream: BinaryIO,
         lib.set_value(name, tag, mkstruct, secondary=is_secondary(name))
 
     return lib
+
+
+def load_libraryfile(filename: Union[str, pathlib.Path],
+                     tag: str,
+                     is_secondary: Optional[Callable[[str], bool]] = None,
+                     use_mmap: bool = True,
+                     ) -> Tuple[Library, Dict[str, Any]]:
+    """
+    Wrapper for `load_library()` that takes a filename or path instead of a stream.
+
+    Will automatically decompress the file if it is gzipped.
+
+    NOTE that any streams/mmaps opened will remain open until ALL of the
+     `PatternGenerator` objects in the library are garbage collected.
+
+    Args:
+        path: filename or path to read from
+        tag: Unique identifier for library, see `load_library`
+        is_secondary: Function specifying subcess, see `load_library`
+        use_mmap: If `True`, will attempt to memory-map the file instead
+                  of buffering. In the case of gzipped files, the file
+                  is decompressed into a python `bytes` object in memory
+                  and reopened as an `io.BytesIO` stream.
+
+    Returns:
+        Library object, allowing for deferred load of structures.
+        Additional library info (dict, same format as from `read`).
+    """
+    path = pathlib.Path(filename)
+    if is_gzipped(path):
+        if mmap:
+            logger.info('Asked to mmap a gzipped file, reading into memory instead...')
+            base_stream = gzip.open(path, mode='rb')
+            stream = io.BytesIO(base_stream.read())
+        else:
+            base_stream = gzip.open(path, mode='rb')
+            stream = io.BufferedReader(base_stream)
+    else:
+        base_stream = open(path, mode='rb')
+        if mmap:
+            stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)
+        else:
+            stream = io.BufferedReader(base_stream)
+    return load_library(stream, tag, is_secondary)
