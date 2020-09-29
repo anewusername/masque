@@ -454,6 +454,14 @@ def _shapes_to_elements(shapes: List[Shape],
                                          extension=extension,
                                          properties=properties)
             elements.append(path)
+        elif isinstance(shape, Polygon):
+           polygon = shape
+           xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+           xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+           boundary = klamath.elements.Boundary(layer=(layer, data_type),
+                                                xy=xy_closed,
+                                                properties=properties)
+           elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
