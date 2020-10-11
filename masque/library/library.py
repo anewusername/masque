@@ -85,7 +85,7 @@ class Library:
         return self.get_primary(key)
 
     def __iter__(self) -> Iterator[str]:
-        return self.keys()
+        return iter(self.keys())
 
     def __contains__(self, key: str) -> bool:
         return key in self.primary
