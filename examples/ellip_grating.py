@@ -3,7 +3,7 @@
 import numpy
 
 import masque
-import masque.file.gdsii
+import masque.file.klamath
 from masque import shapes
 
 
@@ -24,7 +24,7 @@ def main():
     pat2 = pat.copy()
     pat2.name = 'grating2'
 
-    masque.file.gdsii.writefile((pat, pat2), 'out.gds.gz', 1e-9, 1e-3)
+    masque.file.klamath.writefile((pat, pat2), 'out.gds.gz', 1e-9, 1e-3)
 
 
 if __name__ == '__main__':

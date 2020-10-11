@@ -3,6 +3,7 @@ from numpy import pi
 
 import masque
 import masque.file.gdsii
+import masque.file.klamath
 import masque.file.dxf
 import masque.file.oasis
 from masque import shapes, Pattern, SubPattern
@@ -83,10 +84,10 @@ def main():
         ]
 
     folder = 'layouts/'
-    masque.file.gdsii.writefile((pat, pat2, pat3, pat4), folder + 'rep.gds.gz', 1e-9, 1e-3)
+    masque.file.klamath.writefile((pat, pat2, pat3, pat4), folder + 'rep.gds.gz', 1e-9, 1e-3)
 
-    cells = list(masque.file.gdsii.readfile(folder + 'rep.gds.gz')[0].values())
-    masque.file.gdsii.writefile(cells, folder + 'rerep.gds.gz', 1e-9, 1e-3)
+    cells = list(masque.file.klamath.readfile(folder + 'rep.gds.gz')[0].values())
+    masque.file.klamath.writefile(cells, folder + 'rerep.gds.gz', 1e-9, 1e-3)
 
     masque.file.dxf.writefile(pat4, folder + 'rep.dxf.gz')
     dxf, info = masque.file.dxf.readfile(folder + 'rep.dxf.gz')
