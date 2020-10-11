@@ -37,7 +37,8 @@ def write(pattern: Pattern,
           *,
           modify_originals: bool = False,
           dxf_version='AC1024',
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None):
+          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+          ) -> None:
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
      into polygons, and then writing patterns as DXF `Block`s, polygons as `LWPolyline`s,
@@ -105,7 +106,7 @@ def writefile(pattern: Pattern,
               filename: Union[str, pathlib.Path],
               *args,
               **kwargs,
-              ):
+              ) -> None:
     """
     Wrapper for `dxf.write()` that takes a filename or path instead of a stream.
 
@@ -131,7 +132,7 @@ def writefile(pattern: Pattern,
 def readfile(filename: Union[str, pathlib.Path],
              *args,
              **kwargs,
-             ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+             ) -> Tuple[Pattern, Dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
@@ -155,7 +156,7 @@ def readfile(filename: Union[str, pathlib.Path],
 
 def read(stream: io.TextIOBase,
          clean_vertices: bool = True,
-         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+         ) -> Tuple[Pattern, Dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -193,7 +194,7 @@ def read(stream: io.TextIOBase,
     return pat, library_info
 
 
-def _read_block(block, clean_vertices):
+def _read_block(block, clean_vertices: bool) -> Pattern:
     pat = Pattern(block.name)
     for element in block:
         eltype = element.dxftype()
@@ -277,7 +278,7 @@ def _read_block(block, clean_vertices):
 
 
 def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                         subpatterns: List[SubPattern]):
+                         subpatterns: List[SubPattern]) -> None:
     for subpat in subpatterns:
         if subpat.pattern is None:
             continue
@@ -335,7 +336,7 @@ def _shapes_to_elements(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Mo
 
 
 def _labels_to_texts(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                     labels: List[Label]):
+                     labels: List[Label]) -> None:
     for label in labels:
         attribs = {'layer': _mlayer2dxf(label.layer)}
         xy = label.offset
@@ -352,11 +353,11 @@ def _mlayer2dxf(layer: layer_t) -> str:
     raise PatternError(f'Unknown layer type: {layer} ({type(layer)})')
 
 
-def disambiguate_pattern_names(patterns,
+def disambiguate_pattern_names(patterns: Sequence[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
                                dup_warn_filter: Callable[[str,], bool] = None,      # If returns False, don't warn about this name
-                               ):
+                               ) -> None:
     used_names = []
     for pat in patterns:
         sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
