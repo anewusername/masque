@@ -291,11 +291,14 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 sp_transform = False
 
             if subpattern.pattern is not None:
-                subpattern.pattern = subpattern.pattern.dfs(visit_before=visit_before,
-                                                            visit_after=visit_after,
-                                                            transform=sp_transform,
-                                                            memo=memo,
-                                                            hierarchy=hierarchy + (self,))
+                result = subpattern.pattern.dfs(visit_before=visit_before,
+                                                visit_after=visit_after,
+                                                transform=sp_transform,
+                                                memo=memo,
+                                                hierarchy=hierarchy + (self,))
+                if result is not subpattern.pattern:
+                    # skip assignment to avoid PatternLockedError unless modified
+                    subpattern.pattern = result
 
         if visit_after is not None:
             pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
