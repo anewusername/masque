@@ -1,10 +1,9 @@
 """
 DXF file format readers and writers
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable
 import re
 import io
-import copy
 import base64
 import struct
 import logging
@@ -12,15 +11,12 @@ import pathlib
 import gzip
 
 import numpy        # type: ignore
-from numpy import pi
 import ezdxf        # type: ignore
 
-from .utils import mangle_name, make_dose_table
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
-from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
-from ..utils import remove_colinear_vertices, normalize_mirror
+from ..utils import rotation_matrix_2d, layer_t
 
 
 logger = logging.getLogger(__name__)
@@ -75,6 +71,7 @@ def write(pattern: Pattern,
     #TODO consider supporting DXF arcs?
     if disambiguate_func is None:
         disambiguate_func = disambiguate_pattern_names
+    assert(disambiguate_func is not None)
 
     if not modify_originals:
         pattern = pattern.deepcopy().deepunlock()
@@ -125,8 +122,7 @@ def writefile(pattern: Pattern,
         open_func = open
 
     with open_func(path, mode='wt') as stream:
-        results = write(pattern, stream, *args, **kwargs)
-    return results
+        write(pattern, stream, *args, **kwargs)
 
 
 def readfile(filename: Union[str, pathlib.Path],
@@ -204,25 +200,26 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
             else:
                 points = numpy.array(tuple(element.points()))
             attr = element.dxfattribs()
-            args = {'layer': attr.get('layer', DEFAULT_LAYER),
-                   }
+            layer = attr.get('layer', DEFAULT_LAYER)
 
             if points.shape[1] == 2:
-                shape = Polygon(**args)
+                raise PatternError('Invalid or unimplemented polygon?')
+                #shape = Polygon(layer=layer)
             elif points.shape[1] > 2:
                 if (points[0, 2] != points[:, 2]).any():
                     raise PatternError('PolyLine has non-constant width (not yet representable in masque!)')
                 elif points.shape[1] == 4 and (points[:, 3] != 0).any():
                     raise PatternError('LWPolyLine has bulge (not yet representable in masque!)')
-                else:
-                    width = points[0, 2]
-                    if width == 0:
-                        width = attr.get('const_width', 0)
 
-                    if width == 0 and numpy.array_equal(points[0], points[-1]):
-                        shape = Polygon(**args, vertices=points[:-1, :2])
-                    else:
-                        shape = Path(**args, width=width, vertices=points[:, :2])
+                width = points[0, 2]
+                if width == 0:
+                    width = attr.get('const_width', 0)
+
+                shape: Union[Path, Polygon]
+                if width == 0 and numpy.array_equal(points[0], points[-1]):
+                    shape = Polygon(layer=layer, vertices=points[:-1, :2])
+                else:
+                    shape = Path(layer=layer, width=width, vertices=points[:, :2])
 
             if clean_vertices:
                 try:
@@ -237,7 +234,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
                     'layer': element.dxfattribs().get('layer', DEFAULT_LAYER),
                    }
             string = element.dxfattribs().get('text', '')
-            height = element.dxfattribs().get('height', 0)
+#            height = element.dxfattribs().get('height', 0)
 #            if height != 0:
 #                logger.warning('Interpreting DXF TEXT as a label despite nonzero height. '
 #                               'This could be changed in the future by setting a font path in the masque DXF code.')
@@ -252,7 +249,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
                 logger.warning('Masque does not support per-axis scaling; using x-scaling only!')
             scale = abs(xscale)
             mirrored = (yscale < 0, xscale < 0)
-            rotation = attr.get('rotation', 0) * pi/180
+            rotation = numpy.deg2rad(attr.get('rotation', 0))
 
             offset = attr.get('insert', (0, 0, 0))[:2]
 
@@ -266,11 +263,10 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
                 }
 
             if 'column_count' in attr:
-                args['repetition'] = Grid(
-                           a_vector=(attr['column_spacing'], 0),
-                           b_vector=(0, attr['row_spacing']),
-                           a_count=attr['column_count'],
-                           b_count=attr['row_count'])
+                args['repetition'] = Grid(a_vector=(attr['column_spacing'], 0),
+                                          b_vector=(0, attr['row_spacing']),
+                                          a_count=attr['column_count'],
+                                          b_count=attr['row_count'])
             pat.subpatterns.append(SubPattern(**args))
         else:
             logger.warning(f'Ignoring DXF element {element.dxftype()} (not implemented).')
@@ -356,11 +352,11 @@ def _mlayer2dxf(layer: layer_t) -> str:
 def disambiguate_pattern_names(patterns: Sequence[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
-                               dup_warn_filter: Callable[[str,], bool] = None,      # If returns False, don't warn about this name
+                               dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
                                ) -> None:
     used_names = []
     for pat in patterns:
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)
 
         i = 0
         suffixed_name = sanitized_name
@@ -374,15 +370,15 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
-                               f' renaming to "{suffixed_name}"')
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+                               + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced
             raise PatternError(f'Zero-length name after sanitize,\n originally "{pat.name}"')
         if len(suffixed_name) > max_name_length:
-            raise PatternError(f'Pattern name "{suffixed_name!r}" length > {max_name_length} after encode,\n' +
-                               f' originally "{pat.name}"')
+            raise PatternError(f'Pattern name "{suffixed_name!r}" length > {max_name_length} after encode,\n'
+                               + f' originally "{pat.name}"')
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)

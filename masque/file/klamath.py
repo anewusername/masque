@@ -18,8 +18,8 @@ Notes:
  * GDS does not support library- or structure-level annotations
  * Creation/modification/access times are set to 1900-01-01 for reproducibility.
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
-from typing import Sequence, Mapping, BinaryIO
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
+from typing import Sequence, BinaryIO
 import re
 import io
 import mmap
@@ -29,29 +29,27 @@ import struct
 import logging
 import pathlib
 import gzip
-from itertools import chain
 
 import numpy        # type: ignore
 import klamath
 from klamath import records
 
-from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose, is_gzipped
+from .utils import is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
-from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
-from ..utils import remove_colinear_vertices, normalize_mirror, annotations_t
+from ..utils import layer_t, normalize_mirror, annotations_t
 from ..library import Library
 
 logger = logging.getLogger(__name__)
 
 
 path_cap_map = {
-                0: Path.Cap.Flush,
-                1: Path.Cap.Circle,
-                2: Path.Cap.Square,
-                4: Path.Cap.SquareCustom,
-               }
+    0: Path.Cap.Flush,
+    1: Path.Cap.Circle,
+    2: Path.Cap.Square,
+    4: Path.Cap.SquareCustom,
+    }
 
 
 def write(patterns: Union[Pattern, Sequence[Pattern]],
@@ -144,15 +142,15 @@ def writefile(patterns: Union[Sequence[Pattern], Pattern],
               **kwargs,
               ) -> None:
     """
-    Wrapper for `masque.file.gdsii.write()` that takes a filename or path instead of a stream.
+    Wrapper for `write()` that takes a filename or path instead of a stream.
 
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
         patterns: `Pattern` or list of patterns to save
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.write`
-        **kwargs: passed to `masque.file.gdsii.write`
+        *args: passed to `write()`
+        **kwargs: passed to `write()`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -169,14 +167,14 @@ def readfile(filename: Union[str, pathlib.Path],
              **kwargs,
              ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
-    Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
+    Wrapper for `read()` that takes a filename or path instead of a stream.
 
     Will automatically decompress gzipped files.
 
     Args:
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.read`
-        **kwargs: passed to `masque.file.gdsii.read`
+        *args: passed to `read()`
+        **kwargs: passed to `read()`
     """
     path = pathlib.Path(filename)
     if is_gzipped(path):
@@ -185,7 +183,7 @@ def readfile(filename: Union[str, pathlib.Path],
         open_func = open
 
     with io.BufferedReader(open_func(path, mode='rb')) as stream:
-        results = read(stream)#, *args, **kwargs)
+        results = read(stream, *args, **kwargs)
     return results
 
 
@@ -216,7 +214,7 @@ def read(stream: BinaryIO,
     found_struct = records.BGNSTR.skip_past(stream)
     while found_struct:
         name = records.STRNAME.skip_and_read(stream)
-        pat = read_elements(stream, name=name.decode('ASCII'))
+        pat = read_elements(stream, name=name.decode('ASCII'), raw_mode=raw_mode)
         patterns.append(pat)
         found_struct = records.BGNSTR.skip_past(stream)
 
@@ -368,10 +366,10 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
 
         if isinstance(rep, Grid):
             xy = numpy.array(subpat.offset) + [
-                  [0, 0],
-                  rep.a_vector * rep.a_count,
-                  rep.b_vector * rep.b_count,
-                 ]
+                [0, 0],
+                rep.a_vector * rep.a_count,
+                rep.b_vector * rep.b_count,
+                ]
             aref = klamath.library.Reference(struct_name=encoded_name,
                                              xy=numpy.round(xy).astype(int),
                                              colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
@@ -412,7 +410,7 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
     for key, vals in annotations.items():
         try:
             i = int(key)
-        except:
+        except ValueError:
             raise PatternError(f'Annotation key {key} is not convertable to an integer')
         if not (0 < i < 126):
             raise PatternError(f'Annotation key {key} converts to {i} (must be in the range [1,125])')
@@ -439,7 +437,7 @@ def _shapes_to_elements(shapes: List[Shape],
         if isinstance(shape, Path) and not polygonize_paths:
             xy = numpy.round(shape.vertices + shape.offset).astype(int)
             width = numpy.round(shape.width).astype(int)
-            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    #reverse lookup
+            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
 
             extension: Tuple[int, int]
             if shape.cap == Path.Cap.SquareCustom and shape.cap_extensions is not None:
@@ -455,13 +453,13 @@ def _shapes_to_elements(shapes: List[Shape],
                                          properties=properties)
             elements.append(path)
         elif isinstance(shape, Polygon):
-           polygon = shape
-           xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-           xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-           boundary = klamath.elements.Boundary(layer=(layer, data_type),
-                                                xy=xy_closed,
-                                                properties=properties)
-           elements.append(boundary)
+            polygon = shape
+            xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+            boundary = klamath.elements.Boundary(layer=(layer, data_type),
+                                                 xy=xy_closed,
+                                                 properties=properties)
+            elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
@@ -483,7 +481,7 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
                                      xy=xy,
                                      string=label.string.encode('ASCII'),
                                      properties=properties,
-                                     presentation=0, #TODO maybe set some of these?
+                                     presentation=0,  # TODO maybe set some of these?
                                      angle_deg=0,
                                      invert_y=False,
                                      width=0,
@@ -496,7 +494,7 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
 def disambiguate_pattern_names(patterns: Sequence[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
-                               dup_warn_filter: Optional[Callable[[str,], bool]] = None,
+                               dup_warn_filter: Optional[Callable[[str], bool]] = None,
                                ):
     """
     Args:
@@ -513,13 +511,13 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
         # Shorten names which already exceed max-length
         if len(pat.name) > max_name_length:
             shortened_name = pat.name[:max_name_length - suffix_length]
-            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n' +
-                           f' shortening to "{shortened_name}" before generating suffix')
+            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n'
+                           + f' shortening to "{shortened_name}" before generating suffix')
         else:
             shortened_name = pat.name
 
         # Remove invalid characters
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
 
         # Add a suffix that makes the name unique
         i = 0
@@ -534,8 +532,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
-                               f' renaming to "{suffixed_name}"')
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+                               + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
@@ -543,8 +541,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             # Should never happen since zero-length names are replaced
             raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
         if len(encoded_name) > max_name_length:
-            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n' +
-                               f' originally "{pat.name}"')
+            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n'
+                               + f' originally "{pat.name}"')
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)
@@ -576,7 +574,8 @@ def load_library(stream: BinaryIO,
         Additional library info (dict, same format as from `read`).
     """
     if is_secondary is None:
-        is_secondary = lambda k: False
+        def is_secondary(k: str):
+            return False
 
     stream.seek(0)
     library_info = _read_header(stream)
@@ -592,7 +591,7 @@ def load_library(stream: BinaryIO,
 
         lib.set_value(name, tag, mkstruct, secondary=is_secondary(name))
 
-    return lib
+    return lib, library_info
 
 
 def load_libraryfile(filename: Union[str, pathlib.Path],

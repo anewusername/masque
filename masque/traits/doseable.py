@@ -1,9 +1,7 @@
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
-import copy
 
-from ..error import PatternError, PatternLockedError
-from ..utils import is_scalar
+from ..error import PatternError
 
 
 T = TypeVar('T', bound='Doseable')
@@ -69,7 +67,6 @@ class DoseableImpl(Doseable, metaclass=ABCMeta):
         if not val >= 0:
             raise PatternError('Dose must be non-negative')
         self._dose = val
-
 
     '''
     ---- Non-abstract methods

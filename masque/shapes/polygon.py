@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Sequence
+from typing import List, Dict, Optional, Sequence
 import copy
 
 import numpy        # type: ignore
@@ -34,7 +34,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     @vertices.setter
     def vertices(self, val: numpy.ndarray):
-        val = numpy.array(val, dtype=float)                  #TODO document that these might not be copied
+        val = numpy.array(val, dtype=float)             # TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 3:
@@ -104,7 +104,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -269,7 +269,6 @@ class Polygon(Shape, metaclass=AutoSlots):
                                  layer=layer, dose=dose)
         return poly
 
-
     def to_polygons(self,
                     poly_num_points: int = None,        # unused
                     poly_max_arclen: float = None,      # unused
@@ -316,9 +315,9 @@ class Polygon(Shape, metaclass=AutoSlots):
 
         # TODO: normalize mirroring?
 
-        return (type(self), reordered_vertices.data.tobytes(), self.layer), \
-               (offset, scale/norm_value, rotation, False, self.dose), \
-               lambda: Polygon(reordered_vertices*norm_value, layer=self.layer)
+        return ((type(self), reordered_vertices.data.tobytes(), self.layer),
+                (offset, scale / norm_value, rotation, False, self.dose),
+                lambda: Polygon(reordered_vertices * norm_value, layer=self.layer))
 
     def clean_vertices(self) -> 'Polygon':
         """

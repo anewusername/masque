@@ -22,17 +22,15 @@ import pathlib
 import gzip
 
 import numpy        # type: ignore
-from numpy import pi
 import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
-from .utils import mangle_name, make_dose_table, clean_pattern_vertices, is_gzipped
+from .utils import clean_pattern_vertices, is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
-from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
-from ..utils import remove_colinear_vertices, normalize_mirror, annotations_t
+from ..utils import layer_t, normalize_mirror, annotations_t
 
 
 logger = logging.getLogger(__name__)
@@ -42,10 +40,10 @@ logger.warning('OASIS support is experimental and mostly untested!')
 
 
 path_cap_map = {
-                PathExtensionScheme.Flush: Path.Cap.Flush,
-                PathExtensionScheme.HalfWidth: Path.Cap.Square,
-                PathExtensionScheme.Arbitrary: Path.Cap.SquareCustom,
-               }
+    PathExtensionScheme.Flush: Path.Cap.Flush,
+    PathExtensionScheme.HalfWidth: Path.Cap.Square,
+    PathExtensionScheme.Arbitrary: Path.Cap.SquareCustom,
+    }
 
 #TODO implement more shape types?
 
@@ -120,11 +118,11 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
         for name, layer_num in layer_map.items():
             layer, data_type = _mlayer2oas(layer_num)
             lib.layers += [
-                    fatrec.LayerName(nstring=name,
-                                     layer_interval=(layer, layer),
-                                     type_interval=(data_type, data_type),
-                                     is_textlayer=tt)
-                    for tt in (True, False)]
+                fatrec.LayerName(nstring=name,
+                                 layer_interval=(layer, layer),
+                                 type_interval=(data_type, data_type),
+                                 is_textlayer=tt)
+                for tt in (True, False)]
 
         def layer2oas(mlayer: layer_t) -> Tuple[int, int]:
             assert(layer_map is not None)
@@ -252,9 +250,9 @@ def read(stream: io.BufferedIOBase,
     lib = fatamorgana.OasisLayout.read(stream)
 
     library_info: Dict[str, Any] = {
-            'units_per_micrometer': lib.unit,
-            'annotations': properties_to_annotations(lib.properties, lib.propnames, lib.propstrings),
-            }
+        'units_per_micrometer': lib.unit,
+        'annotations': properties_to_annotations(lib.properties, lib.propnames, lib.propstrings),
+        }
 
     layer_map = {}
     for layer_name in lib.layers:
@@ -296,7 +294,7 @@ def read(stream: io.BufferedIOBase,
                 cap_start = path_cap_map[element.get_extension_start()[0]]
                 cap_end   = path_cap_map[element.get_extension_end()[0]]
                 if cap_start != cap_end:
-                    raise Exception('masque does not support multiple cap types on a single path.')      #TODO handle multiple cap types
+                    raise Exception('masque does not support multiple cap types on a single path.')      # TODO handle multiple cap types
                 cap = cap_start
 
                 path_args: Dict[str, Any] = {}
@@ -472,7 +470,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
             data_type = 0
     else:
         raise PatternError(f'Invalid layer for OASIS: {layer}. Note that OASIS layers cannot be '
-                            'strings unless a layer map is provided.')
+                           f'strings unless a layer map is provided.')
     return layer, data_type
 
 
@@ -490,7 +488,7 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
     subpat = SubPattern(offset=xy,
                         pattern=None,
                         mirrored=(placement.flip, False),
-                        rotation=float(placement.angle * pi/180),
+                        rotation=numpy.deg2rad(placement.angle),
                         scale=float(mag),
                         identifier=(name,),
                         repetition=repetition_fata2masq(placement.repetition),
@@ -512,14 +510,14 @@ def _subpatterns_to_placements(subpatterns: List[SubPattern]
         offset = numpy.round(subpat.offset + rep_offset).astype(int)
         angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
-                name=subpat.pattern.name,
-                flip=mirror_across_x,
-                angle=angle,
-                magnification=subpat.scale,
-                properties=annotations_to_properties(subpat.annotations),
-                x=offset[0],
-                y=offset[1],
-                repetition=frep)
+            name=subpat.pattern.name,
+            flip=mirror_across_x,
+            angle=angle,
+            magnification=subpat.scale,
+            properties=annotations_to_properties(subpat.annotations),
+            x=offset[0],
+            y=offset[1],
+            repetition=frep)
 
         refs.append(ref)
     return refs
@@ -549,7 +547,7 @@ def _shapes_to_elements(shapes: List[Shape],
             xy = numpy.round(shape.offset + shape.vertices[0] + rep_offset).astype(int)
             deltas = numpy.round(numpy.diff(shape.vertices, axis=0)).astype(int)
             half_width = numpy.round(shape.width / 2).astype(int)
-            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    #reverse lookup
+            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
             extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
             path = fatrec.Path(layer=layer,
@@ -558,7 +556,7 @@ def _shapes_to_elements(shapes: List[Shape],
                                half_width=half_width,
                                x=xy[0],
                                y=xy[1],
-                               extension_start=extension_start,       #TODO implement multiple cap types?
+                               extension_start=extension_start,       # TODO implement multiple cap types?
                                extension_end=extension_end,
                                properties=properties,
                                repetition=repetition,
@@ -598,11 +596,11 @@ def _labels_to_texts(labels: List[Label],
 
 
 def disambiguate_pattern_names(patterns,
-                               dup_warn_filter: Callable[[str,], bool] = None,      # If returns False, don't warn about this name
+                               dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
                                ):
     used_names = []
     for pat in patterns:
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)
 
         i = 0
         suffixed_name = sanitized_name
@@ -616,8 +614,8 @@ def disambiguate_pattern_names(patterns,
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
-                               f' renaming to "{suffixed_name}"')
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+                               + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced
@@ -653,10 +651,10 @@ def repetition_masq2fata(rep: Optional[Repetition]
     frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
     if isinstance(rep, Grid):
         frep = fatamorgana.GridRepetition(
-                          a_vector=numpy.round(rep.a_vector).astype(int),
-                          b_vector=numpy.round(rep.b_vector).astype(int),
-                          a_count=numpy.round(rep.a_count).astype(int),
-                          b_count=numpy.round(rep.b_count).astype(int))
+            a_vector=numpy.round(rep.a_vector).astype(int),
+            b_vector=numpy.round(rep.b_vector).astype(int),
+            a_count=numpy.round(rep.a_count).astype(int),
+            b_count=numpy.round(rep.b_count).astype(int))
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):
         diffs = numpy.diff(rep.displacements, axis=0)

@@ -18,7 +18,7 @@ class PathCap(Enum):
     Circle = 1      # Path extends past final vertices with a semicircle of radius width/2
     Square = 2      # Path extends past final vertices with a width-by-width/2 rectangle
     SquareCustom = 4  # Path extends past final vertices with a rectangle of length
-                      #     defined by path.cap_extensions
+#                     #     defined by path.cap_extensions
 
 
 class Path(Shape, metaclass=AutoSlots):
@@ -103,7 +103,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     @vertices.setter
     def vertices(self, val: numpy.ndarray):
-        val = numpy.array(val, dtype=float)                 #TODO document that these might not be copied
+        val = numpy.array(val, dtype=float)                 # TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 2:
@@ -184,7 +184,7 @@ class Path(Shape, metaclass=AutoSlots):
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Path':
+    def __deepcopy__(self, memo: Dict = None) -> 'Path':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -199,7 +199,7 @@ class Path(Shape, metaclass=AutoSlots):
     def travel(travel_pairs: Tuple[Tuple[float, float]],
                width: float = 0.0,
                cap: PathCap = PathCap.Flush,
-               cap_extensions = None,
+               cap_extensions: Optional[Tuple[float, float]] = None,
                offset: vector2 = (0.0, 0.0),
                rotation: float = 0,
                mirrored: Sequence[bool] = (False, False),
@@ -275,9 +275,9 @@ class Path(Shape, metaclass=AutoSlots):
         intersection_p = v[:-2] + rp * dv[:-1] + perp[:-1]
         intersection_n = v[:-2] + rn * dv[:-1] - perp[:-1]
 
-        towards_perp = (dv[1:] * perp[:-1]).sum(axis=1) > 0 # path bends towards previous perp?
-#       straight = (dv[1:] * perp[:-1]).sum(axis=1) == 0    # path is straight
-        acute = (dv[1:] * dv[:-1]).sum(axis=1) < 0          # angle is acute?
+        towards_perp = (dv[1:] * perp[:-1]).sum(axis=1) > 0  # path bends towards previous perp?
+#       straight = (dv[1:] * perp[:-1]).sum(axis=1) == 0     # path is straight
+        acute = (dv[1:] * dv[:-1]).sum(axis=1) < 0           # angle is acute?
 
         # Build vertices
         o0 = [v[0] + perp[0]]
@@ -370,10 +370,10 @@ class Path(Shape, metaclass=AutoSlots):
 
         width0 = self.width / norm_value
 
-        return (type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer), \
-               (offset, scale/norm_value, rotation, False, self.dose), \
-               lambda: Path(reordered_vertices*norm_value, width=self.width*norm_value,
-                            cap=self.cap, layer=self.layer)
+        return ((type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer),
+                (offset, scale / norm_value, rotation, False, self.dose),
+                lambda: Path(reordered_vertices * norm_value, width=self.width * norm_value,
+                             cap=self.cap, layer=self.layer))
 
     def clean_vertices(self) -> 'Path':
         """
@@ -409,7 +409,7 @@ class Path(Shape, metaclass=AutoSlots):
         if self.cap == PathCap.Square:
             extensions = numpy.full(2, self.width / 2)
         elif self.cap == PathCap.SquareCustom:
-            extensions =  self.cap_extensions
+            extensions = self.cap_extensions
         else:
             # Flush or Circle
             extensions = numpy.zeros(2)

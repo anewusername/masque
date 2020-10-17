@@ -4,14 +4,14 @@
 """
 #TODO more top-level documentation
 
-from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
+from typing import Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
 import copy
 
 import numpy        # type: ignore
 from numpy import pi
 
-from .error import PatternError, PatternLockedError
-from .utils import is_scalar, rotation_matrix_2d, vector2, AutoSlots, annotations_t
+from .error import PatternError
+from .utils import is_scalar, vector2, AutoSlots, annotations_t
 from .repetition import Repetition
 from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
                      Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl,
@@ -82,7 +82,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.annotations = annotations if annotations is not None else {}
         self.set_locked(locked)
 
-    def  __copy__(self) -> 'SubPattern':
+    def __copy__(self) -> 'SubPattern':
         new = SubPattern(pattern=self.pattern,
                          offset=self.offset.copy(),
                          rotation=self.rotation,
@@ -94,7 +94,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
                          locked=self.locked)
         return new
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
+    def __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new.pattern = copy.deepcopy(self.pattern, memo)

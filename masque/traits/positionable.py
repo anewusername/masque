@@ -1,12 +1,11 @@
 # TODO top-level comment about how traits should set __slots__ = (), and how to use AutoSlots
 
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
-import copy
 import numpy        # type: ignore
 
-from ..error import PatternError, PatternLockedError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..error import PatternError
+from ..utils import vector2
 
 
 T = TypeVar('T', bound='Positionable')
@@ -100,7 +99,6 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
         if val.size != 2:
             raise PatternError('Offset must be convertible to size-2 ndarray')
         self._offset = val.flatten()
-
 
     '''
     ---- Methods

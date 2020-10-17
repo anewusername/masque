@@ -1,12 +1,11 @@
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
-import copy
 
 import numpy        # type: ignore
 from numpy import pi
 
-from .positionable import Positionable
-from ..error import PatternError, PatternLockedError
+#from .positionable import Positionable
+from ..error import PatternError
 from ..utils import is_scalar, rotation_matrix_2d, vector2
 
 T = TypeVar('T', bound='Rotatable')

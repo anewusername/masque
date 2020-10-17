@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Sequence
+from typing import List, Dict, Optional, Sequence
 import copy
 import math
 
@@ -81,7 +81,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
     # arc start/stop angle properties
     @property
-    def angles(self) -> numpy.ndarray:          #ndarray[float]
+    def angles(self) -> numpy.ndarray:
         """
         Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation
@@ -194,7 +194,7 @@ class Arc(Shape, metaclass=AutoSlots):
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Arc':
+    def __deepcopy__(self, memo: Dict = None) -> 'Arc':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -214,8 +214,8 @@ class Arc(Shape, metaclass=AutoSlots):
             poly_max_arclen = self.poly_max_arclen
 
         if (poly_num_points is None) and (poly_max_arclen is None):
-            raise PatternError('Max number of points and arclength left unspecified' +
-                               ' (default was also overridden)')
+            raise PatternError('Max number of points and arclength left unspecified'
+                               + ' (default was also overridden)')
 
         r0, r1 = self.radii
 
@@ -273,7 +273,7 @@ class Arc(Shape, metaclass=AutoSlots):
         mins = []
         maxs = []
         for a, sgn in zip(a_ranges, (-1, +1)):
-            wh = sgn * self.width/2
+            wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
@@ -287,7 +287,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
             # Cutoff angles
             xpt = (-self.rotation) % (2 * pi) + a0_offset
-            ypt = (pi/2 - self.rotation) % (2 * pi) + a0_offset
+            ypt = (pi / 2 - self.rotation) % (2 * pi) + a0_offset
             xnt = (xpt - pi) % (2 * pi) + a0_offset
             ynt = (ypt - pi) % (2 * pi) + a0_offset
 
@@ -356,9 +356,9 @@ class Arc(Shape, metaclass=AutoSlots):
         rotation %= 2 * pi
         width = self.width
 
-        return (type(self), radii, angles, width/norm_value, self.layer), \
-               (self.offset, scale/norm_value, rotation, False, self.dose), \
-               lambda: Arc(radii=radii*norm_value, angles=angles, width=width*norm_value, layer=self.layer)
+        return ((type(self), radii, angles, width / norm_value, self.layer),
+                (self.offset, scale / norm_value, rotation, False, self.dose),
+                lambda: Arc(radii=radii * norm_value, angles=angles, width=width * norm_value, layer=self.layer))
 
     def get_cap_edges(self) -> numpy.ndarray:
         '''
@@ -373,7 +373,7 @@ class Arc(Shape, metaclass=AutoSlots):
         mins = []
         maxs = []
         for a, sgn in zip(a_ranges, (-1, +1)):
-            wh = sgn * self.width/2
+            wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
@@ -388,7 +388,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
             mins.append([xn, yn])
             maxs.append([xp, yp])
-        return  numpy.array([mins, maxs]) + self.offset
+        return numpy.array([mins, maxs]) + self.offset
 
     def _angles_to_parameters(self) -> numpy.ndarray:
         '''
@@ -398,12 +398,12 @@ class Arc(Shape, metaclass=AutoSlots):
         '''
         a = []
         for sgn in (-1, +1):
-            wh = sgn * self.width/2
+            wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
             # create paremeter 'a' for parametrized ellipse
-            a0, a1 = (numpy.arctan2(rx*numpy.sin(a), ry*numpy.cos(a)) for a in self.angles)
+            a0, a1 = (numpy.arctan2(rx * numpy.sin(a), ry * numpy.cos(a)) for a in self.angles)
             sign = numpy.sign(self.angles[1] - self.angles[0])
             if sign != numpy.sign(a1 - a0):
                 a1 += sign * 2 * pi
@@ -424,8 +424,8 @@ class Arc(Shape, metaclass=AutoSlots):
         return self
 
     def __repr__(self) -> str:
-        angles = f' a°{self.angles*180/pi}'
-        rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        angles = f' a°{numpy.rad2deg(self.angles)}'
+        rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
         locked = ' L' if self.locked else ''
         return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}{dose}{locked}>'

@@ -17,8 +17,8 @@ Notes:
  * ELFLAGS are not supported
  * GDS does not support library- or structure-level annotations
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
-from typing import Sequence, Mapping
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
+from typing import Sequence
 import re
 import io
 import copy
@@ -34,25 +34,23 @@ import gdsii.library
 import gdsii.structure
 import gdsii.elements
 
-from .utils import mangle_name, make_dose_table, dose2dtype, dtype2dose, clean_pattern_vertices
-from .utils import is_gzipped
+from .utils import clean_pattern_vertices, is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
-from ..utils import rotation_matrix_2d, get_bit, set_bit, vector2, is_scalar, layer_t
-from ..utils import remove_colinear_vertices, normalize_mirror, annotations_t
+from ..utils import get_bit, set_bit, layer_t, normalize_mirror, annotations_t
 
 
 logger = logging.getLogger(__name__)
 
 
 path_cap_map = {
-                None: Path.Cap.Flush,
-                0: Path.Cap.Flush,
-                1: Path.Cap.Circle,
-                2: Path.Cap.Square,
-                4: Path.Cap.SquareCustom,
-               }
+    None: Path.Cap.Flush,
+    0: Path.Cap.Flush,
+    1: Path.Cap.Circle,
+    2: Path.Cap.Square,
+    4: Path.Cap.SquareCustom,
+    }
 
 
 def build(patterns: Union[Pattern, Sequence[Pattern]],
@@ -262,8 +260,7 @@ def read(stream: io.BufferedIOBase,
                               string=element.string.decode('ASCII'))
                 pat.labels.append(label)
 
-            elif (isinstance(element, gdsii.elements.SRef) or
-                  isinstance(element, gdsii.elements.ARef)):
+            elif isinstance(element, (gdsii.elements.SRef, gdsii.elements.ARef)):
                 pat.subpatterns.append(_ref_to_subpat(element))
 
         if clean_vertices:
@@ -358,7 +355,7 @@ def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
             'width': element.width if element.width is not None else 0.0,
             'cap': cap,
             'offset': numpy.zeros(2),
-            'annotations':_properties_to_annotations(element.properties),
+            'annotations': _properties_to_annotations(element.properties),
             'raw': raw_mode,
            }
 
@@ -376,7 +373,7 @@ def _boundary_to_polygon(element: gdsii.elements.Boundary, raw_mode: bool) -> Po
     args = {'vertices': element.xy[:-1].astype(float),
             'layer': (element.layer, element.data_type),
             'offset': numpy.zeros(2),
-            'annotations':_properties_to_annotations(element.properties),
+            'annotations': _properties_to_annotations(element.properties),
             'raw': raw_mode,
            }
     return Polygon(**args)
@@ -398,14 +395,14 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
         ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
         if isinstance(rep, Grid):
             xy = numpy.array(subpat.offset) + [
-                  [0, 0],
-                  rep.a_vector * rep.a_count,
-                  rep.b_vector * rep.b_count,
-                 ]
+                [0, 0],
+                rep.a_vector * rep.a_count,
+                rep.b_vector * rep.b_count,
+                ]
             ref = gdsii.elements.ARef(struct_name=encoded_name,
-                                       xy=numpy.round(xy).astype(int),
-                                       cols=numpy.round(rep.a_count).astype(int),
-                                       rows=numpy.round(rep.b_count).astype(int))
+                                      xy=numpy.round(xy).astype(int),
+                                      cols=numpy.round(rep.a_count).astype(int),
+                                      rows=numpy.round(rep.b_count).astype(int))
             new_refs = [ref]
         elif rep is None:
             ref = gdsii.elements.SRef(struct_name=encoded_name,
@@ -437,7 +434,7 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
     for key, vals in annotations.items():
         try:
             i = int(key)
-        except:
+        except ValueError:
             raise PatternError(f'Annotation key {key} is not convertable to an integer')
         if not (0 < i < 126):
             raise PatternError(f'Annotation key {key} converts to {i} (must be in the range [1,125])')
@@ -464,7 +461,7 @@ def _shapes_to_elements(shapes: List[Shape],
         if isinstance(shape, Path) and not polygonize_paths:
             xy = numpy.round(shape.vertices + shape.offset).astype(int)
             width = numpy.round(shape.width).astype(int)
-            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    #reverse lookup
+            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             path = gdsii.elements.Path(layer=layer,
                                        data_type=data_type,
                                        xy=xy)
@@ -502,7 +499,7 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
 def disambiguate_pattern_names(patterns: Sequence[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
-                               dup_warn_filter: Optional[Callable[[str,], bool]] = None,
+                               dup_warn_filter: Optional[Callable[[str], bool]] = None,
                                ):
     """
     Args:
@@ -519,13 +516,13 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
         # Shorten names which already exceed max-length
         if len(pat.name) > max_name_length:
             shortened_name = pat.name[:max_name_length - suffix_length]
-            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n' +
-                           f' shortening to "{shortened_name}" before generating suffix')
+            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n'
+                           + f' shortening to "{shortened_name}" before generating suffix')
         else:
             shortened_name = pat.name
 
         # Remove invalid characters
-        sanitized_name = re.compile('[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
 
         # Add a suffix that makes the name unique
         i = 0
@@ -540,8 +537,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
             if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n' +
-                               f' renaming to "{suffixed_name}"')
+                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+                               + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
@@ -549,8 +546,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
             # Should never happen since zero-length names are replaced
             raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
         if len(encoded_name) > max_name_length:
-            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n' +
-                               f' originally "{pat.name}"')
+            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n'
+                               + f' originally "{pat.name}"')
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)

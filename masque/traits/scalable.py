@@ -1,8 +1,7 @@
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
-import copy
 
-from ..error import PatternError, PatternLockedError
+from ..error import PatternError
 from ..utils import is_scalar
 
 

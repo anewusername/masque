@@ -1,11 +1,8 @@
 from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
-import copy
 
 import numpy        # type: ignore
 
-from ..error import PatternError, PatternLockedError
-from ..utils import rotation_matrix_2d, vector2, layer_t
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
                       PivotableImpl, LockableImpl, RepeatableImpl,
@@ -142,7 +139,6 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 if err_xmax >= 0.5:
                     gxi_max += 1
 
-
                 if abs(dv[0]) < 1e-20:
                     # Vertical line, don't calculate slope
                     xi = [gxi_min, gxi_max - 1]
@@ -155,8 +151,9 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                     vertex_lists.append(segment)
                     continue
 
-                m = dv[1]/dv[0]
-                def get_grid_inds(xes):
+                m = dv[1] / dv[0]
+
+                def get_grid_inds(xes: numpy.ndarray) -> numpy.ndarray:
                     ys = m * (xes - v[0]) + v[1]
 
                     # (inds - 1) is the index of the y-grid line below the edge's intersection with the x-grid
@@ -178,7 +175,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 xs2 = (xs[:-1] + xs[1:]) / 2
                 inds2 = get_grid_inds(xs2)
 
-                xinds = numpy.round(numpy.arange(gxi_min, gxi_max - 0.99, 1/3)).astype(int)
+                xinds = numpy.round(numpy.arange(gxi_min, gxi_max - 0.99, 1 / 3)).astype(int)
 
                 # interleave the results
                 yinds = xinds.copy()
@@ -201,7 +198,6 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 dose=self.dose))
 
         return manhattan_polygons
-
 
     def manhattanize(self,
                      grid_x: numpy.ndarray,

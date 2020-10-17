@@ -84,7 +84,7 @@ def normalize_mirror(mirrored: Sequence[bool]) -> Tuple[bool, float]:
     """
 
     mirrored_x, mirrored_y = mirrored
-    mirror_x = (mirrored_x != mirrored_y) #XOR
+    mirror_x = (mirrored_x != mirrored_y)  # XOR
     angle = numpy.pi if mirrored_y else 0
     return mirror_x, angle
 
@@ -124,8 +124,8 @@ def remove_colinear_vertices(vertices: numpy.ndarray, closed_path: bool = True) 
 
     # Check for dx0/dy0 == dx1/dy1
 
-    dv = numpy.roll(vertices, -1, axis=0) - vertices #       [y1-y0, y2-y1, ...]
-    dxdy = dv * numpy.roll(dv, 1, axis=0)[:, ::-1]   #[[dx0*(dy_-1), (dx_-1)*dy0], dx1*dy0, dy1*dy0]]
+    dv = numpy.roll(vertices, -1, axis=0) - vertices  # [y1-y0, y2-y1, ...]
+    dxdy = dv * numpy.roll(dv, 1, axis=0)[:, ::-1]    # [[dx0*(dy_-1), (dx_-1)*dy0], dx1*dy0, dy1*dy0]]
 
     dxdy_diff = numpy.abs(numpy.diff(dxdy, axis=1))[:, 0]
     err_mult = 2 * numpy.abs(dxdy).sum(axis=1) + 1e-40

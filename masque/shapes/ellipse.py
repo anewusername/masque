@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Sequence, Optional
+from typing import List, Dict, Sequence, Optional
 import copy
 import math
 
@@ -125,7 +125,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         self.poly_max_arclen = poly_max_arclen
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Ellipse':
+    def __deepcopy__(self, memo: Dict = None) -> 'Ellipse':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -198,9 +198,9 @@ class Ellipse(Shape, metaclass=AutoSlots):
             radii = self.radii[::-1] / self.radius_y
             scale = self.radius_y
             angle = (self.rotation + pi / 2) % pi
-        return (type(self), radii, self.layer), \
-               (self.offset, scale/norm_value, angle, False, self.dose), \
-               lambda: Ellipse(radii=radii*norm_value, layer=self.layer)
+        return ((type(self), radii, self.layer),
+                (self.offset, scale / norm_value, angle, False, self.dose),
+                lambda: Ellipse(radii=radii * norm_value, layer=self.layer))
 
     def lock(self) -> 'Ellipse':
         self.radii.flags.writeable = False

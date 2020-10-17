@@ -1,10 +1,8 @@
-from typing import List, Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional
 import copy
 import numpy        # type: ignore
-from numpy import pi
 
 from .repetition import Repetition
-from .error import PatternError, PatternLockedError
 from .utils import vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
 from .traits import AnnotatableImpl
@@ -63,7 +61,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
                      repetition=self.repetition,
                      locked=self.locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Label':
+    def __deepcopy__(self, memo: Dict = None) -> 'Label':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()

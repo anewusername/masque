@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Sequence, Optional, MutableSequence
+from typing import List, Tuple, Dict, Sequence, Optional
 import copy
 
 import numpy        # type: ignore
@@ -26,7 +26,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
     _string: str
     _height: float
-    _mirrored: numpy.ndarray        #ndarray[bool]
+    _mirrored: numpy.ndarray        # ndarray[bool]
     font_path: str
 
     # vertices property
@@ -51,7 +51,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
     # Mirrored property
     @property
-    def mirrored(self) -> numpy.ndarray:        #ndarray[bool]
+    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
         return self._mirrored
 
     @mirrored.setter
@@ -100,7 +100,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         self.font_path = font_path
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Text':
+    def __deepcopy__(self, memo: Dict = None) -> 'Text':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -144,14 +144,14 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         mirror_x, rotation = normalize_mirror(self.mirrored)
         rotation += self.rotation
         rotation %= 2 * pi
-        return (type(self), self.string, self.font_path, self.layer), \
-               (self.offset, self.height / norm_value, rotation, mirror_x, self.dose), \
-               lambda: Text(string=self.string,
-                            height=self.height * norm_value,
-                            font_path=self.font_path,
-                            rotation=rotation,
-                            mirrored=(mirror_x, False),
-                            layer=self.layer)
+        return ((type(self), self.string, self.font_path, self.layer),
+                (self.offset, self.height / norm_value, rotation, mirror_x, self.dose),
+                lambda: Text(string=self.string,
+                             height=self.height * norm_value,
+                             font_path=self.font_path,
+                             rotation=rotation,
+                             mirrored=(mirror_x, False),
+                             layer=self.layer))
 
     def get_bounds(self) -> numpy.ndarray:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so
@@ -168,7 +168,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
 def get_char_as_polygons(font_path: str,
                          char: str,
-                         resolution: float = 48*64,
+                         resolution: float = 48 * 64,
                          ) -> Tuple[List[List[List[float]]], float]:
     from freetype import Face           # type: ignore
     from matplotlib.path import Path    # type: ignore

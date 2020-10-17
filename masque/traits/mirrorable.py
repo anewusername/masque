@@ -1,8 +1,5 @@
-from typing import List, Tuple, Callable, TypeVar, Optional
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
-import copy
-
-from ..error import PatternError, PatternLockedError
 
 
 T = TypeVar('T', bound='Mirrorable')

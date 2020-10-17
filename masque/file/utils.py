@@ -4,14 +4,13 @@ Helper functions for file reading and writing
 from typing import Set, Tuple, List
 import re
 import copy
-import gzip
 import pathlib
 
 from .. import Pattern, PatternError
 from ..shapes import Polygon, Path
 
 
-def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
+def mangle_name(pattern: Pattern, dose_multiplier: float = 1.0) -> str:
     """
     Create a name using `pattern.name`, `id(pattern)`, and the dose multiplier.
 
@@ -22,7 +21,7 @@ def mangle_name(pattern: Pattern, dose_multiplier: float=1.0) -> str:
     Returns:
         Mangled name.
     """
-    expression = re.compile('[^A-Za-z0-9_\?\$]')
+    expression = re.compile(r'[^A-Za-z0-9_\?\$]')
     full_name = '{}_{}_{}'.format(pattern.name, dose_multiplier, id(pattern))
     sanitized_name = expression.sub('_', full_name)
     return sanitized_name
@@ -52,7 +51,7 @@ def clean_pattern_vertices(pat: Pattern) -> Pattern:
     return pat
 
 
-def make_dose_table(patterns: List[Pattern], dose_multiplier: float=1.0) -> Set[Tuple[int, float]]:
+def make_dose_table(patterns: List[Pattern], dose_multiplier: float = 1.0) -> Set[Tuple[int, float]]:
     """
     Create a set containing `(id(pat), written_dose)` for each pattern (including subpatterns)
 
@@ -144,14 +143,14 @@ def dose2dtype(patterns: List[Pattern],
 
     # Create a new pattern for each non-1-dose entry in the dose table
     #   and update the shapes to reflect their new dose
-    new_pats = {} # (id, dose) -> new_pattern mapping
+    new_pats = {}  # (id, dose) -> new_pattern mapping
     for pat_id, pat_dose in sd_table:
         if pat_dose == 1:
             new_pats[(pat_id, pat_dose)] = patterns_by_id[pat_id]
             continue
 
         old_pat = patterns_by_id[pat_id]
-        pat = old_pat.copy() # keep old subpatterns
+        pat = old_pat.copy()  # keep old subpatterns
         pat.shapes = copy.deepcopy(old_pat.shapes)
         pat.labels = copy.deepcopy(old_pat.labels)
 

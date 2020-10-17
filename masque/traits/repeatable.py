@@ -1,8 +1,7 @@
-from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
+from typing import TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
-import copy
 
-from ..error import PatternError, PatternLockedError
+from ..error import PatternError
 
 
 if TYPE_CHECKING:

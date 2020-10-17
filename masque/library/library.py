@@ -2,12 +2,11 @@
 Library class for managing unique name->pattern mappings and
  deferred loading or creation.
 """
-from typing import Dict, Callable, TypeVar, Generic, TYPE_CHECKING
+from typing import Dict, Callable, TypeVar, TYPE_CHECKING
 from typing import Any, Tuple, Union, Iterator
 import logging
 from pprint import pformat
 from dataclasses import dataclass
-from functools import lru_cache
 
 from ..error import LibraryError
 
@@ -133,13 +132,13 @@ class Library:
         return pat
 
     def keys(self) -> Iterator[str]:
-        return self.primary.keys()
+        return iter(self.primary.keys())
 
     def values(self) -> Iterator['Pattern']:
-        return (self[key] for key in self.keys())
+        return iter(self[key] for key in self.keys())
 
     def items(self) -> Iterator[Tuple[str, 'Pattern']]:
-        return ((key, self[key]) for key in self.keys())
+        return iter((key, self[key]) for key in self.keys())
 
     def __repr__(self) -> str:
         return '<Library with keys ' + repr(list(self.primary.keys())) + '>'
@@ -191,7 +190,7 @@ class Library:
         for key in self.primary:
             _ = self.get_primary(key)
         for key2 in self.secondary:
-            _ = self.get_secondary(key2)
+            _ = self.get_secondary(*key2)
         return self
 
     def add(self, other: 'Library') -> 'Library':

@@ -75,7 +75,7 @@ class Circle(Shape, metaclass=AutoSlots):
         self.poly_max_arclen = poly_max_arclen
         self.set_locked(locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Circle':
+    def __deepcopy__(self, memo: Dict = None) -> 'Circle':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
@@ -127,9 +127,9 @@ class Circle(Shape, metaclass=AutoSlots):
     def normalized_form(self, norm_value) -> normalized_shape_tuple:
         rotation = 0.0
         magnitude = self.radius / norm_value
-        return (type(self), self.layer), \
-               (self.offset, magnitude, rotation, False, self.dose), \
-               lambda: Circle(radius=norm_value, layer=self.layer)
+        return ((type(self), self.layer),
+                (self.offset, magnitude, rotation, False, self.dose),
+                lambda: Circle(radius=norm_value, layer=self.layer))
 
     def __repr__(self) -> str:
         dose = f' d{self.dose:g}' if self.dose != 1 else ''

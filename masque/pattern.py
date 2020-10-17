@@ -93,7 +93,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             raise PatternLockedError()
         object.__setattr__(self, name, value)
 
-    def  __copy__(self, memo: Dict = None) -> 'Pattern':
+    def __copy__(self, memo: Dict = None) -> 'Pattern':
         return Pattern(name=self.name,
                        shapes=copy.deepcopy(self.shapes),
                        labels=copy.deepcopy(self.labels),
@@ -101,14 +101,15 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                        annotations=copy.deepcopy(self.annotations),
                        locked=self.locked)
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Pattern':
+    def __deepcopy__(self, memo: Dict = None) -> 'Pattern':
         memo = {} if memo is None else memo
-        new = Pattern(name=self.name,
-                shapes=copy.deepcopy(self.shapes, memo),
-                labels=copy.deepcopy(self.labels, memo),
-                subpatterns=copy.deepcopy(self.subpatterns, memo),
-                annotations=copy.deepcopy(self.annotations, memo),
-                locked=self.locked)
+        new = Pattern(
+            name=self.name,
+            shapes=copy.deepcopy(self.shapes, memo),
+            labels=copy.deepcopy(self.labels, memo),
+            subpatterns=copy.deepcopy(self.subpatterns, memo),
+            annotations=copy.deepcopy(self.annotations, memo),
+            locked=self.locked)
         return new
 
     def rename(self, name: str) -> 'Pattern':
@@ -281,7 +282,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             if transform is not False:
                 sign = numpy.ones(2)
                 if transform[3]:
-                   sign[1] = -1
+                    sign[1] = -1
                 xy = numpy.dot(rotation_matrix_2d(transform[2]), subpattern.offset * sign)
                 mirror_x, angle = normalize_mirror(subpattern.mirrored)
                 angle += subpattern.rotation
@@ -325,8 +326,8 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         """
         old_shapes = self.shapes
         self.shapes = list(chain.from_iterable(
-                        (shape.to_polygons(poly_num_points, poly_max_arclen)
-                         for shape in old_shapes)))
+            (shape.to_polygons(poly_num_points, poly_max_arclen)
+             for shape in old_shapes)))
         for subpat in self.subpatterns:
             if subpat.pattern is not None:
                 subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
@@ -351,7 +352,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         self.polygonize().flatten()
         old_shapes = self.shapes
         self.shapes = list(chain.from_iterable(
-                        (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
+            (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
     def subpatternize(self,
@@ -518,7 +519,6 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 ids.update(pat.subpatterns_by_id(include_none=include_none))
         return dict(ids)
 
-
     def get_bounds(self) -> Union[numpy.ndarray, None]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
@@ -624,7 +624,6 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             do_wrap(self)
 
         return self
-
 
     def translate_elements(self, offset: vector2) -> 'Pattern':
         """
@@ -805,9 +804,9 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         Returns:
             True if the pattern is contains no shapes, labels, or subpatterns.
         """
-        return (len(self.subpatterns) == 0 and
-                len(self.shapes) == 0 and
-                len(self.labels) == 0)
+        return (len(self.subpatterns) == 0
+                and len(self.shapes) == 0
+                and len(self.labels) == 0)
 
     def lock(self) -> 'Pattern':
         """

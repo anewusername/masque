@@ -3,13 +3,13 @@
      instances of an object .
 """
 
-from typing import Union, List, Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
+from typing import Union, Dict, Optional, Sequence, Any
 import copy
 from abc import ABCMeta, abstractmethod
 
 import numpy        # type: ignore
 
-from .error import PatternError, PatternLockedError
+from .error import PatternError
 from .utils import rotation_matrix_2d, vector2, AutoSlots
 from .traits import LockableImpl, Copyable, Scalable, Rotatable, Mirrorable
 
@@ -103,7 +103,7 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
         self.b_count = b_count
         self.locked = locked
 
-    def  __copy__(self) -> 'Grid':
+    def __copy__(self) -> 'Grid':
         new = Grid(a_vector=self.a_vector.copy(),
                    b_vector=copy.copy(self.b_vector),
                    a_count=self.a_count,
@@ -111,7 +111,7 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
                    locked=self.locked)
         return new
 
-    def  __deepcopy__(self, memo: Dict = None) -> 'Grid':
+    def __deepcopy__(self, memo: Dict = None) -> 'Grid':
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new.locked = self.locked
@@ -170,8 +170,8 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
     @property
     def displacements(self) -> numpy.ndarray:
         aa, bb = numpy.meshgrid(numpy.arange(self.a_count), numpy.arange(self.b_count), indexing='ij')
-        return (aa.flatten()[:, None] * self.a_vector[None, :] +
-                bb.flatten()[:, None] * self.b_vector[None, :])
+        return (aa.flatten()[:, None] * self.a_vector[None, :]
+              + bb.flatten()[:, None] * self.b_vector[None, :])             # noqa
 
     def rotate(self, rotation: float) -> 'Grid':
         """
@@ -199,9 +199,9 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
         Returns:
             self
         """
-        self.a_vector[1-axis] *= -1
+        self.a_vector[1 - axis] *= -1
         if self.b_vector is not None:
-            self.b_vector[1-axis] *= -1
+            self.b_vector[1 - axis] *= -1
         return self
 
     def get_bounds(self) -> Optional[numpy.ndarray]:
@@ -377,7 +377,7 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
         Returns:
             self
         """
-        self.displacements[1-axis] *= -1
+        self.displacements[1 - axis] *= -1
         return self
 
     def get_bounds(self) -> Optional[numpy.ndarray]:
