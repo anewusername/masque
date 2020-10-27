@@ -180,7 +180,7 @@ class Library:
         else:
             self.primary[key] = pg
 
-    def precache(self) -> 'Library':
+    def precache(self: L) -> L:
         """
         Force all patterns into the cache
 
@@ -193,7 +193,7 @@ class Library:
             _ = self.get_secondary(*key2)
         return self
 
-    def add(self, other: 'Library') -> 'Library':
+    def add(self: L, other: L) -> L:
         """
         Add keys from another library into this one.
 
