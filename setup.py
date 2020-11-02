@@ -6,8 +6,8 @@ from setuptools import setup, find_packages
 with open('README.md', 'r') as f:
     long_description = f.read()
 
-with open('masque/VERSION', 'r') as f:
-    version = f.read().strip()
+with open('masque/VERSION.py', 'rt') as f:
+    version = f.readlines()[2].strip()
 
 setup(name='masque',
       version=version,
@@ -19,8 +19,7 @@ setup(name='masque',
       url='https://mpxd.net/code/jan/masque',
       packages=find_packages(),
       package_data={
-          'masque': ['VERSION',
-                     'py.typed',
+          'masque': ['py.typed',
                      ]
       },
       install_requires=[

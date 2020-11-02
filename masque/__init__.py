@@ -17,8 +17,6 @@
   otherwise noted, assume that arguments are stored by-reference.
 """
 
-import pathlib
-
 from .error import PatternError, PatternLockedError
 from .shapes import Shape
 from .label import Label
@@ -30,6 +28,5 @@ from .library import Library
 
 __author__ = 'Jan Petykiewicz'
 
-with open(pathlib.Path(__file__).parent / 'VERSION', 'r') as f:
-    __version__ = f.read().strip()
-version = __version__
+from .VERSION import __version__
+version = __version__       # legacy
