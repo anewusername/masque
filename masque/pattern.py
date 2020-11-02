@@ -806,6 +806,21 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 and len(self.shapes) == 0
                 and len(self.labels) == 0)
 
+    def addsp(self: P, *args: Any, **kwargs: Any) -> P:
+        """
+        Convenience function which constructs a subpattern object and adds it
+         to this pattern.
+
+        Args:
+            *args: Passed to `SubPattern()`
+            **kwargs: Passed to `SubPattern()`
+
+        Returns:
+            self
+        """
+        self.subpatterns.append(SubPattern(*args, **kwargs))
+        return self
+
     def lock(self: P) -> P:
         """
         Lock the pattern, raising an exception if it is modified.
