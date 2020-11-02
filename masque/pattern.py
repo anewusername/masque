@@ -413,9 +413,8 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
 
                 for i, values in shape_table[label][1]:
                     (offset, scale, rotation, mirror_x, dose) = values
-                    subpat = SubPattern(pattern=pat, offset=offset, scale=scale,
-                                        rotation=rotation, dose=dose, mirrored=(mirror_x, False))
-                    self.subpatterns.append(subpat)
+                    self.addsp(pattern=pat, offset=offset, scale=scale,
+                               rotation=rotation, dose=dose, mirrored=(mirror_x, False))
                     shapes_to_remove.append(i)
 
         # Remove any shapes for which we have created subpatterns.
@@ -600,20 +599,18 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             if pat is None:
                 return pat
 
-            new_subpatterns = []
             for shape in pat.shapes:
                 if shape.repetition is None:
                     continue
-                new_subpatterns.append(SubPattern(Pattern(name_func(pat, shape), shapes=[shape])))
+                pat.addsp(Pattern(name_func(pat, shape), shapes=[shape]))
                 shape.repetition = None
 
             for label in self.labels:
                 if label.repetition is None:
                     continue
-                new_subpatterns.append(SubPattern(Pattern(name_func(pat, shape), labels=[label])))
+                pat.addsp(Pattern(name_func(pat, shape), labels=[label]))
                 label.repetition = None
 
-            pat.subpatterns += new_subpatterns
             return pat
 
         if recursive:
