@@ -2,9 +2,9 @@
  masque 2D CAD library
 
  masque is an attempt to make a relatively small library for designing lithography
-  masks. The general idea is to implement something resembling the GDSII file-format, but
-  with some vectorized element types (eg. circles, not just polygons), better support for
-  E-beam doses, and the ability to output to multiple formats.
+  masks. The general idea is to implement something resembling the GDSII and OASIS file-formats,
+  but with some additional vectorized element types (eg. ellipses, not just polygons), better
+  support for E-beam doses, and the ability to interface with multiple file formats.
 
  `Pattern` is a basic object containing a 2D lithography mask, composed of a list of `Shape`
   objects, a list of `Label` objects, and a list of references to other `Patterns` (using
