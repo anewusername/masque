@@ -3,7 +3,7 @@
 """
 
 from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload
-from typing import MutableMapping, Iterable
+from typing import MutableMapping, Iterable, TypeVar, Any
 import copy
 import pickle
 from itertools import chain
@@ -22,6 +22,9 @@ from .traits import LockableImpl, AnnotatableImpl, Scalable
 
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
+
+
+P = TypeVar('P', bound='Pattern')
 
 
 class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
@@ -56,7 +59,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                  subpatterns: Sequence[SubPattern] = (),
                  annotations: Optional[annotations_t] = None,
                  locked: bool = False,
-                 ):
+                 ) -> None:
         """
         Basic init; arguments get assigned to member variables.
          Non-list inputs for shapes and subpatterns get converted to lists.
@@ -112,11 +115,11 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             locked=self.locked)
         return new
 
-    def rename(self, name: str) -> 'Pattern':
+    def rename(self: P, name: str) -> P:
         self.name = name
         return self
 
-    def append(self, other_pattern: 'Pattern') -> 'Pattern':
+    def append(self: P, other_pattern: P) -> P:
         """
         Appends all shapes, labels and subpatterns from other_pattern to self's shapes,
           labels, and supbatterns.
@@ -220,13 +223,13 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             pat = memo[pat_id]
         return pat
 
-    def dfs(self,
+    def dfs(self: P,
             visit_before: visitor_function_t = None,
             visit_after: visitor_function_t = None,
             transform: Union[numpy.ndarray, bool, None] = False,
             memo: Optional[Dict] = None,
-            hierarchy: Tuple['Pattern', ...] = (),
-            ) -> 'Pattern':
+            hierarchy: Tuple[P, ...] = (),
+            ) -> P:
         """
         Experimental convenience function.
         Performs a depth-first traversal of this pattern and its subpatterns.
@@ -305,10 +308,10 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
         return pat
 
-    def polygonize(self,
+    def polygonize(self: P,
                    poly_num_points: Optional[int] = None,
                    poly_max_arclen: Optional[float] = None,
-                   ) -> 'Pattern':
+                   ) -> P:
         """
         Calls `.to_polygons(...)` on all the shapes in this Pattern and any referenced patterns,
          replacing them with the returned polygons.
@@ -333,10 +336,10 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
         return self
 
-    def manhattanize(self,
+    def manhattanize(self: P,
                      grid_x: numpy.ndarray,
                      grid_y: numpy.ndarray,
-                     ) -> 'Pattern':
+                     ) -> P:
         """
         Calls `.polygonize()` and `.flatten()` on the pattern, then calls `.manhattanize()` on all the
          resulting shapes, replacing them with the returned Manhattan polygons.
@@ -355,11 +358,11 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
-    def subpatternize(self,
+    def subpatternize(self: P,
                       recursive: bool = True,
                       norm_value: int = int(1e6),
                       exclude_types: Tuple[Type] = (Polygon,)
-                      ) -> 'Pattern':
+                      ) -> P:
         """
         Iterates through this `Pattern` and all referenced `Pattern`s. Within each `Pattern`, it iterates
          over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
@@ -476,7 +479,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 ids.update(pat.referenced_patterns_by_id())
         return ids
 
-    def referenced_patterns_by_name(self, **kwargs) -> List[Tuple[Optional[str], Optional['Pattern']]]:
+    def referenced_patterns_by_name(self, **kwargs: Any) -> List[Tuple[Optional[str], Optional['Pattern']]]:
         """
         Create a list of `(pat.name, pat)` tuples for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well).
@@ -544,7 +547,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         else:
             return numpy.vstack((min_bounds, max_bounds))
 
-    def flatten(self) -> 'Pattern':
+    def flatten(self: P) -> P:
         """
         Removes all subpatterns and adds equivalent shapes.
 
@@ -580,10 +583,10 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self.append(p)
         return self
 
-    def wrap_repeated_shapes(self,
+    def wrap_repeated_shapes(self: P,
                              name_func: Callable[['Pattern', Union[Shape, Label]], str] = lambda p, s: '_repetition',
                              recursive: bool = True,
-                             ) -> 'Pattern':
+                             ) -> P:
         """
         Wraps all shapes and labels with a non-`None` `repetition` attribute
           into a `SubPattern`/`Pattern` combination, and applies the `repetition`
@@ -625,7 +628,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
 
         return self
 
-    def translate_elements(self, offset: vector2) -> 'Pattern':
+    def translate_elements(self: P, offset: vector2) -> P:
         """
         Translates all shapes, label, and subpatterns by the given offset.
 
@@ -639,7 +642,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.translate(offset)
         return self
 
-    def scale_elements(self, c: float) -> 'Pattern':
+    def scale_elements(self: P, c: float) -> P:
         """"
         Scales all shapes and subpatterns by the given value.
 
@@ -653,7 +656,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.scale_by(c)
         return self
 
-    def scale_by(self, c: float) -> 'Pattern':
+    def scale_by(self: P, c: float) -> P:
         """
         Scale this Pattern by the given value
          (all shapes and subpatterns and their offsets are scaled)
@@ -672,7 +675,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             label.offset *= c
         return self
 
-    def rotate_around(self, pivot: vector2, rotation: float) -> 'Pattern':
+    def rotate_around(self: P, pivot: vector2, rotation: float) -> P:
         """
         Rotate the Pattern around the a location.
 
@@ -690,7 +693,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         self.translate_elements(+pivot)
         return self
 
-    def rotate_element_centers(self, rotation: float) -> 'Pattern':
+    def rotate_element_centers(self: P, rotation: float) -> P:
         """
         Rotate the offsets of all shapes, labels, and subpatterns around (0, 0)
 
@@ -704,7 +707,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.offset = numpy.dot(rotation_matrix_2d(rotation), entry.offset)
         return self
 
-    def rotate_elements(self, rotation: float) -> 'Pattern':
+    def rotate_elements(self: P, rotation: float) -> P:
         """
         Rotate each shape and subpattern around its center (offset)
 
@@ -718,7 +721,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.rotate(rotation)
         return self
 
-    def mirror_element_centers(self, axis: int) -> 'Pattern':
+    def mirror_element_centers(self: P, axis: int) -> P:
         """
         Mirror the offsets of all shapes, labels, and subpatterns across an axis
 
@@ -733,7 +736,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.offset[axis - 1] *= -1
         return self
 
-    def mirror_elements(self, axis: int) -> 'Pattern':
+    def mirror_elements(self: P, axis: int) -> P:
         """
         Mirror each shape and subpattern across an axis, relative to its
           offset
@@ -749,7 +752,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.mirror(axis)
         return self
 
-    def mirror(self, axis: int) -> 'Pattern':
+    def mirror(self: P, axis: int) -> P:
         """
         Mirror the Pattern across an axis
 
@@ -764,7 +767,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         self.mirror_element_centers(axis)
         return self
 
-    def scale_element_doses(self, c: float) -> 'Pattern':
+    def scale_element_doses(self: P, c: float) -> P:
         """
         Multiply all shape and subpattern doses by a factor
 
@@ -778,7 +781,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             entry.dose *= c
         return self
 
-    def copy(self) -> 'Pattern':
+    def copy(self: P) -> P:
         """
         Return a copy of the Pattern, deep-copying shapes and copying subpattern
          entries, but not deep-copying any referenced patterns.
@@ -790,7 +793,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         """
         return copy.copy(self)
 
-    def deepcopy(self) -> 'Pattern':
+    def deepcopy(self: P) -> P:
         """
         Convenience method for `copy.deepcopy(pattern)`
 
@@ -808,7 +811,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                 and len(self.shapes) == 0
                 and len(self.labels) == 0)
 
-    def lock(self) -> 'Pattern':
+    def lock(self: P) -> P:
         """
         Lock the pattern, raising an exception if it is modified.
         Also see `deeplock()`.
@@ -823,7 +826,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             LockableImpl.lock(self)
         return self
 
-    def unlock(self) -> 'Pattern':
+    def unlock(self: P) -> P:
         """
         Unlock the pattern
 
@@ -837,7 +840,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self.subpatterns = list(self.subpatterns)
         return self
 
-    def deeplock(self) -> 'Pattern':
+    def deeplock(self: P) -> P:
         """
         Recursively lock the pattern, all referenced shapes, subpatterns, and labels.
 
@@ -851,7 +854,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             sp.deeplock()
         return self
 
-    def deepunlock(self) -> 'Pattern':
+    def deepunlock(self: P) -> P:
         """
         Recursively unlock the pattern, all referenced shapes, subpatterns, and labels.
 
@@ -902,7 +905,8 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
                   offset: vector2 = (0., 0.),
                   line_color: str = 'k',
                   fill_color: str = 'none',
-                  overdraw: bool = False):
+                  overdraw: bool = False,
+                  ) -> None:
         """
         Draw a picture of the Pattern and wait for the user to inspect it
 

@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, TypeVar
 import copy
 import numpy        # type: ignore
 
@@ -6,6 +6,9 @@ from .repetition import Repetition
 from .utils import vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
 from .traits import AnnotatableImpl
+
+
+L = TypeVar('L', bound='Label')
 
 
 class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, AnnotatableImpl,
@@ -44,7 +47,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
                  repetition: Optional[Repetition] = None,
                  annotations: Optional[annotations_t] = None,
                  locked: bool = False,
-                 ):
+                 ) -> None:
         LockableImpl.unlock(self)
         self.identifier = ()
         self.string = string
@@ -54,21 +57,21 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         self.annotations = annotations if annotations is not None else {}
         self.set_locked(locked)
 
-    def __copy__(self) -> 'Label':
+    def __copy__(self: L) -> L:
         return Label(string=self.string,
                      offset=self.offset.copy(),
                      layer=self.layer,
                      repetition=self.repetition,
                      locked=self.locked)
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Label':
+    def __deepcopy__(self: L, memo: Dict = None) -> L:
         memo = {} if memo is None else memo
         new = copy.copy(self).unlock()
         new._offset = self._offset.copy()
         new.set_locked(self.locked)
         return new
 
-    def rotate_around(self, pivot: vector2, rotation: float) -> 'Label':
+    def rotate_around(self: L, pivot: vector2, rotation: float) -> L:
         """
         Rotate the label around a point.
 
@@ -98,12 +101,12 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         """
         return numpy.array([self.offset, self.offset])
 
-    def lock(self) -> 'Label':
+    def lock(self: L) -> L:
         PositionableImpl._lock(self)
         LockableImpl.lock(self)
         return self
 
-    def unlock(self) -> 'Label':
+    def unlock(self: L) -> L:
         LockableImpl.unlock(self)
         PositionableImpl._unlock(self)
         return self

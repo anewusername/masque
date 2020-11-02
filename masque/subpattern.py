@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any
+from typing import Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any, TypeVar
 import copy
 
 import numpy        # type: ignore
@@ -20,6 +20,9 @@ from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl
 
 if TYPE_CHECKING:
     from . import Pattern
+
+
+S = TypeVar('S', bound='SubPattern')
 
 
 class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
@@ -55,7 +58,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
                  annotations: Optional[annotations_t] = None,
                  locked: bool = False,
                  identifier: Tuple[Any, ...] = (),
-                 ):
+                 ) -> None:
         """
         Args:
             pattern: Pattern to reference.
@@ -150,13 +153,13 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
         return pattern
 
-    def rotate(self, rotation: float) -> 'SubPattern':
+    def rotate(self: S, rotation: float) -> S:
         self.rotation += rotation
         if self.repetition is not None:
             self.repetition.rotate(rotation)
         return self
 
-    def mirror(self, axis: int) -> 'SubPattern':
+    def mirror(self: S, axis: int) -> S:
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
         if self.repetition is not None:
@@ -176,7 +179,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             return None
         return self.as_pattern().get_bounds()
 
-    def lock(self) -> 'SubPattern':
+    def lock(self: S) -> S:
         """
         Lock the SubPattern, disallowing changes
 
@@ -188,7 +191,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         LockableImpl.lock(self)
         return self
 
-    def unlock(self) -> 'SubPattern':
+    def unlock(self: S) -> S:
         """
         Unlock the SubPattern
 
@@ -200,7 +203,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.mirrored.flags.writeable = True
         return self
 
-    def deeplock(self) -> 'SubPattern':
+    def deeplock(self: S) -> S:
         """
         Recursively lock the SubPattern and its contained pattern
 
@@ -212,7 +215,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.pattern.deeplock()
         return self
 
-    def deepunlock(self) -> 'SubPattern':
+    def deepunlock(self: S) -> S:
         """
         Recursively unlock the SubPattern and its contained pattern
 

@@ -576,6 +576,7 @@ def load_library(stream: BinaryIO,
     if is_secondary is None:
         def is_secondary(k: str):
             return False
+    assert(is_secondary is not None)
 
     stream.seek(0)
     library_info = _read_header(stream)
