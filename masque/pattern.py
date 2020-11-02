@@ -91,11 +91,6 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         self.name = name
         self.set_locked(locked)
 
-    def __setattr__(self, name, value):
-        if self.locked and name != 'locked':
-            raise PatternLockedError()
-        object.__setattr__(self, name, value)
-
     def __copy__(self, memo: Dict = None) -> 'Pattern':
         return Pattern(name=self.name,
                        shapes=copy.deepcopy(self.shapes),
