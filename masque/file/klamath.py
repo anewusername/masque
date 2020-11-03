@@ -188,6 +188,7 @@ def readfile(filename: Union[str, pathlib.Path],
 
 
 def read(stream: BinaryIO,
+         raw_mode: bool = True,
          ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
@@ -202,12 +203,12 @@ def read(stream: BinaryIO,
 
     Args:
         stream: Stream to read from.
+        raw_mode: If True, constructs shapes in raw mode, bypassing most data validation, Default True.
 
     Returns:
         - Dict of pattern_name:Patterns generated from GDSII structures
         - Dict of GDSII library info
     """
-    raw_mode = True     # Whether to construct shapes in raw mode (less error checking)
     library_info = _read_header(stream)
 
     patterns = []
@@ -253,7 +254,7 @@ def read_elements(stream: BinaryIO,
         stream: Seekable stream, positioned at a record boundary.
                 Will be read until an ENDSTR record is consumed.
         name: Name of the resulting Pattern
-        raw_mode: If True, bypass per-shape consistency checking
+        raw_mode: If True, bypass per-shape data validation. Default True.
 
     Returns:
         A pattern containing the elements that were read.
