@@ -552,6 +552,8 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
 def load_library(stream: BinaryIO,
                  tag: str,
                  is_secondary: Optional[Callable[[str], bool]] = None,
+                 *,
+                 full_load: bool = False,
                  ) -> Tuple[Library, Dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
@@ -569,6 +571,10 @@ def load_library(stream: BinaryIO,
                       True if the structure should only be used as a subcell
                       and not appear in the main Library interface.
                       Default always returns False.
+        full_load: If True, force all structures to be read immediately rather
+                   than as-needed. Since data is read sequentially from the file,
+                   this will be faster than using the resulting library's
+                   `precache` method.
 
     Returns:
         Library object, allowing for deferred load of structures.
@@ -580,10 +586,19 @@ def load_library(stream: BinaryIO,
     assert(is_secondary is not None)
 
     stream.seek(0)
+    lib = Library()
+
+    if full_load:
+        # Full load approach (immediately load everything)
+        patterns, library_info = read(stream)
+        for name, pattern in patterns.items():
+            lib.set_const(name, tag, pattern, secondary=is_secondary(name))
+        return lib, library_info
+
+    # Normal approach (scan and defer load)
     library_info = _read_header(stream)
     structs = klamath.library.scan_structs(stream)
 
-    lib = Library()
     for name_bytes, pos in structs.items():
         name = name_bytes.decode('ASCII')
 
@@ -599,7 +614,9 @@ def load_library(stream: BinaryIO,
 def load_libraryfile(filename: Union[str, pathlib.Path],
                      tag: str,
                      is_secondary: Optional[Callable[[str], bool]] = None,
+                     *,
                      use_mmap: bool = True,
+                     full_load: bool = False,
                      ) -> Tuple[Library, Dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.
@@ -617,6 +634,7 @@ def load_libraryfile(filename: Union[str, pathlib.Path],
                   of buffering. In the case of gzipped files, the file
                   is decompressed into a python `bytes` object in memory
                   and reopened as an `io.BytesIO` stream.
+        full_load: If `True`, immediately loads all data. See `load_library`.
 
     Returns:
         Library object, allowing for deferred load of structures.
