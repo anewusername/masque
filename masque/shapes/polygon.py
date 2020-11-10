@@ -269,6 +269,64 @@ class Polygon(Shape, metaclass=AutoSlots):
                                  layer=layer, dose=dose)
         return poly
 
+    @staticmethod
+    def octagon(*,
+                side_length: Optional[float] = None,
+                inner_radius: Optional[float] = None,
+                regular: bool = True,
+                center: vector2 = (0.0, 0.0),
+                rotation: float = 0.0,
+                layer: layer_t = 0,
+                dose: float = 1.0,
+                ) -> 'Polygon':
+        """
+        Draw an octagon given one of (side length, inradius, circumradius).
+
+        Args:
+            side_length: Length of one side. For an irregular octagon, this
+                specifies the length of the long sides.
+            inner_radius: Half of distance between opposite sides. For an irregular
+                octagon, this specifies the spacing between the long sides.
+            regular: If `True`, all sides have the same length. If `False`,
+                a "clipped square" with vertices (+-1, +-2) and (+-2, +-1)
+                is generated, avoiding irrational coordinate locations and
+                guaranteeing 45 degree edges.
+            center: Offset, default `(0, 0)`
+            rotation: Rotation counterclockwise, in radians.
+                `0` results in four axis-aligned sides (the long sides of the
+                irregular octagon).
+            layer: Layer, default `0`
+            dose: Dose, default `1.0`
+
+        Returns:
+            A Polygon object containing the requested octagon
+        """
+        if regular:
+            s = 1 + numpy.sqrt(2)
+        else:
+            s = 2
+
+        norm_oct = numpy.array([
+            [-1, -s],
+            [-s, -1],
+            [-s,  1],
+            [-1,  s],
+            [ 1,  s],
+            [ s,  1],
+            [ s, -1],
+            [ 1, -s]], dtype=float)
+
+        if side_length is None:
+            if inner_radius is None:
+                raise PatternError('One of `side_length` or `inner_radius` must be specified.')
+            side_length = 2 * inner_radius / s
+
+        vertices = 0.5 * side_length * norm_oct
+        poly = Polygon(vertices, offset=center, layer=layer, dose=dose)
+        poly.rotate(rotation)
+        return poly
+
+
     def to_polygons(self,
                     poly_num_points: int = None,        # unused
                     poly_max_arclen: float = None,      # unused
