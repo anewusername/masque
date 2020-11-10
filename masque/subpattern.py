@@ -79,7 +79,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.dose = dose
         self.scale = scale
         if mirrored is None:
-            mirrored = [False, False]
+            mirrored = (False, False)
         self.mirrored = mirrored
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}

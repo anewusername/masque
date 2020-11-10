@@ -2,7 +2,7 @@
  Base object representing a lithography mask.
 """
 
-from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload
+from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload, cast
 from typing import MutableMapping, Iterable, TypeVar, Any
 import copy
 import pickle
@@ -18,7 +18,8 @@ from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, vector2, normalize_mirror, AutoSlots, annotations_t
 from .error import PatternError, PatternLockedError
-from .traits import LockableImpl, AnnotatableImpl, Scalable
+from .traits import LockableImpl, AnnotatableImpl, Scalable, Mirrorable
+from .traits import Rotatable, Positionable
 
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
@@ -27,7 +28,7 @@ visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray]
 P = TypeVar('P', bound='Pattern')
 
 
-class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
+class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
@@ -710,7 +711,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self
         """
         for entry in chain(self.shapes, self.subpatterns):
-            entry.rotate(rotation)
+            cast(Rotatable, entry).rotate(rotation)
         return self
 
     def mirror_element_centers(self: P, axis: int) -> P:
@@ -741,7 +742,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
             self
         """
         for entry in chain(self.shapes, self.subpatterns):
-            entry.mirror(axis)
+            cast(Mirrorable, entry).mirror(axis)
         return self
 
     def mirror(self: P, axis: int) -> P:
@@ -856,7 +857,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         """
         self.lock()
         for ss in chain(self.shapes, self.labels):
-            ss.lock()
+            ss.lock()       # type: ignore      # mypy struggles with multiple inheritance :(
         for sp in self.subpatterns:
             sp.deeplock()
         return self
@@ -873,7 +874,7 @@ class Pattern(LockableImpl, AnnotatableImpl, metaclass=AutoSlots):
         """
         self.unlock()
         for ss in chain(self.shapes, self.labels):
-            ss.unlock()
+            ss.unlock()       # type: ignore      # mypy struggles with multiple inheritance :(
         for sp in self.subpatterns:
             sp.deepunlock()
         return self

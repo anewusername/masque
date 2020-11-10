@@ -58,11 +58,11 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         self.set_locked(locked)
 
     def __copy__(self: L) -> L:
-        return Label(string=self.string,
-                     offset=self.offset.copy(),
-                     layer=self.layer,
-                     repetition=self.repetition,
-                     locked=self.locked)
+        return type(self)(string=self.string,
+                          offset=self.offset.copy(),
+                          layer=self.layer,
+                          repetition=self.repetition,
+                          locked=self.locked)
 
     def __deepcopy__(self: L, memo: Dict = None) -> L:
         memo = {} if memo is None else memo

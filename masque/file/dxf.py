@@ -70,7 +70,7 @@ def write(pattern: Pattern,
     """
     #TODO consider supporting DXF arcs?
     if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names
+        disambiguate_func = lambda pats: disambiguate_pattern_names(pats)
     assert(disambiguate_func is not None)
 
     if not modify_originals:
@@ -349,7 +349,7 @@ def _mlayer2dxf(layer: layer_t) -> str:
     raise PatternError(f'Unknown layer type: {layer} ({type(layer)})')
 
 
-def disambiguate_pattern_names(patterns: Sequence[Pattern],
+def disambiguate_pattern_names(patterns: Iterable[Pattern],
                                max_name_length: int = 32,
                                suffix_length: int = 6,
                                dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name

@@ -674,7 +674,7 @@ def annotations_to_properties(annotations: annotations_t) -> List[fatrec.Propert
     for key, values in annotations.items():
         vals = [AString(v) if isinstance(v, str) else v
                 for v in values]
-        properties.append(fatrec.Property(key, vals, is_standard=False))
+        properties.append(fatrec.Property(key, vals, is_standard=False))        # type: ignore
     return properties
 
 
