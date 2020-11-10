@@ -138,7 +138,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         assert(self.pattern is not None)
         pattern = self.pattern.deepcopy().deepunlock()
         pattern.scale_by(self.scale)
-        [pattern.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
+        pattern.mirror2d(self.mirrored)
         pattern.rotate_around((0.0, 0.0), self.rotation)
         pattern.translate_elements(self.offset)
         pattern.scale_element_doses(self.dose)

@@ -121,7 +121,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             # Move these polygons to the right of the previous letter
             for xys in raw_polys:
                 poly = Polygon(xys, dose=self.dose, layer=self.layer)
-                [poly.mirror(ax) for ax, do in enumerate(self.mirrored) if do]
+                poly.mirror2d(self.mirrored)
                 poly.scale_by(self.height)
                 poly.offset = self.offset + [total_advance, 0]
                 poly.rotate_around(self.offset, self.rotation)
