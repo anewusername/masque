@@ -24,12 +24,12 @@ class Rotatable(metaclass=ABCMeta):
     ---- Abstract methods
     '''
     @abstractmethod
-    def rotate(self: T, theta: float) -> T:
+    def rotate(self: T, val: float) -> T:
         """
         Rotate the shape around its origin (0, 0), ignoring its offset.
 
         Args:
-            theta: Angle to rotate by (counterclockwise, radians)
+            val: Angle to rotate by (counterclockwise, radians)
 
         Returns:
             self
@@ -56,7 +56,7 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
 
     @rotation.setter
     def rotation(self, val: float):
-        if not is_scalar(val):
+        if not numpy.size(val) == 1:
             raise MasqueError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)
 
