@@ -15,6 +15,17 @@
 
  Note that the methods for these classes try to avoid copying wherever possible, so unless
   otherwise noted, assume that arguments are stored by-reference.
+
+
+ NOTES ON INTERNALS
+ ==========================
+ - Many of `masque`'s classes make use of `__slots__` to make them faster / smaller.
+    Since `__slots__` doesn't play well with multiple inheritance, the `masque.utils.AutoSlots`
+    metaclass is used to auto-generate slots based on superclass type annotations.
+ - File I/O submodules are imported by `masque.file` to avoid creating hard dependencies on
+    external file-format reader/writers
+ - Pattern locking/unlocking is quite slow for large hierarchies.
+
 """
 
 from .error import PatternError, PatternLockedError
