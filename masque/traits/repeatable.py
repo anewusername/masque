@@ -1,7 +1,7 @@
 from typing import TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
-from ..error import PatternError
+from ..error import MasqueError
 
 
 if TYPE_CHECKING:
@@ -71,7 +71,7 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     def repetition(self, repetition: Optional['Repetition']):
         from ..repetition import Repetition
         if repetition is not None and not isinstance(repetition, Repetition):
-            raise PatternError(f'{repetition} is not a valid Repetition object!')
+            raise MasqueError(f'{repetition} is not a valid Repetition object!')
         self._repetition = repetition
 
     '''

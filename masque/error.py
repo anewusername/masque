@@ -1,13 +1,15 @@
-class PatternError(Exception):
+class MasqueError(Exception):
     """
-    Simple Exception for Pattern objects and their contents
+    Parent exception for all Masque-related Exceptions
     """
-    def __init__(self, value):
-        self.value = value
+    pass
 
-    def __str__(self):
-        return repr(self.value)
 
+class PatternError(MasqueError):
+    """
+    Exception for Pattern objects and their contents
+    """
+    pass
 
 class PatternLockedError(PatternError):
     """
@@ -17,7 +19,7 @@ class PatternLockedError(PatternError):
         PatternError.__init__(self, 'Tried to modify a locked Pattern, subpattern, or shape')
 
 
-class LibraryError(Exception):
+class LibraryError(MasqueError):
     """
     Exception raised by Library classes
     """

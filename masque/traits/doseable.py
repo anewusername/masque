@@ -1,7 +1,7 @@
 from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 
-from ..error import PatternError
+from ..error import MasqueError
 
 
 T = TypeVar('T', bound='Doseable')
@@ -65,7 +65,7 @@ class DoseableImpl(Doseable, metaclass=ABCMeta):
     @dose.setter
     def dose(self, val: float):
         if not val >= 0:
-            raise PatternError('Dose must be non-negative')
+            raise MasqueError('Dose must be non-negative')
         self._dose = val
 
     '''

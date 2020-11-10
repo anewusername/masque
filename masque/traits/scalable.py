@@ -1,7 +1,7 @@
 from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 
-from ..error import PatternError
+from ..error import MasqueError
 from ..utils import is_scalar
 
 
@@ -51,9 +51,9 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
     @scale.setter
     def scale(self, val: float):
         if not is_scalar(val):
-            raise PatternError('Scale must be a scalar')
+            raise MasqueError('Scale must be a scalar')
         if not val > 0:
-            raise PatternError('Scale must be positive')
+            raise MasqueError('Scale must be positive')
         self._scale = val
 
     '''

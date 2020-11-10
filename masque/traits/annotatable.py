@@ -3,7 +3,7 @@ from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 
 from ..utils import annotations_t
-from ..error import PatternError
+from ..error import MasqueError
 
 
 T = TypeVar('T', bound='Annotatable')
@@ -51,5 +51,5 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
     @annotations.setter
     def annotations(self, annotations: annotations_t):
         if not isinstance(annotations, dict):
-            raise PatternError(f'annotations expected dict, got {type(annotations)}')
+            raise MasqueError(f'annotations expected dict, got {type(annotations)}')
         self._annotations = annotations

@@ -4,7 +4,7 @@ from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 import numpy        # type: ignore
 
-from ..error import PatternError
+from ..error import MasqueError
 from ..utils import vector2
 
 
@@ -97,7 +97,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
             val = numpy.array(val, dtype=float)
 
         if val.size != 2:
-            raise PatternError('Offset must be convertible to size-2 ndarray')
+            raise MasqueError('Offset must be convertible to size-2 ndarray')
         self._offset = val.flatten()
 
     '''

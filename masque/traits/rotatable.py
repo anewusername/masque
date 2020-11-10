@@ -5,7 +5,7 @@ import numpy        # type: ignore
 from numpy import pi
 
 #from .positionable import Positionable
-from ..error import PatternError
+from ..error import MasqueError
 from ..utils import is_scalar, rotation_matrix_2d, vector2
 
 T = TypeVar('T', bound='Rotatable')
@@ -57,7 +57,7 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
     @rotation.setter
     def rotation(self, val: float):
         if not is_scalar(val):
-            raise PatternError('Rotation must be a scalar')
+            raise MasqueError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)
 
     '''
