@@ -34,7 +34,7 @@ from .label import Label
 from .subpattern import SubPattern
 from .pattern import Pattern
 from .utils import layer_t, annotations_t
-from .library import Library
+from .library import Library, DeviceLibrary
 
 
 __author__ = 'Jan Petykiewicz'
