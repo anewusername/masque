@@ -326,6 +326,7 @@ class Arc(Shape, metaclass=AutoSlots):
     def mirror(self, axis: int) -> 'Arc':
         self.offset[axis - 1] *= -1
         self.rotation *= -1
+        self.rotation += axis * pi
         self.angles *= -1
         return self
 
