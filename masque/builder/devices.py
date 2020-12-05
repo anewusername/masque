@@ -79,7 +79,8 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
     def mirror(self: P, axis: int) -> P:
         self.offset[1 - axis] *= -1
         if self.rotation is not None:
-            self.rotation += pi
+            self.rotation *= -1
+            self.rotation += axis * pi
         return self
 
     def rotate(self: P, rotation: float) -> P:
@@ -606,9 +607,10 @@ class Device(Copyable, Mirrorable):
 
         if mirrored[0]:
             o_offsets[:, 1] *= -1
-            o_rotations += pi
+            o_rotations *= -1
         if mirrored[1]:
             o_offsets[:, 0] *= -1
+            o_rotations *= -1
             o_rotations += pi
 
         type_conflicts = (s_types != o_types) & (s_types != 0) & (o_types != 0)
