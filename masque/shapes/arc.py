@@ -236,12 +236,16 @@ class Arc(Shape, metaclass=AutoSlots):
         if poly_max_arclen is not None:
             n += [perimeter / poly_max_arclen]
         num_points = int(round(max(n)))
-        thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
+
+        wh = self.width / 2.0
+        if wh == r0 and r0 == r1:
+            thetas_inner = [0]      # Don't generate multiple vertices if we're at the origin
+        else:
+            thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
         thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_points, endpoint=True)
 
         sin_th_i, cos_th_i = (numpy.sin(thetas_inner), numpy.cos(thetas_inner))
         sin_th_o, cos_th_o = (numpy.sin(thetas_outer), numpy.cos(thetas_outer))
-        wh = self.width / 2.0
 
         xs1 = (r0 + wh) * cos_th_o
         ys1 = (r1 + wh) * sin_th_o
