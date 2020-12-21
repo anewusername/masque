@@ -120,7 +120,7 @@ def remove_colinear_vertices(vertices: numpy.ndarray, closed_path: bool = True) 
     Returns:
         `vertices` with colinear (superflous) vertices removed.
     """
-    vertices = numpy.array(vertices)
+    vertices = remove_duplicate_vertices(vertices)
 
     # Check for dx0/dy0 == dx1/dy1
 
