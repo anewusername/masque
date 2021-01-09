@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Dict, Tuple, Any
 from abc import ABCMeta, abstractmethod
 
 from ..error import PatternLockedError
@@ -12,7 +12,7 @@ class Lockable(metaclass=ABCMeta):
     """
     Abstract class for all lockable entities
     """
-    __slots__ = ()
+    __slots__ = ()      # type: Tuple[str, ...]
 
     '''
     ---- Methods
@@ -68,7 +68,7 @@ class LockableImpl(Lockable, metaclass=ABCMeta):
     """
     Simple implementation of Lockable
     """
-    __slots__ = ()
+    __slots__ = ()      # type: Tuple[str, ...]
 
     locked: bool
     """ If `True`, disallows changes to the object """
@@ -80,6 +80,16 @@ class LockableImpl(Lockable, metaclass=ABCMeta):
         if self.locked and name != 'locked':
             raise PatternLockedError()
         object.__setattr__(self, name, value)
+
+    def __getstate__(self) -> Dict[str, Any]:
+        if hasattr(self, '__slots__'):
+            return {key: getattr(self, key) for key in self.__slots__}
+        else:
+            return self.__dict__
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        for k, v in state.items():
+            object.__setattr__(self, k, v)
 
     def lock(self: I) -> I:
         object.__setattr__(self, 'locked', True)
