@@ -958,6 +958,8 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                                           line_color=line_color, fill_color=fill_color)
 
         if not overdraw:
+            pyplot.xlabel('x')
+            pyplot.ylabel('y')
             pyplot.show()
 
     @staticmethod
