@@ -216,7 +216,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
                     width = attr.get('const_width', 0)
 
                 shape: Union[Path, Polygon]
-                if width == 0 and numpy.array_equal(points[0], points[-1]):
+                if width == 0 and len(points) > 2 and numpy.array_equal(points[0], points[-1]):
                     shape = Polygon(layer=layer, vertices=points[:-1, :2])
                 else:
                     shape = Path(layer=layer, width=width, vertices=points[:, :2])
