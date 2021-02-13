@@ -196,7 +196,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
         eltype = element.dxftype()
         if eltype in ('POLYLINE', 'LWPOLYLINE'):
             if eltype == 'LWPOLYLINE':
-                points = numpy.array(tuple(element.lwpoints()))
+                points = numpy.array(tuple(element.lwpoints))
             else:
                 points = numpy.array(tuple(element.points()))
             attr = element.dxfattribs()
