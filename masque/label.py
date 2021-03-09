@@ -47,9 +47,10 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
                  repetition: Optional[Repetition] = None,
                  annotations: Optional[annotations_t] = None,
                  locked: bool = False,
+                 identifier: Tuple = (),
                  ) -> None:
         LockableImpl.unlock(self)
-        self.identifier = ()
+        self.identifier = identifier
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
         self.layer = layer
@@ -62,7 +63,8 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
                           offset=self.offset.copy(),
                           layer=self.layer,
                           repetition=self.repetition,
-                          locked=self.locked)
+                          locked=self.locked,
+                          identifier=self.identifier)
 
     def __deepcopy__(self: L, memo: Dict = None) -> L:
         memo = {} if memo is None else memo
