@@ -546,35 +546,31 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         """
         Removes all subpatterns and adds equivalent shapes.
 
-        Shape identifiers are changed to represent their original position in the
+        Shape/label identifiers are changed to represent their original position in the
          pattern hierarchy:
-         `(L1_name (str), L1_index (int), L2_name, L2_index, ..., *original_shape_identifier)`
-         where
-         `L1_name` is the first-level subpattern's name (e.g. `self.subpatterns[0].pattern.name`),
-         `L2_name` is the next-level subpattern's name (e.g.
-            `self.subpatterns[0].pattern.subpatterns[0].pattern.name`) and
-         `L1_index` is an integer used to differentiate between multiple instance ofi the same
-            (or same-named) subpatterns.
+         `(L1_sp_index (int), L2_sp_index (int), ..., sh_index (int), *original_shape_identifier)`
+         where the original shape can be accessed as e.g.
+            `self.subpatterns[L1_sp_index].pattern.subpatterns[L2_sp_index].shapes[L1_sh_index]`
 
         Returns:
             self
         """
         subpatterns = copy.deepcopy(self.subpatterns)
         self.subpatterns = []
-        shape_counts: Dict[Tuple, int] = {}
-        for subpat in subpatterns:
+
+        # Update identifiers so each shape has a unique one
+        for ss, shape in enumerate(self.shapes):
+            shape.identifier = (ss,) + shape.identifier
+        for ll, label in enumerate(self.labels):
+            label.identifier = (ll,) + label.identifier
+
+        for pp, subpat in enumerate(subpatterns):
             if subpat.pattern is None:
                 continue
             subpat.pattern.flatten()
             p = subpat.as_pattern()
-
-            # Update identifiers so each shape has a unique one
-            for shape in p.shapes:
-                combined_identifier = (subpat.pattern.name,) + shape.identifier
-                shape_count = shape_counts.get(combined_identifier, 0)
-                shape.identifier = (subpat.pattern.name, shape_count) + shape.identifier
-                shape_counts[combined_identifier] = shape_count + 1
-
+            for item in chain(p.shapes, p.labels):
+                item.identifier += (pp,) + item.identifier
             self.append(p)
         return self
 
