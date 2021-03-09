@@ -1,6 +1,7 @@
 from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
 import copy
 import warnings
+import traceback
 import logging
 from collections import Counter
 
@@ -620,6 +621,7 @@ class Device(Copyable, Mirrorable):
             for nn, (k, v) in enumerate(map_in.items()):
                 if type_conflicts[nn]:
                     msg += f'{k} | {s_types[nn]:g}:{o_types[nn]:g} | {v}\n'
+            msg = ''.join(traceback.format_stack()) + '\n' + msg
             warnings.warn(msg, stacklevel=2)
 
         rotations = numpy.mod(s_rotations - o_rotations - pi, 2 * pi)
