@@ -251,7 +251,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
             mirrored = (yscale < 0, xscale < 0)
             rotation = numpy.deg2rad(attr.get('rotation', 0))
 
-            offset = attr.get('insert', (0, 0, 0))[:2]
+            offset = numpy.array(attr.get('insert', (0, 0, 0)))[:2]
 
             args = {
                 'offset': offset,
