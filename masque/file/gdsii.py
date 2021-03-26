@@ -1,5 +1,5 @@
 """
-GDSII file format readers and writers
+GDSII file format readers and writers using the `klamath` library.
 
 Note that GDSII references follow the same convention as `masque`,
   with this order of operations:
@@ -16,11 +16,13 @@ Notes:
  * PLEX is not supported
  * ELFLAGS are not supported
  * GDS does not support library- or structure-level annotations
+ * Creation/modification/access times are set to 1900-01-01 for reproducibility.
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
-from typing import Sequence
+from typing import Sequence, BinaryIO
 import re
 import io
+import mmap
 import copy
 import base64
 import struct
@@ -29,23 +31,20 @@ import pathlib
 import gzip
 
 import numpy        # type: ignore
-# python-gdsii
-import gdsii.library
-import gdsii.structure
-import gdsii.elements
+import klamath
+from klamath import records
 
-from .utils import clean_pattern_vertices, is_gzipped
+from .utils import is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
-from ..utils import get_bit, set_bit, layer_t, normalize_mirror, annotations_t
-
+from ..utils import layer_t, normalize_mirror, annotations_t
+from ..library import Library
 
 logger = logging.getLogger(__name__)
 
 
 path_cap_map = {
-    None: Path.Cap.Flush,
     0: Path.Cap.Flush,
     1: Path.Cap.Circle,
     2: Path.Cap.Square,
@@ -53,19 +52,23 @@ path_cap_map = {
     }
 
 
-def build(patterns: Union[Pattern, Sequence[Pattern]],
+def write(patterns: Union[Pattern, Sequence[Pattern]],
+          stream: BinaryIO,
           meters_per_unit: float,
           logical_units_per_unit: float = 1,
-          library_name: str = 'masque-gdsii-write',
+          library_name: str = 'masque-klamath',
           *,
           modify_originals: bool = False,
           disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
-          ) -> gdsii.library.Library:
+          ) -> None:
     """
-    Convert a `Pattern` or list of patterns to a GDSII stream, by first calling
-     `.polygonize()` to change the shapes into polygons, and then writing patterns
-     as GDSII structures, polygons as boundary elements, and subpatterns as structure
-     references (sref).
+    Convert a `Pattern` or list of patterns to a GDSII stream,  and then mapping data as follows:
+         Pattern -> GDSII structure
+         SubPattern -> GDSII SREF or AREF
+         Path -> GSDII path
+         Shape (other than path) -> GDSII boundary/ies
+         Label -> GDSII text
+         annnotations -> properties, where possible
 
      For each shape,
         layer is chosen to be equal to `shape.layer` if it is an int,
@@ -87,7 +90,7 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
             "logical" unit which is different from the "database" unit, for display purposes.
             Default `1`.
         library_name: Library name written into the GDSII file.
-            Default 'masque-gdsii-write'.
+            Default 'masque-klamath'.
         modify_originals: If `True`, the original pattern is modified as part of the writing
             process. Otherwise, a copy is made and `deepunlock()`-ed.
             Default `False`.
@@ -95,9 +98,6 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
             to make their names valid and unique. Default is `disambiguate_pattern_names`, which
             attempts to adhere to the GDSII standard as well as possible.
             WARNING: No additional error checking is performed on the results.
-
-    Returns:
-        `gdsii.library.Library`
     """
     if isinstance(patterns, Pattern):
         patterns = [patterns]
@@ -112,10 +112,10 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
     patterns = [p.wrap_repeated_shapes() for p in patterns]
 
     # Create library
-    lib = gdsii.library.Library(version=600,
-                                name=library_name.encode('ASCII'),
-                                logical_unit=logical_units_per_unit,
-                                physical_unit=meters_per_unit)
+    header = klamath.library.FileHeader(name=library_name.encode('ASCII'),
+                                        user_units_per_db_unit=logical_units_per_unit,
+                                        meters_per_db_unit=meters_per_unit)
+    header.write(stream)
 
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
@@ -127,49 +127,30 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for pat in patterns_by_id.values():
-        structure = gdsii.structure.Structure(name=pat.name.encode('ASCII'))
-        lib.append(structure)
+        elements: List[klamath.elements.Element] = []
+        elements += _shapes_to_elements(pat.shapes)
+        elements += _labels_to_texts(pat.labels)
+        elements += _subpatterns_to_refs(pat.subpatterns)
 
-        structure += _shapes_to_elements(pat.shapes)
-        structure += _labels_to_texts(pat.labels)
-        structure += _subpatterns_to_refs(pat.subpatterns)
+        klamath.library.write_struct(stream, name=pat.name.encode('ASCII'), elements=elements)
+    records.ENDLIB.write(stream, None)
 
-    return lib
-
-
-def write(patterns: Union[Pattern, Sequence[Pattern]],
-          stream: io.BufferedIOBase,
-          *args,
-          **kwargs):
-    """
-    Write a `Pattern` or list of patterns to a GDSII file.
-    See `masque.file.gdsii.build()` for details.
-
-    Args:
-        patterns: A Pattern or list of patterns to write to file.
-        stream: Stream to write to.
-        *args: passed to `masque.file.gdsii.build()`
-        **kwargs: passed to `masque.file.gdsii.build()`
-    """
-    lib = build(patterns, *args, **kwargs)
-    lib.save(stream)
-    return
 
 def writefile(patterns: Union[Sequence[Pattern], Pattern],
               filename: Union[str, pathlib.Path],
               *args,
               **kwargs,
-              ):
+              ) -> None:
     """
-    Wrapper for `masque.file.gdsii.write()` that takes a filename or path instead of a stream.
+    Wrapper for `write()` that takes a filename or path instead of a stream.
 
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
         patterns: `Pattern` or list of patterns to save
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.write`
-        **kwargs: passed to `masque.file.gdsii.write`
+        *args: passed to `write()`
+        **kwargs: passed to `write()`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -178,8 +159,7 @@ def writefile(patterns: Union[Sequence[Pattern], Pattern],
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        results = write(patterns, stream, *args, **kwargs)
-    return results
+        write(patterns, stream, *args, **kwargs)
 
 
 def readfile(filename: Union[str, pathlib.Path],
@@ -187,14 +167,14 @@ def readfile(filename: Union[str, pathlib.Path],
              **kwargs,
              ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
-    Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
+    Wrapper for `read()` that takes a filename or path instead of a stream.
 
     Will automatically decompress gzipped files.
 
     Args:
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.read`
-        **kwargs: passed to `masque.file.gdsii.read`
+        *args: passed to `read()`
+        **kwargs: passed to `read()`
     """
     path = pathlib.Path(filename)
     if is_gzipped(path):
@@ -207,8 +187,8 @@ def readfile(filename: Union[str, pathlib.Path],
     return results
 
 
-def read(stream: io.BufferedIOBase,
-         clean_vertices: bool = True,
+def read(stream: BinaryIO,
+         raw_mode: bool = True,
          ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
@@ -223,59 +203,81 @@ def read(stream: io.BufferedIOBase,
 
     Args:
         stream: Stream to read from.
-        clean_vertices: If `True`, remove any redundant vertices when loading polygons.
-            The cleaning process removes any polygons with zero area or <3 vertices.
-            Default `True`.
+        raw_mode: If True, constructs shapes in raw mode, bypassing most data validation, Default True.
 
     Returns:
         - Dict of pattern_name:Patterns generated from GDSII structures
         - Dict of GDSII library info
     """
-
-    lib = gdsii.library.Library.load(stream)
-
-    library_info = {'name': lib.name.decode('ASCII'),
-                    'meters_per_unit': lib.physical_unit,
-                    'logical_units_per_unit': lib.logical_unit,
-                    }
-
-    raw_mode = True     # Whether to construct shapes in raw mode (less error checking)
+    library_info = _read_header(stream)
 
     patterns = []
-    for structure in lib:
-        pat = Pattern(name=structure.name.decode('ASCII'))
-        for element in structure:
-            # Switch based on element type:
-            if isinstance(element, gdsii.elements.Boundary):
-                poly = _boundary_to_polygon(element, raw_mode)
-                pat.shapes.append(poly)
-
-            if isinstance(element, gdsii.elements.Path):
-                path = _gpath_to_mpath(element, raw_mode)
-                pat.shapes.append(path)
-
-            elif isinstance(element, gdsii.elements.Text):
-                label = Label(offset=element.xy.astype(float),
-                              layer=(element.layer, element.text_type),
-                              string=element.string.decode('ASCII'))
-                pat.labels.append(label)
-
-            elif isinstance(element, (gdsii.elements.SRef, gdsii.elements.ARef)):
-                pat.subpatterns.append(_ref_to_subpat(element))
-
-        if clean_vertices:
-            clean_pattern_vertices(pat)
+    found_struct = records.BGNSTR.skip_past(stream)
+    while found_struct:
+        name = records.STRNAME.skip_and_read(stream)
+        pat = read_elements(stream, name=name.decode('ASCII'), raw_mode=raw_mode)
         patterns.append(pat)
+        found_struct = records.BGNSTR.skip_past(stream)
 
     # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
     #  according to the subpattern.identifier (which is deleted after use).
     patterns_dict = dict(((p.name, p) for p in patterns))
     for p in patterns_dict.values():
         for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.identifier[0].decode('ASCII')]
+            sp.pattern = patterns_dict[sp.identifier[0]]
             del sp.identifier
 
     return patterns_dict, library_info
+
+
+def _read_header(stream: BinaryIO) -> Dict[str, Any]:
+    """
+    Read the file header and create the library_info dict.
+    """
+    header = klamath.library.FileHeader.read(stream)
+
+    library_info = {'name': header.name.decode('ASCII'),
+                    'meters_per_unit': header.meters_per_db_unit,
+                    'logical_units_per_unit': header.user_units_per_db_unit,
+                    }
+    return library_info
+
+
+def read_elements(stream: BinaryIO,
+                  name: str,
+                  raw_mode: bool = True,
+                  ) -> Pattern:
+    """
+    Read elements from a GDS structure and build a Pattern from them.
+
+    Args:
+        stream: Seekable stream, positioned at a record boundary.
+                Will be read until an ENDSTR record is consumed.
+        name: Name of the resulting Pattern
+        raw_mode: If True, bypass per-shape data validation. Default True.
+
+    Returns:
+        A pattern containing the elements that were read.
+    """
+    pat = Pattern(name)
+
+    elements = klamath.library.read_elements(stream)
+    for element in elements:
+        if isinstance(element, klamath.elements.Boundary):
+            poly = _boundary_to_polygon(element, raw_mode)
+            pat.shapes.append(poly)
+        elif isinstance(element, klamath.elements.Path):
+            path = _gpath_to_mpath(element, raw_mode)
+            pat.shapes.append(path)
+        elif isinstance(element, klamath.elements.Text):
+            label = Label(offset=element.xy.astype(float),
+                          layer=element.layer,
+                          string=element.string.decode('ASCII'),
+                          annotations=_properties_to_annotations(element.properties))
+            pat.labels.append(label)
+        elif isinstance(element, klamath.elements.Reference):
+            pat.subpatterns.append(_ref_to_subpat(element))
+    return pat
 
 
 def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
@@ -294,93 +296,63 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _ref_to_subpat(element: Union[gdsii.elements.SRef,
-                                  gdsii.elements.ARef]
+def _ref_to_subpat(ref: klamath.library.Reference,
                    ) -> SubPattern:
     """
     Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
-
-    NOTE: "Absolute" means not affected by parent elements.
-           That's not currently supported by masque at all (and not planned).
     """
-    rotation = 0.0
-    offset = numpy.array(element.xy[0], dtype=float)
-    scale = 1.0
-    mirror_across_x = False
+    xy = ref.xy.astype(float)
+    offset = xy[0]
     repetition = None
-
-    if element.strans is not None:
-        if element.mag is not None:
-            scale = element.mag
-            # Bit 13 means absolute scale
-            if get_bit(element.strans, 15 - 13):
-                raise PatternError('Absolute scale is not implemented in masque!')
-        if element.angle is not None:
-            rotation = numpy.deg2rad(element.angle)
-            # Bit 14 means absolute rotation
-            if get_bit(element.strans, 15 - 14):
-                raise PatternError('Absolute rotation is not implemented in masque!')
-        # Bit 0 means mirror x-axis
-        if get_bit(element.strans, 15 - 0):
-            mirror_across_x = True
-
-    if isinstance(element, gdsii.elements.ARef):
-        a_count = element.cols
-        b_count = element.rows
-        a_vector = (element.xy[1] - offset) / a_count
-        b_vector = (element.xy[2] - offset) / b_count
+    if ref.colrow is not None:
+        a_count, b_count = ref.colrow
+        a_vector = (xy[1] - offset) / a_count
+        b_vector = (xy[2] - offset) / b_count
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
     subpat = SubPattern(pattern=None,
                         offset=offset,
-                        rotation=rotation,
-                        scale=scale,
-                        mirrored=(mirror_across_x, False),
-                        annotations=_properties_to_annotations(element.properties),
+                        rotation=numpy.deg2rad(ref.angle_deg),
+                        scale=ref.mag,
+                        mirrored=(ref.invert_y, False),
+                        annotations=_properties_to_annotations(ref.properties),
                         repetition=repetition)
-    subpat.identifier = (element.struct_name,)
+    subpat.identifier = (ref.struct_name.decode('ASCII'),)
     return subpat
 
 
-def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
-    if element.path_type in path_cap_map:
-        cap = path_cap_map[element.path_type]
+def _gpath_to_mpath(gpath: klamath.library.Path, raw_mode: bool) -> Path:
+    if gpath.path_type in path_cap_map:
+        cap = path_cap_map[gpath.path_type]
     else:
-        raise PatternError(f'Unrecognized path type: {element.path_type}')
+        raise PatternError(f'Unrecognized path type: {gpath.path_type}')
 
-    args = {'vertices': element.xy.astype(float),
-            'layer': (element.layer, element.data_type),
-            'width': element.width if element.width is not None else 0.0,
-            'cap': cap,
-            'offset': numpy.zeros(2),
-            'annotations': _properties_to_annotations(element.properties),
-            'raw': raw_mode,
-           }
-
+    mpath = Path(vertices=gpath.xy.astype(float),
+                 layer=gpath.layer,
+                 width=gpath.width,
+                 cap=cap,
+                 offset=numpy.zeros(2),
+                 annotations=_properties_to_annotations(gpath.properties),
+                 raw=raw_mode,
+                 )
     if cap == Path.Cap.SquareCustom:
-        args['cap_extensions'] = numpy.zeros(2)
-        if element.bgn_extn is not None:
-            args['cap_extensions'][0] = element.bgn_extn
-        if element.end_extn is not None:
-            args['cap_extensions'][1] = element.end_extn
-
-    return Path(**args)
+        mpath.cap_extensions = gpath.extension
+    return mpath
 
 
-def _boundary_to_polygon(element: gdsii.elements.Boundary, raw_mode: bool) -> Polygon:
-    args = {'vertices': element.xy[:-1].astype(float),
-            'layer': (element.layer, element.data_type),
-            'offset': numpy.zeros(2),
-            'annotations': _properties_to_annotations(element.properties),
-            'raw': raw_mode,
-           }
-    return Polygon(**args)
+def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> Polygon:
+    return Polygon(vertices=boundary.xy[:-1].astype(float),
+                   layer=boundary.layer,
+                   offset=numpy.zeros(2),
+                   annotations=_properties_to_annotations(boundary.properties),
+                   raw=raw_mode,
+                   )
 
 
 def _subpatterns_to_refs(subpatterns: List[SubPattern]
-                        ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
+                        ) -> List[klamath.library.Reference]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -390,47 +362,52 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
         rep = subpat.repetition
+        angle_deg = numpy.rad2deg(subpat.rotation + extra_angle) % 360
+        properties = _annotations_to_properties(subpat.annotations, 512)
 
-        new_refs: List[Union[gdsii.elements.SRef, gdsii.elements.ARef]]
-        ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
         if isinstance(rep, Grid):
             xy = numpy.array(subpat.offset) + [
                 [0, 0],
                 rep.a_vector * rep.a_count,
                 rep.b_vector * rep.b_count,
                 ]
-            ref = gdsii.elements.ARef(struct_name=encoded_name,
-                                      xy=numpy.round(xy).astype(int),
-                                      cols=numpy.round(rep.a_count).astype(int),
-                                      rows=numpy.round(rep.b_count).astype(int))
-            new_refs = [ref]
+            aref = klamath.library.Reference(struct_name=encoded_name,
+                                             xy=numpy.round(xy).astype(int),
+                                             colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
+                                             angle_deg=angle_deg,
+                                             invert_y=mirror_across_x,
+                                             mag=subpat.scale,
+                                             properties=properties)
+            refs.append(aref)
         elif rep is None:
-            ref = gdsii.elements.SRef(struct_name=encoded_name,
-                                      xy=numpy.round([subpat.offset]).astype(int))
-            new_refs = [ref]
+            ref = klamath.library.Reference(struct_name=encoded_name,
+                                            xy=numpy.round([subpat.offset]).astype(int),
+                                            colrow=None,
+                                            angle_deg=angle_deg,
+                                            invert_y=mirror_across_x,
+                                            mag=subpat.scale,
+                                            properties=properties)
+            refs.append(ref)
         else:
-            new_refs = [gdsii.elements.SRef(struct_name=encoded_name,
-                                            xy=numpy.round([subpat.offset + dd]).astype(int))
-                        for dd in rep.displacements]
-
-        for ref in new_refs:
-            ref.angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
-            #  strans must be non-None for angle and mag to take effect
-            ref.strans = set_bit(0, 15 - 0, mirror_across_x)
-            ref.mag = subpat.scale
-            ref.properties = _annotations_to_properties(subpat.annotations, 512)
-
-        refs += new_refs
+            new_srefs = [klamath.library.Reference(struct_name=encoded_name,
+                                                   xy=numpy.round([subpat.offset + dd]).astype(int),
+                                                   colrow=None,
+                                                   angle_deg=angle_deg,
+                                                   invert_y=mirror_across_x,
+                                                   mag=subpat.scale,
+                                                   properties=properties)
+                         for dd in rep.displacements]
+            refs += new_srefs
     return refs
 
 
-def _properties_to_annotations(properties: List[Tuple[int, bytes]]) -> annotations_t:
-    return {str(k): [v.decode()] for k, v in properties}
+def _properties_to_annotations(properties: Dict[int, bytes]) -> annotations_t:
+    return {str(k): [v.decode()] for k, v in properties.items()}
 
 
-def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> List[Tuple[int, bytes]]:
+def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> Dict[int, bytes]:
     cum_len = 0
-    props = []
+    props = {}
     for key, vals in annotations.items():
         try:
             i = int(key)
@@ -446,14 +423,14 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
         cum_len += numpy.ceil(len(b) / 2) * 2 + 2
         if cum_len > max_len:
             raise PatternError(f'Sum of annotation data will be longer than {max_len} bytes! Generated bytes were {b!r}')
-        props.append((i, b))
+        props[i] = b
     return props
 
 
 def _shapes_to_elements(shapes: List[Shape],
                         polygonize_paths: bool = False
-                       ) -> List[Union[gdsii.elements.Boundary, gdsii.elements.Path]]:
-    elements: List[Union[gdsii.elements.Boundary, gdsii.elements.Path]] = []
+                       ) -> List[klamath.elements.Element]:
+    elements: List[klamath.elements.Element] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
         layer, data_type = _mlayer2gds(shape.layer)
@@ -462,36 +439,55 @@ def _shapes_to_elements(shapes: List[Shape],
             xy = numpy.round(shape.vertices + shape.offset).astype(int)
             width = numpy.round(shape.width).astype(int)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
-            path = gdsii.elements.Path(layer=layer,
-                                       data_type=data_type,
-                                       xy=xy)
-            path.path_type = path_type
-            path.width = width
-            path.properties = properties
+
+            extension: Tuple[int, int]
+            if shape.cap == Path.Cap.SquareCustom and shape.cap_extensions is not None:
+                extension = tuple(shape.cap_extensions)     # type: ignore
+            else:
+                extension = (0, 0)
+
+            path = klamath.elements.Path(layer=(layer, data_type),
+                                         xy=xy,
+                                         path_type=path_type,
+                                         width=width,
+                                         extension=extension,
+                                         properties=properties)
             elements.append(path)
+        elif isinstance(shape, Polygon):
+            polygon = shape
+            xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
+            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+            boundary = klamath.elements.Boundary(layer=(layer, data_type),
+                                                 xy=xy_closed,
+                                                 properties=properties)
+            elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
                 xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
                 xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                boundary = gdsii.elements.Boundary(layer=layer,
-                                                   data_type=data_type,
-                                                   xy=xy_closed)
-                boundary.properties = properties
+                boundary = klamath.elements.Boundary(layer=(layer, data_type),
+                                                     xy=xy_closed,
+                                                     properties=properties)
                 elements.append(boundary)
     return elements
 
 
-def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
+def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
     texts = []
     for label in labels:
         properties = _annotations_to_properties(label.annotations, 128)
         layer, text_type = _mlayer2gds(label.layer)
         xy = numpy.round([label.offset]).astype(int)
-        text = gdsii.elements.Text(layer=layer,
-                                   text_type=text_type,
-                                   xy=xy,
-                                   string=label.string.encode('ASCII'))
-        text.properties = properties
+        text = klamath.elements.Text(layer=(layer, text_type),
+                                     xy=xy,
+                                     string=label.string.encode('ASCII'),
+                                     properties=properties,
+                                     presentation=0,  # TODO maybe set some of these?
+                                     angle_deg=0,
+                                     invert_y=False,
+                                     width=0,
+                                     path_type=0,
+                                     mag=1)
         texts.append(text)
     return texts
 
@@ -551,3 +547,112 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
 
         pat.name = suffixed_name
         used_names.append(suffixed_name)
+
+
+def load_library(stream: BinaryIO,
+                 tag: str,
+                 is_secondary: Optional[Callable[[str], bool]] = None,
+                 *,
+                 full_load: bool = False,
+                 ) -> Tuple[Library, Dict[str, Any]]:
+    """
+    Scan a GDSII stream to determine what structures are present, and create
+        a library from them. This enables deferred reading of structures
+        on an as-needed basis.
+    All structures are loaded as secondary
+
+    Args:
+        stream: Seekable stream. Position 0 should be the start of the file.
+                The caller should leave the stream open while the library
+                is still in use, since the library will need to access it
+                in order to read the structure contents.
+        tag: Unique identifier that will be used to identify this data source
+        is_secondary: Function which takes a structure name and returns
+                      True if the structure should only be used as a subcell
+                      and not appear in the main Library interface.
+                      Default always returns False.
+        full_load: If True, force all structures to be read immediately rather
+                   than as-needed. Since data is read sequentially from the file,
+                   this will be faster than using the resulting library's
+                   `precache` method.
+
+    Returns:
+        Library object, allowing for deferred load of structures.
+        Additional library info (dict, same format as from `read`).
+    """
+    if is_secondary is None:
+        def is_secondary(k: str):
+            return False
+    assert(is_secondary is not None)
+
+    stream.seek(0)
+    lib = Library()
+
+    if full_load:
+        # Full load approach (immediately load everything)
+        patterns, library_info = read(stream)
+        for name, pattern in patterns.items():
+            lib.set_const(name, tag, pattern, secondary=is_secondary(name))
+        return lib, library_info
+
+    # Normal approach (scan and defer load)
+    library_info = _read_header(stream)
+    structs = klamath.library.scan_structs(stream)
+
+    for name_bytes, pos in structs.items():
+        name = name_bytes.decode('ASCII')
+
+        def mkstruct(pos: int = pos, name: str = name) -> Pattern:
+            stream.seek(pos)
+            return read_elements(stream, name, raw_mode=True)
+
+        lib.set_value(name, tag, mkstruct, secondary=is_secondary(name))
+
+    return lib, library_info
+
+
+def load_libraryfile(filename: Union[str, pathlib.Path],
+                     tag: str,
+                     is_secondary: Optional[Callable[[str], bool]] = None,
+                     *,
+                     use_mmap: bool = True,
+                     full_load: bool = False,
+                     ) -> Tuple[Library, Dict[str, Any]]:
+    """
+    Wrapper for `load_library()` that takes a filename or path instead of a stream.
+
+    Will automatically decompress the file if it is gzipped.
+
+    NOTE that any streams/mmaps opened will remain open until ALL of the
+     `PatternGenerator` objects in the library are garbage collected.
+
+    Args:
+        path: filename or path to read from
+        tag: Unique identifier for library, see `load_library`
+        is_secondary: Function specifying subcess, see `load_library`
+        use_mmap: If `True`, will attempt to memory-map the file instead
+                  of buffering. In the case of gzipped files, the file
+                  is decompressed into a python `bytes` object in memory
+                  and reopened as an `io.BytesIO` stream.
+        full_load: If `True`, immediately loads all data. See `load_library`.
+
+    Returns:
+        Library object, allowing for deferred load of structures.
+        Additional library info (dict, same format as from `read`).
+    """
+    path = pathlib.Path(filename)
+    if is_gzipped(path):
+        if mmap:
+            logger.info('Asked to mmap a gzipped file, reading into memory instead...')
+            base_stream = gzip.open(path, mode='rb')
+            stream = io.BytesIO(base_stream.read())
+        else:
+            base_stream = gzip.open(path, mode='rb')
+            stream = io.BufferedReader(base_stream)
+    else:
+        base_stream = open(path, mode='rb')
+        if mmap:
+            stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)
+        else:
+            stream = io.BufferedReader(base_stream)
+    return load_library(stream, tag, is_secondary)

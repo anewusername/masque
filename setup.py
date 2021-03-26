@@ -24,10 +24,10 @@ setup(name='masque',
       },
       install_requires=[
           'numpy',
+          'klamath>=1.0',
       ],
       extras_require={
           'gdsii': ['python-gdsii'],
-          'klamath': ['klamath>=0.3'],
           'oasis': ['fatamorgana>=0.7'],
           'dxf': ['ezdxf'],
           'svg': ['svgwrite'],
