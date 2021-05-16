@@ -1,7 +1,7 @@
 """
 2D bin-packing
 """
-from typing import Tuple
+from typing import Tuple, List, Set, Sequence
 
 import numpy
 from numpy.typing import NDArray, ArrayLike
@@ -14,7 +14,7 @@ def maxrects_bssf(
         containers: ArrayLike,
         presort: bool = True,
         allow_rejects: bool = True,
-        ) -> Tuple[NDArray[numpy.float64], NDArray[numpy.float64]]:
+        ) -> Tuple[NDArray[numpy.float64], Set[int]]
     """
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
@@ -22,7 +22,7 @@ def maxrects_bssf(
     regions = numpy.array(containers, copy=False, dtype=float)
     rect_sizes = numpy.array(rects, copy=False, dtype=float)
     rect_locs = numpy.zeros_like(rect_sizes)
-    rejected_rects = []
+    rejected_inds = set()
 
     if presort:
         rotated_sizes = numpy.sort(rect_sizes, axis=0)  # shortest side first
@@ -48,7 +48,7 @@ def maxrects_bssf(
         rr = bssf_scores.argmin()
         if numpy.isinf(bssf_scores[rr]):
             if allow_rejects:
-                rejected_rects.append(rect_ind)
+                rejected_inds.add(rect_ind)
                 continue
             else:
                 raise MasqueError(f'Failed to find a suitable location for rectangle {rect_ind}')
@@ -79,10 +79,4 @@ def maxrects_bssf(
         r_top[:, 1] = loc[1] + rect_size[1]
 
         regions = numpy.vstack((regions[~intersects], r_lft, r_bot, r_rgt, r_top))
-
-    if rejected_rects:
-        rejected_rects_arr = numpy.vstack(rejected_rects)
-    else:
-        rejected_rects_arr = numpy.empty((0, 2))
-
-    return rect_locs, rejected_rects_arr
+    return rect_locs, rejected_inds
