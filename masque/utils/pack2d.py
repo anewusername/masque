@@ -1,12 +1,37 @@
 """
 2D bin-packing
 """
-from typing import Tuple, List, Set, Sequence
+from typing import Tuple, List, Set, Sequence, Callable
 
 import numpy
 from numpy.typing import NDArray, ArrayLike
 
 from ..error import MasqueError
+from ..pattern import Pattern
+from ..subpattern import SubPattern
+
+
+def pack_patterns(patterns: Sequence[Pattern],
+                  regions: numpy.ndarray,
+                  spacing: Tuple[float, float],
+                  presort: bool = True,
+                  allow_rejects: bool = True,
+                  packer: Callable = maxrects_bssf,
+                  ) -> Tuple[Pattern, List[Pattern]]:
+    half_spacing = numpy.array(spacing) / 2
+
+    bounds = [pp.get_bounds() for pp in patterns]
+    sizes = [bb[1] - bb[0] + spacing if bb is not None else spacing for bb in bounds]
+    offsets = [half_spacing - bb[0] if bb is not None else (0, 0) for bb in bounds]
+
+    locations, reject_inds = packer(sizes, regions, presort=presort, allow_rejects=allow_rejects)
+
+    pat = Pattern()
+    pat.subpatterns = [SubPattern(pp, offset=oo + loc)
+                       for pp, oo, loc in zip(patterns, offsets, locations)]
+
+    rejects = [patterns[ii] for ii in reject_inds]
+    return pat, rejects
 
 
 def maxrects_bssf(
