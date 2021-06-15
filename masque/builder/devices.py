@@ -35,7 +35,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
       The rotation may be set to `None`, indicating that any orientation is
       allowed (e.g. for a DC electrical port). It is stored modulo 2pi.
 
-    The `ptype` is an arbitrary integer, default of `0`.
+    The `ptype` is an arbitrary string, default of `unk` (unknown).
     """
     __slots__ = ('ptype', '_rotation')
 
@@ -43,13 +43,13 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
     """ radians counterclockwise from +x, pointing into device body.
         Can be `None` to signify undirected port """
 
-    ptype: int
+    ptype: str
     """ Port types must match to be plugged together if both are non-zero """
 
     def __init__(self,
                  offset: numpy.ndarray,
                  rotation: Optional[float],
-                 ptype: int = 0,
+                 ptype: str = 'unk',
                  ) -> None:
         self.offset = offset
         self.rotation = rotation
@@ -72,7 +72,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
     def get_bounds(self):
         return numpy.vstack((self.offset, self.offset))
 
-    def set_ptype(self: P, ptype: int) -> P:
+    def set_ptype(self: P, ptype: str) -> P:
         """ Chainable setter for `ptype` """
         self.ptype = ptype
         return self
@@ -173,7 +173,7 @@ class Device(Copyable, Mirrorable):
                  ) -> None:
         """
         If `ports` is `None`, two default ports ('A' and 'B') are created.
-        Both are placed at (0, 0) and have `ptype=0`, but 'A' has rotation 0
+        Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
           (attached devices will be placed to the left) and 'B' has rotation
           pi (attached devices will be placed to the right).
         """
@@ -188,8 +188,8 @@ class Device(Copyable, Mirrorable):
 
         if ports is None:
             self.ports = {
-                'A': Port([0, 0], rotation=0, ptype=0),
-                'B': Port([0, 0], rotation=pi, ptype=0),
+                'A': Port([0, 0], rotation=0),
+                'B': Port([0, 0], rotation=pi),
                 }
         else:
             self.ports = copy.deepcopy(ports)
@@ -597,8 +597,8 @@ class Device(Copyable, Mirrorable):
 
         s_offsets = numpy.array([p.offset for p in s_ports.values()])
         o_offsets = numpy.array([p.offset for p in o_ports.values()])
-        s_types = numpy.array([p.ptype for p in s_ports.values()], dtype=int)
-        o_types = numpy.array([p.ptype for p in o_ports.values()], dtype=int)
+        s_types = [p.ptype for p in s_ports.values()]
+        o_types = [p.ptype for p in o_ports.values()]
 
         s_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in s_ports.values()])
         o_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in o_ports.values()])
@@ -614,7 +614,7 @@ class Device(Copyable, Mirrorable):
             o_rotations *= -1
             o_rotations += pi
 
-        type_conflicts = (s_types != o_types) & (s_types != 0) & (o_types != 0)
+        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk' for st, ot in (s_types, o_types)])
         if type_conflicts.any():
             ports = numpy.where(type_conflicts)
             msg = 'Ports have conflicting types:\n'
