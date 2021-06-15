@@ -116,6 +116,7 @@ def guillotine_bssf_sas(rect_sizes: numpy.ndarray,
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
     #TODO: test me!
+    # TODO add rectangle-merge?
     """
     rect_sizes = numpy.array(rect_sizes)
     rect_locs = numpy.zeros_like(rect_sizes)
