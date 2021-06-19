@@ -119,6 +119,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                offset: vector2 = (0.0, 0.0),
                layer: layer_t = 0,
                dose: float = 1.0,
+               repetition: Optional[Repetition] = None,
                ) -> 'Polygon':
         """
         Draw a square given side_length, centered on the origin.
@@ -129,6 +130,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             offset: Offset, default `(0, 0)`
             layer: Layer, default `0`
             dose: Dose, default `1.0`
+            repetition: `Repetition` object, default `None`
 
         Returns:
             A Polygon object containing the requested square
@@ -138,7 +140,8 @@ class Polygon(Shape, metaclass=AutoSlots):
                                    [+1, +1],
                                    [+1, -1]], dtype=float)
         vertices = 0.5 * side_length * norm_square
-        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose)
+        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose,
+                       repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -149,6 +152,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                   offset: vector2 = (0.0, 0.0),
                   layer: layer_t = 0,
                   dose: float = 1.0,
+                  repetition: Optional[Repetition] = None,
                   ) -> 'Polygon':
         """
         Draw a rectangle with side lengths lx and ly, centered on the origin.
@@ -160,6 +164,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             offset: Offset, default `(0, 0)`
             layer: Layer, default `0`
             dose: Dose, default `1.0`
+            repetition: `Repetition` object, default `None`
 
         Returns:
             A Polygon object containing the requested rectangle
@@ -168,7 +173,8 @@ class Polygon(Shape, metaclass=AutoSlots):
                                       [-lx, +ly],
                                       [+lx, +ly],
                                       [+lx, -ly]], dtype=float)
-        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose)
+        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose,
+                       repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -183,6 +189,7 @@ class Polygon(Shape, metaclass=AutoSlots):
              ly: Optional[float] = None,
              layer: layer_t = 0,
              dose: float = 1.0,
+             repetition: Optional[Repetition] = None,
              ) -> 'Polygon':
         """
         Draw a rectangle by specifying side/center positions.
@@ -201,6 +208,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             ly: Length along y direction
             layer: Layer, default `0`
             dose: Dose, default `1.0`
+            repetition: `Repetition` object, default `None`
 
         Returns:
             A Polygon object containing the requested rectangle
@@ -266,7 +274,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
 
         poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr),
-                                 layer=layer, dose=dose)
+                                 layer=layer, dose=dose, repetition=repetition)
         return poly
 
     @staticmethod
@@ -278,6 +286,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                 rotation: float = 0.0,
                 layer: layer_t = 0,
                 dose: float = 1.0,
+                repetition: Optional[Repetition] = None,
                 ) -> 'Polygon':
         """
         Draw an octagon given one of (side length, inradius, circumradius).
@@ -297,6 +306,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                 irregular octagon).
             layer: Layer, default `0`
             dose: Dose, default `1.0`
+            repetition: `Repetition` object, default `None`
 
         Returns:
             A Polygon object containing the requested octagon
@@ -322,7 +332,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             side_length = 2 * inner_radius / s
 
         vertices = 0.5 * side_length * norm_oct
-        poly = Polygon(vertices, offset=center, layer=layer, dose=dose)
+        poly = Polygon(vertices, offset=center, layer=layer, dose=dose, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
