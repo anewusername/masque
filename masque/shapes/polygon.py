@@ -115,6 +115,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     @staticmethod
     def square(side_length: float,
+               *,
                rotation: float = 0.0,
                offset: vector2 = (0.0, 0.0),
                layer: layer_t = 0,
@@ -148,6 +149,7 @@ class Polygon(Shape, metaclass=AutoSlots):
     @staticmethod
     def rectangle(lx: float,
                   ly: float,
+                  *,
                   rotation: float = 0,
                   offset: vector2 = (0.0, 0.0),
                   layer: layer_t = 0,
@@ -179,7 +181,8 @@ class Polygon(Shape, metaclass=AutoSlots):
         return poly
 
     @staticmethod
-    def rect(xmin: Optional[float] = None,
+    def rect(*,
+             xmin: Optional[float] = None,
              xctr: Optional[float] = None,
              xmax: Optional[float] = None,
              lx: Optional[float] = None,
