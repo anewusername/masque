@@ -1,4 +1,5 @@
 from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
+from typing import overload, KeysView, ValuesView
 import copy
 import warnings
 import traceback
@@ -196,7 +197,15 @@ class Device(Copyable, Mirrorable):
 
         self._dead = False
 
-    def __getitem__(self, key: Union[str, Iterable[str]]) -> numpy.ndarray:
+    @overload
+    def __getitem__(self, key: str) -> Port:
+        pass
+
+    @overload
+    def __getitem__(self, key: Union[List[str], Tuple[str], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
+        pass
+
+    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
         """
         For convenience, ports can be read out using square brackets:
         - `device['A'] == Port((0, 0), 0)`
