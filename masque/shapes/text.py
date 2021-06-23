@@ -58,7 +58,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
     def mirrored(self, val: Sequence[bool]):
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = numpy.ndarray(val, dtype=bool, copy=True)
+        self._mirrored = numpy.array(val, dtype=bool, copy=True)
 
     def __init__(self,
                  string: str,
