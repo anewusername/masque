@@ -2,6 +2,7 @@ from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 import numpy        # type: ignore
+from numpy.typing import ArrayLike
 
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
@@ -93,8 +94,8 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     ---- Non-abstract methods
     '''
     def manhattanize_fast(self,
-                          grid_x: numpy.ndarray,
-                          grid_y: numpy.ndarray,
+                          grid_x: ArrayLike,
+                          grid_y: ArrayLike,
                           ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
@@ -200,8 +201,8 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
         return manhattan_polygons
 
     def manhattanize(self,
-                     grid_x: numpy.ndarray,
-                     grid_y: numpy.ndarray
+                     grid_x: ArrayLike,
+                     grid_y: ArrayLike,
                      ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.

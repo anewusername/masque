@@ -11,6 +11,7 @@ from collections import defaultdict
 
 import numpy        # type: ignore
 from numpy import inf
+from numpy.typing import ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .subpattern import SubPattern
@@ -333,8 +334,8 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         return self
 
     def manhattanize(self: P,
-                     grid_x: numpy.ndarray,
-                     grid_y: numpy.ndarray,
+                     grid_x: ArrayLike,
+                     grid_y: ArrayLike,
                      ) -> P:
         """
         Calls `.polygonize()` and `.flatten()` on the pattern, then calls `.manhattanize()` on all the

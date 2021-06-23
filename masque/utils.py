@@ -5,10 +5,11 @@ from typing import Any, Union, Tuple, Sequence, Dict, List
 from abc import ABCMeta
 
 import numpy        # type: ignore
+from numpy.typing import ArrayLike
 
 
 # Type definitions
-vector2 = Union[numpy.ndarray, Tuple[float, float], Sequence[float]]
+vector2 = ArrayLike
 layer_t = Union[int, Tuple[int, int], str]
 annotations_t = Dict[str, List[Union[int, float, str]]]
 
@@ -89,7 +90,7 @@ def normalize_mirror(mirrored: Sequence[bool]) -> Tuple[bool, float]:
     return mirror_x, angle
 
 
-def remove_duplicate_vertices(vertices: numpy.ndarray, closed_path: bool = True) -> numpy.ndarray:
+def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> numpy.ndarray:
     """
     Given a list of vertices, remove any consecutive duplicates.
 
@@ -107,7 +108,7 @@ def remove_duplicate_vertices(vertices: numpy.ndarray, closed_path: bool = True)
     return vertices[~duplicates]
 
 
-def remove_colinear_vertices(vertices: numpy.ndarray, closed_path: bool = True) -> numpy.ndarray:
+def remove_colinear_vertices(vertices: ArrayLike, closed_path: bool = True) -> numpy.ndarray:
     """
     Given a list of vertices, remove any superflous vertices (i.e.
         those which lie along the line formed by their neighbors)

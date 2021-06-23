@@ -4,6 +4,7 @@ from enum import Enum
 
 import numpy        # type: ignore
 from numpy import pi, inf
+from numpy.typing import ArrayLike
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
@@ -102,7 +103,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._vertices
 
     @vertices.setter
-    def vertices(self, val: numpy.ndarray):
+    def vertices(self, val: ArrayLike):
         val = numpy.array(val, dtype=float)                 # TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
@@ -119,7 +120,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self.vertices[:, 0]
 
     @xs.setter
-    def xs(self, val: numpy.ndarray):
+    def xs(self, val: ArrayLike):
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
@@ -134,18 +135,18 @@ class Path(Shape, metaclass=AutoSlots):
         return self.vertices[:, 1]
 
     @ys.setter
-    def ys(self, val: numpy.ndarray):
+    def ys(self, val: ArrayLike):
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
         self.vertices[:, 1] = val
 
     def __init__(self,
-                 vertices: numpy.ndarray,
+                 vertices: ArrayLike,
                  width: float = 0.0,
                  *,
                  cap: PathCap = PathCap.Flush,
-                 cap_extensions: numpy.ndarray = None,
+                 cap_extensions: Optional[ArrayLike] = None,
                  offset: vector2 = (0.0, 0.0),
                  rotation: float = 0,
                  mirrored: Sequence[bool] = (False, False),

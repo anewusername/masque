@@ -8,6 +8,7 @@ from collections import Counter
 
 import numpy        # type: ignore
 from numpy import pi
+from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
 from ..subpattern import SubPattern
@@ -48,7 +49,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
     """ Port types must match to be plugged together if both are non-zero """
 
     def __init__(self,
-                 offset: numpy.ndarray,
+                 offset: ArrayLike,
                  rotation: Optional[float],
                  ptype: str = 'unk',
                  ) -> None:
@@ -730,7 +731,7 @@ class Device(Copyable, Mirrorable):
         return s
 
 
-def rotate_offsets_around(offsets: numpy.ndarray, pivot: numpy.ndarray, angle: float) -> numpy.ndarray:
+def rotate_offsets_around(offsets: ArrayLike, pivot: ArrayLike, angle: float) -> numpy.ndarray:
     offsets -= pivot
     offsets[:] = (rotation_matrix_2d(angle) @ offsets.T).T
     offsets += pivot

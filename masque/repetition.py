@@ -8,6 +8,7 @@ import copy
 from abc import ABCMeta, abstractmethod
 
 import numpy        # type: ignore
+from numpy.typing import ArrayLike
 
 from .error import PatternError
 from .utils import rotation_matrix_2d, vector2, AutoSlots
@@ -61,9 +62,9 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
     """ Number of instances along the direction specified by the `b_vector` """
 
     def __init__(self,
-                 a_vector: numpy.ndarray,
+                 a_vector: ArrayLike,
                  a_count: int,
-                 b_vector: Optional[numpy.ndarray] = None,
+                 b_vector: Optional[ArrayLike] = None,
                  b_count: Optional[int] = 1,
                  locked: bool = False,):
         """
@@ -303,13 +304,13 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
         return self._displacements
 
     @displacements.setter
-    def displacements(self, val: Union[Sequence[Sequence[float]], numpy.ndarray]):
+    def displacements(self, val: ArrayLike):
         val = numpy.array(val, float)
         val = numpy.sort(val.view([('', val.dtype)] * val.shape[1]), 0).view(val.dtype)    # sort rows
         self._displacements = val
 
     def __init__(self,
-                 displacements: numpy.ndarray,
+                 displacements: ArrayLike,
                  locked: bool = False,):
         """
         Args:
