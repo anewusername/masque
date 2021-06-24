@@ -113,6 +113,15 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         return new
 
     def rename(self: P, name: str) -> P:
+        """
+        Chainable function for renaming the pattern.
+
+        Args:
+            name: The new name
+
+        Returns:
+            self
+        """
         self.name = name
         return self
 
