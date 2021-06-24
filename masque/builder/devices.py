@@ -724,6 +724,19 @@ class Device(Copyable, Mirrorable):
         self._dead = True
         return self
 
+    def rename(self: D, name: str) -> D:
+        """
+        Renames the pattern and returns the device
+
+        Args:
+            name: The new name
+
+        Returns:
+            self
+        """
+        self.name = name
+        return self
+
     def __repr__(self) -> str:
         s = f'<Device {self.pattern} ['
         for name, port in self.ports.items():
