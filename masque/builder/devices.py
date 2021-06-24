@@ -734,7 +734,7 @@ class Device(Copyable, Mirrorable):
         Returns:
             self
         """
-        self.name = name
+        self.pattern.name = name
         return self
 
     def __repr__(self) -> str:
