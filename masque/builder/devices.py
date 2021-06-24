@@ -624,7 +624,8 @@ class Device(Copyable, Mirrorable):
             o_rotations *= -1
             o_rotations += pi
 
-        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk' for st, ot in (s_types, o_types)])
+        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
+                                      for st, ot in zip(s_types, o_types)])
         if type_conflicts.any():
             ports = numpy.where(type_conflicts)
             msg = 'Ports have conflicting types:\n'
