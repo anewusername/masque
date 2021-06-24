@@ -618,9 +618,9 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             new_labels = []
             for label in pat.labels:
                 if label.repetition is None:
-                    new_labels.append(shape)
+                    new_labels.append(label)
                     continue
-                pat.addsp(Pattern(name_func(pat, shape), labels=[label]), repetition=label.repetition)
+                pat.addsp(Pattern(name_func(pat, label), labels=[label]), repetition=label.repetition)
                 label.repetition = None
             pat.labels = new_labels
 
