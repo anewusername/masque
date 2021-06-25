@@ -631,7 +631,7 @@ class Device(Copyable, Mirrorable):
             msg = 'Ports have conflicting types:\n'
             for nn, (k, v) in enumerate(map_in.items()):
                 if type_conflicts[nn]:
-                    msg += f'{k} | {s_types[nn]:g}:{o_types[nn]:g} | {v}\n'
+                    msg += f'{k} | {s_types[nn]}:{o_types[nn]} | {v}\n'
             msg = ''.join(traceback.format_stack()) + '\n' + msg
             warnings.warn(msg, stacklevel=2)
 
