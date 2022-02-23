@@ -1,8 +1,8 @@
 from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
-import numpy        # type: ignore
-from numpy.typing import ArrayLike
+import numpy
+from numpy.typing import NDArray, ArrayLike
 
 from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
                       Rotatable, Mirrorable, Copyable, Scalable,
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 # Type definitions
 normalized_shape_tuple = Tuple[Tuple,
-                               Tuple[numpy.ndarray, float, float, bool, float],
+                               Tuple[NDArray[numpy.float64], float, float, bool, float],
                                Callable[[], 'Shape']]
 
 # ## Module-wide defaults
@@ -117,12 +117,16 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
         """
         from . import Polygon
 
-        grid_x = numpy.unique(grid_x)
-        grid_y = numpy.unique(grid_y)
+        gx = numpy.unique(grid_x)
+        gy = numpy.unique(grid_y)
 
         polygon_contours = []
         for polygon in self.to_polygons():
-            mins, maxs = polygon.get_bounds()
+            bounds = polygon.get_bounds()
+            if not bounds:
+                continue
+
+            mins, maxs = bounds
 
             vertex_lists = []
             p_verts = polygon.vertices + polygon.offset
@@ -130,12 +134,12 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 dv = v_next - v
 
                 # Find x-index bounds for the line      # TODO: fix this and err_xmin/xmax for grids smaller than the line / shape
-                gxi_range = numpy.digitize([v[0], v_next[0]], grid_x)
-                gxi_min = numpy.min(gxi_range - 1).clip(0, len(grid_x) - 1)
-                gxi_max = numpy.max(gxi_range).clip(0, len(grid_x))
+                gxi_range = numpy.digitize([v[0], v_next[0]], gx)
+                gxi_min = numpy.min(gxi_range - 1).clip(0, len(gx) - 1)
+                gxi_max = numpy.max(gxi_range).clip(0, len(gx))
 
-                err_xmin = (min(v[0], v_next[0]) - grid_x[gxi_min]) / (grid_x[gxi_min + 1] - grid_x[gxi_min])
-                err_xmax = (max(v[0], v_next[0]) - grid_x[gxi_max - 1]) / (grid_x[gxi_max] - grid_x[gxi_max - 1])
+                err_xmin = (min(v[0], v_next[0]) - gx[gxi_min]) / (gx[gxi_min + 1] - gx[gxi_min])
+                err_xmax = (max(v[0], v_next[0]) - gx[gxi_max - 1]) / (gx[gxi_max] - gx[gxi_max - 1])
 
                 if err_xmin >= 0.5:
                     gxi_min += 1
@@ -146,32 +150,32 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                     # Vertical line, don't calculate slope
                     xi = [gxi_min, gxi_max - 1]
                     ys = numpy.array([v[1], v_next[1]])
-                    yi = numpy.digitize(ys, grid_y).clip(1, len(grid_y) - 1)
-                    err_y = (ys - grid_y[yi]) / (grid_y[yi] - grid_y[yi - 1])
+                    yi = numpy.digitize(ys, gy).clip(1, len(gy) - 1)
+                    err_y = (ys - gy[yi]) / (gy[yi] - gy[yi - 1])
                     yi[err_y < 0.5] -= 1
 
-                    segment = numpy.column_stack((grid_x[xi], grid_y[yi]))
+                    segment = numpy.column_stack((gx[xi], gy[yi]))
                     vertex_lists.append(segment)
                     continue
 
                 m = dv[1] / dv[0]
 
-                def get_grid_inds(xes: numpy.ndarray) -> numpy.ndarray:
+                def get_grid_inds(xes: ArrayLike) -> NDArray[numpy.float64]:
                     ys = m * (xes - v[0]) + v[1]
 
                     # (inds - 1) is the index of the y-grid line below the edge's intersection with the x-grid
-                    inds = numpy.digitize(ys, grid_y).clip(1, len(grid_y) - 1)
+                    inds = numpy.digitize(ys, gy).clip(1, len(gy) - 1)
 
                     # err is what fraction of the cell upwards we have to go to reach our y
                     #   (can be negative at bottom edge due to clip above)
-                    err = (ys - grid_y[inds - 1]) / (grid_y[inds] - grid_y[inds - 1])
+                    err = (ys - gy[inds - 1]) / (gy[inds] - gy[inds - 1])
 
                     # now set inds to the index of the nearest y-grid line
                     inds[err < 0.5] -= 1
                     return inds
 
                 # Find the y indices on all x gridlines
-                xs = grid_x[gxi_min:gxi_max]
+                xs = gx[gxi_min:gxi_max]
                 inds = get_grid_inds(xs)
 
                 # Find y-intersections for x-midpoints
@@ -186,7 +190,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 yinds[1::3] = inds2
                 yinds[2::3] = inds2
 
-                vlist = numpy.column_stack((grid_x[xinds], grid_y[yinds]))
+                vlist = numpy.column_stack((gx[xinds], gy[yinds]))
                 if dv[0] < 0:
                     vlist = vlist[::-1]
 
@@ -249,23 +253,27 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
         import skimage.measure      # type: ignore
         import float_raster
 
-        grid_x = numpy.unique(grid_x)
-        grid_y = numpy.unique(grid_y)
+        grx = numpy.unique(grid_x)
+        gry = numpy.unique(grid_y)
 
         polygon_contours = []
         for polygon in self.to_polygons():
             # Get rid of unused gridlines (anything not within 2 lines of the polygon bounds)
-            mins, maxs = polygon.get_bounds()
-            keep_x = numpy.logical_and(grid_x > mins[0], grid_x < maxs[0])
-            keep_y = numpy.logical_and(grid_y > mins[1], grid_y < maxs[1])
+            bounds = polygon.get_bounds()
+            if not bounds:
+                continue
+
+            mins, maxs = bounds
+            keep_x = numpy.logical_and(grx > mins[0], grx < maxs[0])
+            keep_y = numpy.logical_and(gry > mins[1], gry < maxs[1])
             for k in (keep_x, keep_y):
                 for s in (1, 2):
                     k[s:] += k[:-s]
                     k[:-s] += k[s:]
                 k = k > 0
 
-            gx = grid_x[keep_x]
-            gy = grid_y[keep_y]
+            gx = grx[keep_x]
+            gy = gry[keep_y]
 
             if len(gx) == 0 or len(gy) == 0:
                 continue
@@ -286,8 +294,8 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 # /2 deals with supersampling
                 # +.5 deals with the fact that our 0-edge becomes -.5 in the super-sampled contour output
                 snapped_contour = numpy.round((contour + .5) / 2).astype(int)
-                vertices = numpy.hstack((grid_x[snapped_contour[:, None, 0] + offset_i[0]],
-                                         grid_y[snapped_contour[:, None, 1] + offset_i[1]]))
+                vertices = numpy.hstack((grx[snapped_contour[:, None, 0] + offset_i[0]],
+                                         gry[snapped_contour[:, None, 1] + offset_i[1]]))
 
                 manhattan_polygons.append(Polygon(
                     vertices=vertices,

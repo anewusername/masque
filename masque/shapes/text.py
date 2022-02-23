@@ -1,14 +1,15 @@
-from typing import List, Tuple, Dict, Sequence, Optional
+from typing import List, Tuple, Dict, Sequence, Optional, Any
 import copy
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi, inf
+from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple
 from .. import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, vector2, get_bit, normalize_mirror, layer_t, AutoSlots
+from ..utils import is_scalar, get_bit, normalize_mirror, layer_t, AutoSlots
 from ..utils import annotations_t
 from ..traits import LockableImpl
 
@@ -26,7 +27,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
     _string: str
     _height: float
-    _mirrored: numpy.ndarray        # ndarray[bool]
+    _mirrored: NDArray[numpy.bool_]
     font_path: str
 
     # vertices property
@@ -51,7 +52,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
     # Mirrored property
     @property
-    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
+    def mirrored(self) -> Any:   #TODO mypy#3004  NDArray[numpy.bool_]:
         return self._mirrored
 
     @mirrored.setter
@@ -66,9 +67,9 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             height: float,
             font_path: str,
             *,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            mirrored: Tuple[bool, bool] = (False, False),
+            mirrored: ArrayLike = (False, False),
             layer: layer_t = 0,
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
@@ -79,6 +80,8 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
+            assert(isinstance(offset, numpy.ndarray))
+            assert(isinstance(mirrored, numpy.ndarray))
             self._offset = offset
             self._layer = layer
             self._dose = dose
@@ -155,7 +158,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
                              mirrored=(mirror_x, False),
                              layer=self.layer))
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so
         #  just convert to polygons instead
         bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
@@ -201,7 +204,7 @@ def get_char_as_polygons(
     outline = slot.outline
 
     start = 0
-    all_verts, all_codes = [], []
+    all_verts_list, all_codes = [], []
     for end in outline.contours:
         points = outline.points[start:end + 1]
         points.append(points[0])
@@ -238,11 +241,11 @@ def get_char_as_polygons(
                     codes.extend([Path.CURVE3, Path.CURVE3])
                 verts.append(segment[-1])
                 codes.append(Path.CURVE3)
-        all_verts.extend(verts)
+        all_verts_list.extend(verts)
         all_codes.extend(codes)
         start = end + 1
 
-    all_verts = numpy.array(all_verts) / resolution
+    all_verts = numpy.array(all_verts_list) / resolution
 
     advance = slot.advance.x / resolution
 

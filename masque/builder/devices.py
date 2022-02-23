@@ -6,14 +6,14 @@ import traceback
 import logging
 from collections import Counter
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from ..pattern import Pattern
 from ..subpattern import SubPattern
 from ..traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
-from ..utils import AutoSlots, rotation_matrix_2d, vector2
+from ..utils import AutoSlots, rotation_matrix_2d
 from ..error import DeviceError
 
 
@@ -48,11 +48,12 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
     ptype: str
     """ Port types must match to be plugged together if both are non-zero """
 
-    def __init__(self,
-                 offset: ArrayLike,
-                 rotation: Optional[float],
-                 ptype: str = 'unk',
-                 ) -> None:
+    def __init__(
+            self,
+            offset: ArrayLike,
+            rotation: Optional[float],
+            ptype: str = 'unk',
+            ) -> None:
         self.offset = offset
         self.rotation = rotation
         self.ptype = ptype
@@ -63,7 +64,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
         return self._rotation
 
     @rotation.setter
-    def rotation(self, val: float):
+    def rotation(self, val: float) -> None:
         if val is None:
             self._rotation = None
         else:
@@ -207,6 +208,21 @@ class Device(Copyable, Mirrorable):
     def __getitem__(self, key: Union[List[str], Tuple[str], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
         pass
 
+#=======
+##    from typing import overload
+##    from _collections_abc import dict_keys, dict_values
+##
+##    @overload
+##    def __getitem__(self, key: str) -> Port:
+##        pass
+##
+##    @overload
+##    def __getitem__(self, key: Union[List[str], Tuple[str], dict_keys[str, str], dict_values[str, str]]) -> Dict[str, Port]:
+###    def __getitem__(self, key: Iterable[str]) -> Dict[str, Port]:
+##        pass
+#
+##    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
+#    def __getitem__(self, key: Union[str, Iterable[str]]) -> Any:
     def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
         """
         For convenience, ports can be read out using square brackets:
@@ -504,9 +520,9 @@ class Device(Copyable, Mirrorable):
             self: D,
             other: O,
             *,
-            offset: vector2 = (0, 0),
+            offset: ArrayLike = (0, 0),
             rotation: float = 0,
-            pivot: vector2 = (0, 0),
+            pivot: ArrayLike = (0, 0),
             mirrored: Tuple[bool, bool] = (False, False),
             port_map: Optional[Dict[str, Optional[str]]] = None,
             skip_port_check: bool = False,
@@ -585,7 +601,7 @@ class Device(Copyable, Mirrorable):
             *,
             mirrored: Tuple[bool, bool] = (False, False),
             set_rotation: Optional[bool] = None,
-            ) -> Tuple[numpy.ndarray, float, numpy.ndarray]:
+            ) -> Tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
         """
         Given a device `other` and a mapping `map_in` specifying port connections,
           find the transform which will correctly align the specified ports.
@@ -668,7 +684,7 @@ class Device(Copyable, Mirrorable):
 
         return translations[0], rotations[0], o_offsets[0]
 
-    def translate(self: D, offset: vector2) -> D:
+    def translate(self: D, offset: ArrayLike) -> D:
         """
         Translate the pattern and all ports.
 
@@ -683,7 +699,7 @@ class Device(Copyable, Mirrorable):
             port.translate(offset)
         return self
 
-    def rotate_around(self: D, pivot: vector2, angle: float) -> D:
+    def rotate_around(self: D, pivot: ArrayLike, angle: float) -> D:
         """
         Translate the pattern and all ports.
 
@@ -753,10 +769,10 @@ class Device(Copyable, Mirrorable):
 
 
 def rotate_offsets_around(
-        offsets: ArrayLike,
-        pivot: ArrayLike,
+        offsets: NDArray[numpy.float64],
+        pivot: NDArray[numpy.float64],
         angle: float,
-        ) -> numpy.ndarray:
+        ) -> NDArray[numpy.float64]:
     offsets -= pivot
     offsets[:] = (rotation_matrix_2d(angle) @ offsets.T).T
     offsets += pivot

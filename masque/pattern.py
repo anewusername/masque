@@ -9,21 +9,21 @@ import pickle
 from itertools import chain
 from collections import defaultdict
 
-import numpy        # type: ignore
+import numpy
 from numpy import inf
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .subpattern import SubPattern
 from .shapes import Shape, Polygon
 from .label import Label
-from .utils import rotation_matrix_2d, vector2, normalize_mirror, AutoSlots, annotations_t
+from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
 from .error import PatternError, PatternLockedError
 from .traits import LockableImpl, AnnotatableImpl, Scalable, Mirrorable
 from .traits import Rotatable, Positionable
 
 
-visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, numpy.ndarray], 'Pattern']
+visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
 
 
 P = TypeVar('P', bound='Pattern')
@@ -236,7 +236,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self: P,
             visit_before: visitor_function_t = None,
             visit_after: visitor_function_t = None,
-            transform: Union[numpy.ndarray, bool, None] = False,
+            transform: Union[ArrayLike, bool, None] = False,
             memo: Optional[Dict] = None,
             hierarchy: Tuple[P, ...] = (),
             ) -> P:
@@ -283,6 +283,8 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         if transform is None or transform is True:
             transform = numpy.zeros(4)
+        elif transform is not False:
+            transform = numpy.array(transform)
 
         if self in hierarchy:
             raise PatternError('.dfs() called on pattern with circular reference')
@@ -441,7 +443,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         return self
 
-    def as_polygons(self) -> List[numpy.ndarray]:
+    def as_polygons(self) -> List[NDArray[numpy.float64]]:
         """
         Represents the pattern as a list of polygons.
 
@@ -510,6 +512,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             List of `(pat.name, pat)` tuples for all referenced Pattern objects
         """
         pats_by_id = self.referenced_patterns_by_id(**kwargs)
+        pat_list: List[Tuple[Optional[str], Optional['Pattern']]]
         pat_list = [(p.name if p is not None else None, p) for p in pats_by_id.values()]
         return pat_list
 
@@ -539,7 +542,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 ids.update(pat.subpatterns_by_id(include_none=include_none))
         return dict(ids)
 
-    def get_bounds(self) -> Union[numpy.ndarray, None]:
+    def get_bounds(self) -> Union[NDArray[numpy.float64], None]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the Pattern's contents in each dimension.
@@ -553,6 +556,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         min_bounds = numpy.array((+inf, +inf))
         max_bounds = numpy.array((-inf, -inf))
+
         for entry in chain(self.shapes, self.subpatterns, self.labels):
             bounds = entry.get_bounds()
             if bounds is None:
@@ -655,7 +659,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         return self
 
-    def translate_elements(self: P, offset: vector2) -> P:
+    def translate_elements(self: P, offset: ArrayLike) -> P:
         """
         Translates all shapes, label, and subpatterns by the given offset.
 
@@ -702,7 +706,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             label.offset *= c
         return self
 
-    def rotate_around(self: P, pivot: vector2, rotation: float) -> P:
+    def rotate_around(self: P, pivot: ArrayLike, rotation: float) -> P:
         """
         Rotate the Pattern around the a location.
 
@@ -945,7 +949,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def visualize(
             self,
-            offset: vector2 = (0., 0.),
+            offset: ArrayLike = (0., 0.),
             line_color: str = 'k',
             fill_color: str = 'none',
             overdraw: bool = False,

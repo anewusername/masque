@@ -4,12 +4,11 @@ Various helper functions
 from typing import Any, Union, Tuple, Sequence, Dict, List
 from abc import ABCMeta
 
-import numpy        # type: ignore
-from numpy.typing import ArrayLike
+import numpy
+from numpy.typing import NDArray, ArrayLike
 
 
 # Type definitions
-vector2 = ArrayLike
 layer_t = Union[int, Tuple[int, int], str]
 annotations_t = Dict[str, List[Union[int, float, str]]]
 
@@ -57,7 +56,7 @@ def set_bit(bit_string: Any, bit_id: int, value: bool) -> Any:
     return bit_string
 
 
-def rotation_matrix_2d(theta: float) -> numpy.ndarray:
+def rotation_matrix_2d(theta: float) -> NDArray[numpy.float64]:
     """
     2D rotation matrix for rotating counterclockwise around the origin.
 
@@ -90,7 +89,7 @@ def normalize_mirror(mirrored: Sequence[bool]) -> Tuple[bool, float]:
     return mirror_x, angle
 
 
-def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> numpy.ndarray:
+def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> NDArray[numpy.float64]:
     """
     Given a list of vertices, remove any consecutive duplicates.
 
@@ -102,13 +101,14 @@ def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> 
     Returns:
         `vertices` with no consecutive duplicates.
     """
+    vertices = numpy.array(vertices)
     duplicates = (vertices == numpy.roll(vertices, 1, axis=0)).all(axis=1)
     if not closed_path:
         duplicates[0] = False
     return vertices[~duplicates]
 
 
-def remove_colinear_vertices(vertices: ArrayLike, closed_path: bool = True) -> numpy.ndarray:
+def remove_colinear_vertices(vertices: ArrayLike, closed_path: bool = True) -> NDArray[numpy.float64]:
     """
     Given a list of vertices, remove any superflous vertices (i.e.
         those which lie along the line formed by their neighbors)

@@ -4,7 +4,8 @@ SVG file format readers and writers
 from typing import Dict, Optional
 import warnings
 
-import numpy        # type: ignore
+import numpy
+from numpy.typing import ArrayLike
 import svgwrite     # type: ignore
 
 from .utils import mangle_name
@@ -141,7 +142,7 @@ def writefile_inverted(pattern: Pattern, filename: str):
     svg.save()
 
 
-def poly2path(vertices: numpy.ndarray) -> str:
+def poly2path(vertices: ArrayLike) -> str:
     """
     Create an SVG path string from an Nx2 list of vertices.
 
@@ -151,8 +152,9 @@ def poly2path(vertices: numpy.ndarray) -> str:
     Returns:
         SVG path-string.
     """
-    commands = 'M{:g},{:g} '.format(vertices[0][0], vertices[0][1])
-    for vertex in vertices[1:]:
+    verts = numpy.array(vertices, copy=False)
+    commands = 'M{:g},{:g} '.format(verts[0][0], verts[0][1])
+    for vertex in verts[1:]:
         commands += 'L{:g},{:g}'.format(vertex[0], vertex[1])
     commands += ' Z   '
     return commands

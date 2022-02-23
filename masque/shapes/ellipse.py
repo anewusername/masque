@@ -1,14 +1,15 @@
-from typing import List, Dict, Sequence, Optional
+from typing import List, Dict, Sequence, Optional, Any
 import copy
 import math
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import ArrayLike, NDArray
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from ..traits import LockableImpl
 
 
@@ -20,7 +21,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
     __slots__ = ('_radii', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
 
-    _radii: numpy.ndarray
+    _radii: NDArray[numpy.float64]
     """ Ellipse radii """
 
     _rotation: float
@@ -34,14 +35,14 @@ class Ellipse(Shape, metaclass=AutoSlots):
 
     # radius properties
     @property
-    def radii(self) -> numpy.ndarray:
+    def radii(self) -> Any:         #TODO mypy#3004  NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
         return self._radii
 
     @radii.setter
-    def radii(self, val: vector2) -> None:
+    def radii(self, val: ArrayLike) -> None:
         val = numpy.array(val).flatten()
         if not val.size == 2:
             raise PatternError('Radii must have length 2')
@@ -89,11 +90,11 @@ class Ellipse(Shape, metaclass=AutoSlots):
 
     def __init__(
             self,
-            radii: vector2,
+            radii: ArrayLike,
             *,
             poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
             poly_max_arclen: Optional[float] = None,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
@@ -106,6 +107,8 @@ class Ellipse(Shape, metaclass=AutoSlots):
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
+            assert(isinstance(radii, numpy.ndarray))
+            assert(isinstance(offset, numpy.ndarray))
             self._radii = radii
             self._offset = offset
             self._rotation = rotation
@@ -173,7 +176,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset, rotation=self.rotation)
         return [poly]
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         rot_radii = numpy.dot(rotation_matrix_2d(self.rotation), self.radii)
         return numpy.vstack((self.offset - rot_radii[0],
                              self.offset + rot_radii[1]))

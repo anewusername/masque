@@ -1,15 +1,15 @@
-from typing import List, Tuple, Dict, Optional, Sequence
+from typing import List, Tuple, Dict, Optional, Sequence, Any
 import copy
 from enum import Enum
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi, inf
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
+from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 from ..traits import LockableImpl
 
@@ -30,10 +30,10 @@ class Path(Shape, metaclass=AutoSlots):
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
     __slots__ = ('_vertices', '_width', '_cap', '_cap_extensions')
-    _vertices: numpy.ndarray
+    _vertices: NDArray[numpy.float64]
     _width: float
     _cap: PathCap
-    _cap_extensions: Optional[numpy.ndarray]
+    _cap_extensions: Optional[NDArray[numpy.float64]]
 
     Cap = PathCap
 
@@ -73,7 +73,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # cap_extensions property
     @property
-    def cap_extensions(self) -> Optional[numpy.ndarray]:
+    def cap_extensions(self) -> Optional[Any]:  #TODO mypy#3004  NDArray[numpy.float64]]:
         """
         Path end-cap extension
 
@@ -83,7 +83,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._cap_extensions
 
     @cap_extensions.setter
-    def cap_extensions(self, vals: Optional[numpy.ndarray]) -> None:
+    def cap_extensions(self, vals: Optional[ArrayLike]) -> None:
         custom_caps = (PathCap.SquareCustom,)
         if self.cap in custom_caps:
             if vals is None:
@@ -96,7 +96,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # vertices property
     @property
-    def vertices(self) -> numpy.ndarray:
+    def vertices(self) -> Any:  #TODO mypy#3004  NDArray[numpy.float64]]:
         """
         Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
@@ -113,7 +113,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # xs property
     @property
-    def xs(self) -> numpy.ndarray:
+    def xs(self) -> NDArray[numpy.float64]:
         """
         All vertex x coords as a 1D ndarray
         """
@@ -128,7 +128,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # ys property
     @property
-    def ys(self) -> numpy.ndarray:
+    def ys(self) -> NDArray[numpy.float64]:
         """
         All vertex y coords as a 1D ndarray
         """
@@ -148,7 +148,7 @@ class Path(Shape, metaclass=AutoSlots):
             *,
             cap: PathCap = PathCap.Flush,
             cap_extensions: Optional[ArrayLike] = None,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
@@ -163,6 +163,9 @@ class Path(Shape, metaclass=AutoSlots):
 
         self.identifier = ()
         if raw:
+            assert(isinstance(vertices, numpy.ndarray))
+            assert(isinstance(offset, numpy.ndarray))
+            assert(isinstance(cap_extensions, numpy.ndarray) or cap_extensions is None)
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
@@ -199,11 +202,11 @@ class Path(Shape, metaclass=AutoSlots):
 
     @staticmethod
     def travel(
-            travel_pairs: Tuple[Tuple[float, float]],
+            travel_pairs: Sequence[Tuple[float, float]],
             width: float = 0.0,
             cap: PathCap = PathCap.Flush,
             cap_extensions: Optional[Tuple[float, float]] = None,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
@@ -236,7 +239,7 @@ class Path(Shape, metaclass=AutoSlots):
         #TODO: needs testing
         direction = numpy.array([1, 0])
 
-        verts = [[0, 0]]
+        verts = [numpy.zeros(2)]
         for angle, distance in travel_pairs:
             direction = numpy.dot(rotation_matrix_2d(angle), direction.T).T
             verts.append(verts[-1] + direction * distance)
@@ -319,7 +322,7 @@ class Path(Shape, metaclass=AutoSlots):
 
         return polys
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         if self.cap == PathCap.Circle:
             bounds = self.offset + numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
                                                  numpy.max(self.vertices, axis=0) + self.width / 2))
@@ -409,10 +412,11 @@ class Path(Shape, metaclass=AutoSlots):
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=False)
         return self
 
-    def _calculate_cap_extensions(self) -> numpy.ndarray:
+    def _calculate_cap_extensions(self) -> NDArray[numpy.float64]:
         if self.cap == PathCap.Square:
             extensions = numpy.full(2, self.width / 2)
         elif self.cap == PathCap.SquareCustom:
+            assert(isinstance(self.cap_extensions, numpy.ndarray))
             extensions = self.cap_extensions
         else:
             # Flush or Circle

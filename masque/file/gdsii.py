@@ -30,7 +30,8 @@ import logging
 import pathlib
 import gzip
 
-import numpy        # type: ignore
+import numpy
+from numpy.typing import NDArray
 import klamath
 from klamath import records
 
@@ -369,10 +370,12 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
         properties = _annotations_to_properties(subpat.annotations, 512)
 
         if isinstance(rep, Grid):
-            xy = numpy.array(subpat.offset) + [
+            b_vector = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
+            b_count = rep.b_count if rep.b_count is not None else 1
+            xy: NDArray[numpy.float64] = numpy.array(subpat.offset) + [
                 [0, 0],
                 rep.a_vector * rep.a_count,
-                rep.b_vector * rep.b_count,
+                b_vector * b_count,
                 ]
             aref = klamath.library.Reference(struct_name=encoded_name,
                                              xy=numpy.round(xy).astype(int),

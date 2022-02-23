@@ -1,14 +1,15 @@
-from typing import List, Dict, Optional, Sequence
+from typing import List, Dict, Optional, Sequence, Any
 import copy
 import math
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, vector2, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
 from ..traits import LockableImpl
 
 
@@ -24,13 +25,13 @@ class Arc(Shape, metaclass=AutoSlots):
     __slots__ = ('_radii', '_angles', '_width', '_rotation',
                  'poly_num_points', 'poly_max_arclen')
 
-    _radii: numpy.ndarray
+    _radii: NDArray[numpy.float64]
     """ Two radii for defining an ellipse """
 
     _rotation: float
     """ Rotation (ccw, radians) from the x axis to the first radius """
 
-    _angles: numpy.ndarray
+    _angles: NDArray[numpy.float64]
     """ Start and stop angles (ccw, radians) for choosing an arc from the ellipse, measured from the first radius """
 
     _width: float
@@ -44,14 +45,14 @@ class Arc(Shape, metaclass=AutoSlots):
 
     # radius properties
     @property
-    def radii(self) -> numpy.ndarray:
+    def radii(self) -> Any:         #TODO mypy#3004   NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
         return self._radii
 
     @radii.setter
-    def radii(self, val: vector2) -> None:
+    def radii(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if not val.size == 2:
             raise PatternError('Radii must have length 2')
@@ -81,7 +82,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
     # arc start/stop angle properties
     @property
-    def angles(self) -> numpy.ndarray:
+    def angles(self) -> Any:            #TODO mypy#3004    NDArray[numpy.float64]:
         """
         Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation
@@ -92,7 +93,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._angles
 
     @angles.setter
-    def angles(self, val: vector2) -> None:
+    def angles(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if not val.size == 2:
             raise PatternError('Angles must have length 2')
@@ -152,13 +153,13 @@ class Arc(Shape, metaclass=AutoSlots):
 
     def __init__(
             self,
-            radii: vector2,
-            angles: vector2,
+            radii: ArrayLike,
+            angles: ArrayLike,
             width: float,
             *,
             poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
             poly_max_arclen: Optional[float] = None,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
@@ -171,6 +172,9 @@ class Arc(Shape, metaclass=AutoSlots):
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
+            assert(isinstance(radii, numpy.ndarray))
+            assert(isinstance(angles, numpy.ndarray))
+            assert(isinstance(offset, numpy.ndarray))
             self._radii = radii
             self._angles = angles
             self._width = width
@@ -241,7 +245,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
         wh = self.width / 2.0
         if wh == r0 and r0 == r1:
-            thetas_inner = [0]      # Don't generate multiple vertices if we're at the origin
+            thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
             thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
         thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_points, endpoint=True)
@@ -261,7 +265,7 @@ class Arc(Shape, metaclass=AutoSlots):
         poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset, rotation=self.rotation)
         return [poly]
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         '''
         Equation for rotated ellipse is
             `x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)`
@@ -367,7 +371,7 @@ class Arc(Shape, metaclass=AutoSlots):
                 (self.offset, scale / norm_value, rotation, False, self.dose),
                 lambda: Arc(radii=radii * norm_value, angles=angles, width=width * norm_value, layer=self.layer))
 
-    def get_cap_edges(self) -> numpy.ndarray:
+    def get_cap_edges(self) -> NDArray[numpy.float64]:
         '''
         Returns:
             ```
@@ -397,7 +401,7 @@ class Arc(Shape, metaclass=AutoSlots):
             maxs.append([xp, yp])
         return numpy.array([mins, maxs]) + self.offset
 
-    def _angles_to_parameters(self) -> numpy.ndarray:
+    def _angles_to_parameters(self) -> NDArray[numpy.float64]:
         '''
         Returns:
             "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form

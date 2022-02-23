@@ -1,9 +1,11 @@
 from typing import Tuple, Dict, Optional, TypeVar
 import copy
-import numpy        # type: ignore
+
+import numpy
+from numpy.typing import ArrayLike, NDArray
 
 from .repetition import Repetition
-from .utils import vector2, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
+from .utils import rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, LockableImpl, RepeatableImpl
 from .traits import AnnotatableImpl
 
@@ -43,7 +45,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
             self,
             string: str,
             *,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
@@ -74,7 +76,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         new.set_locked(self.locked)
         return new
 
-    def rotate_around(self: L, pivot: vector2, rotation: float) -> L:
+    def rotate_around(self: L, pivot: ArrayLike, rotation: float) -> L:
         """
         Rotate the label around a point.
 
@@ -91,7 +93,7 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         self.translate(+pivot)
         return self
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         """
         Return the bounds of the label.
 

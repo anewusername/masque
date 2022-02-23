@@ -1,13 +1,14 @@
 from typing import List, Dict, Optional
 import copy
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, vector2, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
 from ..traits import LockableImpl
 
 
@@ -48,7 +49,7 @@ class Circle(Shape, metaclass=AutoSlots):
             *,
             poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
             poly_max_arclen: Optional[float] = None,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
@@ -59,6 +60,7 @@ class Circle(Shape, metaclass=AutoSlots):
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
+            assert(isinstance(offset, numpy.ndarray))
             self._radius = radius
             self._offset = offset
             self._repetition = repetition
@@ -98,7 +100,7 @@ class Circle(Shape, metaclass=AutoSlots):
             raise PatternError('Number of points and arclength left '
                                'unspecified (default was also overridden)')
 
-        n = []
+        n: List[float] = []
         if poly_num_points is not None:
             n += [poly_num_points]
         if poly_max_arclen is not None:
@@ -111,7 +113,7 @@ class Circle(Shape, metaclass=AutoSlots):
 
         return [Polygon(xys, offset=self.offset, dose=self.dose, layer=self.layer)]
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset - self.radius,
                              self.offset + self.radius))
 

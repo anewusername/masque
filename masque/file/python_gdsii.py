@@ -28,11 +28,12 @@ import logging
 import pathlib
 import gzip
 
-import numpy        # type: ignore
+import numpy
+from numpy.typing import ArrayLike, NDArray
 # python-gdsii
-import gdsii.library
-import gdsii.structure
-import gdsii.elements
+import gdsii.library    #type: ignore
+import gdsii.structure  #type: ignore
+import gdsii.elements   #type: ignore
 
 from .utils import clean_pattern_vertices, is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
@@ -182,8 +183,7 @@ def writefile(
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        results = write(patterns, stream, *args, **kwargs)
-    return results
+        write(patterns, stream, *args, **kwargs)
 
 
 def readfile(
@@ -402,10 +402,12 @@ def _subpatterns_to_refs(
         new_refs: List[Union[gdsii.elements.SRef, gdsii.elements.ARef]]
         ref: Union[gdsii.elements.SRef, gdsii.elements.ARef]
         if isinstance(rep, Grid):
-            xy = numpy.array(subpat.offset) + [
+            b_vector = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
+            b_count = rep.b_count if rep.b_count is not None else 1
+            xy: NDArray[numpy.float64] = numpy.array(subpat.offset) + [
                 [0, 0],
                 rep.a_vector * rep.a_count,
-                rep.b_vector * rep.b_count,
+                b_vector * b_count,
                 ]
             ref = gdsii.elements.ARef(struct_name=encoded_name,
                                       xy=numpy.round(xy).astype(int),

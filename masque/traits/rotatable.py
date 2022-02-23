@@ -1,12 +1,13 @@
 from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import ArrayLike, NDArray
 
 #from .positionable import Positionable
 from ..error import MasqueError
-from ..utils import is_scalar, rotation_matrix_2d, vector2
+from ..utils import is_scalar, rotation_matrix_2d
 
 T = TypeVar('T', bound='Rotatable')
 I = TypeVar('I', bound='RotatableImpl')
@@ -89,7 +90,7 @@ class Pivotable(metaclass=ABCMeta):
     __slots__ = ()
 
     @abstractmethod
-    def rotate_around(self: P, pivot: vector2, rotation: float) -> P:
+    def rotate_around(self: P, pivot: ArrayLike, rotation: float) -> P:
         """
         Rotate the object around a point.
 
@@ -109,11 +110,11 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
     """
     __slots__ = ()
 
-    def rotate_around(self: J, pivot: vector2, rotation: float) -> J:
+    def rotate_around(self: J, pivot: ArrayLike, rotation: float) -> J:
         pivot = numpy.array(pivot, dtype=float)
         self.translate(-pivot)
         self.rotate(rotation)
-        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)
+        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      #type: ignore #TODO: mypy#3004
         self.translate(+pivot)
         return self
 

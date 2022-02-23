@@ -198,8 +198,7 @@ def writefile(
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        results = write(patterns, stream, *args, **kwargs)
-    return results
+        write(patterns, stream, *args, **kwargs)
 
 
 def readfile(
@@ -491,10 +490,14 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
     pname = placement.get_name()
     name = pname if isinstance(pname, int) else pname.string
     annotations = properties_to_annotations(placement.properties, lib.propnames, lib.propstrings)
+    if placement.angle is None:
+        rotation = 0
+    else:
+        rotation = numpy.deg2rad(float(placement.angle))
     subpat = SubPattern(offset=xy,
                         pattern=None,
                         mirrored=(placement.flip, False),
-                        rotation=numpy.deg2rad(placement.angle),
+                        rotation=rotation,
                         scale=float(mag),
                         identifier=(name,),
                         repetition=repetition_fata2masq(placement.repetition),

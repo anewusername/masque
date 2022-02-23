@@ -7,11 +7,12 @@
 from typing import Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any, TypeVar
 import copy
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import NDArray, ArrayLike
 
 from .error import PatternError
-from .utils import is_scalar, vector2, AutoSlots, annotations_t
+from .utils import is_scalar, AutoSlots, annotations_t
 from .repetition import Repetition
 from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
                      Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl,
@@ -40,7 +41,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """
 
-    _mirrored: numpy.ndarray        # ndarray[bool]
+    _mirrored: NDArray[numpy.bool_]
     """ Whether to mirror the instance across the x and/or y axes. """
 
     identifier: Tuple[Any, ...]
@@ -50,7 +51,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             self,
             pattern: Optional['Pattern'],
             *,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             mirrored: Optional[Sequence[bool]] = None,
             dose: float = 1.0,
@@ -113,7 +114,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         return self._pattern
 
     @pattern.setter
-    def pattern(self, val: Optional['Pattern']):
+    def pattern(self, val: Optional['Pattern']) -> None:
         from .pattern import Pattern
         if val is not None and not isinstance(val, Pattern):
             raise PatternError(f'Provided pattern {val} is not a Pattern object or None!')
@@ -121,11 +122,11 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
     # Mirrored property
     @property
-    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
+    def mirrored(self) -> Any:   #TODO mypy#3004  NDArray[numpy.bool_]:
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: Sequence[bool]):
+    def mirrored(self, val: ArrayLike) -> None:
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.array(val, dtype=bool, copy=True)
@@ -167,7 +168,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             self.repetition.mirror(axis)
         return self
 
-    def get_bounds(self) -> Optional[numpy.ndarray]:
+    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `SubPattern` in each dimension.

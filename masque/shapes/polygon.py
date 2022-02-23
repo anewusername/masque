@@ -1,14 +1,14 @@
-from typing import List, Dict, Optional, Sequence
+from typing import List, Dict, Optional, Sequence, Any
 import copy
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, normalized_shape_tuple
 from .. import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, vector2, layer_t, AutoSlots
+from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 from ..traits import LockableImpl
 
@@ -22,12 +22,12 @@ class Polygon(Shape, metaclass=AutoSlots):
     """
     __slots__ = ('_vertices',)
 
-    _vertices: numpy.ndarray
+    _vertices: NDArray[numpy.float64]
     """ Nx2 ndarray of vertices `[[x0, y0], [x1, y1], ...]` """
 
     # vertices property
     @property
-    def vertices(self) -> numpy.ndarray:
+    def vertices(self) -> Any:        #TODO mypy#3004   NDArray[numpy.float64]:
         """
         Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
@@ -44,7 +44,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     # xs property
     @property
-    def xs(self) -> numpy.ndarray:
+    def xs(self) -> NDArray[numpy.float64]:
         """
         All vertex x coords as a 1D ndarray
         """
@@ -59,7 +59,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     # ys property
     @property
-    def ys(self) -> numpy.ndarray:
+    def ys(self) -> NDArray[numpy.float64]:
         """
         All vertex y coords as a 1D ndarray
         """
@@ -76,7 +76,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             self,
             vertices: ArrayLike,
             *,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
@@ -89,6 +89,8 @@ class Polygon(Shape, metaclass=AutoSlots):
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
+            assert(isinstance(vertices, numpy.ndarray))
+            assert(isinstance(offset, numpy.ndarray))
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
@@ -120,7 +122,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             side_length: float,
             *,
             rotation: float = 0.0,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
@@ -155,7 +157,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             ly: float,
             *,
             rotation: float = 0,
-            offset: vector2 = (0.0, 0.0),
+            offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
@@ -291,7 +293,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             side_length: Optional[float] = None,
             inner_radius: Optional[float] = None,
             regular: bool = True,
-            center: vector2 = (0.0, 0.0),
+            center: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             layer: layer_t = 0,
             dose: float = 1.0,
@@ -353,7 +355,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             ) -> List['Polygon']:
         return [copy.deepcopy(self)]
 
-    def get_bounds(self) -> numpy.ndarray:
+    def get_bounds(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset + numpy.min(self.vertices, axis=0),
                              self.offset + numpy.max(self.vertices, axis=0)))
 

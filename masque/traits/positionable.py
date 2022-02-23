@@ -1,11 +1,12 @@
 # TODO top-level comment about how traits should set __slots__ = (), and how to use AutoSlots
 
-from typing import TypeVar
+from typing import TypeVar, Any, Optional
 from abc import ABCMeta, abstractmethod
-import numpy        # type: ignore
+
+import numpy
+from numpy.typing import NDArray, ArrayLike
 
 from ..error import MasqueError
-from ..utils import vector2
 
 
 T = TypeVar('T', bound='Positionable')
@@ -23,7 +24,7 @@ class Positionable(metaclass=ABCMeta):
     '''
     @property
     @abstractmethod
-    def offset(self) -> numpy.ndarray:
+    def offset(self) -> NDArray[numpy.float64]:
         """
         [x, y] offset
         """
@@ -31,21 +32,11 @@ class Positionable(metaclass=ABCMeta):
 
 #    @offset.setter
 #    @abstractmethod
-#    def offset(self, val: vector2):
+#    def offset(self, val: ArrayLike):
 #        pass
 
-    '''
-    --- Abstract methods
-    '''
     @abstractmethod
-    def get_bounds(self) -> numpy.ndarray:
-        """
-        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
-        """
-        pass
-
-    @abstractmethod
-    def set_offset(self: T, offset: vector2) -> T:
+    def set_offset(self: T, offset: ArrayLike) -> T:
         """
         Set the offset
 
@@ -58,7 +49,7 @@ class Positionable(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def translate(self: T, offset: vector2) -> T:
+    def translate(self: T, offset: ArrayLike) -> T:
         """
         Translate the entity by the given offset
 
@@ -70,6 +61,13 @@ class Positionable(metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
+        """
+        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
+        """
+        pass
+
 
 class PositionableImpl(Positionable, metaclass=ABCMeta):
     """
@@ -77,7 +75,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     """
     __slots__ = ()
 
-    _offset: numpy.ndarray
+    _offset: NDArray[numpy.float64]
     """ `[x_offset, y_offset]` """
 
     '''
@@ -85,14 +83,14 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     '''
     # offset property
     @property
-    def offset(self) -> numpy.ndarray:
+    def offset(self) -> Any:  #TODO mypy#3003  NDArray[numpy.float64]:
         """
         [x, y] offset
         """
         return self._offset
 
     @offset.setter
-    def offset(self, val: vector2):
+    def offset(self, val: ArrayLike) -> None:
         if not isinstance(val, numpy.ndarray) or val.dtype != numpy.float64:
             val = numpy.array(val, dtype=float)
 
@@ -103,12 +101,12 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     '''
     ---- Methods
     '''
-    def set_offset(self: I, offset: vector2) -> I:
+    def set_offset(self: I, offset: ArrayLike) -> I:
         self.offset = offset
         return self
 
-    def translate(self: I, offset: vector2) -> I:
-        self._offset += offset
+    def translate(self: I, offset: ArrayLike) -> I:
+        self._offset += offset   # type: ignore         # NDArray += ArrayLike should be fine??
         return self
 
     def _lock(self: I) -> I:

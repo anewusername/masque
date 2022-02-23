@@ -1,11 +1,12 @@
 from typing import Dict, Tuple, List, Optional, Union, Any, cast, Sequence
 from pprint import pformat
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
+from numpy.typing import ArrayLike
 
 from .devices import Port
-from ..utils import rotation_matrix_2d, vector2
+from ..utils import rotation_matrix_2d
 from ..error import BuildError
 
 
@@ -13,9 +14,9 @@ def ell(
         ports: Dict[str, Port],
         ccw: Optional[bool],
         bound_type: str,
-        bound: Union[float, vector2],
+        bound: Union[float, ArrayLike],
         *,
-        spacing: Optional[Union[float, numpy.ndarray]] = None,
+        spacing: Optional[Union[float, ArrayLike]] = None,
         set_rotation: Optional[float] = None,
         ) -> Dict[str, float]:
     """
@@ -96,8 +97,11 @@ def ell(
         rotations[~has_rotation] = rotations[has_rotation][0]
 
         if not numpy.allclose(rotations[0], rotations):
+            port_rotations = {k: numpy.rad2deg(p.rotation) if p.rotation is not None else None
+                              for k, p in ports.items()}
+
             raise BuildError('Asked to find aggregation for ports that face in different directions:\n'
-                             + pformat({k: numpy.rad2deg(p.rotation) for k, p in ports.items()}))
+                             + pformat(port_rotations))
     else:
         if set_rotation is not None:
             raise BuildError('set_rotation must be specified if no ports have rotations!')
