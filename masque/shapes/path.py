@@ -46,7 +46,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._width
 
     @width.setter
-    def width(self, val: float):
+    def width(self, val: float) -> None:
         if not is_scalar(val):
             raise PatternError('Width must be a scalar')
         if not val >= 0:
@@ -62,7 +62,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._cap
 
     @cap.setter
-    def cap(self, val: PathCap):
+    def cap(self, val: PathCap) -> None:
         # TODO: Document that setting cap can change cap_extensions
         self._cap = PathCap(val)
         if self.cap != PathCap.SquareCustom:
@@ -83,7 +83,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._cap_extensions
 
     @cap_extensions.setter
-    def cap_extensions(self, vals: Optional[numpy.ndarray]):
+    def cap_extensions(self, vals: Optional[numpy.ndarray]) -> None:
         custom_caps = (PathCap.SquareCustom,)
         if self.cap in custom_caps:
             if vals is None:
@@ -103,7 +103,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self._vertices
 
     @vertices.setter
-    def vertices(self, val: ArrayLike):
+    def vertices(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float)                 # TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
@@ -120,7 +120,7 @@ class Path(Shape, metaclass=AutoSlots):
         return self.vertices[:, 0]
 
     @xs.setter
-    def xs(self, val: ArrayLike):
+    def xs(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
@@ -135,28 +135,29 @@ class Path(Shape, metaclass=AutoSlots):
         return self.vertices[:, 1]
 
     @ys.setter
-    def ys(self, val: ArrayLike):
+    def ys(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
         self.vertices[:, 1] = val
 
-    def __init__(self,
-                 vertices: ArrayLike,
-                 width: float = 0.0,
-                 *,
-                 cap: PathCap = PathCap.Flush,
-                 cap_extensions: Optional[ArrayLike] = None,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0,
-                 mirrored: Sequence[bool] = (False, False),
-                 layer: layer_t = 0,
-                 dose: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 raw: bool = False,
-                 ):
+    def __init__(
+            self,
+            vertices: ArrayLike,
+            width: float = 0.0,
+            *,
+            cap: PathCap = PathCap.Flush,
+            cap_extensions: Optional[ArrayLike] = None,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0,
+            mirrored: Sequence[bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            raw: bool = False,
+            ) -> None:
         LockableImpl.unlock(self)
         self._cap_extensions = None     # Since .cap setter might access it
 
@@ -197,16 +198,17 @@ class Path(Shape, metaclass=AutoSlots):
         return new
 
     @staticmethod
-    def travel(travel_pairs: Tuple[Tuple[float, float]],
-               width: float = 0.0,
-               cap: PathCap = PathCap.Flush,
-               cap_extensions: Optional[Tuple[float, float]] = None,
-               offset: vector2 = (0.0, 0.0),
-               rotation: float = 0,
-               mirrored: Sequence[bool] = (False, False),
-               layer: layer_t = 0,
-               dose: float = 1.0,
-               ) -> 'Path':
+    def travel(
+            travel_pairs: Tuple[Tuple[float, float]],
+            width: float = 0.0,
+            cap: PathCap = PathCap.Flush,
+            cap_extensions: Optional[Tuple[float, float]] = None,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0,
+            mirrored: Sequence[bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            ) -> 'Path':
         """
         Build a path by specifying the turn angles and travel distances
           rather than setting the distances directly.
@@ -243,10 +245,11 @@ class Path(Shape, metaclass=AutoSlots):
                     offset=offset, rotation=rotation, mirrored=mirrored,
                     layer=layer, dose=dose)
 
-    def to_polygons(self,
-                    poly_num_points: int = None,
-                    poly_max_arclen: float = None,
-                    ) -> List['Polygon']:
+    def to_polygons(
+            self,
+            poly_num_points: int = None,
+            poly_max_arclen: float = None,
+            ) -> List['Polygon']:
         extensions = self._calculate_cap_extensions()
 
         v = remove_colinear_vertices(self.vertices, closed_path=False)

@@ -61,12 +61,14 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
     _b_count: int
     """ Number of instances along the direction specified by the `b_vector` """
 
-    def __init__(self,
-                 a_vector: ArrayLike,
-                 a_count: int,
-                 b_vector: Optional[ArrayLike] = None,
-                 b_count: Optional[int] = 1,
-                 locked: bool = False,):
+    def __init__(
+            self,
+            a_vector: ArrayLike,
+            a_count: int,
+            b_vector: Optional[ArrayLike] = None,
+            b_count: Optional[int] = 1,
+            locked: bool = False,
+            ) -> None:
         """
         Args:
             a_vector: First lattice vector, of the form `[x, y]`.

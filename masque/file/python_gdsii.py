@@ -53,14 +53,15 @@ path_cap_map = {
     }
 
 
-def build(patterns: Union[Pattern, Sequence[Pattern]],
-          meters_per_unit: float,
-          logical_units_per_unit: float = 1,
-          library_name: str = 'masque-gdsii-write',
-          *,
-          modify_originals: bool = False,
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
-          ) -> gdsii.library.Library:
+def build(
+        patterns: Union[Pattern, Sequence[Pattern]],
+        meters_per_unit: float,
+        logical_units_per_unit: float = 1,
+        library_name: str = 'masque-gdsii-write',
+        *,
+        modify_originals: bool = False,
+        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        ) -> gdsii.library.Library:
     """
     Convert a `Pattern` or list of patterns to a GDSII stream, by first calling
      `.polygonize()` to change the shapes into polygons, and then writing patterns
@@ -137,10 +138,12 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
     return lib
 
 
-def write(patterns: Union[Pattern, Sequence[Pattern]],
-          stream: io.BufferedIOBase,
-          *args,
-          **kwargs):
+def write(
+        patterns: Union[Pattern, Sequence[Pattern]],
+        stream: io.BufferedIOBase,
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Write a `Pattern` or list of patterns to a GDSII file.
     See `masque.file.gdsii.build()` for details.
@@ -155,11 +158,12 @@ def write(patterns: Union[Pattern, Sequence[Pattern]],
     lib.save(stream)
     return
 
-def writefile(patterns: Union[Sequence[Pattern], Pattern],
-              filename: Union[str, pathlib.Path],
-              *args,
-              **kwargs,
-              ):
+def writefile(
+        patterns: Union[Sequence[Pattern], Pattern],
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Wrapper for `masque.file.gdsii.write()` that takes a filename or path instead of a stream.
 
@@ -182,10 +186,11 @@ def writefile(patterns: Union[Sequence[Pattern], Pattern],
     return results
 
 
-def readfile(filename: Union[str, pathlib.Path],
-             *args,
-             **kwargs,
-             ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def readfile(
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
 
@@ -207,9 +212,10 @@ def readfile(filename: Union[str, pathlib.Path],
     return results
 
 
-def read(stream: io.BufferedIOBase,
-         clean_vertices: bool = True,
-         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def read(
+        stream: io.BufferedIOBase,
+        clean_vertices: bool = True,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
@@ -294,9 +300,10 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _ref_to_subpat(element: Union[gdsii.elements.SRef,
-                                  gdsii.elements.ARef]
-                   ) -> SubPattern:
+def _ref_to_subpat(
+        element: Union[gdsii.elements.SRef,
+                       gdsii.elements.ARef]
+        ) -> SubPattern:
     """
     Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
@@ -379,8 +386,9 @@ def _boundary_to_polygon(element: gdsii.elements.Boundary, raw_mode: bool) -> Po
     return Polygon(**args)
 
 
-def _subpatterns_to_refs(subpatterns: List[SubPattern]
-                        ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
+def _subpatterns_to_refs(
+        subpatterns: List[SubPattern],
+        ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -450,9 +458,10 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
     return props
 
 
-def _shapes_to_elements(shapes: List[Shape],
-                        polygonize_paths: bool = False
-                       ) -> List[Union[gdsii.elements.Boundary, gdsii.elements.Path]]:
+def _shapes_to_elements(
+        shapes: List[Shape],
+        polygonize_paths: bool = False,
+        ) -> List[Union[gdsii.elements.Boundary, gdsii.elements.Path]]:
     elements: List[Union[gdsii.elements.Boundary, gdsii.elements.Path]] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
@@ -496,11 +505,12 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
     return texts
 
 
-def disambiguate_pattern_names(patterns: Sequence[Pattern],
-                               max_name_length: int = 32,
-                               suffix_length: int = 6,
-                               dup_warn_filter: Optional[Callable[[str], bool]] = None,
-                               ):
+def disambiguate_pattern_names(
+        patterns: Sequence[Pattern],
+        max_name_length: int = 32,
+        suffix_length: int = 6,
+        dup_warn_filter: Optional[Callable[[str], bool]] = None,
+        ) -> None:
     """
     Args:
         patterns: List of patterns to disambiguate

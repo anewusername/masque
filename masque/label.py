@@ -36,19 +36,20 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
         return self._string
 
     @string.setter
-    def string(self, val: str):
+    def string(self, val: str) -> None:
         self._string = val
 
-    def __init__(self,
-                 string: str,
-                 *,
-                 offset: vector2 = (0.0, 0.0),
-                 layer: layer_t = 0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 identifier: Tuple = (),
-                 ) -> None:
+    def __init__(
+            self,
+            string: str,
+            *,
+            offset: vector2 = (0.0, 0.0),
+            layer: layer_t = 0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            identifier: Tuple = (),
+            ) -> None:
         LockableImpl.unlock(self)
         self.identifier = identifier
         self.string = string

@@ -41,7 +41,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         return self._radii
 
     @radii.setter
-    def radii(self, val: vector2):
+    def radii(self, val: vector2) -> None:
         val = numpy.array(val).flatten()
         if not val.size == 2:
             raise PatternError('Radii must have length 2')
@@ -54,7 +54,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         return self.radii[0]
 
     @radius_x.setter
-    def radius_x(self, val: float):
+    def radius_x(self, val: float) -> None:
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
         self.radii[0] = val
@@ -64,7 +64,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         return self.radii[1]
 
     @radius_y.setter
-    def radius_y(self, val: float):
+    def radius_y(self, val: float) -> None:
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
         self.radii[1] = val
@@ -82,26 +82,27 @@ class Ellipse(Shape, metaclass=AutoSlots):
         return self._rotation
 
     @rotation.setter
-    def rotation(self, val: float):
+    def rotation(self, val: float) -> None:
         if not is_scalar(val):
             raise PatternError('Rotation must be a scalar')
         self._rotation = val % pi
 
-    def __init__(self,
-                 radii: vector2,
-                 *,
-                 poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: Optional[float] = None,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0,
-                 mirrored: Sequence[bool] = (False, False),
-                 layer: layer_t = 0,
-                 dose: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 raw: bool = False,
-                 ):
+    def __init__(
+            self,
+            radii: vector2,
+            *,
+            poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
+            poly_max_arclen: Optional[float] = None,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0,
+            mirrored: Sequence[bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            raw: bool = False,
+            ) -> None:
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
@@ -134,10 +135,11 @@ class Ellipse(Shape, metaclass=AutoSlots):
         new.set_locked(self.locked)
         return new
 
-    def to_polygons(self,
-                    poly_num_points: Optional[int] = None,
-                    poly_max_arclen: Optional[float] = None,
-                    ) -> List[Polygon]:
+    def to_polygons(
+            self,
+            poly_num_points: Optional[int] = None,
+            poly_max_arclen: Optional[float] = None,
+            ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points
         if poly_max_arclen is None:

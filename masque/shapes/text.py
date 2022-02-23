@@ -35,7 +35,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         return self._string
 
     @string.setter
-    def string(self, val: str):
+    def string(self, val: str) -> None:
         self._string = val
 
     # Height property
@@ -44,7 +44,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         return self._height
 
     @height.setter
-    def height(self, val: float):
+    def height(self, val: float) -> None:
         if not is_scalar(val):
             raise PatternError('Height must be a scalar')
         self._height = val
@@ -55,26 +55,27 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: Sequence[bool]):
+    def mirrored(self, val: Sequence[bool]) -> None:
         if is_scalar(val):
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.array(val, dtype=bool, copy=True)
 
-    def __init__(self,
-                 string: str,
-                 height: float,
-                 font_path: str,
-                 *,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0.0,
-                 mirrored: Tuple[bool, bool] = (False, False),
-                 layer: layer_t = 0,
-                 dose: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 raw: bool = False,
-                 ):
+    def __init__(
+            self,
+            string: str,
+            height: float,
+            font_path: str,
+            *,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0.0,
+            mirrored: Tuple[bool, bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            raw: bool = False,
+            ) -> None:
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
@@ -109,10 +110,11 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         new.set_locked(self.locked)
         return new
 
-    def to_polygons(self,
-                    poly_num_points: Optional[int] = None,        # unused
-                    poly_max_arclen: Optional[float] = None,      # unused
-                    ) -> List[Polygon]:
+    def to_polygons(
+            self,
+            poly_num_points: Optional[int] = None,        # unused
+            poly_max_arclen: Optional[float] = None,      # unused
+            ) -> List[Polygon]:
         all_polygons = []
         total_advance = 0.0
         for char in self.string:
@@ -166,10 +168,11 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         return bounds
 
 
-def get_char_as_polygons(font_path: str,
-                         char: str,
-                         resolution: float = 48 * 64,
-                         ) -> Tuple[List[List[List[float]]], float]:
+def get_char_as_polygons(
+        font_path: str,
+        char: str,
+        resolution: float = 48 * 64,
+        ) -> Tuple[List[List[List[float]]], float]:
     from freetype import Face           # type: ignore
     from matplotlib.path import Path    # type: ignore
 

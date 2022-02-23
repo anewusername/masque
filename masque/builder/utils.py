@@ -9,7 +9,8 @@ from ..utils import rotation_matrix_2d, vector2
 from ..error import BuildError
 
 
-def ell(ports: Dict[str, Port],
+def ell(
+        ports: Dict[str, Port],
         ccw: Optional[bool],
         bound_type: str,
         bound: Union[float, vector2],

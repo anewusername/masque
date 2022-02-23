@@ -51,7 +51,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._radii
 
     @radii.setter
-    def radii(self, val: vector2):
+    def radii(self, val: vector2) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if not val.size == 2:
             raise PatternError('Radii must have length 2')
@@ -64,7 +64,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._radii[0]
 
     @radius_x.setter
-    def radius_x(self, val: float):
+    def radius_x(self, val: float) -> None:
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
         self._radii[0] = val
@@ -74,7 +74,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._radii[1]
 
     @radius_y.setter
-    def radius_y(self, val: float):
+    def radius_y(self, val: float) -> None:
         if not val >= 0:
             raise PatternError('Radius must be non-negative')
         self._radii[1] = val
@@ -92,7 +92,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._angles
 
     @angles.setter
-    def angles(self, val: vector2):
+    def angles(self, val: vector2) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if not val.size == 2:
             raise PatternError('Angles must have length 2')
@@ -103,7 +103,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self.angles[0]
 
     @start_angle.setter
-    def start_angle(self, val: float):
+    def start_angle(self, val: float) -> None:
         self.angles = (val, self.angles[1])
 
     @property
@@ -111,7 +111,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self.angles[1]
 
     @stop_angle.setter
-    def stop_angle(self, val: float):
+    def stop_angle(self, val: float) -> None:
         self.angles = (self.angles[0], val)
 
     # Rotation property
@@ -126,7 +126,7 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._rotation
 
     @rotation.setter
-    def rotation(self, val: float):
+    def rotation(self, val: float) -> None:
         if not is_scalar(val):
             raise PatternError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)
@@ -143,30 +143,31 @@ class Arc(Shape, metaclass=AutoSlots):
         return self._width
 
     @width.setter
-    def width(self, val: float):
+    def width(self, val: float) -> None:
         if not is_scalar(val):
             raise PatternError('Width must be a scalar')
         if not val > 0:
             raise PatternError('Width must be positive')
         self._width = val
 
-    def __init__(self,
-                 radii: vector2,
-                 angles: vector2,
-                 width: float,
-                 *,
-                 poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
-                 poly_max_arclen: Optional[float] = None,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0,
-                 mirrored: Sequence[bool] = (False, False),
-                 layer: layer_t = 0,
-                 dose: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 raw: bool = False,
-                 ):
+    def __init__(
+            self,
+            radii: vector2,
+            angles: vector2,
+            width: float,
+            *,
+            poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
+            poly_max_arclen: Optional[float] = None,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0,
+            mirrored: Sequence[bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            raw: bool = False,
+            ) -> None:
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
@@ -204,10 +205,11 @@ class Arc(Shape, metaclass=AutoSlots):
         new.set_locked(self.locked)
         return new
 
-    def to_polygons(self,
-                    poly_num_points: Optional[int] = None,
-                    poly_max_arclen: Optional[float] = None,
-                    ) -> List[Polygon]:
+    def to_polygons(
+            self,
+            poly_num_points: Optional[int] = None,
+            poly_max_arclen: Optional[float] = None,
+            ) -> List[Polygon]:
         if poly_num_points is None:
             poly_num_points = self.poly_num_points
         if poly_max_arclen is None:

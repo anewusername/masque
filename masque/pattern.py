@@ -53,15 +53,16 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     name: str
     """ A name for this pattern """
 
-    def __init__(self,
-                 name: str = '',
-                 *,
-                 shapes: Sequence[Shape] = (),
-                 labels: Sequence[Label] = (),
-                 subpatterns: Sequence[SubPattern] = (),
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 ) -> None:
+    def __init__(
+            self,
+            name: str = '',
+            *,
+            shapes: Sequence[Shape] = (),
+            labels: Sequence[Label] = (),
+            subpatterns: Sequence[SubPattern] = (),
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            ) -> None:
         """
         Basic init; arguments get assigned to member variables.
          Non-list inputs for shapes and subpatterns get converted to lists.
@@ -141,12 +142,13 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.labels += other_pattern.labels
         return self
 
-    def subset(self,
-               shapes_func: Callable[[Shape], bool] = None,
-               labels_func: Callable[[Label], bool] = None,
-               subpatterns_func: Callable[[SubPattern], bool] = None,
-               recursive: bool = False,
-               ) -> 'Pattern':
+    def subset(
+            self,
+            shapes_func: Callable[[Shape], bool] = None,
+            labels_func: Callable[[Label], bool] = None,
+            subpatterns_func: Callable[[SubPattern], bool] = None,
+            recursive: bool = False,
+            ) -> 'Pattern':
         """
         Returns a Pattern containing only the entities (e.g. shapes) for which the
           given entity_func returns True.
@@ -186,10 +188,11 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         assert(pat is not None)
         return pat
 
-    def apply(self,
-              func: Callable[[Optional['Pattern']], Optional['Pattern']],
-              memo: Optional[Dict[int, Optional['Pattern']]] = None,
-              ) -> Optional['Pattern']:
+    def apply(
+            self,
+            func: Callable[[Optional['Pattern']], Optional['Pattern']],
+            memo: Optional[Dict[int, Optional['Pattern']]] = None,
+            ) -> Optional['Pattern']:
         """
         Recursively apply func() to this pattern and any pattern it references.
         func() is expected to take and return a Pattern.
@@ -229,7 +232,8 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             pat = memo[pat_id]
         return pat
 
-    def dfs(self: P,
+    def dfs(
+            self: P,
             visit_before: visitor_function_t = None,
             visit_after: visitor_function_t = None,
             transform: Union[numpy.ndarray, bool, None] = False,
@@ -237,7 +241,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             hierarchy: Tuple[P, ...] = (),
             ) -> P:
         """
-        Experimental convenience function.
+        Convenience function.
         Performs a depth-first traversal of this pattern and its subpatterns.
         At each pattern in the tree, the following sequence is called:
             ```
@@ -314,10 +318,11 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
         return pat
 
-    def polygonize(self: P,
-                   poly_num_points: Optional[int] = None,
-                   poly_max_arclen: Optional[float] = None,
-                   ) -> P:
+    def polygonize(
+            self: P,
+            poly_num_points: Optional[int] = None,
+            poly_max_arclen: Optional[float] = None,
+            ) -> P:
         """
         Calls `.to_polygons(...)` on all the shapes in this Pattern and any referenced patterns,
          replacing them with the returned polygons.
@@ -342,10 +347,11 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
         return self
 
-    def manhattanize(self: P,
-                     grid_x: ArrayLike,
-                     grid_y: ArrayLike,
-                     ) -> P:
+    def manhattanize(
+            self: P,
+            grid_x: ArrayLike,
+            grid_y: ArrayLike,
+            ) -> P:
         """
         Calls `.polygonize()` and `.flatten()` on the pattern, then calls `.manhattanize()` on all the
          resulting shapes, replacing them with the returned Manhattan polygons.
@@ -364,11 +370,12 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
-    def subpatternize(self: P,
-                      recursive: bool = True,
-                      norm_value: int = int(1e6),
-                      exclude_types: Tuple[Type] = (Polygon,)
-                      ) -> P:
+    def subpatternize(
+            self: P,
+            recursive: bool = True,
+            norm_value: int = int(1e6),
+            exclude_types: Tuple[Type] = (Polygon,)
+            ) -> P:
         """
         Iterates through this `Pattern` and all referenced `Pattern`s. Within each `Pattern`, it iterates
          over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
@@ -456,11 +463,12 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     def referenced_patterns_by_id(self, include_none: bool) -> Dict[int, Optional['Pattern']]:
         pass
 
-    def referenced_patterns_by_id(self,
-                                  include_none: bool = False,
-                                  recursive: bool = True,
-                                  ) -> Union[Dict[int, Optional['Pattern']],
-                                             Dict[int, 'Pattern']]:
+    def referenced_patterns_by_id(
+            self,
+            include_none: bool = False,
+            recursive: bool = True,
+            ) -> Union[Dict[int, Optional['Pattern']],
+                       Dict[int, 'Pattern']]:
 
         """
         Create a dictionary with `{id(pat): pat}` for all Pattern objects referenced by this
@@ -484,7 +492,10 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 ids.update(pat.referenced_patterns_by_id())
         return ids
 
-    def referenced_patterns_by_name(self, **kwargs: Any) -> List[Tuple[Optional[str], Optional['Pattern']]]:
+    def referenced_patterns_by_name(
+            self,
+            **kwargs: Any,
+            ) -> List[Tuple[Optional[str], Optional['Pattern']]]:
         """
         Create a list of `(pat.name, pat)` tuples for all Pattern objects referenced by this
          Pattern (operates recursively on all referenced Patterns as well).
@@ -502,10 +513,11 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         pat_list = [(p.name if p is not None else None, p) for p in pats_by_id.values()]
         return pat_list
 
-    def subpatterns_by_id(self,
-                          include_none: bool = False,
-                          recursive: bool = True,
-                          ) -> Dict[int, List[SubPattern]]:
+    def subpatterns_by_id(
+            self,
+            include_none: bool = False,
+            recursive: bool = True,
+            ) -> Dict[int, List[SubPattern]]:
         """
         Create a dictionary which maps `{id(referenced_pattern): [subpattern0, ...]}`
          for all SubPattern objects referenced by this Pattern (by default, operates
@@ -593,10 +605,11 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         flatten_single(self, set())
         return self
 
-    def wrap_repeated_shapes(self: P,
-                             name_func: Callable[['Pattern', Union[Shape, Label]], str] = lambda p, s: '_repetition',
-                             recursive: bool = True,
-                             ) -> P:
+    def wrap_repeated_shapes(
+            self: P,
+            name_func: Callable[['Pattern', Union[Shape, Label]], str] = lambda p, s: '_repetition',
+            recursive: bool = True,
+            ) -> P:
         """
         Wraps all shapes and labels with a non-`None` `repetition` attribute
           into a `SubPattern`/`Pattern` combination, and applies the `repetition`
@@ -930,12 +943,13 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         return self
 
-    def visualize(self,
-                  offset: vector2 = (0., 0.),
-                  line_color: str = 'k',
-                  fill_color: str = 'none',
-                  overdraw: bool = False,
-                  ) -> None:
+    def visualize(
+            self,
+            offset: vector2 = (0., 0.),
+            line_color: str = 'k',
+            fill_color: str = 'none',
+            overdraw: bool = False,
+            ) -> None:
         """
         Draw a picture of the Pattern and wait for the user to inspect it
 

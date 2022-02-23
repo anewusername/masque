@@ -34,7 +34,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         return self._vertices
 
     @vertices.setter
-    def vertices(self, val: ArrayLike):
+    def vertices(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float)             # TODO document that these might not be copied
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
@@ -51,7 +51,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         return self.vertices[:, 0]
 
     @xs.setter
-    def xs(self, val: ArrayLike):
+    def xs(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
@@ -66,25 +66,26 @@ class Polygon(Shape, metaclass=AutoSlots):
         return self.vertices[:, 1]
 
     @ys.setter
-    def ys(self, val: ArrayLike):
+    def ys(self, val: ArrayLike) -> None:
         val = numpy.array(val, dtype=float).flatten()
         if val.size != self.vertices.shape[0]:
             raise PatternError('Wrong number of vertices')
         self.vertices[:, 1] = val
 
-    def __init__(self,
-                 vertices: ArrayLike,
-                 *,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0.0,
-                 mirrored: Sequence[bool] = (False, False),
-                 layer: layer_t = 0,
-                 dose: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 raw: bool = False,
-                 ):
+    def __init__(
+            self,
+            vertices: ArrayLike,
+            *,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0.0,
+            mirrored: Sequence[bool] = (False, False),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            raw: bool = False,
+            ) -> None:
         LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
@@ -115,14 +116,15 @@ class Polygon(Shape, metaclass=AutoSlots):
         return new
 
     @staticmethod
-    def square(side_length: float,
-               *,
-               rotation: float = 0.0,
-               offset: vector2 = (0.0, 0.0),
-               layer: layer_t = 0,
-               dose: float = 1.0,
-               repetition: Optional[Repetition] = None,
-               ) -> 'Polygon':
+    def square(
+            side_length: float,
+            *,
+            rotation: float = 0.0,
+            offset: vector2 = (0.0, 0.0),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            ) -> 'Polygon':
         """
         Draw a square given side_length, centered on the origin.
 
@@ -148,15 +150,16 @@ class Polygon(Shape, metaclass=AutoSlots):
         return poly
 
     @staticmethod
-    def rectangle(lx: float,
-                  ly: float,
-                  *,
-                  rotation: float = 0,
-                  offset: vector2 = (0.0, 0.0),
-                  layer: layer_t = 0,
-                  dose: float = 1.0,
-                  repetition: Optional[Repetition] = None,
-                  ) -> 'Polygon':
+    def rectangle(
+            lx: float,
+            ly: float,
+            *,
+            rotation: float = 0,
+            offset: vector2 = (0.0, 0.0),
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            ) -> 'Polygon':
         """
         Draw a rectangle with side lengths lx and ly, centered on the origin.
 
@@ -182,19 +185,20 @@ class Polygon(Shape, metaclass=AutoSlots):
         return poly
 
     @staticmethod
-    def rect(*,
-             xmin: Optional[float] = None,
-             xctr: Optional[float] = None,
-             xmax: Optional[float] = None,
-             lx: Optional[float] = None,
-             ymin: Optional[float] = None,
-             yctr: Optional[float] = None,
-             ymax: Optional[float] = None,
-             ly: Optional[float] = None,
-             layer: layer_t = 0,
-             dose: float = 1.0,
-             repetition: Optional[Repetition] = None,
-             ) -> 'Polygon':
+    def rect(
+            *,
+            xmin: Optional[float] = None,
+            xctr: Optional[float] = None,
+            xmax: Optional[float] = None,
+            lx: Optional[float] = None,
+            ymin: Optional[float] = None,
+            yctr: Optional[float] = None,
+            ymax: Optional[float] = None,
+            ly: Optional[float] = None,
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            ) -> 'Polygon':
         """
         Draw a rectangle by specifying side/center positions.
 
@@ -282,16 +286,17 @@ class Polygon(Shape, metaclass=AutoSlots):
         return poly
 
     @staticmethod
-    def octagon(*,
-                side_length: Optional[float] = None,
-                inner_radius: Optional[float] = None,
-                regular: bool = True,
-                center: vector2 = (0.0, 0.0),
-                rotation: float = 0.0,
-                layer: layer_t = 0,
-                dose: float = 1.0,
-                repetition: Optional[Repetition] = None,
-                ) -> 'Polygon':
+    def octagon(
+            *,
+            side_length: Optional[float] = None,
+            inner_radius: Optional[float] = None,
+            regular: bool = True,
+            center: vector2 = (0.0, 0.0),
+            rotation: float = 0.0,
+            layer: layer_t = 0,
+            dose: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            ) -> 'Polygon':
         """
         Draw an octagon given one of (side length, inradius, circumradius).
 
@@ -341,10 +346,11 @@ class Polygon(Shape, metaclass=AutoSlots):
         return poly
 
 
-    def to_polygons(self,
-                    poly_num_points: int = None,        # unused
-                    poly_max_arclen: float = None,      # unused
-                    ) -> List['Polygon']:
+    def to_polygons(
+            self,
+            poly_num_points: int = None,        # unused
+            poly_max_arclen: float = None,      # unused
+            ) -> List['Polygon']:
         return [copy.deepcopy(self)]
 
     def get_bounds(self) -> numpy.ndarray:

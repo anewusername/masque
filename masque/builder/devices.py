@@ -167,12 +167,13 @@ class Device(Copyable, Mirrorable):
     _dead: bool
     """ If True, plug()/place() are skipped (for debugging)"""
 
-    def __init__(self,
-                 pattern: Optional[Pattern] = None,
-                 ports: Optional[Dict[str, Port]] = None,
-                 *,
-                 name: Optional[str] = None,
-                 ) -> None:
+    def __init__(
+            self,
+            pattern: Optional[Pattern] = None,
+            ports: Optional[Dict[str, Port]] = None,
+            *,
+            name: Optional[str] = None,
+            ) -> None:
         """
         If `ports` is `None`, two default ports ('A' and 'B') are created.
         Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
@@ -218,10 +219,11 @@ class Device(Copyable, Mirrorable):
         else:
             return {k: self.ports[k] for k in key}
 
-    def rename_ports(self: D,
-                     mapping: Dict[str, Optional[str]],
-                     overwrite: bool = False,
-                     ) -> D:
+    def rename_ports(
+            self: D,
+            mapping: Dict[str, Optional[str]],
+            overwrite: bool = False,
+            ) -> D:
         """
         Renames ports as specified by `mapping`.
         Ports can be explicitly deleted by mapping them to `None`.
@@ -248,11 +250,12 @@ class Device(Copyable, Mirrorable):
         self.ports.update(renamed)      # type: ignore
         return self
 
-    def check_ports(self: D,
-                    other_names: Iterable[str],
-                    map_in: Optional[Dict[str, str]] = None,
-                    map_out: Optional[Dict[str, Optional[str]]] = None,
-                    ) -> D:
+    def check_ports(
+            self: D,
+            other_names: Iterable[str],
+            map_in: Optional[Dict[str, str]] = None,
+            map_out: Optional[Dict[str, Optional[str]]] = None,
+            ) -> D:
         """
         Given the provided port mappings, check that:
             - All of the ports specified in the mappings exist
@@ -332,12 +335,13 @@ class Device(Copyable, Mirrorable):
         new = Device(pat, ports=self.ports)
         return new
 
-    def as_interface(self,
-                     name: str,
-                     in_prefix: str = 'in_',
-                     out_prefix: str = '',
-                     port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
-                     ) -> 'Device':
+    def as_interface(
+            self,
+            name: str,
+            in_prefix: str = 'in_',
+            out_prefix: str = '',
+            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
+            ) -> 'Device':
         """
         Begin building a new device based on all or some of the ports in the
           current device. Do not include the current device; instead use it
@@ -406,15 +410,16 @@ class Device(Copyable, Mirrorable):
         new = Device(name=name, ports={**ports_in, **ports_out})
         return new
 
-    def plug(self: D,
-             other: O,
-             map_in: Dict[str, str],
-             map_out: Optional[Dict[str, Optional[str]]] = None,
-             *,
-             mirrored: Tuple[bool, bool] = (False, False),
-             inherit_name: bool = True,
-             set_rotation: Optional[bool] = None,
-             ) -> D:
+    def plug(
+            self: D,
+            other: O,
+            map_in: Dict[str, str],
+            map_out: Optional[Dict[str, Optional[str]]] = None,
+            *,
+            mirrored: Tuple[bool, bool] = (False, False),
+            inherit_name: bool = True,
+            set_rotation: Optional[bool] = None,
+            ) -> D:
         """
         Instantiate the device `other` into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
@@ -495,16 +500,17 @@ class Device(Copyable, Mirrorable):
                    mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
 
-    def place(self: D,
-              other: O,
-              *,
-              offset: vector2 = (0, 0),
-              rotation: float = 0,
-              pivot: vector2 = (0, 0),
-              mirrored: Tuple[bool, bool] = (False, False),
-              port_map: Optional[Dict[str, Optional[str]]] = None,
-              skip_port_check: bool = False,
-              ) -> D:
+    def place(
+            self: D,
+            other: O,
+            *,
+            offset: vector2 = (0, 0),
+            rotation: float = 0,
+            pivot: vector2 = (0, 0),
+            mirrored: Tuple[bool, bool] = (False, False),
+            port_map: Optional[Dict[str, Optional[str]]] = None,
+            skip_port_check: bool = False,
+            ) -> D:
         """
         Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
@@ -572,13 +578,14 @@ class Device(Copyable, Mirrorable):
         self.pattern.subpatterns.append(sp)
         return self
 
-    def find_transform(self: D,
-                       other: O,
-                       map_in: Dict[str, str],
-                       *,
-                       mirrored: Tuple[bool, bool] = (False, False),
-                       set_rotation: Optional[bool] = None,
-                       ) -> Tuple[numpy.ndarray, float, numpy.ndarray]:
+    def find_transform(
+            self: D,
+            other: O,
+            map_in: Dict[str, str],
+            *,
+            mirrored: Tuple[bool, bool] = (False, False),
+            set_rotation: Optional[bool] = None,
+            ) -> Tuple[numpy.ndarray, float, numpy.ndarray]:
         """
         Given a device `other` and a mapping `map_in` specifying port connections,
           find the transform which will correctly align the specified ports.
@@ -745,7 +752,11 @@ class Device(Copyable, Mirrorable):
         return s
 
 
-def rotate_offsets_around(offsets: ArrayLike, pivot: ArrayLike, angle: float) -> numpy.ndarray:
+def rotate_offsets_around(
+        offsets: ArrayLike,
+        pivot: ArrayLike,
+        angle: float,
+        ) -> numpy.ndarray:
     offsets -= pivot
     offsets[:] = (rotation_matrix_2d(angle) @ offsets.T).T
     offsets += pivot

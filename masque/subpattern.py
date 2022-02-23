@@ -46,19 +46,20 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     identifier: Tuple[Any, ...]
     """ Arbitrary identifier, used internally by some `masque` functions. """
 
-    def __init__(self,
-                 pattern: Optional['Pattern'],
-                 *,
-                 offset: vector2 = (0.0, 0.0),
-                 rotation: float = 0.0,
-                 mirrored: Optional[Sequence[bool]] = None,
-                 dose: float = 1.0,
-                 scale: float = 1.0,
-                 repetition: Optional[Repetition] = None,
-                 annotations: Optional[annotations_t] = None,
-                 locked: bool = False,
-                 identifier: Tuple[Any, ...] = (),
-                 ) -> None:
+    def __init__(
+            self,
+            pattern: Optional['Pattern'],
+            *,
+            offset: vector2 = (0.0, 0.0),
+            rotation: float = 0.0,
+            mirrored: Optional[Sequence[bool]] = None,
+            dose: float = 1.0,
+            scale: float = 1.0,
+            repetition: Optional[Repetition] = None,
+            annotations: Optional[annotations_t] = None,
+            locked: bool = False,
+            identifier: Tuple[Any, ...] = (),
+            ) -> None:
         """
         Args:
             pattern: Pattern to reference.

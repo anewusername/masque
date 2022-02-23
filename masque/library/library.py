@@ -143,7 +143,13 @@ class Library:
     def __repr__(self) -> str:
         return '<Library with keys ' + repr(list(self.primary.keys())) + '>'
 
-    def set_const(self, key: str, tag: Any, const: 'Pattern', secondary: bool = False) -> None:
+    def set_const(
+            self,
+            key: str,
+            tag: Any,
+            const: 'Pattern',
+            secondary: bool = False,
+            ) -> None:
         """
         Convenience function to avoid having to manually wrap
          constant values into callables.
@@ -162,7 +168,13 @@ class Library:
         else:
             self.primary[key] = pg
 
-    def set_value(self, key: str, tag: str, value: Callable[[], 'Pattern'], secondary: bool = False) -> None:
+    def set_value(
+            self,
+            key: str,
+            tag: str,
+            value: Callable[[], 'Pattern'],
+            secondary: bool = False,
+            ) -> None:
         """
         Convenience function to automatically build a PatternGenerator.
 

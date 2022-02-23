@@ -11,10 +11,11 @@ from .utils import mangle_name
 from .. import Pattern
 
 
-def writefile(pattern: Pattern,
-              filename: str,
-              custom_attributes: bool = False,
-              ) -> None:
+def writefile(
+        pattern: Pattern,
+        filename: str,
+        custom_attributes: bool = False,
+        ) -> None:
     """
     Write a Pattern to an SVG file, by first calling .polygonize() on it
      to change the shapes into polygons, and then writing patterns as SVG

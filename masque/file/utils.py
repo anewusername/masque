@@ -95,8 +95,9 @@ def dtype2dose(pattern: Pattern) -> Pattern:
     return pattern
 
 
-def dose2dtype(patterns: List[Pattern],
-               ) -> Tuple[List[Pattern], List[float]]:
+def dose2dtype(
+        patterns: List[Pattern],
+        ) -> Tuple[List[Pattern], List[float]]:
     """
      For each shape in each pattern, set shape.layer to the tuple
      (base_layer, datatype), where:

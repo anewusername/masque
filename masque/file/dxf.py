@@ -28,13 +28,14 @@ logger.warning('DXF support is experimental and only slightly tested!')
 DEFAULT_LAYER = 'DEFAULT'
 
 
-def write(pattern: Pattern,
-          stream: io.TextIOBase,
-          *,
-          modify_originals: bool = False,
-          dxf_version='AC1024',
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
-          ) -> None:
+def write(
+        pattern: Pattern,
+        stream: io.TextIOBase,
+        *,
+        modify_originals: bool = False,
+        dxf_version='AC1024',
+        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        ) -> None:
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
      into polygons, and then writing patterns as DXF `Block`s, polygons as `LWPolyline`s,
@@ -99,11 +100,12 @@ def write(pattern: Pattern,
     lib.write(stream)
 
 
-def writefile(pattern: Pattern,
-              filename: Union[str, pathlib.Path],
-              *args,
-              **kwargs,
-              ) -> None:
+def writefile(
+        pattern: Pattern,
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Wrapper for `dxf.write()` that takes a filename or path instead of a stream.
 
@@ -125,10 +127,11 @@ def writefile(pattern: Pattern,
         write(pattern, stream, *args, **kwargs)
 
 
-def readfile(filename: Union[str, pathlib.Path],
-             *args,
-             **kwargs,
-             ) -> Tuple[Pattern, Dict[str, Any]]:
+def readfile(
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> Tuple[Pattern, Dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
@@ -150,9 +153,10 @@ def readfile(filename: Union[str, pathlib.Path],
     return results
 
 
-def read(stream: io.TextIOBase,
-         clean_vertices: bool = True,
-         ) -> Tuple[Pattern, Dict[str, Any]]:
+def read(
+        stream: io.TextIOBase,
+        clean_vertices: bool = True,
+        ) -> Tuple[Pattern, Dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -273,8 +277,10 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
     return pat
 
 
-def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                         subpatterns: List[SubPattern]) -> None:
+def _subpatterns_to_refs(
+        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
+        subpatterns: List[SubPattern],
+        ) -> None:
     for subpat in subpatterns:
         if subpat.pattern is None:
             continue
@@ -318,9 +324,11 @@ def _subpatterns_to_refs(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.M
                 block.add_blockref(encoded_name, subpat.offset + dd, dxfattribs=attribs)
 
 
-def _shapes_to_elements(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                        shapes: List[Shape],
-                        polygonize_paths: bool = False):
+def _shapes_to_elements(
+        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
+        shapes: List[Shape],
+        polygonize_paths: bool = False,
+        ) -> None:
     # Add `LWPolyline`s for each shape.
     #   Could set do paths with width setting, but need to consider endcaps.
     for shape in shapes:
@@ -331,8 +339,10 @@ def _shapes_to_elements(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Mo
             block.add_lwpolyline(xy_closed, dxfattribs=attribs)
 
 
-def _labels_to_texts(block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-                     labels: List[Label]) -> None:
+def _labels_to_texts(
+        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
+        labels: List[Label],
+        ) -> None:
     for label in labels:
         attribs = {'layer': _mlayer2dxf(label.layer)}
         xy = label.offset
@@ -349,11 +359,12 @@ def _mlayer2dxf(layer: layer_t) -> str:
     raise PatternError(f'Unknown layer type: {layer} ({type(layer)})')
 
 
-def disambiguate_pattern_names(patterns: Iterable[Pattern],
-                               max_name_length: int = 32,
-                               suffix_length: int = 6,
-                               dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
-                               ) -> None:
+def disambiguate_pattern_names(
+        patterns: Iterable[Pattern],
+        max_name_length: int = 32,
+        suffix_length: int = 6,
+        dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
+        ) -> None:
     used_names = []
     for pat in patterns:
         sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)

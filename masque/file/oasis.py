@@ -47,14 +47,15 @@ path_cap_map = {
 
 #TODO implement more shape types?
 
-def build(patterns: Union[Pattern, Sequence[Pattern]],
-          units_per_micron: int,
-          layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
-          *,
-          modify_originals: bool = False,
-          disambiguate_func: Optional[Callable[[Iterable[Pattern]], None]] = None,
-          annotations: Optional[annotations_t] = None
-          ) -> fatamorgana.OasisLayout:
+def build(
+        patterns: Union[Pattern, Sequence[Pattern]],
+        units_per_micron: int,
+        layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
+        *,
+        modify_originals: bool = False,
+        disambiguate_func: Optional[Callable[[Iterable[Pattern]], None]] = None,
+        annotations: Optional[annotations_t] = None,
+        ) -> fatamorgana.OasisLayout:
     """
     Convert a `Pattern` or list of patterns to an OASIS stream, writing patterns
      as OASIS cells, subpatterns as Placement records, and other shapes and labels
@@ -153,10 +154,12 @@ def build(patterns: Union[Pattern, Sequence[Pattern]],
     return lib
 
 
-def write(patterns: Union[Sequence[Pattern], Pattern],
-          stream: io.BufferedIOBase,
-          *args,
-          **kwargs):
+def write(
+        patterns: Union[Sequence[Pattern], Pattern],
+        stream: io.BufferedIOBase,
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Write a `Pattern` or list of patterns to a OASIS file. See `oasis.build()`
       for details.
@@ -171,11 +174,12 @@ def write(patterns: Union[Sequence[Pattern], Pattern],
     lib.write(stream)
 
 
-def writefile(patterns: Union[Sequence[Pattern], Pattern],
-              filename: Union[str, pathlib.Path],
-              *args,
-              **kwargs,
-              ):
+def writefile(
+        patterns: Union[Sequence[Pattern], Pattern],
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Wrapper for `oasis.write()` that takes a filename or path instead of a stream.
 
@@ -198,10 +202,11 @@ def writefile(patterns: Union[Sequence[Pattern], Pattern],
     return results
 
 
-def readfile(filename: Union[str, pathlib.Path],
-             *args,
-             **kwargs,
-             ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def readfile(
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Wrapper for `oasis.read()` that takes a filename or path instead of a stream.
 
@@ -223,9 +228,10 @@ def readfile(filename: Union[str, pathlib.Path],
     return results
 
 
-def read(stream: io.BufferedIOBase,
-         clean_vertices: bool = True,
-         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def read(
+        stream: io.BufferedIOBase,
+        clean_vertices: bool = True,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
@@ -496,8 +502,9 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
     return subpat
 
 
-def _subpatterns_to_placements(subpatterns: List[SubPattern]
-                               ) -> List[fatrec.Placement]:
+def _subpatterns_to_placements(
+        subpatterns: List[SubPattern],
+        ) -> List[fatrec.Placement]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -523,9 +530,10 @@ def _subpatterns_to_placements(subpatterns: List[SubPattern]
     return refs
 
 
-def _shapes_to_elements(shapes: List[Shape],
-                        layer2oas: Callable[[layer_t], Tuple[int, int]],
-                       ) -> List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]]:
+def _shapes_to_elements(
+        shapes: List[Shape],
+        layer2oas: Callable[[layer_t], Tuple[int, int]],
+        ) -> List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]]:
     # Add a Polygon record for each shape, and Path elements if necessary
     elements: List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]] = []
     for shape in shapes:
@@ -576,9 +584,10 @@ def _shapes_to_elements(shapes: List[Shape],
     return elements
 
 
-def _labels_to_texts(labels: List[Label],
-                     layer2oas: Callable[[layer_t], Tuple[int, int]],
-                     ) -> List[fatrec.Text]:
+def _labels_to_texts(
+        labels: List[Label],
+        layer2oas: Callable[[layer_t], Tuple[int, int]],
+        ) -> List[fatrec.Text]:
     texts = []
     for label in labels:
         layer, datatype = layer2oas(label.layer)
@@ -595,9 +604,10 @@ def _labels_to_texts(labels: List[Label],
     return texts
 
 
-def disambiguate_pattern_names(patterns,
-                               dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
-                               ):
+def disambiguate_pattern_names(
+        patterns,
+        dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
+        ) -> None:
     used_names = []
     for pat in patterns:
         sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)
@@ -625,8 +635,9 @@ def disambiguate_pattern_names(patterns,
         used_names.append(suffixed_name)
 
 
-def repetition_fata2masq(rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
-                         ) -> Optional[Repetition]:
+def repetition_fata2masq(
+        rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None],
+        ) -> Optional[Repetition]:
     mrep: Optional[Repetition]
     if isinstance(rep, fatamorgana.GridRepetition):
         mrep = Grid(a_vector=rep.a_vector,
@@ -643,11 +654,12 @@ def repetition_fata2masq(rep: Union[fatamorgana.GridRepetition, fatamorgana.Arbi
     return mrep
 
 
-def repetition_masq2fata(rep: Optional[Repetition]
-                        ) -> Tuple[Union[fatamorgana.GridRepetition,
-                                         fatamorgana.ArbitraryRepetition,
-                                         None],
-                                   Tuple[int, int]]:
+def repetition_masq2fata(
+        rep: Optional[Repetition],
+        ) -> Tuple[Union[fatamorgana.GridRepetition,
+                         fatamorgana.ArbitraryRepetition,
+                         None],
+                   Tuple[int, int]]:
     frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
     if isinstance(rep, Grid):
         frep = fatamorgana.GridRepetition(
@@ -678,10 +690,11 @@ def annotations_to_properties(annotations: annotations_t) -> List[fatrec.Propert
     return properties
 
 
-def properties_to_annotations(properties: List[fatrec.Property],
-                              propnames: Dict[int, NString],
-                              propstrings: Dict[int, AString],
-                              ) -> annotations_t:
+def properties_to_annotations(
+        properties: List[fatrec.Property],
+        propnames: Dict[int, NString],
+        propstrings: Dict[int, AString],
+        ) -> annotations_t:
     annotations = {}
     for proprec in properties:
         assert(proprec.name is not None)

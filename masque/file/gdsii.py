@@ -52,15 +52,16 @@ path_cap_map = {
     }
 
 
-def write(patterns: Union[Pattern, Sequence[Pattern]],
-          stream: BinaryIO,
-          meters_per_unit: float,
-          logical_units_per_unit: float = 1,
-          library_name: str = 'masque-klamath',
-          *,
-          modify_originals: bool = False,
-          disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
-          ) -> None:
+def write(
+        patterns: Union[Pattern, Sequence[Pattern]],
+        stream: BinaryIO,
+        meters_per_unit: float,
+        logical_units_per_unit: float = 1,
+        library_name: str = 'masque-klamath',
+        *,
+        modify_originals: bool = False,
+        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        ) -> None:
     """
     Convert a `Pattern` or list of patterns to a GDSII stream,  and then mapping data as follows:
          Pattern -> GDSII structure
@@ -136,11 +137,12 @@ def write(patterns: Union[Pattern, Sequence[Pattern]],
     records.ENDLIB.write(stream, None)
 
 
-def writefile(patterns: Union[Sequence[Pattern], Pattern],
-              filename: Union[str, pathlib.Path],
-              *args,
-              **kwargs,
-              ) -> None:
+def writefile(
+        patterns: Union[Sequence[Pattern], Pattern],
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> None:
     """
     Wrapper for `write()` that takes a filename or path instead of a stream.
 
@@ -162,10 +164,11 @@ def writefile(patterns: Union[Sequence[Pattern], Pattern],
         write(patterns, stream, *args, **kwargs)
 
 
-def readfile(filename: Union[str, pathlib.Path],
-             *args,
-             **kwargs,
-             ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def readfile(
+        filename: Union[str, pathlib.Path],
+        *args,
+        **kwargs,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Wrapper for `read()` that takes a filename or path instead of a stream.
 
@@ -187,9 +190,10 @@ def readfile(filename: Union[str, pathlib.Path],
     return results
 
 
-def read(stream: BinaryIO,
-         raw_mode: bool = True,
-         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+def read(
+        stream: BinaryIO,
+        raw_mode: bool = True,
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
@@ -243,10 +247,11 @@ def _read_header(stream: BinaryIO) -> Dict[str, Any]:
     return library_info
 
 
-def read_elements(stream: BinaryIO,
-                  name: str,
-                  raw_mode: bool = True,
-                  ) -> Pattern:
+def read_elements(
+        stream: BinaryIO,
+        name: str,
+        raw_mode: bool = True,
+        ) -> Pattern:
     """
     Read elements from a GDS structure and build a Pattern from them.
 
@@ -296,8 +301,7 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _ref_to_subpat(ref: klamath.library.Reference,
-                   ) -> SubPattern:
+def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
     """
     Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
      and sets the instance .identifier to (struct_name,).
@@ -351,8 +355,7 @@ def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> 
                    )
 
 
-def _subpatterns_to_refs(subpatterns: List[SubPattern]
-                        ) -> List[klamath.library.Reference]:
+def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.Reference]:
     refs = []
     for subpat in subpatterns:
         if subpat.pattern is None:
@@ -427,9 +430,10 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
     return props
 
 
-def _shapes_to_elements(shapes: List[Shape],
-                        polygonize_paths: bool = False
-                       ) -> List[klamath.elements.Element]:
+def _shapes_to_elements(
+        shapes: List[Shape],
+        polygonize_paths: bool = False,
+        ) -> List[klamath.elements.Element]:
     elements: List[klamath.elements.Element] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
@@ -492,11 +496,12 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
     return texts
 
 
-def disambiguate_pattern_names(patterns: Sequence[Pattern],
-                               max_name_length: int = 32,
-                               suffix_length: int = 6,
-                               dup_warn_filter: Optional[Callable[[str], bool]] = None,
-                               ):
+def disambiguate_pattern_names(
+        patterns: Sequence[Pattern],
+        max_name_length: int = 32,
+        suffix_length: int = 6,
+        dup_warn_filter: Optional[Callable[[str], bool]] = None,
+        ) -> None:
     """
     Args:
         patterns: List of patterns to disambiguate
@@ -549,12 +554,13 @@ def disambiguate_pattern_names(patterns: Sequence[Pattern],
         used_names.append(suffixed_name)
 
 
-def load_library(stream: BinaryIO,
-                 tag: str,
-                 is_secondary: Optional[Callable[[str], bool]] = None,
-                 *,
-                 full_load: bool = False,
-                 ) -> Tuple[Library, Dict[str, Any]]:
+def load_library(
+        stream: BinaryIO,
+        tag: str,
+        is_secondary: Optional[Callable[[str], bool]] = None,
+        *,
+        full_load: bool = False,
+        ) -> Tuple[Library, Dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
         a library from them. This enables deferred reading of structures
@@ -581,7 +587,7 @@ def load_library(stream: BinaryIO,
         Additional library info (dict, same format as from `read`).
     """
     if is_secondary is None:
-        def is_secondary(k: str):
+        def is_secondary(k: str) -> bool:
             return False
     assert(is_secondary is not None)
 
@@ -611,13 +617,14 @@ def load_library(stream: BinaryIO,
     return lib, library_info
 
 
-def load_libraryfile(filename: Union[str, pathlib.Path],
-                     tag: str,
-                     is_secondary: Optional[Callable[[str], bool]] = None,
-                     *,
-                     use_mmap: bool = True,
-                     full_load: bool = False,
-                     ) -> Tuple[Library, Dict[str, Any]]:
+def load_libraryfile(
+        filename: Union[str, pathlib.Path],
+        tag: str,
+        is_secondary: Optional[Callable[[str], bool]] = None,
+        *,
+        use_mmap: bool = True,
+        full_load: bool = False,
+        ) -> Tuple[Library, Dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.
 

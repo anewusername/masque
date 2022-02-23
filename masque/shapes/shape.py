@@ -47,10 +47,11 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     --- Abstract methods
     '''
     @abstractmethod
-    def to_polygons(self,
-                    num_vertices: Optional[int] = None,
-                    max_arclen: Optional[float] = None,
-                    ) -> List['Polygon']:
+    def to_polygons(
+            self,
+            num_vertices: Optional[int] = None,
+            max_arclen: Optional[float] = None,
+            ) -> List['Polygon']:
         """
         Returns a list of polygons which approximate the shape.
 
@@ -93,10 +94,11 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     '''
     ---- Non-abstract methods
     '''
-    def manhattanize_fast(self,
-                          grid_x: ArrayLike,
-                          grid_y: ArrayLike,
-                          ) -> List['Polygon']:
+    def manhattanize_fast(
+            self,
+            grid_x: ArrayLike,
+            grid_y: ArrayLike,
+            ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
@@ -200,10 +202,11 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
 
         return manhattan_polygons
 
-    def manhattanize(self,
-                     grid_x: ArrayLike,
-                     grid_y: ArrayLike,
-                     ) -> List['Polygon']:
+    def manhattanize(
+            self,
+            grid_x: ArrayLike,
+            grid_y: ArrayLike,
+            ) -> List['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
