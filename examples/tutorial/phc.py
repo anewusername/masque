@@ -13,16 +13,17 @@ import pcgen
 import basic
 
 
-def perturbed_l3(lattice_constant: float,
-                 hole: Pattern,
-                 trench_dose: float = 1.0,
-                 trench_layer: layer_t = (1, 0),
-                 shifts_a: Sequence[float] = (0.15, 0, 0.075),
-                 shifts_r: Sequence[float] = (1.0, 1.0, 1.0),
-                 xy_size: Tuple[int, int] = (10, 10),
-                 perturbed_radius: float = 1.1,
-                 trench_width: float = 1200,
-                 ) -> Device:
+def perturbed_l3(
+        lattice_constant: float,
+        hole: Pattern,
+        trench_dose: float = 1.0,
+        trench_layer: layer_t = (1, 0),
+        shifts_a: Sequence[float] = (0.15, 0, 0.075),
+        shifts_r: Sequence[float] = (1.0, 1.0, 1.0),
+        xy_size: Tuple[int, int] = (10, 10),
+        perturbed_radius: float = 1.1,
+        trench_width: float = 1200,
+        ) -> Device:
     """
     Generate a `Device` representing a perturbed L3 cavity.
 
@@ -78,11 +79,12 @@ def perturbed_l3(lattice_constant: float,
     return Device(pat, ports)
 
 
-def waveguide(lattice_constant: float,
-              hole: Pattern,
-              length: int,
-              mirror_periods: int,
-              ) -> Device:
+def waveguide(
+        lattice_constant: float,
+        hole: Pattern,
+        length: int,
+        mirror_periods: int,
+        ) -> Device:
     """
     Generate a `Device` representing a photonic crystal line-defect waveguide.
 
@@ -111,10 +113,11 @@ def waveguide(lattice_constant: float,
     return Device(pat, ports)
 
 
-def bend(lattice_constant: float,
-         hole: Pattern,
-         mirror_periods: int,
-         ) -> Device:
+def bend(
+        lattice_constant: float,
+        hole: Pattern,
+        mirror_periods: int,
+        ) -> Device:
     """
     Generate a `Device` representing a 60-degree counterclockwise bend in a photonic crystal
     line-defect waveguide.
@@ -144,10 +147,11 @@ def bend(lattice_constant: float,
     return Device(pat, ports)
 
 
-def y_splitter(lattice_constant: float,
-               hole: Pattern,
-               mirror_periods: int,
-               ) -> Device:
+def y_splitter(
+        lattice_constant: float,
+        hole: Pattern,
+        mirror_periods: int,
+        ) -> Device:
     """
     Generate a `Device` representing a photonic crystal line-defect waveguide y-splitter.
 

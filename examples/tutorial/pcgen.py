@@ -7,10 +7,11 @@ from typing import Sequence, Tuple
 import numpy        # type: ignore
 
 
-def triangular_lattice(dims: Tuple[int, int],
-                       asymmetric: bool = False,
-                       origin: str = 'center',
-                       ) -> numpy.ndarray:
+def triangular_lattice(
+        dims: Tuple[int, int],
+        asymmetric: bool = False,
+        origin: str = 'center',
+        ) -> numpy.ndarray:
     """
     Return an ndarray of `[[x0, y0], [x1, y1], ...]` denoting lattice sites for
      a triangular lattice in 2D.
@@ -71,10 +72,11 @@ def square_lattice(dims: Tuple[int, int]) -> numpy.ndarray:
 # ### Photonic crystal functions ###
 
 
-def nanobeam_holes(a_defect: float,
-                   num_defect_holes: int,
-                   num_mirror_holes: int
-                   ) -> numpy.ndarray:
+def nanobeam_holes(
+        a_defect: float,
+        num_defect_holes: int,
+        num_mirror_holes: int
+        ) -> numpy.ndarray:
     """
     Returns a list of `[[x0, r0], [x1, r1], ...]` of nanobeam hole positions and radii.
      Creates a region in which the lattice constant and radius are progressively
@@ -175,9 +177,10 @@ def y_splitter(num_mirror: int) -> numpy.ndarray:
     return p
 
 
-def ln_defect(mirror_dims: Tuple[int, int],
-              defect_length: int,
-              ) -> numpy.ndarray:
+def ln_defect(
+        mirror_dims: Tuple[int, int],
+        defect_length: int,
+        ) -> numpy.ndarray:
     """
     N-hole defect in a triangular lattice.
 
@@ -198,11 +201,12 @@ def ln_defect(mirror_dims: Tuple[int, int],
     return p[numpy.logical_or(holes_to_keep, p[:, 1] != 0), ]
 
 
-def ln_shift_defect(mirror_dims: Tuple[int, int],
-                    defect_length: int,
-                    shifts_a: Sequence[float] = (0.15, 0, 0.075),
-                    shifts_r: Sequence[float] = (1, 1, 1)
-                    ) -> numpy.ndarray:
+def ln_shift_defect(
+        mirror_dims: Tuple[int, int],
+        defect_length: int,
+        shifts_a: Sequence[float] = (0.15, 0, 0.075),
+        shifts_r: Sequence[float] = (1, 1, 1)
+        ) -> numpy.ndarray:
     """
     N-hole defect with shifted holes (intended to give the mode a gaussian profile
      in real- and k-space so as to improve both Q and confinement). Holes along the
@@ -276,11 +280,11 @@ def r6_defect(mirror_dims: Tuple[int, int]) -> numpy.ndarray:
 
 
 def l3_shift_perturbed_defect(
-    mirror_dims: Tuple[int, int],
-    perturbed_radius: float = 1.1,
-    shifts_a: Sequence[float] = (),
-    shifts_r: Sequence[float] = ()
-    ) -> numpy.ndarray:
+        mirror_dims: Tuple[int, int],
+        perturbed_radius: float = 1.1,
+        shifts_a: Sequence[float] = (),
+        shifts_r: Sequence[float] = ()
+        ) -> numpy.ndarray:
     """
     3-hole defect with perturbed hole sizes intended to form an upwards-directed
      beam. Can also include shifted holes along the defect line, intended

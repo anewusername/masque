@@ -12,9 +12,10 @@ import masque.file.gdsii
 import pcgen
 
 
-def hole(radius: float,
-         layer: layer_t = (1, 0),
-         ) -> Pattern:
+def hole(
+        radius: float,
+        layer: layer_t = (1, 0),
+        ) -> Pattern:
     """
     Generate a pattern containing a single circular hole.
 
@@ -31,10 +32,11 @@ def hole(radius: float,
     return pat
 
 
-def smile(radius: float,
-          layer: layer_t = (1, 0),
-          secondary_layer: layer_t = (1, 2)
-          ) -> Pattern:
+def smile(
+        radius: float,
+        layer: layer_t = (1, 0),
+        secondary_layer: layer_t = (1, 2)
+        ) -> Pattern:
     """
     Generate a pattern containing a single smiley face.
 
