@@ -72,8 +72,8 @@ def perturbed_l3(
 
     extent = lattice_constant * xy_size[0]
     ports = {
-        'input': Port((-extent, 0), rotation=0, ptype=1),
-        'output': Port((extent, 0), rotation=pi, ptype=1),
+        'input': Port((-extent, 0), rotation=0, ptype='pcwg'),
+        'output': Port((extent, 0), rotation=pi, ptype='pcwg'),
         }
 
     return Device(pat, ports)
@@ -107,8 +107,8 @@ def waveguide(
 
     extent = lattice_constant * length / 2
     ports = {
-        'left': Port((-extent, 0), rotation=0, ptype=1),
-        'right': Port((extent, 0), rotation=pi, ptype=1),
+        'left': Port((-extent, 0), rotation=0, ptype='pcwg'),
+        'right': Port((extent, 0), rotation=pi, ptype='pcwg'),
         }
     return Device(pat, ports)
 
@@ -140,9 +140,9 @@ def bend(
 
     extent = lattice_constant * mirror_periods
     ports = {
-        'left': Port((-extent, 0), rotation=0, ptype=1),
+        'left': Port((-extent, 0), rotation=0, ptype='pcwg'),
         'right': Port((extent / 2,
-                       extent * numpy.sqrt(3) / 2), rotation=pi * 4 / 3, ptype=1),
+                       extent * numpy.sqrt(3) / 2), rotation=pi * 4 / 3, ptype='pcwg'),
         }
     return Device(pat, ports)
 
@@ -173,11 +173,11 @@ def y_splitter(
 
     extent = lattice_constant * mirror_periods
     ports = {
-        'in': Port((-extent, 0), rotation=0, ptype=1),
+        'in': Port((-extent, 0), rotation=0, ptype='pcwg'),
         'top': Port((extent / 2,
-                     extent * numpy.sqrt(3) / 2), rotation=pi * 4 / 3, ptype=1),
+                     extent * numpy.sqrt(3) / 2), rotation=pi * 4 / 3, ptype='pcwg'),
         'bot': Port((extent / 2,
-                    -extent * numpy.sqrt(3) / 2), rotation=pi * 2 / 3, ptype=1),
+                    -extent * numpy.sqrt(3) / 2), rotation=pi * 2 / 3, ptype='pcwg'),
         }
     return Device(pat, ports)
 
