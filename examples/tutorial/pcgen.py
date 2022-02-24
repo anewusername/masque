@@ -4,14 +4,15 @@ Routines for creating normalized 2D lattices and common photonic crystal
 """
 from typing import Sequence, Tuple
 
-import numpy        # type: ignore
+import numpy
+from numpy.typing import ArrayLike, NDArray
 
 
 def triangular_lattice(
-        dims: Tuple[int, int],
+        dims: Sequence[int],
         asymmetric: bool = False,
         origin: str = 'center',
-        ) -> numpy.ndarray:
+        ) -> NDArray[numpy.float64]:
     """
     Return an ndarray of `[[x0, y0], [x1, y1], ...]` denoting lattice sites for
      a triangular lattice in 2D.
@@ -51,7 +52,7 @@ def triangular_lattice(
     return xy[xy[:, 0].argsort(), :]
 
 
-def square_lattice(dims: Tuple[int, int]) -> numpy.ndarray:
+def square_lattice(dims: Sequence[int]) -> NDArray[numpy.float64]:
     """
     Return an ndarray of `[[x0, y0], [x1, y1], ...]` denoting lattice sites for
      a square lattice in 2D. The lattice will be centered around (0, 0).
@@ -76,7 +77,7 @@ def nanobeam_holes(
         a_defect: float,
         num_defect_holes: int,
         num_mirror_holes: int
-        ) -> numpy.ndarray:
+        ) -> NDArray[numpy.float64]:
     """
     Returns a list of `[[x0, r0], [x1, r1], ...]` of nanobeam hole positions and radii.
      Creates a region in which the lattice constant and radius are progressively
@@ -101,7 +102,7 @@ def nanobeam_holes(
                          numpy.hstack((mirror_rs[::-1], a_values[::-1], a_values, mirror_rs)))).T
 
 
-def waveguide(length: int, num_mirror: int) -> numpy.ndarray:
+def waveguide(length: int, num_mirror: int) -> NDArray[numpy.float64]:
     """
     Line defect waveguide in a triangular lattice.
 
@@ -120,7 +121,7 @@ def waveguide(length: int, num_mirror: int) -> numpy.ndarray:
     return p
 
 
-def wgbend(num_mirror: int) -> numpy.ndarray:
+def wgbend(num_mirror: int) -> NDArray[numpy.float64]:
     """
     Line defect waveguide bend in a triangular lattice.
 
@@ -148,7 +149,7 @@ def wgbend(num_mirror: int) -> numpy.ndarray:
     return p
 
 
-def y_splitter(num_mirror: int) -> numpy.ndarray:
+def y_splitter(num_mirror: int) -> NDArray[numpy.float64]:
     """
     Line defect waveguide y-splitter in a triangular lattice.
 
@@ -178,9 +179,9 @@ def y_splitter(num_mirror: int) -> numpy.ndarray:
 
 
 def ln_defect(
-        mirror_dims: Tuple[int, int],
+        mirror_dims: Sequence[int],
         defect_length: int,
-        ) -> numpy.ndarray:
+        ) -> NDArray[numpy.float64]:
     """
     N-hole defect in a triangular lattice.
 
@@ -202,11 +203,11 @@ def ln_defect(
 
 
 def ln_shift_defect(
-        mirror_dims: Tuple[int, int],
+        mirror_dims: Sequence[int],
         defect_length: int,
-        shifts_a: Sequence[float] = (0.15, 0, 0.075),
-        shifts_r: Sequence[float] = (1, 1, 1)
-        ) -> numpy.ndarray:
+        shifts_a: ArrayLike = (0.15, 0, 0.075),
+        shifts_r: ArrayLike = (1, 1, 1),
+        ) -> NDArray[numpy.float64]:
     """
     N-hole defect with shifted holes (intended to give the mode a gaussian profile
      in real- and k-space so as to improve both Q and confinement). Holes along the
@@ -222,11 +223,6 @@ def ln_shift_defect(
     Returns:
         `[[x0, y0, r0], [x1, y1, r1], ...]` for all the holes
     """
-    if not hasattr(shifts_a, "__len__") and shifts_a is not None:
-        shifts_a = [shifts_a]
-    if not hasattr(shifts_r, "__len__") and shifts_r is not None:
-        shifts_r = [shifts_r]
-
     xy = ln_defect(mirror_dims, defect_length)
 
     # Add column for radius
@@ -234,14 +230,13 @@ def ln_shift_defect(
 
     # Shift holes
     # Expand shifts as necessary
-    n_shifted = max(len(shifts_a), len(shifts_r))
-
     tmp_a = numpy.array(shifts_a)
-    shifts_a = numpy.ones((n_shifted, ))
-    shifts_a[:len(tmp_a)] = tmp_a
-
     tmp_r = numpy.array(shifts_r)
-    shifts_r = numpy.ones((n_shifted, ))
+    n_shifted = max(tmp_a.size, tmp_r.size)
+
+    shifts_a = numpy.ones(n_shifted)
+    shifts_r = numpy.ones(n_shifted)
+    shifts_a[:len(tmp_a)] = tmp_a
     shifts_r[:len(tmp_r)] = tmp_r
 
     x_removed = numpy.floor(defect_length / 2)
@@ -255,7 +250,7 @@ def ln_shift_defect(
     return xyr
 
 
-def r6_defect(mirror_dims: Tuple[int, int]) -> numpy.ndarray:
+def r6_defect(mirror_dims: Sequence[int]) -> NDArray[numpy.float64]:
     """
     R6 defect in a triangular lattice.
 
@@ -280,11 +275,11 @@ def r6_defect(mirror_dims: Tuple[int, int]) -> numpy.ndarray:
 
 
 def l3_shift_perturbed_defect(
-        mirror_dims: Tuple[int, int],
+        mirror_dims: Sequence[int],
         perturbed_radius: float = 1.1,
         shifts_a: Sequence[float] = (),
         shifts_r: Sequence[float] = ()
-        ) -> numpy.ndarray:
+        ) -> NDArray[numpy.float64]:
     """
     3-hole defect with perturbed hole sizes intended to form an upwards-directed
      beam. Can also include shifted holes along the defect line, intended

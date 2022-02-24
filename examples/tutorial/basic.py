@@ -1,6 +1,6 @@
 from typing import Tuple, Sequence
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
 
 from masque import layer_t, Pattern, SubPattern, Label

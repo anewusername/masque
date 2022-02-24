@@ -1,6 +1,6 @@
 from typing import Tuple, Sequence
 
-import numpy        # type: ignore
+import numpy
 from numpy import pi
 
 from masque import layer_t, Pattern, SubPattern, Label
@@ -60,7 +60,9 @@ def perturbed_l3(
                                    scale=r)
                         for x, y, r in xyr]
 
-    min_xy, max_xy = pat.get_bounds()
+    bounds = pat.get_bounds()
+    assert(bounds is not None)
+    min_xy, max_xy = bounds
     trench_dx = max_xy[0] - min_xy[0]
 
     pat.shapes += [
@@ -197,7 +199,7 @@ def label_ports(device: Device, layer: layer_t = (3, 0)) -> Device:
         `device` is returned (and altered in-place)
     """
     for name, port in device.ports.items():
-        angle_deg = numpy.rad2deg(port.rotation)
+        angle_deg = numpy.rad2deg(port.rotation) if port.rotation is not None else numpy.inf
         device.pattern.labels += [
             Label(string=f'{name} (angle {angle_deg:g})', layer=layer, offset=port.offset)
             ]
