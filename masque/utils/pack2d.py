@@ -39,7 +39,7 @@ def maxrects_bssf(
         containers: ArrayLike,
         presort: bool = True,
         allow_rejects: bool = True,
-        ) -> Tuple[NDArray[numpy.float64], Set[int]]
+        ) -> Tuple[NDArray[numpy.float64], Set[int]]:
     """
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
