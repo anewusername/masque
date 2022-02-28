@@ -7,6 +7,7 @@ from typing import Any, Tuple, Union, Iterator
 import logging
 from pprint import pformat
 from dataclasses import dataclass
+import copy
 
 from ..error import LibraryError
 
@@ -303,6 +304,21 @@ class Library:
         del self.secondary[key2]
         del self.cache[key2]
 
+    def copy(self: L, preserve_cache: bool = False) -> L:
+        """
+        Create a copy of this `Library`.
+
+        A shallow copy is made of the contained dicts.
+        Note that you should probably clear the cache (with `clear_cache()`) after copying.
+
+        Returns:
+            A copy of self
+        """
+        new = Library()
+        new.primary.update(self.primary)
+        new.secondary.update(self.secondary)
+        new.cache.update(self.cache)
+        return new
 
     def clear_cache(self: L) -> L:
         """

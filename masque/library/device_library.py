@@ -123,3 +123,61 @@ class DeviceLibrary:
             if name in other.cache:
                 self.cache[name] = other.cache[name]
         return self
+
+    def clear_cache(self: D) -> D:
+        """
+        Clear the cache of this library.
+        This is usually used before modifying or deleting cells, e.g. when merging
+          with another library.
+
+        Returns:
+            self
+        """
+        self.cache = {}
+        return self
+
+    def add_device(
+            self,
+            name: str,
+            fn: Callable[[], 'Device'],
+            dev2pat: Callable[['Device'], 'Pattern'],
+            prefix: str = '',
+            ) -> None:
+        """
+        Convenience function for adding a device to the library.
+
+        - The device is generated with the provided `fn()`
+        - Port info is written to the pattern using the provied dev2pat
+        - The pattern is renamed to match the provided `prefix + name`
+        - If `prefix` is non-empty, a wrapped copy is also added, named
+            `name` (no prefix). See `wrap_device()` for details.
+
+        Adding devices with this function helps to
+        - Make sure Pattern names are reflective of what the devices are named
+        - Ensure port info is written into the `Pattern`, so that the `Device`
+            can be reconstituted from the layout.
+        - Simplify adding a prefix to all device names, to make it easier to
+            track their provenance and purpose, while also allowing for
+            generic device names which can later be swapped out with different
+            underlying implementations.
+
+        Args:
+            name: Base name for the device. If a prefix is used, this is the
+                "generic" name (e.g. "L3_cavity" vs "2022_02_02_L3_cavity").
+            fn: Function which is called to generate the device.
+            dev2pat: Post-processing function which is called to add the port
+                info into the device's pattern.
+            prefix: If present, the actual device is named `prefix + name`, and
+                a second device with name `name` is also added (containing only
+                this one).
+        """
+        def build_dev() -> 'Device':
+            dev = fn()
+            dev.pattern = dev2pat(dev)
+            dev.pattern.rename(prefix + name)
+            return dev
+
+        self[prefix + name] = build_dev
+        if prefix:
+            self.wrap_device(name, prefix + name)
+
