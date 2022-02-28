@@ -8,15 +8,18 @@ import logging
 from pprint import pformat
 
 from ..error import DeviceLibraryError
+from ..library import Library
 
 if TYPE_CHECKING:
     from ..builder import Device
+    from .. import Pattern
 
 
 logger = logging.getLogger(__name__)
 
 
 L = TypeVar('L', bound='DeviceLibrary')
+D = TypeVar('D', bound='LibDeviceLibrary')
 
 
 class DeviceLibrary:
@@ -181,3 +184,124 @@ class DeviceLibrary:
         if prefix:
             self.wrap_device(name, prefix + name)
 
+
+class LibDeviceLibrary(DeviceLibrary):
+    """
+    Extends `DeviceLibrary`, enabling it to ingest `Library` objects
+     (e.g. obtained by loading a GDS file).
+
+    Each `Library` object must be accompanied by a `pat2dev` function,
+      which takes in the `Pattern` and returns a full `Device` (including
+      port info). This is usually accomplished by scanning the `Pattern` for
+      port-related geometry, but could also bake in external info.
+
+    `Library` objects are ingested into `underlying`, which is a
+     `Library` which is kept in sync with the `DeviceLibrary` when
+     devices are removed (or new libraries added via `add_library()`).
+    """
+    underlying: Library
+
+    def __init__(self) -> None:
+        DeviceLibrary.__init__(self)
+        self.underlying = Library()
+
+    def __delitem__(self, key: str) -> None:
+        DeviceLibrary.__delitem__(self, key)
+        if key in self.underlying:
+            del self.underlying[key]
+
+    def add_library(
+            self: L,
+            lib: Library,
+            pat2dev: Callable[['Pattern'], 'Device'],
+            use_ours: Callable[[str], bool] = lambda name: False,
+            use_theirs: Callable[[str], bool] = lambda name: False,
+            ) -> L:
+        """
+        Add a pattern `Library` into this `LibDeviceLibrary`.
+
+        This requires a `pat2dev` function which can transform each `Pattern`
+          into a `Device`. For example, this can be accomplished by scanning
+          the `Pattern` data for port location info or by looking up port info
+          based on the pattern name or other characteristics in a hardcoded or
+          user-supplied dictionary.
+
+        Args:
+            lib: Pattern library to add.
+            pat2dev: Function for transforming each `Pattern` object from `lib`
+                into a `Device` which will be returned by this device library.
+            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
+                Should return `True` if the value from `self` should be used.
+            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
+                Should return `True` if the value from `other` should be used.
+                `use_ours` takes priority over `use_theirs`.
+
+        Returns:
+            self
+        """
+        duplicates = set(lib.keys()) & set(self.keys())
+        keep_ours = set(name for name in duplicates if use_ours(name))
+        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
+        bad_duplicates = duplicates - keep_ours - keep_theirs
+        if bad_duplicates:
+            raise DeviceLibraryError('Duplicate devices (no action specified): ' + pformat(bad_duplicates))
+
+        # No 'bad' duplicates, so all duplicates should be overwritten
+        for name in keep_theirs:
+            self.underlying.demote(name)
+
+        def use_ours_lib(name: Union[str, Tuple[str, str]]) -> bool:
+            if isinstance(name, str):
+                return use_ours(name)
+            return False    #TODO maybe don't always return False for secondary key conflicts?
+
+        def use_theirs_lib(name: Union[str, Tuple[str, str]]) -> bool:
+            if isinstance(name, str):
+                return use_theirs(name)
+            return False
+
+        self.underlying.add(lib, use_ours_lib, use_theirs_lib)
+
+        for name in lib:
+            self.generators[name] = lambda name=name: pat2dev(self.underlying[name])
+        return self
+
+    def wrap_device(
+            self,
+            name: str,
+            old_name: str,
+            tag: str = '_wrap',
+            ) -> None:
+        """
+        Create a new device which simply contains an instance of an already-existing device.
+
+          This is useful for assigning an alternate name to a device, while still keeping
+        the underlying name available for traceability.
+
+        Args:
+            name: Name for the wrapped device.
+            old_name: Name of the existing device to wrap.
+            tag: Tag for the new entry in the `underyling` library. Default '_wrap'.
+                The default should be usable for most applications.
+        """
+        logger.warning('wrap_device needs testing!!!')
+        #def build_wrapped_pat() -> Pattern:
+        #    dev = self[old_name]
+        #    wrapper = Pattern(name=name)
+        #    wrapper.addsp(dev.pattern)
+        #    return wrapper
+        ## Need to set underlying entry to allow use as a subcomponent
+        #self.underlying.set_value(name, tag, build_wrapped_pat)
+
+        #def build_wrapped_dev() -> Device:
+        #    dev = self[old_name]
+        #    wrapper = self.underlying[name]
+        #    return Device(wrapper, dev.ports)
+
+        def build_wrapped_dev() -> Device:
+            old_dev = self[old_name]
+            wrapper = Pattern(name=name)
+            wrapper.addsp(old_dev.pattern)
+            return Device(wrapper, old_dev.ports)
+
+        self[name] = build_wrapped_dev

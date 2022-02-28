@@ -33,7 +33,7 @@ L = TypeVar('L', bound='Library')
 
 class Library:
     """
-    This class is usually used to create a device library by mapping names to
+    This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
 
     Generated/loaded patterns can have "symbolic" references, where a SubPattern
