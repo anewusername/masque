@@ -208,21 +208,6 @@ class Device(Copyable, Mirrorable):
     def __getitem__(self, key: Union[List[str], Tuple[str], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
         pass
 
-#=======
-##    from typing import overload
-##    from _collections_abc import dict_keys, dict_values
-##
-##    @overload
-##    def __getitem__(self, key: str) -> Port:
-##        pass
-##
-##    @overload
-##    def __getitem__(self, key: Union[List[str], Tuple[str], dict_keys[str, str], dict_values[str, str]]) -> Dict[str, Port]:
-###    def __getitem__(self, key: Iterable[str]) -> Dict[str, Port]:
-##        pass
-#
-##    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
-#    def __getitem__(self, key: Union[str, Iterable[str]]) -> Any:
     def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
         """
         For convenience, ports can be read out using square brackets:
