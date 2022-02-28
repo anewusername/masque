@@ -332,7 +332,7 @@ class Path(Shape, metaclass=AutoSlots):
             bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
             polys = self.to_polygons()
             for poly in polys:
-                poly_bounds = poly.get_bounds()
+                poly_bounds = poly.get_bounds_nonempty()
                 bounds[0, :] = numpy.minimum(bounds[0, :], poly_bounds[0, :])
                 bounds[1, :] = numpy.maximum(bounds[1, :], poly_bounds[1, :])
         else:

@@ -568,6 +568,17 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         else:
             return numpy.vstack((min_bounds, max_bounds))
 
+    def get_bounds_nonempty(self) -> NDArray[numpy.float64]:
+        """
+        Convenience wrapper for `get_bounds()` which asserts that the Pattern as non-None bounds.
+
+        Returns:
+            `[[x_min, y_min], [x_max, y_max]]`
+        """
+        bounds = self.get_bounds()
+        assert(bounds is not None)
+        return bounds
+
     def flatten(self: P) -> P:
         """
         Removes all subpatterns and adds equivalent shapes.
