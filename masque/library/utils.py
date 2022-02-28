@@ -13,7 +13,7 @@ class DeferredDict(dict, Generic[Key, Value]):
 
     ```
     bignum = my_slow_function()         # slow function call, would like to defer this
-    numbers = Library()
+    numbers = DeferredDict()
     numbers['big'] = my_slow_function        # no slow function call here
     assert(bignum == numbers['big'])    # first access is slow (function called)
     assert(bignum == numbers['big'])    # second access is fast (result is cached)
@@ -38,7 +38,7 @@ class DeferredDict(dict, Generic[Key, Value]):
             self[k] = v
 
     def __repr__(self) -> str:
-        return '<Library with keys ' + repr(set(self.keys())) + '>'
+        return '<DeferredDict with keys ' + repr(set(self.keys())) + '>'
 
     def set_const(self, key: Key, value: Value) -> None:
         """
