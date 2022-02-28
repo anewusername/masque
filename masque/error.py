@@ -26,6 +26,13 @@ class LibraryError(MasqueError):
     pass
 
 
+class DeviceLibraryError(MasqueError):
+    """
+    Exception raised by DeviceLibrary classes
+    """
+    pass
+
+
 class DeviceError(MasqueError):
     """
     Exception raised by Device and Port objects
