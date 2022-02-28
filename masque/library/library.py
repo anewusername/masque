@@ -205,31 +205,52 @@ class Library:
             _ = self.get_secondary(*key2)
         return self
 
-    def add(self: L, other: L) -> L:
+    def add(
+            self: L,
+            other: L,
+            use_ours: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
+            use_theirs: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
+            ) -> L:
         """
         Add keys from another library into this one.
 
-        There must be no conflicting keys.
-
         Args:
             other: The library to insert keys from
-
+            use_ours: Decision function for name conflicts.
+                May be called with cell names and (name, tag) tuples for primary or
+                secondary cells, respectively.
+                Should return `True` if the value from `self` should be used.
+            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
+                Should return `True` if the value from `other` should be used.
+                `use_ours` takes priority over `use_theirs`.
         Returns:
             self
         """
-        conflicts = [key for key in other.primary
-                     if key in self.primary]
-        if conflicts:
-            raise LibraryError('Duplicate keys encountered in library merge: ' + pformat(conflicts))
+        duplicates1 = set(self.primary.keys()) & set(other.primary.keys())
+        duplicates2 = set(self.secondary.keys()) & set(other.secondary.keys())
+        keep_ours1 = set(name for name in duplicates1 if use_ours(name))
+        keep_ours2 = set(name for name in duplicates2 if use_ours(name))
+        keep_theirs1 = set(name for name in duplicates1 - keep_ours1 if use_theirs(name))
+        keep_theirs2 = set(name for name in duplicates2 - keep_ours2 if use_theirs(name))
+        conflicts1 = duplicates1 - keep_ours1 - keep_theirs1
+        conflicts2 = duplicates2 - keep_ours2 - keep_theirs2
 
-        conflicts2 = [key2 for key2 in other.secondary
-                      if key2 in self.secondary]
+        if conflicts1:
+            raise LibraryError('Unresolved duplicate keys encountered in library merge: ' + pformat(conflicts1))
+
         if conflicts2:
-            raise LibraryError('Duplicate secondary keys encountered in library merge: ' + pformat(conflicts2))
+            raise LibraryError('Unresolved duplicate secondary keys encountered in library merge: ' + pformat(conflicts2))
 
-        self.primary.update(other.primary)
-        self.secondary.update(other.secondary)
-        self.cache.update(other.cache)
+        for key1 in set(other.primary.keys()) - keep_ours1:
+            self[key1] = other.primary[key1]
+            if key1 in other.cache:
+                self.cache[key1] = other.cache[key1]
+
+        for key2 in set(other.secondary.keys()) - keep_ours2:
+            self.set_secondary(*key2, other.secondary[key2])
+            if key2 in other.cache:
+                self.cache[key2] = other.cache[key2]
+
         return self
 
     def demote(self, key: str) -> None:

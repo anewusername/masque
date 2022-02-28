@@ -88,7 +88,12 @@ class DeviceLibrary:
         """
         self.generators[const.pattern.name] = lambda: const
 
-    def add(self: L, other: L) -> L:
+    def add(
+            self: D,
+            other: D,
+            use_ours: Callable[[str], bool] = lambda name: False,
+            use_theirs: Callable[[str], bool] = lambda name: False,
+            ) -> D:
         """
         Add keys from another library into this one.
 
@@ -96,15 +101,25 @@ class DeviceLibrary:
 
         Args:
             other: The library to insert keys from
+            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
+                Should return `True` if the value from `self` should be used.
+            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
+                Should return `True` if the value from `other` should be used.
+                `use_ours` takes priority over `use_theirs`.
 
         Returns:
             self
         """
-        conflicts = [key for key in other.generators
-                     if key in self.generators]
+        duplicates = set(self.keys()) & set(other.keys())
+        keep_ours = set(name for name in duplicates if use_ours(name))
+        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
+        conflicts = duplicates - keep_ours - keep_theirs
         if conflicts:
-            raise LibraryError('Duplicate keys encountered in library merge: ' + pformat(conflicts))
+            raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
+                                     + pformat(conflicts))
 
-        self.generators.update(other.generators)
-        self.cache.update(other.cache)
+        for name in set(other.generators.keys()) - keep_ours:
+            self.generators[name] = other.generators[name]
+            if name in other.cache:
+                self.cache[name] = other.cache[name]
         return self
