@@ -7,7 +7,7 @@ from typing import Any, Tuple, Union, Iterator
 import logging
 from pprint import pformat
 
-from ..error import LibraryError
+from ..error import DeviceLibraryError
 
 if TYPE_CHECKING:
     from ..builder import Device
@@ -21,10 +21,16 @@ L = TypeVar('L', bound='DeviceLibrary')
 
 class DeviceLibrary:
     """
-    This class is usually used to create a device library by mapping names to
-     functions which generate or load the relevant `Device` object as-needed.
+    This class maps names to functions which generate or load the
+     relevant `Device` object.
 
-    The cache can be disabled by setting the `enable_cache` attribute to `False`.
+    This class largely functions the same way as `Library`, but
+     operates on `Device`s rather than `Patterns` and thus has no
+     need for distinctions between primary/secondary devices (as
+     there is no inter-`Device` hierarchy).
+
+    Each device is cached the first time it is used. The cache can
+     be disabled by setting the `enable_cache` attribute to `False`.
     """
     generators: Dict[str, Callable[[], 'Device']]
     cache: Dict[Union[str, Tuple[str, str]], 'Device']
