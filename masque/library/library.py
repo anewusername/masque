@@ -69,6 +69,8 @@ class Library:
     def __setitem__(self, key: str, value: PatternGenerator) -> None:
         self.primary[key] = value
         if key in self.cache:
+            logger.warning(f'Replaced library item "{key}" & existing cache entry.'
+                           ' Previously-generated Pattern will *not* be updated!')
             del self.cache[key]
 
     def __delitem__(self, key: str) -> None:
@@ -78,6 +80,8 @@ class Library:
             del self.secondary[key]
 
         if key in self.cache:
+            logger.warning(f'Deleting library item "{key}" & existing cache entry.'
+                           ' Previously-generated Pattern may remain in the wild!')
             del self.cache[key]
 
     def __getitem__(self, key: str) -> 'Pattern':
@@ -112,6 +116,13 @@ class Library:
         self.resolve_subpatterns(pat, pg.tag)
         self.cache[key2] = pat
         return pat
+
+    def set_secondary(self, key: str, tag: str, value: PatternGenerator) -> None:
+        self.secondary[(key, tag)] = value
+        if (key, tag) in self.cache:
+            logger.warning(f'Replaced library item "{key}" & existing cache entry.'
+                           ' Previously-generated Pattern will *not* be updated!')
+            del self.cache[(key, tag)]
 
     def resolve_subpatterns(self, pat: 'Pattern', tag: str) -> 'Pattern':
         logger.debug(f'Resolving subpatterns in {pat.name}')
@@ -291,6 +302,19 @@ class Library:
             self.cache[key] = self.cache[key2]
         del self.secondary[key2]
         del self.cache[key2]
+
+
+    def clear_cache(self: L) -> L:
+        """
+        Clear the cache of this library.
+        This is usually used before modifying or deleting cells, e.g. when merging
+          with another library.
+
+        Returns:
+            self
+        """
+        self.cache = {}
+        return self
 
 
 r"""
