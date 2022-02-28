@@ -78,16 +78,15 @@ class DeviceLibrary:
     def __repr__(self) -> str:
         return '<DeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
 
-    def set_const(self, key: str, const: 'Device') -> None:
+    def set_const(self, const: 'Device') -> None:
         """
         Convenience function to avoid having to manually wrap
-         constant values into callables.
+         already-generated Device objects into callables.
 
         Args:
-            key: Lookup key, usually the device name
-            const: Device object to return
+            const: Pre-generated device object
         """
-        self.generators[key] = lambda: const
+        self.generators[const.pattern.name] = lambda: const
 
     def add(self: L, other: L) -> L:
         """
