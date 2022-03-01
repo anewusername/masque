@@ -304,7 +304,7 @@ class Library:
         del self.secondary[key2]
         del self.cache[key2]
 
-    def copy(self: L, preserve_cache: bool = False) -> L:
+    def copy(self, preserve_cache: bool = False) -> 'Library':
         """
         Create a copy of this `Library`.
 
