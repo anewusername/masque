@@ -234,7 +234,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
             pat.shapes.append(shape)
 
         elif eltype in ('TEXT',):
-            args = {'offset': element.get_pos()[1][:2],
+            args = {'offset': numpy.array(element.get_pos()[1])[:2],
                     'layer': element.dxfattribs().get('layer', DEFAULT_LAYER),
                    }
             string = element.dxfattribs().get('text', '')
