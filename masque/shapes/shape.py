@@ -260,7 +260,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
         for polygon in self.to_polygons():
             # Get rid of unused gridlines (anything not within 2 lines of the polygon bounds)
             bounds = polygon.get_bounds()
-            if not bounds:
+            if bounds is None:
                 continue
 
             mins, maxs = bounds
