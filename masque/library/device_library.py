@@ -33,15 +33,15 @@ class DeviceLibrary:
     Each device is cached the first time it is used. The cache can
      be disabled by setting the `enable_cache` attribute to `False`.
     """
-    generators: Dict[str, Callable[[], 'Device']]
-    cache: Dict[Union[str, Tuple[str, str]], 'Device']
+    generators: Dict[str, Callable[[], Device]]
+    cache: Dict[Union[str, Tuple[str, str]], Device]
     enable_cache: bool = True
 
     def __init__(self) -> None:
         self.generators = {}
         self.cache = {}
 
-    def __setitem__(self, key: str, value: Callable[[], 'Device']) -> None:
+    def __setitem__(self, key: str, value: Callable[[], Device]) -> None:
         self.generators[key] = value
         if key in self.cache:
             del self.cache[key]
@@ -51,7 +51,7 @@ class DeviceLibrary:
         if key in self.cache:
             del self.cache[key]
 
-    def __getitem__(self, key: str) -> 'Device':
+    def __getitem__(self, key: str) -> Device:
         if self.enable_cache and key in self.cache:
             logger.debug(f'found {key} in cache')
             return self.cache[key]
@@ -70,16 +70,16 @@ class DeviceLibrary:
     def keys(self) -> Iterator[str]:
         return iter(self.generators.keys())
 
-    def values(self) -> Iterator['Device']:
+    def values(self) -> Iterator[Device]:
         return iter(self[key] for key in self.keys())
 
-    def items(self) -> Iterator[Tuple[str, 'Device']]:
+    def items(self) -> Iterator[Tuple[str, Device]]:
         return iter((key, self[key]) for key in self.keys())
 
     def __repr__(self) -> str:
         return '<DeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
 
-    def set_const(self, const: 'Device') -> None:
+    def set_const(self, const: Device) -> None:
         """
         Convenience function to avoid having to manually wrap
          already-generated Device objects into callables.
@@ -140,8 +140,8 @@ class DeviceLibrary:
     def add_device(
             self,
             name: str,
-            fn: Callable[[], 'Device'],
-            dev2pat: Callable[['Device'], 'Pattern'],
+            fn: Callable[[], Device],
+            dev2pat: Callable[[Device], Pattern],
             prefix: str = '',
             ) -> None:
         """
@@ -172,7 +172,7 @@ class DeviceLibrary:
                 a second device with name `name` is also added (containing only
                 this one).
         """
-        def build_dev() -> 'Device':
+        def build_dev() -> Device:
             dev = fn()
             dev.pattern = dev2pat(dev)
             dev.pattern.rename(prefix + name)
@@ -203,7 +203,7 @@ class LibDeviceLibrary(DeviceLibrary):
         DeviceLibrary.__init__(self)
         self.underlying = Library()
 
-    def __setitem__(self, key: str, value: Callable[[], 'Device']) -> None:
+    def __setitem__(self, key: str, value: Callable[[], Device]) -> None:
         self.generators[key] = value
         if key in self.cache:
             del self.cache[key]
@@ -229,7 +229,7 @@ class LibDeviceLibrary(DeviceLibrary):
     def add_library(
             self: L,
             lib: Library,
-            pat2dev: Callable[['Pattern'], 'Device'],
+            pat2dev: Callable[[Pattern], Device],
             use_ours: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
             use_theirs: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
             ) -> L:
