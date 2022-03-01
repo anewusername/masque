@@ -203,6 +203,24 @@ class LibDeviceLibrary(DeviceLibrary):
         DeviceLibrary.__init__(self)
         self.underlying = Library()
 
+    def __setitem__(self, key: str, value: Callable[[], 'Device']) -> None:
+        self.generators[key] = value
+        if key in self.cache:
+            del self.cache[key]
+
+        # If any `Library` that has been (or will be) added has an entry for `key`,
+        #   it will be added to `self.underlying` and then returned by it during subpattern
+        #   resolution for other entries, and will conflict with the name for our
+        #   wrapped device. To avoid that, we need to set ourselves as the "true" source of
+        #   the `Pattern` named `key`.
+        if key in self.underlying:
+            raise DeviceLibraryError(f'Device name {key} already exists in underlying Library!'
+                                     ' Demote or delete it first.')
+
+        # NOTE that this means the `Device` may be cached without the `Pattern` being in
+        #  the `underlying` cache yet!
+        self.underlying.set_value(name, '__DeviceLibrary', lambda: self[key].pattern)
+
     def __delitem__(self, key: str) -> None:
         DeviceLibrary.__delitem__(self, key)
         if key in self.underlying:
@@ -268,33 +286,17 @@ class LibDeviceLibrary(DeviceLibrary):
             self,
             name: str,
             old_name: str,
-            tag: str = '_wrap',
             ) -> None:
         """
         Create a new device which simply contains an instance of an already-existing device.
 
           This is useful for assigning an alternate name to a device, while still keeping
-        the underlying name available for traceability.
+        the original name available for traceability.
 
         Args:
             name: Name for the wrapped device.
             old_name: Name of the existing device to wrap.
-            tag: Tag for the new entry in the `underyling` library. Default '_wrap'.
-                The default should be usable for most applications.
         """
-        logger.warning('wrap_device needs testing!!!')
-        #def build_wrapped_pat() -> Pattern:
-        #    dev = self[old_name]
-        #    wrapper = Pattern(name=name)
-        #    wrapper.addsp(dev.pattern)
-        #    return wrapper
-        ## Need to set underlying entry to allow use as a subcomponent
-        #self.underlying.set_value(name, tag, build_wrapped_pat)
-
-        #def build_wrapped_dev() -> Device:
-        #    dev = self[old_name]
-        #    wrapper = self.underlying[name]
-        #    return Device(wrapper, dev.ports)
 
         def build_wrapped_dev() -> Device:
             old_dev = self[old_name]
