@@ -230,8 +230,8 @@ class LibDeviceLibrary(DeviceLibrary):
             self: L,
             lib: Library,
             pat2dev: Callable[['Pattern'], 'Device'],
-            use_ours: Callable[[str], bool] = lambda name: False,
-            use_theirs: Callable[[str], bool] = lambda name: False,
+            use_ours: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
+            use_theirs: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
             ) -> L:
         """
         Add a pattern `Library` into this `LibDeviceLibrary`.
@@ -246,7 +246,8 @@ class LibDeviceLibrary(DeviceLibrary):
             lib: Pattern library to add.
             pat2dev: Function for transforming each `Pattern` object from `lib`
                 into a `Device` which will be returned by this device library.
-            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
+            use_ours: Decision function for name conflicts. Will be called with
+                duplicate cell names, and (name, tag) tuples from the underlying library.
                 Should return `True` if the value from `self` should be used.
             use_theirs: Decision function for name conflicts. Same format as `use_ours`.
                 Should return `True` if the value from `other` should be used.
@@ -266,17 +267,7 @@ class LibDeviceLibrary(DeviceLibrary):
         for name in keep_theirs:
             self.underlying.demote(name)
 
-        def use_ours_lib(name: Union[str, Tuple[str, str]]) -> bool:
-            if isinstance(name, str):
-                return use_ours(name)
-            return False    #TODO maybe don't always return False for secondary key conflicts?
-
-        def use_theirs_lib(name: Union[str, Tuple[str, str]]) -> bool:
-            if isinstance(name, str):
-                return use_theirs(name)
-            return False
-
-        self.underlying.add(lib, use_ours_lib, use_theirs_lib)
+        self.underlying.add(lib, use_ours, use_theirs)
 
         for name in lib:
             self.generators[name] = lambda name=name: pat2dev(self.underlying[name])
