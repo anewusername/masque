@@ -182,6 +182,30 @@ class DeviceLibrary:
         if prefix:
             self.wrap_device(name, prefix + name)
 
+    def wrap_device(
+            self,
+            name: str,
+            old_name: str,
+            ) -> None:
+        """
+        Create a new device which simply contains an instance of an already-existing device.
+
+          This is useful for assigning an alternate name to a device, while still keeping
+        the original name available for traceability.
+
+        Args:
+            name: Name for the wrapped device.
+            old_name: Name of the existing device to wrap.
+        """
+
+        def build_wrapped_dev() -> Device:
+            old_dev = self[old_name]
+            wrapper = Pattern(name=name)
+            wrapper.addsp(old_dev.pattern)
+            return Device(wrapper, old_dev.ports)
+
+        self[name] = build_wrapped_dev
+
 
 class LibDeviceLibrary(DeviceLibrary):
     """
@@ -272,27 +296,3 @@ class LibDeviceLibrary(DeviceLibrary):
         for name in lib:
             self.generators[name] = lambda name=name: pat2dev(self.underlying[name])
         return self
-
-    def wrap_device(
-            self,
-            name: str,
-            old_name: str,
-            ) -> None:
-        """
-        Create a new device which simply contains an instance of an already-existing device.
-
-          This is useful for assigning an alternate name to a device, while still keeping
-        the original name available for traceability.
-
-        Args:
-            name: Name for the wrapped device.
-            old_name: Name of the existing device to wrap.
-        """
-
-        def build_wrapped_dev() -> Device:
-            old_dev = self[old_name]
-            wrapper = Pattern(name=name)
-            wrapper.addsp(old_dev.pattern)
-            return Device(wrapper, old_dev.ports)
-
-        self[name] = build_wrapped_dev
