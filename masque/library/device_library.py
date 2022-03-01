@@ -9,10 +9,8 @@ from pprint import pformat
 
 from ..error import DeviceLibraryError
 from ..library import Library
-
-if TYPE_CHECKING:
-    from ..builder import Device
-    from .. import Pattern
+from ..builder import Device
+from .. import Pattern
 
 
 logger = logging.getLogger(__name__)
