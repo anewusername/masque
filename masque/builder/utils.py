@@ -114,7 +114,7 @@ def ell(
     orig_offsets = numpy.array([p.offset for p in ports.values()])
     rot_offsets = (rot_matrix @ orig_offsets.T).T
 
-    y_order = ((-1 if ccw else 1) * rot_offsets[:, 1]).argsort()
+    y_order = ((-1 if ccw else 1) * rot_offsets[:, 1]).argsort(kind='stable')
     y_ind = numpy.empty_like(y_order, dtype=int)
     y_ind[y_order] = numpy.arange(y_ind.shape[0])
 
