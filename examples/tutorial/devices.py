@@ -5,9 +5,8 @@ from numpy import pi
 
 from masque import layer_t, Pattern, SubPattern, Label
 from masque.shapes import Polygon
-from masque.builder import Device, Port
+from masque.builder import Device, Port, port_utils
 from masque.file.gdsii import writefile
-from masque.utils import rotation_matrix_2d
 
 import pcgen
 import basic_shapes
@@ -16,6 +15,22 @@ from basic_shapes import GDS_OPTS
 
 LATTICE_CONSTANT = 512
 RADIUS = LATTICE_CONSTANT / 2 * 0.75
+
+
+def dev2pat(dev: Device) -> Pattern:
+    """
+    Bake port information into the device.
+    This places a label at each port location on layer (3, 0) with text content
+      'name:ptype angle_deg'
+    """
+    return port_utils.dev2pat(dev, layer=(3, 0))
+
+
+def pat2dev(pat: Pattern) -> Device:
+    """
+    Scans the Pattern to determine port locations. Same format as `dev2pat`
+    """
+    return port_utils.pat2dev(pat, layers=[(3, 0)])
 
 
 def perturbed_l3(
@@ -199,78 +214,6 @@ def y_splitter(
         'bot': Port((extent / 2, -extent * numpy.sqrt(3) / 2), rotation=pi * 2 / 3, ptype='pcwg'),
         }
     return Device(pat, ports)
-
-
-def dev2pat(device: Device, layer: layer_t = (3, 0)) -> Pattern:
-    """
-    Place a text label at each port location, specifying the port data.
-
-    This can be used to debug port locations or to automatically generate ports
-      when reading in a GDS file.
-
-    NOTE that `device` is modified by this function, and `device.pattern` is returned.
-
-    Args:
-        device: The device which is to have its ports labeled. MODIFIED in-place.
-        layer: The layer on which the labels will be placed.
-
-    Returns:
-        `device.pattern`
-    """
-    for name, port in device.ports.items():
-        if port.rotation is None:
-            angle_deg = numpy.inf
-        else:
-            angle_deg = numpy.rad2deg(port.rotation)
-        device.pattern.labels += [
-            Label(string=f'{name}:{port.ptype} {angle_deg:g}', layer=layer, offset=port.offset)
-            ]
-    return device.pattern
-
-
-def pat2dev(
-        pattern: Pattern,
-        layers: Sequence[layer_t] = ((3, 0),),
-        max_depth: int = 999_999,
-        skip_subcells: bool = True,
-        ) -> Device:
-    ports = {}      # Note: could do a list here, if they're not unique
-    annotated_cells = set()
-    def find_ports_each(pat, hierarchy, transform, memo) -> Pattern:
-        if len(hierarchy) > max_depth - 1:
-            return pat
-
-        if skip_subcells and any(parent in annotated_cells for parent in hierarchy):
-            return pat
-
-        labels = [ll for ll in pat.labels if ll.layer in layers]
-
-        if len(labels) == 0:
-            return pat
-
-        if skip_subcells:
-            annotated_cells.add(pat)
-
-        mirr_factor = numpy.array((1, -1)) ** transform[3]
-        rot_matrix = rotation_matrix_2d(transform[2])
-        for label in labels:
-            name, property_string = label.string.split(':')
-            properties = property_string.split(' ')
-            ptype = properties[0]
-            angle_deg = float(properties[1]) if len(ptype) else 0
-
-            xy_global = transform[:2] + rot_matrix @ (label.offset * mirr_factor)
-            angle = numpy.deg2rad(angle_deg) * mirr_factor[0] * mirr_factor[1] + transform[2]
-
-            if name in ports:
-                raise Exception('Duplicate port name in pattern!')
-
-            ports[name] = Port(offset=xy_global, rotation=angle, ptype=ptype)
-
-        return pat
-
-    pattern.dfs(visit_before=find_ports_each, transform=True)
-    return Device(pattern, ports)
 
 
 

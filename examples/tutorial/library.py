@@ -11,6 +11,7 @@ from masque.file.gdsii import writefile, load_libraryfile
 import pcgen
 import basic_shapes
 import devices
+from devices import pat2dev, dev2pat
 from basic_shapes import GDS_OPTS
 
 
@@ -29,7 +30,7 @@ def main() -> None:
     # Add it into the device library by providing a way to read port info
     #   This maintains the lazy evaluation from above, so no patterns
     # are actually read yet.
-    device_lib.add_library(pattern_lib, pat2dev=devices.pat2dev)
+    device_lib.add_library(pattern_lib, pat2dev=pat2dev)
 
     print('Devices loaded from GDS into library:\n' + pformat(list(device_lib.keys())))
 
@@ -43,10 +44,10 @@ def main() -> None:
 
     # Convenience function for adding devices
     #  This is roughly equivalent to
-    #       `device_lib[name] = lambda: devices.dev2pat(fn())`
+    #       `device_lib[name] = lambda: dev2pat(fn())`
     #  but it also guarantees that the resulting pattern is named `name`.
     def add(name: str, fn: Callable[[], Device]) -> None:
-        device_lib.add_device(name=name, fn=fn, dev2pat=devices.dev2pat)
+        device_lib.add_device(name=name, fn=fn, dev2pat=dev2pat)
 
     # Triangle-based variants. These are defined here, but they won't run until they're
     #   retrieved from the library.
