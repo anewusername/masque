@@ -123,7 +123,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
         polygon_contours = []
         for polygon in self.to_polygons():
             bounds = polygon.get_bounds()
-            if not bounds:
+            if bounds is None:
                 continue
 
             mins, maxs = bounds
