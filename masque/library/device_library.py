@@ -16,8 +16,8 @@ from .. import Pattern
 logger = logging.getLogger(__name__)
 
 
-L = TypeVar('L', bound='DeviceLibrary')
-D = TypeVar('D', bound='LibDeviceLibrary')
+D = TypeVar('D', bound='DeviceLibrary')
+L = TypeVar('L', bound='LibDeviceLibrary')
 
 
 class DeviceLibrary:
