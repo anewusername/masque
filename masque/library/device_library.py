@@ -243,7 +243,7 @@ class LibDeviceLibrary(DeviceLibrary):
 
         # NOTE that this means the `Device` may be cached without the `Pattern` being in
         #  the `underlying` cache yet!
-        self.underlying.set_value(name, '__DeviceLibrary', lambda: self[key].pattern)
+        self.underlying.set_value(key, '__DeviceLibrary', lambda: self[key].pattern)
 
     def __delitem__(self, key: str) -> None:
         DeviceLibrary.__delitem__(self, key)
