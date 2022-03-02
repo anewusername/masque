@@ -835,17 +835,31 @@ class Device(Copyable, Mirrorable):
             self: D,
             portspec: Union[str, Sequence[str]],
             ccw: Optional[bool],
-            bound_type: str,
-            bound: Union[float, ArrayLike],
             *,
             spacing: Optional[Union[float, ArrayLike]] = None,
             set_rotation: Optional[float] = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
             name: str = '_busL',
+            **kwargs,
             ) -> D:
         if self._dead:
             logger.error('Skipping busL() since device is dead')
             return self
+
+        bound_types = set()
+        if 'bound_type' in kwargs:
+            bound_types.add(kwargs['bound_type'])
+            bound = kwargs['bound']
+        for bt in ('emin', 'emax', 'pmin', 'pmax', 'min_past_furthest'):
+            if bt in kwargs:
+                bound_types.add(bt)
+                bound = kwargs[bt]
+
+        if not bound_types:
+            raise DeviceError('No bound type specified for busL')
+        elif len(bound_types) > 1:
+            raise DeviceError(f'Too many bound types specified for busL: {bound_types}')
+        bound_type = tuple(bound_types)[0]
 
         if isinstance(portspec, str):
             portspec = [portspec]
