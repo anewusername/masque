@@ -1,17 +1,19 @@
-from typing import Dict, Tuple, List, Optional, Union, Any, cast, Sequence
+from typing import Dict, Tuple, List, Optional, Union, Any, cast, Sequence, TYPE_CHECKING
 from pprint import pformat
 
 import numpy
 from numpy import pi
 from numpy.typing import ArrayLike
 
-from .devices import Port
 from ..utils import rotation_matrix_2d
 from ..error import BuildError
 
+if TYPE_CHECKING:
+    from .devices import Port
+
 
 def ell(
-        ports: Dict[str, Port],
+        ports: Dict[str, 'Port'],
         ccw: Optional[bool],
         bound_type: str,
         bound: Union[float, ArrayLike],
