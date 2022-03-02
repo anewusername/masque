@@ -181,7 +181,7 @@ class Device(Copyable, Mirrorable):
             pattern: Optional[Pattern] = None,
             ports: Optional[Dict[str, Port]] = None,
             *,
-            tools: Optional[Dict[Optional[str], Tool]] = None,
+            tools: Union[None, Tool, Dict[Optional[str], Tool]] = None,
             name: Optional[str] = None,
             ) -> None:
         """
@@ -209,6 +209,8 @@ class Device(Copyable, Mirrorable):
 
         if tools is None:
             self.tools = {}
+        elif isinstance(tools, Tool):
+            self.tools = {None: tools}
         else:
             self.tools = tools
 
