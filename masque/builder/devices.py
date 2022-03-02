@@ -839,7 +839,8 @@ class Device(Copyable, Mirrorable):
             spacing: Optional[Union[float, ArrayLike]] = None,
             set_rotation: Optional[float] = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
-            name: str = '_busL',
+            container_name: str = '_busL',
+            force_container: bool = False,
             **kwargs,
             ) -> D:
         if self._dead:
@@ -867,11 +868,15 @@ class Device(Copyable, Mirrorable):
 
         extensions = ell(ports, ccw, spacing=spacing, bound=bound, bound_type=bound_type, set_rotation=set_rotation)
 
-        dev = Device(name='', ports=ports, tools=self.tools).as_interface(name)
-        for name, length in extensions.items():
-            dev.path(name, ccw, length, tool_port_names=tool_port_names)
-
-        return self.plug(dev, {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
+        if len(ports) == 1 and not force_container:
+            # Not a bus, so having a container just adds noise to the layout
+            port_name = tuple(portspec)[0]
+            return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
+        else:
+            dev = Device(name='', ports=ports, tools=self.tools).as_interface(container_name)
+            for name, length in extensions.items():
+                dev.path(name, ccw, length, tool_port_names=tool_port_names)
+            return self.plug(dev, {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?
 
