@@ -713,8 +713,12 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         for entry in chain(self.shapes, self.subpatterns):
             entry.offset *= c
             entry.scale_by(c)
+            if entry.repetition:
+                entry.repetition.scale_by(c)
         for label in self.labels:
             label.offset *= c
+            if label.repetition:
+                label.repetition.scale_by(c)
         return self
 
     def rotate_around(self: P, pivot: ArrayLike, rotation: float) -> P:
