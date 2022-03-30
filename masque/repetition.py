@@ -312,7 +312,7 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
 
     @displacements.setter
     def displacements(self, val: ArrayLike) -> None:
-        vala: NDArray[numpy.float64] = numpy.array(vala, dtype=float)
+        vala: NDArray[numpy.float64] = numpy.array(val, dtype=float)
         vala = numpy.sort(vala.view([('', vala.dtype)] * vala.shape[1]), 0).view(vala.dtype)    # sort rows
         self._displacements = vala
 
