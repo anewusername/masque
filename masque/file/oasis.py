@@ -431,11 +431,16 @@ def read(
 
             elif isinstance(element, fatrec.Text):
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
+                str_or_ref = element.get_string()
+                if isinstance(str_or_ref, int):
+                    string = lib.textstrings[str_or_ref].string
+                else:
+                    string = str_or_ref.string
                 label = Label(layer=element.get_layer_tuple(),
                               offset=element.get_xy(),
                               repetition=repetition,
                               annotations=annotations,
-                              string=str(element.get_string()))
+                              string=string)
                 pat.labels.append(label)
 
             else:
