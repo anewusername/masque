@@ -299,6 +299,8 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
                                        `[[x0, y0], [x1, y1], ...]`
     """
 
+    __slots__ = ('_displacements',)
+
     _displacements: NDArray[numpy.float64]
     """ List of vectors `[[x0, y0], [x1, y1], ...]` specifying the offsets
           of the instances.
