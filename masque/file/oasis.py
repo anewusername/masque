@@ -654,7 +654,7 @@ def repetition_fata2masq(
                     b_count=rep.b_count)
     elif isinstance(rep, fatamorgana.ArbitraryRepetition):
         displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
-                                                         rep.y_displacements)))
+                                                         rep.y_displacements)), axis=0)
         displacements = numpy.vstack(([0, 0], displacements))
         mrep = Arbitrary(displacements)
     elif rep is None:
