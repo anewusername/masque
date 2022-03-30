@@ -21,7 +21,7 @@ import logging
 import pathlib
 import gzip
 
-import numpy        # type: ignore
+import numpy
 import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
