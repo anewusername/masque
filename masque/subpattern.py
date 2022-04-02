@@ -139,11 +139,16 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         """
         assert(self.pattern is not None)
         pattern = self.pattern.deepcopy().deepunlock()
-        pattern.scale_by(self.scale)
-        pattern.mirror2d(self.mirrored)
-        pattern.rotate_around((0.0, 0.0), self.rotation)
-        pattern.translate_elements(self.offset)
-        pattern.scale_element_doses(self.dose)
+        if self.scale != 1:
+            pattern.scale_by(self.scale)
+        if numpy.any(self.mirrored):
+            pattern.mirror2d(self.mirrored)
+        if self.rotation % (2 * pi) != 0:
+            pattern.rotate_around((0.0, 0.0), self.rotation)
+        if numpy.any(self.offset):
+            pattern.translate_elements(self.offset)
+        if self.dose != 0:
+            pattern.scale_element_doses(self.dose)
 
         if self.repetition is not None:
             combined = type(pattern)(name='__repetition__')
