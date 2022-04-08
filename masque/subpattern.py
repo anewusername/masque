@@ -147,7 +147,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             pattern.rotate_around((0.0, 0.0), self.rotation)
         if numpy.any(self.offset):
             pattern.translate_elements(self.offset)
-        if self.dose != 0:
+        if self.dose != 1:
             pattern.scale_element_doses(self.dose)
 
         if self.repetition is not None:
