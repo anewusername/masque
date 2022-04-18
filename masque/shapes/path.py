@@ -191,7 +191,8 @@ class Path(Shape, metaclass=AutoSlots):
 
     def __deepcopy__(self, memo: Dict = None) -> 'Path':
         memo = {} if memo is None else memo
-        new = copy.copy(self).unlock()
+        new = copy.copy(self)
+        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._vertices = self._vertices.copy()
         new._cap = copy.deepcopy(self._cap, memo)

@@ -80,7 +80,8 @@ class Circle(Shape, metaclass=AutoSlots):
 
     def __deepcopy__(self, memo: Dict = None) -> 'Circle':
         memo = {} if memo is None else memo
-        new = copy.copy(self).unlock()
+        new = copy.copy(self)
+        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._annotations = copy.deepcopy(self._annotations)
         new.set_locked(self.locked)
