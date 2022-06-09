@@ -245,7 +245,7 @@ class Arc(Shape, metaclass=AutoSlots):
         num_points = int(round(max(n)))
 
         wh = self.width / 2.0
-        if wh == r0 and r0 == r1:
+        if wh == r0 or wh == r1:
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
             thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
@@ -287,6 +287,12 @@ class Arc(Shape, metaclass=AutoSlots):
             wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
+
+            if rx == 0 or ry == 0:
+                # Single point, at origin
+                mins.append([0, 0])
+                maxs.append([0, 0])
+                continue
 
             a0, a1 = a
             a0_offset = a0 - (a0 % (2 * pi))
