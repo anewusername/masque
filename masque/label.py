@@ -71,7 +71,8 @@ class Label(PositionableImpl, LayerableImpl, LockableImpl, RepeatableImpl, Annot
 
     def __deepcopy__(self: L, memo: Dict = None) -> L:
         memo = {} if memo is None else memo
-        new = copy.copy(self).unlock()
+        new = copy.copy(self)
+        LockableImpl.unlock(new)
         new._offset = self._offset.copy()
         new.set_locked(self.locked)
         return new

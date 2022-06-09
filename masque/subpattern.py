@@ -101,7 +101,8 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
     def __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
         memo = {} if memo is None else memo
-        new = copy.copy(self).unlock()
+        new = copy.copy(self)
+        LockableImpl.unlock(new)
         new.pattern = copy.deepcopy(self.pattern, memo)
         new.repetition = copy.deepcopy(self.repetition, memo)
         new.annotations = copy.deepcopy(self.annotations, memo)
