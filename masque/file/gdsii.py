@@ -462,16 +462,18 @@ def _shapes_to_elements(
             elements.append(path)
         elif isinstance(shape, Polygon):
             polygon = shape
-            xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+            xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
+            numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
+            xy_closed[-1] = xy_closed[0]
             boundary = klamath.elements.Boundary(layer=(layer, data_type),
                                                  xy=xy_closed,
                                                  properties=properties)
             elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
-                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+                xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
+                numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
+                xy_closed[-1] = xy_closed[0]
                 boundary = klamath.elements.Boundary(layer=(layer, data_type),
                                                      xy=xy_closed,
                                                      properties=properties)
