@@ -18,7 +18,7 @@ Notes:
  * GDS does not support library- or structure-level annotations
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
-from typing import Sequence
+from typing import Sequence, Mapping
 import re
 import io
 import copy
@@ -59,13 +59,13 @@ def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
 
 
 def build(
-        patterns: Union[Pattern, Sequence[Pattern]],
+        library: Mapping[str, Pattern],
         meters_per_unit: float,
         logical_units_per_unit: float = 1,
         library_name: str = 'masque-gdsii-write',
         *,
         modify_originals: bool = False,
-        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> gdsii.library.Library:
     """
     Convert a `Pattern` or list of patterns to a GDSII stream, by first calling
@@ -86,7 +86,7 @@ def build(
      prior to calling this function.
 
     Args:
-        patterns: A Pattern or list of patterns to convert.
+        library: A {name: Pattern} mapping of patterns to write.
         meters_per_unit: Written into the GDSII file, meters per (database) length unit.
             All distances are assumed to be an integer multiple of this unit, and are stored as such.
         logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
@@ -95,27 +95,29 @@ def build(
         library_name: Library name written into the GDSII file.
             Default 'masque-gdsii-write'.
         modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
-        disambiguate_func: Function which takes a list of patterns and alters them
-            to make their names valid and unique. Default is `disambiguate_pattern_names`, which
-            attempts to adhere to the GDSII standard as well as possible.
+        disambiguate_func: Function which takes a list of pattern names and returns a list of names
+            altered to be valid and unique. Default is `disambiguate_pattern_names`, which
+            attempts to adhere to the GDSII standard reasonably well.
             WARNING: No additional error checking is performed on the results.
 
     Returns:
         `gdsii.library.Library`
     """
-    if isinstance(patterns, Pattern):
-        patterns = [patterns]
-
     if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names          # type: ignore
-    assert(disambiguate_func is not None)       # placate mypy
+        disambiguate_func = disambiguate_pattern_names
 
     if not modify_originals:
-        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
+        library = copy.deepcopy(library)
 
-    patterns = [p.wrap_repeated_shapes() for p in patterns]
+    for p in library.values():
+        library.add(p.wrap_repeated_shapes())
+
+    old_names = list(library.keys())
+    new_names = disambiguate_func(old_names)
+    renamed_lib = {new_name: library[old_name]
+                   for old_name, new_name in zip(old_names, new_names)}
 
     # Create library
     lib = gdsii.library.Library(version=600,
@@ -123,17 +125,9 @@ def build(
                                 logical_unit=logical_units_per_unit,
                                 physical_unit=meters_per_unit)
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {id(pattern): pattern for pattern in patterns}
-    for pattern in patterns:
-        for i, p in pattern.referenced_patterns_by_id().items():
-            patterns_by_id[i] = p
-
-    disambiguate_func(patterns_by_id.values())
-
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
-    for pat in patterns_by_id.values():
-        structure = gdsii.structure.Structure(name=pat.name.encode('ASCII'))
+    for name, pat in renamed_lib.items():
+        structure = gdsii.structure.Structure(name=name.encode('ASCII'))
         lib.append(structure)
 
         structure += _shapes_to_elements(pat.shapes)
@@ -144,7 +138,7 @@ def build(
 
 
 def write(
-        patterns: Union[Pattern, Sequence[Pattern]],
+        library: Mapping[str, Pattern],
         stream: io.BufferedIOBase,
         *args,
         **kwargs,
@@ -154,31 +148,31 @@ def write(
     See `masque.file.gdsii.build()` for details.
 
     Args:
-        patterns: A Pattern or list of patterns to write to file.
+        library: A {name: Pattern} mapping of patterns to write.
         stream: Stream to write to.
         *args: passed to `masque.file.gdsii.build()`
         **kwargs: passed to `masque.file.gdsii.build()`
     """
-    lib = build(patterns, *args, **kwargs)
+    lib = build(library, *args, **kwargs)
     lib.save(stream)
     return
 
 def writefile(
-        patterns: Union[Sequence[Pattern], Pattern],
+        library: Mapping[str, Pattern],
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
         ) -> None:
     """
-    Wrapper for `masque.file.gdsii.write()` that takes a filename or path instead of a stream.
+    Wrapper for `write()` that takes a filename or path instead of a stream.
 
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
-        patterns: `Pattern` or list of patterns to save
+        library: {name: Pattern} pairs to save.
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.write`
-        **kwargs: passed to `masque.file.gdsii.write`
+        *args: passed to `write()`
+        **kwargs: passed to `write()`
     """
     path = pathlib.Path(filename)
     if path.suffix == '.gz':
@@ -196,14 +190,14 @@ def readfile(
         **kwargs,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
-    Wrapper for `masque.file.gdsii.read()` that takes a filename or path instead of a stream.
+    Wrapper for `read()` that takes a filename or path instead of a stream.
 
     Will automatically decompress gzipped files.
 
     Args:
         filename: Filename to save to.
-        *args: passed to `masque.file.gdsii.read`
-        **kwargs: passed to `masque.file.gdsii.read`
+        *args: passed to `read()`
+        **kwargs: passed to `read()`
     """
     path = pathlib.Path(filename)
     if is_gzipped(path):
@@ -251,9 +245,10 @@ def read(
 
     raw_mode = True     # Whether to construct shapes in raw mode (less error checking)
 
-    patterns = []
+    patterns_dict = {}
     for structure in lib:
-        pat = Pattern(name=structure.name.decode('ASCII'))
+        pat = Pattern()
+        name=structure.name.decode('ASCII')
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
@@ -275,15 +270,7 @@ def read(
 
         if clean_vertices:
             clean_pattern_vertices(pat)
-        patterns.append(pat)
-
-    # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
-    #  according to the subpattern.identifier (which is deleted after use).
-    patterns_dict = dict(((p.name, p) for p in patterns))
-    for p in patterns_dict.values():
-        for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.identifier[0].decode('ASCII')]
-            del sp.identifier
+        patterns_dict[name] = pat
 
     return patterns_dict, library_info
 
@@ -309,8 +296,7 @@ def _ref_to_subpat(
                        gdsii.elements.ARef]
         ) -> SubPattern:
     """
-    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
-     and sets the instance .identifier to (struct_name,).
+    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.target to struct_name.
 
     NOTE: "Absolute" means not affected by parent elements.
            That's not currently supported by masque at all (and not planned).
@@ -351,7 +337,6 @@ def _ref_to_subpat(
                         mirrored=(mirror_across_x, False),
                         annotations=_properties_to_annotations(element.properties),
                         repetition=repetition)
-    subpat.identifier = (element.struct_name,)
     return subpat
 
 
@@ -395,9 +380,9 @@ def _subpatterns_to_refs(
         ) -> List[Union[gdsii.elements.ARef, gdsii.elements.SRef]]:
     refs = []
     for subpat in subpatterns:
-        if subpat.pattern is None:
+        if subpat.target is None:
             continue
-        encoded_name = subpat.pattern.name.encode('ASCII')
+        encoded_name = subpat.target.encode('ASCII')
 
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
@@ -523,14 +508,14 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
 
 
 def disambiguate_pattern_names(
-        patterns: Sequence[Pattern],
+        names: Iterable[str],
         max_name_length: int = 32,
         suffix_length: int = 6,
         dup_warn_filter: Optional[Callable[[str], bool]] = None,
-        ) -> None:
+        ) -> List[str]:
     """
     Args:
-        patterns: List of patterns to disambiguate
+        names: List of pattern names to disambiguate
         max_name_length: Names longer than this will be truncated
         suffix_length: Names which get truncated are truncated by this many extra characters. This is to
             leave room for a suffix if one is necessary.
@@ -538,15 +523,15 @@ def disambiguate_pattern_names(
             the cell name and returns `False` if the warning should be suppressed and `True` if it should
             be displayed. Default displays all warnings.
     """
-    used_names = []
-    for pat in set(patterns):
+    new_names = []
+    for name in names:
         # Shorten names which already exceed max-length
-        if len(pat.name) > max_name_length:
-            shortened_name = pat.name[:max_name_length - suffix_length]
-            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n'
+        if len(name) > max_name_length:
+            shortened_name = name[:max_name_length - suffix_length]
+            logger.warning(f'Pattern name "{name}" is too long ({len(name)}/{max_name_length} chars),\n'
                            + f' shortening to "{shortened_name}" before generating suffix')
         else:
-            shortened_name = pat.name
+            shortened_name = name
 
         # Remove invalid characters
         sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
@@ -554,7 +539,7 @@ def disambiguate_pattern_names(
         # Add a suffix that makes the name unique
         i = 0
         suffixed_name = sanitized_name
-        while suffixed_name in used_names or suffixed_name == '':
+        while suffixed_name in new_names or suffixed_name == '':
             suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
@@ -563,18 +548,19 @@ def disambiguate_pattern_names(
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+            if dup_warn_filter is None or dup_warn_filter(name):
+                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
                                + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
+            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{name}"')
         if len(encoded_name) > max_name_length:
             raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n'
-                               + f' originally "{pat.name}"')
+                               + f' originally "{name}"')
 
-        pat.name = suffixed_name
-        used_names.append(suffixed_name)
+        new_names.append(suffixed_name)
+    return new_names
+

@@ -1,7 +1,7 @@
 """
 2D bin-packing
 """
-from typing import Tuple, List, Set, Sequence, Callable
+from typing import Tuple, List, Set, Sequence, Callable, Mapping
 
 import numpy
 from numpy.typing import NDArray, ArrayLike
@@ -11,16 +11,18 @@ from ..pattern import Pattern
 from ..subpattern import SubPattern
 
 
-def pack_patterns(patterns: Sequence[Pattern],
-                  regions: numpy.ndarray,
-                  spacing: Tuple[float, float],
-                  presort: bool = True,
-                  allow_rejects: bool = True,
-                  packer: Callable = maxrects_bssf,
-                  ) -> Tuple[Pattern, List[Pattern]]:
+def pack_patterns(
+        library: Mapping[str, Pattern],
+        patterns: Sequence[str],
+        regions: numpy.ndarray,
+        spacing: Tuple[float, float],
+        presort: bool = True,
+        allow_rejects: bool = True,
+        packer: Callable = maxrects_bssf,
+        ) -> Tuple[Pattern, List[str]]:
     half_spacing = numpy.array(spacing) / 2
 
-    bounds = [pp.get_bounds() for pp in patterns]
+    bounds = [library[pp].get_bounds() for pp in patterns]
     sizes = [bb[1] - bb[0] + spacing if bb is not None else spacing for bb in bounds]
     offsets = [half_spacing - bb[0] if bb is not None else (0, 0) for bb in bounds]
 

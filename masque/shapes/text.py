@@ -11,7 +11,6 @@ from ..repetition import Repetition
 from ..traits import RotatableImpl
 from ..utils import is_scalar, get_bit, normalize_mirror, layer_t, AutoSlots
 from ..utils import annotations_t
-from ..traits import LockableImpl
 
 # Loaded on use:
 # from freetype import Face
@@ -74,10 +73,8 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             raw: bool = False,
             ) -> None:
-        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             assert(isinstance(offset, numpy.ndarray))
@@ -102,16 +99,13 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
         self.font_path = font_path
-        self.set_locked(locked)
 
     def __deepcopy__(self, memo: Dict = None) -> 'Text':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._mirrored = copy.deepcopy(self._mirrored, memo)
         new._annotations = copy.deepcopy(self._annotations)
-        new.set_locked(self.locked)
         return new
 
     def to_polygons(
@@ -259,19 +253,8 @@ def get_char_as_polygons(
 
     return polygons, advance
 
-    def lock(self) -> 'Text':
-        self.mirrored.flags.writeable = False
-        Shape.lock(self)
-        return self
-
-    def unlock(self) -> 'Text':
-        Shape.unlock(self)
-        self.mirrored.flags.writeable = True
-        return self
-
     def __repr__(self) -> str:
         rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}{dose}{locked}>'
+        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}{dose}>'

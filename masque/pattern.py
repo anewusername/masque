@@ -3,9 +3,8 @@
 """
 
 from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload, cast
-from typing import MutableMapping, Iterable, TypeVar, Any
+from typing import Mapping, MutableMapping, Iterable, TypeVar, Any
 import copy
-import pickle
 from itertools import chain
 from collections import defaultdict
 
@@ -18,23 +17,20 @@ from .subpattern import SubPattern
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
-from .error import PatternError, PatternLockedError
-from .traits import LockableImpl, AnnotatableImpl, Scalable, Mirrorable
+from .error import PatternError
+from .traits import AnnotatableImpl, Scalable, Mirrorable
 from .traits import Rotatable, Positionable
-
-
-visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
 
 
 P = TypeVar('P', bound='Pattern')
 
 
-class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
+class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
-    __slots__ = ('shapes', 'labels', 'subpatterns', 'name')
+    __slots__ = ('shapes', 'labels', 'subpatterns')
 
     shapes: List[Shape]
     """ List of all shapes in this Pattern.
@@ -50,18 +46,13 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
       (i.e. multiple instances of the same object).
     """
 
-    name: str
-    """ A name for this pattern """
-
     def __init__(
             self,
-            name: str = '',
             *,
             shapes: Sequence[Shape] = (),
             labels: Sequence[Label] = (),
             subpatterns: Sequence[SubPattern] = (),
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             ) -> None:
         """
         Basic init; arguments get assigned to member variables.
@@ -71,10 +62,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             shapes: Initial shapes in the Pattern
             labels: Initial labels in the Pattern
             subpatterns: Initial subpatterns in the Pattern
-            name: An identifier for the Pattern
-            locked: Whether to lock the pattern after construction
         """
-        LockableImpl.unlock(self)
         if isinstance(shapes, list):
             self.shapes = shapes
         else:
@@ -91,40 +79,24 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self.subpatterns = list(subpatterns)
 
         self.annotations = annotations if annotations is not None else {}
-        self.name = name
-        self.set_locked(locked)
 
     def __copy__(self, memo: Dict = None) -> 'Pattern':
-        return Pattern(name=self.name,
-                       shapes=copy.deepcopy(self.shapes),
-                       labels=copy.deepcopy(self.labels),
-                       subpatterns=[copy.copy(sp) for sp in self.subpatterns],
-                       annotations=copy.deepcopy(self.annotations),
-                       locked=self.locked)
+        return Pattern(
+            shapes=copy.deepcopy(self.shapes),
+            labels=copy.deepcopy(self.labels),
+            subpatterns=[copy.copy(sp) for sp in self.subpatterns],
+            annotations=copy.deepcopy(self.annotations),
+            )
 
     def __deepcopy__(self, memo: Dict = None) -> 'Pattern':
         memo = {} if memo is None else memo
         new = Pattern(
-            name=self.name,
             shapes=copy.deepcopy(self.shapes, memo),
             labels=copy.deepcopy(self.labels, memo),
             subpatterns=copy.deepcopy(self.subpatterns, memo),
             annotations=copy.deepcopy(self.annotations, memo),
-            locked=self.locked)
+            )
         return new
-
-    def rename(self: P, name: str) -> P:
-        """
-        Chainable function for renaming the pattern.
-
-        Args:
-            name: The new name
-
-        Returns:
-            self
-        """
-        self.name = name
-        return self
 
     def append(self: P, other_pattern: P) -> P:
         """
@@ -144,10 +116,9 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def subset(
             self,
-            shapes_func: Callable[[Shape], bool] = None,
-            labels_func: Callable[[Label], bool] = None,
-            subpatterns_func: Callable[[SubPattern], bool] = None,
-            recursive: bool = False,
+            shapes: Callable[[Shape], bool] = None,
+            labels: Callable[[Label], bool] = None,
+            subpatterns: Callable[[SubPattern], bool] = None,
             ) -> 'Pattern':
         """
         Returns a Pattern containing only the entities (e.g. shapes) for which the
@@ -155,169 +126,24 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Self is _not_ altered, but shapes, labels, and subpatterns are _not_ copied.
 
         Args:
-            shapes_func: Given a shape, returns a boolean denoting whether the shape is a member
+            shapes: Given a shape, returns a boolean denoting whether the shape is a member
                 of the subset. Default always returns False.
-            labels_func: Given a label, returns a boolean denoting whether the label is a member
+            labels: Given a label, returns a boolean denoting whether the label is a member
                 of the subset. Default always returns False.
-            subpatterns_func: Given a subpattern, returns a boolean denoting if it is a member
+            subpatterns: Given a subpattern, returns a boolean denoting if it is a member
                 of the subset. Default always returns False.
-            recursive: If True, also calls .subset() recursively on patterns referenced by this
-                pattern.
 
         Returns:
             A Pattern containing all the shapes and subpatterns for which the parameter
                 functions return True
         """
-        def do_subset(src: Optional['Pattern']) -> Optional['Pattern']:
-            if src is None:
-                return None
-            pat = Pattern(name=src.name)
-            if shapes_func is not None:
-                pat.shapes = [s for s in src.shapes if shapes_func(s)]
-            if labels_func is not None:
-                pat.labels = [s for s in src.labels if labels_func(s)]
-            if subpatterns_func is not None:
-                pat.subpatterns = [s for s in src.subpatterns if subpatterns_func(s)]
-            return pat
-
-        if recursive:
-            pat = self.apply(do_subset)
-        else:
-            pat = do_subset(self)
-
-        assert(pat is not None)
-        return pat
-
-    def apply(
-            self,
-            func: Callable[[Optional['Pattern']], Optional['Pattern']],
-            memo: Optional[Dict[int, Optional['Pattern']]] = None,
-            ) -> Optional['Pattern']:
-        """
-        Recursively apply func() to this pattern and any pattern it references.
-        func() is expected to take and return a Pattern.
-        func() is first applied to the pattern as a whole, then any referenced patterns.
-        It is only applied to any given pattern once, regardless of how many times it is
-            referenced.
-
-        Args:
-            func: Function which accepts a Pattern, and returns a pattern.
-            memo: Dictionary used to avoid re-running on multiply-referenced patterns.
-                Stores `{id(pattern): func(pattern)}` for patterns which have already been processed.
-                Default `None` (no already-processed patterns).
-
-        Returns:
-            The result of applying func() to this pattern and all subpatterns.
-
-        Raises:
-            PatternError if called on a pattern containing a circular reference.
-        """
-        if memo is None:
-            memo = {}
-
-        pat_id = id(self)
-        if pat_id not in memo:
-            memo[pat_id] = None
-            pat = func(self)
-            if pat is not None:
-                for subpat in pat.subpatterns:
-                    if subpat.pattern is None:
-                        subpat.pattern = func(None)
-                    else:
-                        subpat.pattern = subpat.pattern.apply(func, memo)
-            memo[pat_id] = pat
-        elif memo[pat_id] is None:
-            raise PatternError('.apply() called on pattern with circular reference')
-        else:
-            pat = memo[pat_id]
-        return pat
-
-    def dfs(
-            self: P,
-            visit_before: visitor_function_t = None,
-            visit_after: visitor_function_t = None,
-            transform: Union[ArrayLike, bool, None] = False,
-            memo: Optional[Dict] = None,
-            hierarchy: Tuple[P, ...] = (),
-            ) -> P:
-        """
-        Convenience function.
-        Performs a depth-first traversal of this pattern and its subpatterns.
-        At each pattern in the tree, the following sequence is called:
-            ```
-            current_pattern = visit_before(current_pattern, **vist_args)
-            for sp in current_pattern.subpatterns]
-                sp.pattern = sp.pattern.df(visit_before, visit_after, updated_transform,
-                                           memo, (current_pattern,) + hierarchy)
-            current_pattern = visit_after(current_pattern, **visit_args)
-            ```
-          where `visit_args` are
-            `hierarchy`:  (top_pattern, L1_pattern, L2_pattern, ..., parent_pattern)
-                          tuple of all parent-and-higher patterns
-            `transform`:  numpy.ndarray containing cumulative
-                          [x_offset, y_offset, rotation (rad), mirror_x (0 or 1)]
-                          for the instance being visited
-            `memo`:  Arbitrary dict (not altered except by visit_*())
-
-        Args:
-            visit_before: Function to call before traversing subpatterns.
-                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
-                pattern. Default `None` (not called).
-            visit_after: Function to call after traversing subpatterns.
-                Should accept a Pattern and **visit_args, and return the (possibly modified)
-                pattern. Default `None` (not called).
-            transform: Initial value for `visit_args['transform']`.
-                Can be `False`, in which case the transform is not calculated.
-                `True` or `None` is interpreted as `[0, 0, 0, 0]`.
-            memo: Arbitrary dict for use by `visit_*()` functions. Default `None` (empty dict).
-            hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
-                Appended to the start of the generated `visit_args['hierarchy']`.
-                Default is an empty tuple.
-
-        Returns:
-            The result, including `visit_before(self, ...)` and `visit_after(self, ...)`.
-            Note that `self` may also be altered!
-        """
-        if memo is None:
-            memo = {}
-
-        if transform is None or transform is True:
-            transform = numpy.zeros(4)
-        elif transform is not False:
-            transform = numpy.array(transform)
-
-        if self in hierarchy:
-            raise PatternError('.dfs() called on pattern with circular reference')
-
-        pat = self
-        if visit_before is not None:
-            pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)        # type: ignore
-
-        for subpattern in self.subpatterns:
-            if transform is not False:
-                sign = numpy.ones(2)
-                if transform[3]:
-                    sign[1] = -1
-                xy = numpy.dot(rotation_matrix_2d(transform[2]), subpattern.offset * sign)
-                mirror_x, angle = normalize_mirror(subpattern.mirrored)
-                angle += subpattern.rotation
-                sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
-                sp_transform[3] %= 2
-            else:
-                sp_transform = False
-
-            if subpattern.pattern is not None:
-                result = subpattern.pattern.dfs(visit_before=visit_before,
-                                                visit_after=visit_after,
-                                                transform=sp_transform,
-                                                memo=memo,
-                                                hierarchy=hierarchy + (self,))
-                if result is not subpattern.pattern:
-                    # skip assignment to avoid PatternLockedError unless modified
-                    subpattern.pattern = result
-
-        if visit_after is not None:
-            pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
+        pat = Pattern()
+        if shapes is not None:
+            pat.shapes = [s for s in self.shapes if shapes(s)]
+        if labels is not None:
+            pat.labels = [s for s in self.labels if labels(s)]
+        if subpatterns is not None:
+            pat.subpatterns = [s for s in self.subpatterns if subpatterns(s)]
         return pat
 
     def polygonize(
@@ -326,8 +152,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             poly_max_arclen: Optional[float] = None,
             ) -> P:
         """
-        Calls `.to_polygons(...)` on all the shapes in this Pattern and any referenced patterns,
-         replacing them with the returned polygons.
+        Calls `.to_polygons(...)` on all the shapes in this Pattern, replacing them with the returned polygons.
         Arguments are passed directly to `shape.to_polygons(...)`.
 
         Args:
@@ -341,12 +166,9 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self
         """
         old_shapes = self.shapes
-        self.shapes = list(chain.from_iterable(
-            (shape.to_polygons(poly_num_points, poly_max_arclen)
-             for shape in old_shapes)))
-        for subpat in self.subpatterns:
-            if subpat.pattern is not None:
-                subpat.pattern.polygonize(poly_num_points, poly_max_arclen)
+        self.shapes = list(chain.from_iterable((
+            shape.to_polygons(poly_num_points, poly_max_arclen)
+            for shape in old_shapes)))
         return self
 
     def manhattanize(
@@ -355,7 +177,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             grid_y: ArrayLike,
             ) -> P:
         """
-        Calls `.polygonize()` and `.flatten()` on the pattern, then calls `.manhattanize()` on all the
+        Calls `.polygonize()` on the pattern, then calls `.manhattanize()` on all the
          resulting shapes, replacing them with the returned Manhattan polygons.
 
         Args:
@@ -366,84 +188,13 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self
         """
 
-        self.polygonize().flatten()
+        self.polygonize()
         old_shapes = self.shapes
         self.shapes = list(chain.from_iterable(
             (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
-    def subpatternize(
-            self: P,
-            recursive: bool = True,
-            norm_value: int = int(1e6),
-            exclude_types: Tuple[Type] = (Polygon,)
-            ) -> P:
-        """
-        Iterates through this `Pattern` and all referenced `Pattern`s. Within each `Pattern`, it iterates
-         over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
-         offset-, dose-, and rotation-independent form. Each shape whose normalized form appears
-         more than once is removed and re-added using subpattern objects referencing a newly-created
-         `Pattern` containing only the normalized form of the shape.
-
-        Note:
-            The default norm_value was chosen to give a reasonable precision when converting
-            to GDSII, which uses integer values for pixel coordinates.
-
-        Args:
-            recursive: Whether to call recursively on self's subpatterns. Default `True`.
-            norm_value: Passed to `shape.normalized_form(norm_value)`. Default `1e6` (see function
-                note about GDSII)
-            exclude_types: Shape types passed in this argument are always left untouched, for
-                speed or convenience. Default: `(shapes.Polygon,)`
-
-        Returns:
-            self
-        """
-
-        if exclude_types is None:
-            exclude_types = ()
-
-        if recursive:
-            for subpat in self.subpatterns:
-                if subpat.pattern is None:
-                    continue
-                subpat.pattern.subpatternize(recursive=True,
-                                             norm_value=norm_value,
-                                             exclude_types=exclude_types)
-
-        # Create a dict which uses the label tuple from `.normalized_form()` as a key, and which
-        #  stores `(function_to_create_normalized_shape, [(index_in_shapes, values), ...])`, where
-        #  values are the `(offset, scale, rotation, dose)` values as calculated by `.normalized_form()`
-        shape_table: MutableMapping[Tuple, List] = defaultdict(lambda: [None, list()])
-        for i, shape in enumerate(self.shapes):
-            if not any((isinstance(shape, t) for t in exclude_types)):
-                label, values, func = shape.normalized_form(norm_value)
-                shape_table[label][0] = func
-                shape_table[label][1].append((i, values))
-
-        # Iterate over the normalized shapes in the table. If any normalized shape occurs more than
-        #  once, create a `Pattern` holding a normalized shape object, and add `self.subpatterns`
-        #  entries for each occurrence in self. Also, note down that we should delete the
-        #  `self.shapes` entries for which we made SubPatterns.
-        shapes_to_remove = []
-        for label in shape_table:
-            if len(shape_table[label][1]) > 1:
-                shape = shape_table[label][0]()
-                pat = Pattern(shapes=[shape])
-
-                for i, values in shape_table[label][1]:
-                    (offset, scale, rotation, mirror_x, dose) = values
-                    self.addsp(pattern=pat, offset=offset, scale=scale,
-                               rotation=rotation, dose=dose, mirrored=(mirror_x, False))
-                    shapes_to_remove.append(i)
-
-        # Remove any shapes for which we have created subpatterns.
-        for i in sorted(shapes_to_remove, reverse=True):
-            del self.shapes[i]
-
-        return self
-
-    def as_polygons(self) -> List[NDArray[numpy.float64]]:
+    def as_polygons(self, library: Mapping[str, Pattern]) -> List[NDArray[numpy.float64]]:
         """
         Represents the pattern as a list of polygons.
 
@@ -454,95 +205,22 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             A list of `(Ni, 2)` `numpy.ndarray`s specifying vertices of the polygons. Each ndarray
              is of the form `[[x0, y0], [x1, y1],...]`.
         """
-        pat = self.deepcopy().deepunlock().polygonize().flatten()
+        pat = self.deepcopy().polygonize().flatten(library=library)
         return [shape.vertices + shape.offset for shape in pat.shapes]      # type: ignore      # mypy can't figure out that shapes are all Polygons now
 
-    @overload
-    def referenced_patterns_by_id(self) -> Dict[int, 'Pattern']:
-        pass
-
-    @overload
-    def referenced_patterns_by_id(self, include_none: bool) -> Dict[int, Optional['Pattern']]:
-        pass
-
-    def referenced_patterns_by_id(
-            self,
-            include_none: bool = False,
-            recursive: bool = True,
-            ) -> Union[Dict[int, Optional['Pattern']],
-                       Dict[int, 'Pattern']]:
-
+    def referenced_patterns(self) -> Set[Optional[str]]:
         """
-        Create a dictionary with `{id(pat): pat}` for all Pattern objects referenced by this
-         Pattern (by default, operates recursively on all referenced Patterns as well).
-
-        Args:
-            include_none: If `True`, references to `None` will be included. Default `False`.
-            recursive: If `True`, operates recursively on all referenced patterns. Default `True`.
+        Get all pattern namers referenced by this pattern. Non-recursive.
 
         Returns:
-            Dictionary with `{id(pat): pat}` for all referenced Pattern objects
+            A set of all pattern names referenced by this pattern.
         """
-        ids: Dict[int, Optional['Pattern']] = {}
-        for subpat in self.subpatterns:
-            pat = subpat.pattern
-            if id(pat) in ids:
-                continue
-            if include_none or pat is not None:
-                ids[id(pat)] = pat
-            if recursive and pat is not None:
-                ids.update(pat.referenced_patterns_by_id())
-        return ids
+        return set(sp.target for sp in self.subpatterns)
 
-    def referenced_patterns_by_name(
+    def get_bounds(
             self,
-            **kwargs: Any,
-            ) -> List[Tuple[Optional[str], Optional['Pattern']]]:
-        """
-        Create a list of `(pat.name, pat)` tuples for all Pattern objects referenced by this
-         Pattern (operates recursively on all referenced Patterns as well).
-
-        Note that names are not necessarily unique, so a list of tuples is returned
-         rather than a dict.
-
-        Args:
-            **kwargs: passed to `referenced_patterns_by_id()`.
-
-        Returns:
-            List of `(pat.name, pat)` tuples for all referenced Pattern objects
-        """
-        pats_by_id = self.referenced_patterns_by_id(**kwargs)
-        pat_list: List[Tuple[Optional[str], Optional['Pattern']]]
-        pat_list = [(p.name if p is not None else None, p) for p in pats_by_id.values()]
-        return pat_list
-
-    def subpatterns_by_id(
-            self,
-            include_none: bool = False,
-            recursive: bool = True,
-            ) -> Dict[int, List[SubPattern]]:
-        """
-        Create a dictionary which maps `{id(referenced_pattern): [subpattern0, ...]}`
-         for all SubPattern objects referenced by this Pattern (by default, operates
-         recursively on all referenced Patterns as well).
-
-        Args:
-            include_none: If `True`, references to `None` will be included. Default `False`.
-            recursive: If `True`, operates recursively on all referenced patterns. Default `True`.
-
-        Returns:
-            Dictionary mapping each pattern id to a list of subpattern objects referencing the pattern.
-        """
-        ids: Dict[int, List[SubPattern]] = defaultdict(list)
-        for subpat in self.subpatterns:
-            pat = subpat.pattern
-            if include_none or pat is not None:
-                ids[id(pat)].append(subpat)
-            if recursive and pat is not None:
-                ids.update(pat.subpatterns_by_id(include_none=include_none))
-        return dict(ids)
-
-    def get_bounds(self) -> Union[NDArray[numpy.float64], None]:
+            library: Optional[Mapping[str, 'Pattern']] = None,
+            ) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the Pattern's contents in each dimension.
@@ -557,118 +235,41 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         min_bounds = numpy.array((+inf, +inf))
         max_bounds = numpy.array((-inf, -inf))
 
-        for entry in chain(self.shapes, self.subpatterns, self.labels):
+        for entry in chain(self.shapes, self.labels):
             bounds = entry.get_bounds()
             if bounds is None:
                 continue
             min_bounds = numpy.minimum(min_bounds, bounds[0, :])
             max_bounds = numpy.maximum(max_bounds, bounds[1, :])
+
+        if self.subpatterns and (library is None):
+            raise PatternError('Must provide a library to get_bounds() to resolve subpatterns')
+
+        for entry in self.subpatterns:
+            bounds = entry.get_bounds(library=library)
+            if bounds is None:
+                continue
+            min_bounds = numpy.minimum(min_bounds, bounds[0, :])
+            max_bounds = numpy.maximum(max_bounds, bounds[1, :])
+
         if (max_bounds < min_bounds).any():
             return None
         else:
             return numpy.vstack((min_bounds, max_bounds))
 
-    def get_bounds_nonempty(self) -> NDArray[numpy.float64]:
+    def get_bounds_nonempty(
+            self,
+            library: Optional[Mapping[str, 'Pattern']] = None,
+            ) -> NDArray[numpy.float64]:
         """
         Convenience wrapper for `get_bounds()` which asserts that the Pattern as non-None bounds.
 
         Returns:
             `[[x_min, y_min], [x_max, y_max]]`
         """
-        bounds = self.get_bounds()
+        bounds = self.get_bounds(library)
         assert(bounds is not None)
         return bounds
-
-    def flatten(self: P) -> P:
-        """
-        Removes all subpatterns and adds equivalent shapes.
-        Also flattens all subpatterns.
-        Modifies patterns in-place.
-
-        Shape/label identifiers are changed to represent their original position in the
-         pattern hierarchy:
-         `(L1_sp_index (int), L2_sp_index (int), ..., sh_index (int), *original_shape_identifier)`
-         where the original shape can be accessed as e.g.
-            `self.subpatterns[L1_sp_index].pattern.subpatterns[L2_sp_index].shapes[L1_sh_index]`
-
-        Returns:
-            self
-        """
-        def flatten_single(pat: P, flattened: Set[P]) -> P:
-            # Update identifiers so each shape has a unique one
-            for ss, shape in enumerate(pat.shapes):
-                shape.identifier = (ss,) + shape.identifier
-            for ll, label in enumerate(pat.labels):
-                label.identifier = (ll,) + label.identifier
-
-            for pp, subpat in enumerate(pat.subpatterns):
-                if subpat.pattern is None:
-                    continue
-
-                if subpat.pattern not in flattened:
-                    flatten_single(subpat.pattern, flattened)
-                    flattened.add(subpat.pattern)
-
-                p = subpat.as_pattern()
-                for item in chain(p.shapes, p.labels):
-                    item.identifier = (pp,) + item.identifier
-                pat.append(p)
-
-            pat.subpatterns = []
-            return pat
-
-        flatten_single(self, set())
-        return self
-
-    def wrap_repeated_shapes(
-            self: P,
-            name_func: Callable[['Pattern', Union[Shape, Label]], str] = lambda p, s: '_repetition',
-            recursive: bool = True,
-            ) -> P:
-        """
-        Wraps all shapes and labels with a non-`None` `repetition` attribute
-          into a `SubPattern`/`Pattern` combination, and applies the `repetition`
-          to each `SubPattern` instead of its contained shape.
-
-        Args:
-            name_func: Function f(this_pattern, shape) which generates a name for the
-                        wrapping pattern. Default always returns '_repetition'.
-            recursive: If `True`, this function is also applied to all referenced patterns
-                        recursively. Default `True`.
-
-        Returns:
-            self
-        """
-        def do_wrap(pat: Optional[Pattern]) -> Optional[Pattern]:
-            if pat is None:
-                return pat
-
-            new_shapes = []
-            for shape in pat.shapes:
-                if shape.repetition is None:
-                    new_shapes.append(shape)
-                    continue
-                pat.addsp(Pattern(name_func(pat, shape), shapes=[shape]), repetition=shape.repetition)
-                shape.repetition = None
-            pat.shapes = new_shapes
-
-            new_labels = []
-            for label in pat.labels:
-                if label.repetition is None:
-                    new_labels.append(label)
-                    continue
-                pat.addsp(Pattern(name_func(pat, label), labels=[label]), repetition=label.repetition)
-                label.repetition = None
-            pat.labels = new_labels
-
-            return pat
-
-        if recursive:
-            self.apply(do_wrap)
-        else:
-            do_wrap(self)
-
-        return self
 
     def translate_elements(self: P, offset: ArrayLike) -> P:
         """
@@ -872,98 +473,51 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.subpatterns.append(SubPattern(*args, **kwargs))
         return self
 
-    def lock(self: P) -> P:
+    def flatten(
+            self: P,
+            library: Mapping[str, P],
+            ) -> 'Pattern':
         """
-        Lock the pattern, raising an exception if it is modified.
-        Also see `deeplock()`.
-
-        Returns:
-            self
-        """
-        if not self.locked:
-            self.shapes = tuple(self.shapes)
-            self.labels = tuple(self.labels)
-            self.subpatterns = tuple(self.subpatterns)
-            LockableImpl.lock(self)
-        return self
-
-    def unlock(self: P) -> P:
-        """
-        Unlock the pattern
-
-        Returns:
-            self
-        """
-        if self.locked:
-            LockableImpl.unlock(self)
-            self.shapes = list(self.shapes)
-            self.labels = list(self.labels)
-            self.subpatterns = list(self.subpatterns)
-        return self
-
-    def deeplock(self: P) -> P:
-        """
-        Recursively lock the pattern, all referenced shapes, subpatterns, and labels.
-
-        Returns:
-            self
-        """
-        self.lock()
-        for ss in chain(self.shapes, self.labels):
-            ss.lock()       # type: ignore      # mypy struggles with multiple inheritance :(
-        for sp in self.subpatterns:
-            sp.deeplock()
-        return self
-
-    def deepunlock(self: P) -> P:
-        """
-        Recursively unlock the pattern, all referenced shapes, subpatterns, and labels.
-
-        This is dangerous unless you have just performed a deepcopy, since anything
-          you change will be changed everywhere it is referenced!
-
-        Return:
-            self
-        """
-        self.unlock()
-        for ss in chain(self.shapes, self.labels):
-            ss.unlock()       # type: ignore      # mypy struggles with multiple inheritance :(
-        for sp in self.subpatterns:
-            sp.deepunlock()
-        return self
-
-    @staticmethod
-    def load(filename: str) -> 'Pattern':
-        """
-        Load a Pattern from a file using pickle
+        Removes all subpatterns (recursively) and adds equivalent shapes.
+        Alters the current pattern in-place
 
         Args:
-            filename: Filename to load from
-
-        Returns:
-            Loaded Pattern
-        """
-        with open(filename, 'rb') as f:
-            pattern = pickle.load(f)
-
-        return pattern
-
-    def save(self, filename: str) -> 'Pattern':
-        """
-        Save the Pattern to a file using pickle
-
-        Args:
-            filename: Filename to save to
+            library: Source for referenced patterns.
 
         Returns:
             self
         """
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+        flattened: Dict[Optional[str], Optional[P]] = {}
+
+        def flatten_single(name: Optional[str]) -> None:
+            if name is None:
+                pat = self
+            else:
+                pat = library[name].deepcopy()
+                flattened[name] = None
+
+            for subpat in pat.subpatterns:
+                target = subpat.target
+                if target is None:
+                    continue
+
+                if target not in flattened:
+                    flatten_single(target)
+                if flattened[target] is None:
+                    raise PatternError(f'Circular reference in {name} to {target}')
+
+                p = subpat.as_pattern(pattern=flattened[target])
+                pat.append(p)
+
+            pat.subpatterns.clear()
+            flattened[name] = pat
+
+        flatten_single(None)
         return self
 
     def visualize(
-            self,
+            self: P,
+            library: Optional[Mapping[str, P]] = None,
             offset: ArrayLike = (0., 0.),
             line_color: str = 'k',
             fill_color: str = 'none',
@@ -987,6 +541,9 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         from matplotlib import pyplot       # type: ignore
         import matplotlib.collections       # type: ignore
 
+        if self.subpatterns and library is None:
+            raise PatternError('Must provide a library when visualizing a pattern with subpatterns')
+
         offset = numpy.array(offset, dtype=float)
 
         if not overdraw:
@@ -1001,50 +558,27 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         for shape in self.shapes:
             polygons += [offset + s.offset + s.vertices for s in shape.to_polygons()]
 
-        mpl_poly_collection = matplotlib.collections.PolyCollection(polygons,
-                                                                    facecolors=fill_color,
-                                                                    edgecolors=line_color)
+        mpl_poly_collection = matplotlib.collections.PolyCollection(
+            polygons,
+            facecolors=fill_color,
+            edgecolors=line_color,
+            )
         axes.add_collection(mpl_poly_collection)
         pyplot.axis('equal')
 
         for subpat in self.subpatterns:
-            subpat.as_pattern().visualize(offset=offset, overdraw=True,
-                                          line_color=line_color, fill_color=fill_color)
+            subpat.as_pattern(library=library).visualize(
+                library=library,
+                offset=offset,
+                overdraw=True,
+                line_color=line_color,
+                fill_color=fill_color,
+                )
 
         if not overdraw:
             pyplot.xlabel('x')
             pyplot.ylabel('y')
             pyplot.show()
 
-    @staticmethod
-    def find_toplevel(patterns: Iterable['Pattern']) -> List['Pattern']:
-        """
-        Given a list of Pattern objects, return those that are not referenced by
-         any other pattern.
-
-        Args:
-            patterns: A list of patterns to filter.
-
-        Returns:
-            A filtered list in which no pattern is referenced by any other pattern.
-        """
-        def get_children(pat: Pattern, memo: Set) -> Set:
-            children = set(sp.pattern for sp in pat.subpatterns if sp.pattern is not None)
-            new_children = children - memo
-            memo |= new_children
-
-            for child_pat in new_children:
-                memo |= get_children(child_pat, memo)
-            return memo
-
-        patterns = set(patterns)
-        not_toplevel: Set['Pattern'] = set()
-        for pattern in patterns:
-            not_toplevel |= get_children(pattern, not_toplevel)
-
-        toplevel = list(patterns - not_toplevel)
-        return toplevel
-
     def __repr__(self) -> str:
-        locked = ' L' if self.locked else ''
-        return (f'<Pattern "{self.name}": sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)}{locked}>')
+        return (f'<Pattern: sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)}>')

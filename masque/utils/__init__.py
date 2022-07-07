@@ -5,6 +5,7 @@ from .types import layer_t, annotations_t
 
 from .array import is_scalar
 from .autoslots import AutoSlots
+from .deferreddict import DeferredDict
 
 from .bitwise import get_bit, set_bit
 from .vertices import (

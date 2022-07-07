@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Dict, Tuple, Optional, Sequence, TYPE_CHECKING, Any, TypeVar
+from typing import Dict, Tuple, Optional, Sequence, Mapping, TYPE_CHECKING, Any, TypeVar
 import copy
 
 import numpy
@@ -14,9 +14,10 @@ from numpy.typing import NDArray, ArrayLike
 from .error import PatternError
 from .utils import is_scalar, AutoSlots, annotations_t
 from .repetition import Repetition
-from .traits import (PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
-                     Mirrorable, PivotableImpl, Copyable, LockableImpl, RepeatableImpl,
-                     AnnotatableImpl)
+from .traits import (
+    PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
+    Mirrorable, PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
+    )
 
 
 if TYPE_CHECKING:
@@ -27,19 +28,16 @@ S = TypeVar('S', bound='SubPattern')
 
 
 class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
-                 PivotableImpl, Copyable, RepeatableImpl, LockableImpl, AnnotatableImpl,
+                 PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
                  metaclass=AutoSlots):
     """
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('_pattern',
-                 '_mirrored',
-                 'identifier',
-                 )
+    __slots__ = ('_target', '_mirrored', 'identifier')
 
-    _pattern: Optional['Pattern']
-    """ The `Pattern` being instanced """
+    _target: Optional[str]
+    """ The name of the `Pattern` being instanced """
 
     _mirrored: NDArray[numpy.bool_]
     """ Whether to mirror the instance across the x and/or y axes. """
@@ -49,7 +47,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
 
     def __init__(
             self,
-            pattern: Optional['Pattern'],
+            target: Optional[str],
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
@@ -58,24 +56,21 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             scale: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             identifier: Tuple[Any, ...] = (),
             ) -> None:
         """
         Args:
-            pattern: Pattern to reference.
+            target: Name of the Pattern to reference.
             offset: (x, y) offset applied to the referenced pattern. Not affected by rotation etc.
             rotation: Rotation (radians, counterclockwise) relative to the referenced pattern's (0, 0).
             mirrored: Whether to mirror the referenced pattern across its x and y axes.
             dose: Scaling factor applied to the dose.
             scale: Scaling factor applied to the pattern's geometry.
-            repetition: TODO
-            locked: Whether the `SubPattern` is locked after initialization.
+            repetition: `Repetition` object, default `None`
             identifier: Arbitrary tuple, used internally by some `masque` functions.
         """
-        LockableImpl.unlock(self)
         self.identifier = identifier
-        self.pattern = pattern
+        self.target = target
         self.offset = offset
         self.rotation = rotation
         self.dose = dose
@@ -85,41 +80,37 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         self.mirrored = mirrored
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
-        self.set_locked(locked)
 
     def __copy__(self) -> 'SubPattern':
-        new = SubPattern(pattern=self.pattern,
-                         offset=self.offset.copy(),
-                         rotation=self.rotation,
-                         dose=self.dose,
-                         scale=self.scale,
-                         mirrored=self.mirrored.copy(),
-                         repetition=copy.deepcopy(self.repetition),
-                         annotations=copy.deepcopy(self.annotations),
-                         locked=self.locked)
+        new = SubPattern(
+            target=self.target,
+            offset=self.offset.copy(),
+            rotation=self.rotation,
+            dose=self.dose,
+            scale=self.scale,
+            mirrored=self.mirrored.copy(),
+            repetition=copy.deepcopy(self.repetition),
+            annotations=copy.deepcopy(self.annotations),
+            )
         return new
 
     def __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        LockableImpl.unlock(new)
-        new.pattern = copy.deepcopy(self.pattern, memo)
         new.repetition = copy.deepcopy(self.repetition, memo)
         new.annotations = copy.deepcopy(self.annotations, memo)
-        new.set_locked(self.locked)
         return new
 
-    # pattern property
+    # target property
     @property
-    def pattern(self) -> Optional['Pattern']:
-        return self._pattern
+    def target(self) -> Optional[str]:
+        return self._target
 
-    @pattern.setter
-    def pattern(self, val: Optional['Pattern']) -> None:
-        from .pattern import Pattern
-        if val is not None and not isinstance(val, Pattern):
-            raise PatternError(f'Provided pattern {val} is not a Pattern object or None!')
-        self._pattern = val
+    @target.setter
+    def target(self, val: Optional[str]) -> None:
+        if val is not None and not isinstance(val, str):
+            raise PatternError(f'Provided target {val} is not a str or None!')
+        self._target = val
 
     # Mirrored property
     @property
@@ -132,14 +123,31 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             raise PatternError('Mirrored must be a 2-element list of booleans')
         self._mirrored = numpy.array(val, dtype=bool, copy=True)
 
-    def as_pattern(self) -> 'Pattern':
+    def as_pattern(
+            self,
+            *,
+            pattern: Optional[Pattern] = None,
+            library: Optional[Mapping[str, Pattern]] = None,
+            ) -> 'Pattern':
         """
+        Args:
+            pattern: Pattern object to transform
+            library: A str->Pattern mapping, used instead of `pattern`. Must contain
+                `self.target`.
+
         Returns:
-            A copy of self.pattern which has been scaled, rotated, etc. according to this
-             `SubPattern`'s properties.
+            A copy of the referenced Pattern which has been scaled, rotated, etc.
+             according to this `SubPattern`'s properties.
         """
-        assert(self.pattern is not None)
-        pattern = self.pattern.deepcopy().deepunlock()
+        if pattern is None:
+            if library is None:
+                raise PatternError('as_pattern() must be given a pattern or library.')
+
+            assert(self.target is not None)
+            pattern = library[self.target]
+
+        pattern = pattern.deepcopy()
+
         if self.scale != 1:
             pattern.scale_by(self.scale)
         if numpy.any(self.mirrored):
@@ -152,7 +160,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             pattern.scale_element_doses(self.dose)
 
         if self.repetition is not None:
-            combined = type(pattern)(name='__repetition__')
+            combined = type(pattern)()
             for dd in self.repetition.displacements:
                 temp_pat = pattern.deepcopy()
                 temp_pat.translate_elements(dd)
@@ -174,75 +182,33 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             self.repetition.mirror(axis)
         return self
 
-    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
+    def get_bounds(
+            self,
+            *,
+            pattern: Optional[Pattern] = None,
+            library: Optional[Mapping[str, Pattern]] = None,
+            ) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `SubPattern` in each dimension.
         Returns `None` if the contained `Pattern` is empty.
 
+        Args:
+            library: Name-to-Pattern mapping for resul
+
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
-        if self.pattern is None:
+        if pattern is None and library is None:
+            raise PatternError('as_pattern() must be given a pattern or library.')
+        if pattern is None and self.target is None:
             return None
-        return self.as_pattern().get_bounds()
-
-    def lock(self: S) -> S:
-        """
-        Lock the SubPattern, disallowing changes
-
-        Returns:
-            self
-        """
-        self.mirrored.flags.writeable = False
-        PositionableImpl._lock(self)
-        LockableImpl.lock(self)
-        return self
-
-    def unlock(self: S) -> S:
-        """
-        Unlock the SubPattern
-
-        Returns:
-            self
-        """
-        LockableImpl.unlock(self)
-        PositionableImpl._unlock(self)
-        self.mirrored.flags.writeable = True
-        return self
-
-    def deeplock(self: S) -> S:
-        """
-        Recursively lock the SubPattern and its contained pattern
-
-        Returns:
-            self
-        """
-        assert(self.pattern is not None)
-        self.lock()
-        self.pattern.deeplock()
-        return self
-
-    def deepunlock(self: S) -> S:
-        """
-        Recursively unlock the SubPattern and its contained pattern
-
-        This is dangerous unless you have just performed a deepcopy, since
-        the subpattern and its components may be used in more than one once!
-
-        Returns:
-            self
-        """
-        assert(self.pattern is not None)
-        self.unlock()
-        self.pattern.deepunlock()
-        return self
+        return self.as_pattern(pattern=pattern, library=library).get_bounds()
 
     def __repr__(self) -> str:
-        name = self.pattern.name if self.pattern is not None else None
+        name = f'"{self.target}"' if self.target is not None else None
         rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
         scale = f' d{self.scale:g}' if self.scale != 1 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
-        return f'<SubPattern "{name}" at {self.offset}{rotation}{scale}{mirrored}{dose}{locked}>'
+        return f'<SubPattern {name} at {self.offset}{rotation}{scale}{mirrored}{dose}>'

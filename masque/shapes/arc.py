@@ -10,7 +10,6 @@ from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
-from ..traits import LockableImpl
 
 
 class Arc(Shape, metaclass=AutoSlots):
@@ -166,10 +165,8 @@ class Arc(Shape, metaclass=AutoSlots):
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             raw: bool = False,
             ) -> None:
-        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             assert(isinstance(radii, numpy.ndarray))
@@ -197,17 +194,14 @@ class Arc(Shape, metaclass=AutoSlots):
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.set_locked(locked)
 
     def __deepcopy__(self, memo: Dict = None) -> 'Arc':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._radii = self._radii.copy()
         new._angles = self._angles.copy()
         new._annotations = copy.deepcopy(self._annotations)
-        new.set_locked(self.locked)
         return new
 
     def to_polygons(
@@ -429,21 +423,8 @@ class Arc(Shape, metaclass=AutoSlots):
             a.append((a0, a1))
         return numpy.array(a)
 
-    def lock(self) -> 'Arc':
-        self.radii.flags.writeable = False
-        self.angles.flags.writeable = False
-        Shape.lock(self)
-        return self
-
-    def unlock(self) -> 'Arc':
-        Shape.unlock(self)
-        self.radii.flags.writeable = True
-        self.angles.flags.writeable = True
-        return self
-
     def __repr__(self) -> str:
         angles = f' a°{numpy.rad2deg(self.angles)}'
         rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
-        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}{dose}{locked}>'
+        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}{dose}>'

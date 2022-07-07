@@ -1,7 +1,7 @@
 """
 DXF file format readers and writers
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping
 import re
 import io
 import base64
@@ -10,7 +10,7 @@ import logging
 import pathlib
 import gzip
 
-import numpy        # type: ignore
+import numpy
 import ezdxf        # type: ignore
 
 from .. import Pattern, SubPattern, PatternError, Label, Shape
@@ -29,12 +29,13 @@ DEFAULT_LAYER = 'DEFAULT'
 
 
 def write(
-        pattern: Pattern,
+        top_name: str,
+        library: Mapping[str, Pattern],
         stream: io.TextIOBase,
         *,
         modify_originals: bool = False,
         dxf_version='AC1024',
-        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> None:
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
@@ -60,10 +61,12 @@ def write(
      array with rotated instances must be manhattan _after_ having a compensating rotation applied.
 
     Args:
-        patterns: A Pattern or list of patterns to write to the stream.
+        top_name: Name of the top-level pattern to write.
+        library: A {name: Pattern} mapping of patterns. Only `top_name` and patterns referenced
+            by it are written.
         stream: Stream object to write to.
         modify_original: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
@@ -75,11 +78,14 @@ def write(
     assert(disambiguate_func is not None)
 
     if not modify_originals:
-        pattern = pattern.deepcopy().deepunlock()
+        library = library.deepcopy()
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = pattern.referenced_patterns_by_id()
-    disambiguate_func(patterns_by_id.values())
+    pattern = library[top_name]
+
+    old_names = list(library.keys())
+    new_names = disambiguate_func(old_names)
+    renamed_lib = {new_name: library[old_name]
+                   for old_name, new_name in zip(old_names, new_names)}
 
     # Create library
     lib = ezdxf.new(dxf_version, setup=True)
@@ -89,9 +95,9 @@ def write(
     _subpatterns_to_refs(msp, pattern.subpatterns)
 
     # Now create a block for each referenced pattern, and add in any shapes
-    for pat in patterns_by_id.values():
+    for name, pat in renamed_lib.items():
         assert(pat is not None)
-        block = lib.blocks.new(name=pat.name)
+        block = lib.blocks.new(name=name)
 
         _shapes_to_elements(block, pat.shapes)
         _labels_to_texts(block, pat.labels)
@@ -101,7 +107,8 @@ def write(
 
 
 def writefile(
-        pattern: Pattern,
+        top_name: str,
+        library: Mapping[str, Pattern],
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
@@ -112,7 +119,9 @@ def writefile(
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
-        pattern: `Pattern` to save
+        top_name: Name of the top-level pattern to write.
+        library: A {name: Pattern} mapping of patterns. Only `top_name` and patterns referenced
+            by it are written.
         filename: Filename to save to.
         *args: passed to `dxf.write`
         **kwargs: passed to `dxf.write`
@@ -124,7 +133,7 @@ def writefile(
         open_func = open
 
     with open_func(path, mode='wt') as stream:
-        write(pattern, stream, *args, **kwargs)
+        write(top_name, library, stream, *args, **kwargs)
 
 
 def readfile(
@@ -156,7 +165,7 @@ def readfile(
 def read(
         stream: io.TextIOBase,
         clean_vertices: bool = True,
-        ) -> Tuple[Pattern, Dict[str, Any]]:
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -176,26 +185,20 @@ def read(
     lib = ezdxf.read(stream)
     msp = lib.modelspace()
 
-    pat = _read_block(msp, clean_vertices)
-    patterns = [pat] + [_read_block(bb, clean_vertices) for bb in lib.blocks if bb.name != '*Model_Space']
-
-    # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
-    #  according to the subpattern.identifier (which is deleted after use).
-    patterns_dict = dict(((p.name, p) for p in patterns))
-    for p in patterns_dict.values():
-        for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.identifier[0]]
-            del sp.identifier
+    npat = _read_block(msp, clean_vertices)
+    patterns_dict = dict([npat]
+        + [_read_block(bb, clean_vertices) for bb in lib.blocks if bb.name != '*Model_Space'])
 
     library_info = {
         'layers': [ll.dxfattribs() for ll in lib.layers]
         }
 
-    return pat, library_info
+    return patterns_dict, library_info
 
 
-def _read_block(block, clean_vertices: bool) -> Pattern:
-    pat = Pattern(block.name)
+def _read_block(block, clean_vertices: bool) -> Tuple[str, Pattern]:
+    name = block.name
+    pat = Pattern()
     for element in block:
         eltype = element.dxftype()
         if eltype in ('POLYLINE', 'LWPOLYLINE'):
@@ -258,12 +261,12 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
             offset = numpy.array(attr.get('insert', (0, 0, 0)))[:2]
 
             args = {
+                'target': (attr.get('name', None),),
                 'offset': offset,
                 'scale': scale,
                 'mirrored': mirrored,
                 'rotation': rotation,
                 'pattern': None,
-                'identifier': (attr.get('name', None),),
                 }
 
             if 'column_count' in attr:
@@ -274,7 +277,7 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
             pat.subpatterns.append(SubPattern(**args))
         else:
             logger.warning(f'Ignoring DXF element {element.dxftype()} (not implemented).')
-    return pat
+    return name, pat
 
 
 def _subpatterns_to_refs(
@@ -282,9 +285,9 @@ def _subpatterns_to_refs(
         subpatterns: List[SubPattern],
         ) -> None:
     for subpat in subpatterns:
-        if subpat.pattern is None:
+        if subpat.target is None:
             continue
-        encoded_name = subpat.pattern.name
+        encoded_name = subpat.target
 
         rotation = (subpat.rotation * 180 / numpy.pi) % 360
         attribs = {
@@ -360,18 +363,24 @@ def _mlayer2dxf(layer: layer_t) -> str:
 
 
 def disambiguate_pattern_names(
-        patterns: Iterable[Pattern],
+        names: Iterable[str],
         max_name_length: int = 32,
         suffix_length: int = 6,
-        dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
-        ) -> None:
-    used_names = []
-    for pat in patterns:
-        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+        ) -> List[str]:
+    """
+    Args:
+        names: List of pattern names to disambiguate
+        max_name_length: Names longer than this will be truncated
+        suffix_length: Names which get truncated are truncated by this many extra characters. This is to
+            leave room for a suffix if one is necessary.
+    """
+    new_names = []
+    for name in names:
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', name)
 
         i = 0
         suffixed_name = sanitized_name
-        while suffixed_name in used_names or suffixed_name == '':
+        while suffixed_name in new_names or suffixed_name == '':
             suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
@@ -380,17 +389,16 @@ def disambiguate_pattern_names(
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+            if dup_warn_filter is None or dup_warn_filter(name):
+                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
                                + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize,\n originally "{pat.name}"')
+            raise PatternError(f'Zero-length name after sanitize,\n originally "{name}"')
         if len(suffixed_name) > max_name_length:
             raise PatternError(f'Pattern name "{suffixed_name!r}" length > {max_name_length} after encode,\n'
-                               + f' originally "{pat.name}"')
+                               + f' originally "{name}"')
 
-        pat.name = suffixed_name
-        used_names.append(suffixed_name)
-
+        new_names.append(suffixed_name)
+    return new_names

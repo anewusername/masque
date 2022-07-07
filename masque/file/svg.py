@@ -1,7 +1,7 @@
 """
 SVG file format readers and writers
 """
-from typing import Dict, Optional
+from typing import Dict, Optional, Mapping
 import warnings
 
 import numpy
@@ -13,7 +13,8 @@ from .. import Pattern
 
 
 def writefile(
-        pattern: Pattern,
+        library: Mapping[str, Pattern],
+        top: str,
         filename: str,
         custom_attributes: bool = False,
         ) -> None:
@@ -41,11 +42,12 @@ def writefile(
         custom_attributes: Whether to write non-standard `pattern_layer` and
             `pattern_dose` attributes to the SVG elements.
     """
+    pattern = library[top]
 
     # Polygonize pattern
     pattern.polygonize()
 
-    bounds = pattern.get_bounds()
+    bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
         warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')
@@ -59,15 +61,10 @@ def writefile(
     svg = svgwrite.Drawing(filename, profile='full', viewBox=viewbox_string,
                            debug=(not custom_attributes))
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {**(pattern.referenced_patterns_by_id()), id(pattern): pattern}        # type: Dict[int, Optional[Pattern]]
-
     # Now create a group for each row in sd_table (ie, each pattern + dose combination)
     #  and add in any Boundary and Use elements
-    for pat in patterns_by_id.values():
-        if pat is None:
-            continue
-        svg_group = svg.g(id=mangle_name(pat), fill='blue', stroke='red')
+    for name, pat in library.items():
+        svg_group = svg.g(id=mangle_name(name), fill='blue', stroke='red')
 
         for shape in pat.shapes:
             for polygon in shape.to_polygons():
@@ -81,20 +78,24 @@ def writefile(
                 svg_group.add(path)
 
         for subpat in pat.subpatterns:
-            if subpat.pattern is None:
+            if subpat.target is None:
                 continue
             transform = f'scale({subpat.scale:g}) rotate({subpat.rotation:g}) translate({subpat.offset[0]:g},{subpat.offset[1]:g})'
-            use = svg.use(href='#' + mangle_name(subpat.pattern), transform=transform)
+            use = svg.use(href='#' + mangle_name(subpat.target), transform=transform)
             if custom_attributes:
                 use['pattern_dose'] = subpat.dose
             svg_group.add(use)
 
         svg.defs.add(svg_group)
-    svg.add(svg.use(href='#' + mangle_name(pattern)))
+    svg.add(svg.use(href='#' + mangle_name(top)))
     svg.save()
 
 
-def writefile_inverted(pattern: Pattern, filename: str):
+def writefile_inverted(
+        library: Mapping[str, Pattern],
+        top: str,
+        filename: str,
+        ) -> None:
     """
     Write an inverted Pattern to an SVG file, by first calling `.polygonize()` and
      `.flatten()` on it to change the shapes into polygons, then drawing a bounding
@@ -110,10 +111,12 @@ def writefile_inverted(pattern: Pattern, filename: str):
         pattern: Pattern to write to file. Modified by this function.
         filename: Filename to write to.
     """
+    pattern = library[top]
+
     # Polygonize and flatten pattern
     pattern.polygonize().flatten()
 
-    bounds = pattern.get_bounds()
+    bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
         warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')

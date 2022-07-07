@@ -10,7 +10,6 @@ from .. import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
-from ..traits import LockableImpl
 
 
 class Polygon(Shape, metaclass=AutoSlots):
@@ -83,10 +82,8 @@ class Polygon(Shape, metaclass=AutoSlots):
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             raw: bool = False,
             ) -> None:
-        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             assert(isinstance(vertices, numpy.ndarray))
@@ -106,16 +103,13 @@ class Polygon(Shape, metaclass=AutoSlots):
             self.dose = dose
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.set_locked(locked)
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._vertices = self._vertices.copy()
         new._annotations = copy.deepcopy(self._annotations)
-        new.set_locked(self.locked)
         return new
 
     @staticmethod
@@ -430,18 +424,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=True)
         return self
 
-    def lock(self) -> 'Polygon':
-        self.vertices.flags.writeable = False
-        Shape.lock(self)
-        return self
-
-    def unlock(self) -> 'Polygon':
-        Shape.unlock(self)
-        self.vertices.flags.writeable = True
-        return self
-
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
-        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}{dose}{locked}>'
+        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}{dose}>'
