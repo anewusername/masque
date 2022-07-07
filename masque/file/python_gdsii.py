@@ -118,10 +118,12 @@ def build(
     patterns = [p.wrap_repeated_shapes() for p in patterns]
 
     # Create library
-    lib = gdsii.library.Library(version=600,
-                                name=library_name.encode('ASCII'),
-                                logical_unit=logical_units_per_unit,
-                                physical_unit=meters_per_unit)
+    lib = gdsii.library.Library(
+        version=600,
+        name=library_name.encode('ASCII'),
+        logical_unit=logical_units_per_unit,
+        physical_unit=meters_per_unit,
+        )
 
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = {id(pattern): pattern for pattern in patterns}
@@ -244,10 +246,11 @@ def read(
 
     lib = gdsii.library.Library.load(stream)
 
-    library_info = {'name': lib.name.decode('ASCII'),
-                    'meters_per_unit': lib.physical_unit,
-                    'logical_units_per_unit': lib.logical_unit,
-                    }
+    library_info = {
+        'name': lib.name.decode('ASCII'),
+        'meters_per_unit': lib.physical_unit,
+        'logical_units_per_unit': lib.logical_unit,
+        }
 
     raw_mode = True     # Whether to construct shapes in raw mode (less error checking)
 
@@ -265,9 +268,11 @@ def read(
                 pat.shapes.append(path)
 
             elif isinstance(element, gdsii.elements.Text):
-                label = Label(offset=element.xy.astype(float),
-                              layer=(element.layer, element.text_type),
-                              string=element.string.decode('ASCII'))
+                label = Label(
+                    offset=element.xy.astype(float),
+                    layer=(element.layer, element.text_type),
+                    string=element.string.decode('ASCII'),
+                    )
                 pat.labels.append(label)
 
             elif isinstance(element, (gdsii.elements.SRef, gdsii.elements.ARef)):
@@ -341,16 +346,22 @@ def _ref_to_subpat(
         b_count = element.rows
         a_vector = (element.xy[1] - offset) / a_count
         b_vector = (element.xy[2] - offset) / b_count
-        repetition = Grid(a_vector=a_vector, b_vector=b_vector,
-                          a_count=a_count, b_count=b_count)
+        repetition = Grid(
+            a_vector=a_vector,
+            b_vector=b_vector,
+            a_count=a_count,
+            b_count=b_count,
+            )
 
-    subpat = SubPattern(pattern=None,
-                        offset=offset,
-                        rotation=rotation,
-                        scale=scale,
-                        mirrored=(mirror_across_x, False),
-                        annotations=_properties_to_annotations(element.properties),
-                        repetition=repetition)
+    subpat = SubPattern(
+        pattern=None,
+        offset=offset,
+        rotation=rotation,
+        scale=scale,
+        mirrored=(mirror_across_x, False),
+        annotations=_properties_to_annotations(element.properties),
+        repetition=repetition,
+        )
     subpat.identifier = (element.struct_name,)
     return subpat
 
@@ -361,14 +372,15 @@ def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
     else:
         raise PatternError(f'Unrecognized path type: {element.path_type}')
 
-    args = {'vertices': element.xy.astype(float),
-            'layer': (element.layer, element.data_type),
-            'width': element.width if element.width is not None else 0.0,
-            'cap': cap,
-            'offset': numpy.zeros(2),
-            'annotations': _properties_to_annotations(element.properties),
-            'raw': raw_mode,
-           }
+    args = {
+        'vertices': element.xy.astype(float),
+        'layer': (element.layer, element.data_type),
+        'width': element.width if element.width is not None else 0.0,
+        'cap': cap,
+        'offset': numpy.zeros(2),
+        'annotations': _properties_to_annotations(element.properties),
+        'raw': raw_mode,
+        }
 
     if cap == Path.Cap.SquareCustom:
         args['cap_extensions'] = numpy.zeros(2)
@@ -381,12 +393,13 @@ def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
 
 
 def _boundary_to_polygon(element: gdsii.elements.Boundary, raw_mode: bool) -> Polygon:
-    args = {'vertices': element.xy[:-1].astype(float),
-            'layer': (element.layer, element.data_type),
-            'offset': numpy.zeros(2),
-            'annotations': _properties_to_annotations(element.properties),
-            'raw': raw_mode,
-           }
+    args = {
+        'vertices': element.xy[:-1].astype(float),
+        'layer': (element.layer, element.data_type),
+        'offset': numpy.zeros(2),
+        'annotations': _properties_to_annotations(element.properties),
+        'raw': raw_mode,
+        }
     return Polygon(**args)
 
 
@@ -483,9 +496,11 @@ def _shapes_to_elements(
             xy = rint_cast(shape.vertices + shape.offset)
             width = rint_cast(shape.width)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
-            path = gdsii.elements.Path(layer=layer,
-                                       data_type=data_type,
-                                       xy=xy)
+            path = gdsii.elements.Path(
+                layer=layer,
+                data_type=data_type,
+                xy=xy,
+                )
             path.path_type = path_type
             path.width = width
             path.properties = properties

@@ -114,9 +114,11 @@ def write(
     patterns = [p.wrap_repeated_shapes() for p in patterns]
 
     # Create library
-    header = klamath.library.FileHeader(name=library_name.encode('ASCII'),
-                                        user_units_per_db_unit=logical_units_per_unit,
-                                        meters_per_db_unit=meters_per_unit)
+    header = klamath.library.FileHeader(
+        name=library_name.encode('ASCII'),
+        user_units_per_db_unit=logical_units_per_unit,
+        meters_per_db_unit=meters_per_unit,
+        )
     header.write(stream)
 
     # Get a dict of id(pattern) -> pattern
@@ -241,10 +243,11 @@ def _read_header(stream: BinaryIO) -> Dict[str, Any]:
     """
     header = klamath.library.FileHeader.read(stream)
 
-    library_info = {'name': header.name.decode('ASCII'),
-                    'meters_per_unit': header.meters_per_db_unit,
-                    'logical_units_per_unit': header.user_units_per_db_unit,
-                    }
+    library_info = {
+        'name': header.name.decode('ASCII'),
+        'meters_per_unit': header.meters_per_db_unit,
+        'logical_units_per_unit': header.user_units_per_db_unit,
+        }
     return library_info
 
 
@@ -276,10 +279,12 @@ def read_elements(
             path = _gpath_to_mpath(element, raw_mode)
             pat.shapes.append(path)
         elif isinstance(element, klamath.elements.Text):
-            label = Label(offset=element.xy.astype(float),
-                          layer=element.layer,
-                          string=element.string.decode('ASCII'),
-                          annotations=_properties_to_annotations(element.properties))
+            label = Label(
+                offset=element.xy.astype(float),
+                layer=element.layer,
+                string=element.string.decode('ASCII'),
+                annotations=_properties_to_annotations(element.properties),
+                )
             pat.labels.append(label)
         elif isinstance(element, klamath.elements.Reference):
             pat.subpatterns.append(_ref_to_subpat(element))
@@ -314,16 +319,22 @@ def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
         a_count, b_count = ref.colrow
         a_vector = (xy[1] - offset) / a_count
         b_vector = (xy[2] - offset) / b_count
-        repetition = Grid(a_vector=a_vector, b_vector=b_vector,
-                          a_count=a_count, b_count=b_count)
+        repetition = Grid(
+            a_vector=a_vector,
+            b_vector=b_vector,
+            a_count=a_count,
+            b_count=b_count,
+            )
 
-    subpat = SubPattern(pattern=None,
-                        offset=offset,
-                        rotation=numpy.deg2rad(ref.angle_deg),
-                        scale=ref.mag,
-                        mirrored=(ref.invert_y, False),
-                        annotations=_properties_to_annotations(ref.properties),
-                        repetition=repetition)
+    subpat = SubPattern(
+        pattern=None,
+        offset=offset,
+        rotation=numpy.deg2rad(ref.angle_deg),
+        scale=ref.mag,
+        mirrored=(ref.invert_y, False),
+        annotations=_properties_to_annotations(ref.properties),
+        repetition=repetition,
+        )
     subpat.identifier = (ref.struct_name.decode('ASCII'),)
     return subpat
 
@@ -334,26 +345,28 @@ def _gpath_to_mpath(gpath: klamath.library.Path, raw_mode: bool) -> Path:
     else:
         raise PatternError(f'Unrecognized path type: {gpath.path_type}')
 
-    mpath = Path(vertices=gpath.xy.astype(float),
-                 layer=gpath.layer,
-                 width=gpath.width,
-                 cap=cap,
-                 offset=numpy.zeros(2),
-                 annotations=_properties_to_annotations(gpath.properties),
-                 raw=raw_mode,
-                 )
+    mpath = Path(
+        vertices=gpath.xy.astype(float),
+        layer=gpath.layer,
+        width=gpath.width,
+        cap=cap,
+        offset=numpy.zeros(2),
+        annotations=_properties_to_annotations(gpath.properties),
+        raw=raw_mode,
+        )
     if cap == Path.Cap.SquareCustom:
         mpath.cap_extensions = gpath.extension
     return mpath
 
 
 def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> Polygon:
-    return Polygon(vertices=boundary.xy[:-1].astype(float),
-                   layer=boundary.layer,
-                   offset=numpy.zeros(2),
-                   annotations=_properties_to_annotations(boundary.properties),
-                   raw=raw_mode,
-                   )
+    return Polygon(
+        vertices=boundary.xy[:-1].astype(float),
+        layer=boundary.layer,
+        offset=numpy.zeros(2),
+        annotations=_properties_to_annotations(boundary.properties),
+        raw=raw_mode,
+        )
 
 
 def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.Reference]:
@@ -377,31 +390,37 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
                 rep.a_vector * rep.a_count,
                 b_vector * b_count,
                 ]
-            aref = klamath.library.Reference(struct_name=encoded_name,
-                                             xy=numpy.round(xy).astype(int),
-                                             colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
-                                             angle_deg=angle_deg,
-                                             invert_y=mirror_across_x,
-                                             mag=subpat.scale,
-                                             properties=properties)
+            aref = klamath.library.Reference(
+                struct_name=encoded_name,
+                xy=numpy.round(xy).astype(int),
+                colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
+                angle_deg=angle_deg,
+                invert_y=mirror_across_x,
+                mag=subpat.scale,
+                properties=properties,
+                )
             refs.append(aref)
         elif rep is None:
-            ref = klamath.library.Reference(struct_name=encoded_name,
-                                            xy=numpy.round([subpat.offset]).astype(int),
-                                            colrow=None,
-                                            angle_deg=angle_deg,
-                                            invert_y=mirror_across_x,
-                                            mag=subpat.scale,
-                                            properties=properties)
+            ref = klamath.library.Reference(
+                struct_name=encoded_name,
+                xy=numpy.round([subpat.offset]).astype(int),
+                colrow=None,
+                angle_deg=angle_deg,
+                invert_y=mirror_across_x,
+                mag=subpat.scale,
+                properties=properties,
+                )
             refs.append(ref)
         else:
-            new_srefs = [klamath.library.Reference(struct_name=encoded_name,
-                                                   xy=numpy.round([subpat.offset + dd]).astype(int),
-                                                   colrow=None,
-                                                   angle_deg=angle_deg,
-                                                   invert_y=mirror_across_x,
-                                                   mag=subpat.scale,
-                                                   properties=properties)
+            new_srefs = [klamath.library.Reference(
+                            struct_name=encoded_name,
+                            xy=numpy.round([subpat.offset + dd]).astype(int),
+                            colrow=None,
+                            angle_deg=angle_deg,
+                            invert_y=mirror_across_x,
+                            mag=subpat.scale,
+                            properties=properties,
+                            )
                          for dd in rep.displacements]
             refs += new_srefs
     return refs
@@ -453,30 +472,36 @@ def _shapes_to_elements(
             else:
                 extension = (0, 0)
 
-            path = klamath.elements.Path(layer=(layer, data_type),
-                                         xy=xy,
-                                         path_type=path_type,
-                                         width=width,
-                                         extension=extension,
-                                         properties=properties)
+            path = klamath.elements.Path(
+                layer=(layer, data_type),
+                xy=xy,
+                path_type=path_type,
+                width=width,
+                extension=extension,
+                properties=properties,
+                )
             elements.append(path)
         elif isinstance(shape, Polygon):
             polygon = shape
             xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
             numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
             xy_closed[-1] = xy_closed[0]
-            boundary = klamath.elements.Boundary(layer=(layer, data_type),
-                                                 xy=xy_closed,
-                                                 properties=properties)
+            boundary = klamath.elements.Boundary(
+                layer=(layer, data_type),
+                xy=xy_closed,
+                properties=properties,
+                )
             elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
                 xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
                 numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
                 xy_closed[-1] = xy_closed[0]
-                boundary = klamath.elements.Boundary(layer=(layer, data_type),
-                                                     xy=xy_closed,
-                                                     properties=properties)
+                boundary = klamath.elements.Boundary(
+                    layer=(layer, data_type),
+                    xy=xy_closed,
+                    properties=properties,
+                    )
                 elements.append(boundary)
     return elements
 
@@ -487,16 +512,18 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
         properties = _annotations_to_properties(label.annotations, 128)
         layer, text_type = _mlayer2gds(label.layer)
         xy = numpy.round([label.offset]).astype(int)
-        text = klamath.elements.Text(layer=(layer, text_type),
-                                     xy=xy,
-                                     string=label.string.encode('ASCII'),
-                                     properties=properties,
-                                     presentation=0,  # TODO maybe set some of these?
-                                     angle_deg=0,
-                                     invert_y=False,
-                                     width=0,
-                                     path_type=0,
-                                     mag=1)
+        text = klamath.elements.Text(
+            layer=(layer, text_type),
+            xy=xy,
+            string=label.string.encode('ASCII'),
+            properties=properties,
+            presentation=0,  # TODO maybe set some of these?
+            angle_deg=0,
+            invert_y=False,
+            width=0,
+            path_type=0,
+            mag=1,
+            )
         texts.append(text)
     return texts
 

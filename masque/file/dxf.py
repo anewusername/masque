@@ -267,10 +267,12 @@ def _read_block(block, clean_vertices: bool) -> Pattern:
                 }
 
             if 'column_count' in attr:
-                args['repetition'] = Grid(a_vector=(attr['column_spacing'], 0),
-                                          b_vector=(0, attr['row_spacing']),
-                                          a_count=attr['column_count'],
-                                          b_count=attr['row_count'])
+                args['repetition'] = Grid(
+                    a_vector=(attr['column_spacing'], 0),
+                    b_vector=(0, attr['row_spacing']),
+                    a_count=attr['column_count'],
+                    b_count=attr['row_count'],
+                    )
             pat.subpatterns.append(SubPattern(**args))
         else:
             logger.warning(f'Ignoring DXF element {element.dxftype()} (not implemented).')
