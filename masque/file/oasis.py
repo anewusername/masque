@@ -22,6 +22,7 @@ import pathlib
 import gzip
 
 import numpy
+from numpy.typing import ArrayLike, NDArray
 import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
@@ -46,6 +47,10 @@ path_cap_map = {
     }
 
 #TODO implement more shape types?
+
+def rint_cast(val: ArrayLike) -> NDArray[numpy.int64]:
+    return numpy.rint(val, dtype=numpy.int64, casting='unsafe')
+
 
 def build(
         patterns: Union[Pattern, Sequence[Pattern]],
@@ -535,7 +540,7 @@ def _subpatterns_to_placements(
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
         frep, rep_offset = repetition_masq2fata(subpat.repetition)
 
-        offset = numpy.round(subpat.offset + rep_offset).astype(int)
+        offset = rint_cast(subpat.offset + rep_offset)
         angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
             name=subpat.pattern.name,
@@ -563,8 +568,8 @@ def _shapes_to_elements(
         repetition, rep_offset = repetition_masq2fata(shape.repetition)
         properties = annotations_to_properties(shape.annotations)
         if isinstance(shape, Circle):
-            offset = numpy.round(shape.offset + rep_offset).astype(int)
-            radius = numpy.round(shape.radius).astype(int)
+            offset = rint_cast(shape.offset + rep_offset)
+            radius = rint_cast(shape.radius)
             circle = fatrec.Circle(
                 layer=layer,
                 datatype=datatype,
@@ -576,9 +581,9 @@ def _shapes_to_elements(
                 )
             elements.append(circle)
         elif isinstance(shape, Path):
-            xy = numpy.round(shape.offset + shape.vertices[0] + rep_offset).astype(int)
-            deltas = numpy.round(numpy.diff(shape.vertices, axis=0)).astype(int)
-            half_width = numpy.round(shape.width / 2).astype(int)
+            xy = rint_cast(shape.offset + shape.vertices[0] + rep_offset)
+            deltas = rint_cast(numpy.diff(shape.vertices, axis=0))
+            half_width = rint_cast(shape.width / 2)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
             extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
@@ -597,8 +602,8 @@ def _shapes_to_elements(
             elements.append(path)
         else:
             for polygon in shape.to_polygons():
-                xy = numpy.round(polygon.offset + polygon.vertices[0] + rep_offset).astype(int)
-                points = numpy.round(numpy.diff(polygon.vertices, axis=0)).astype(int)
+                xy = rint_cast(polygon.offset + polygon.vertices[0] + rep_offset)
+                points = rint_cast(numpy.diff(polygon.vertices, axis=0))
                 elements.append(fatrec.Polygon(
                     layer=layer,
                     datatype=datatype,
@@ -619,7 +624,7 @@ def _labels_to_texts(
     for label in labels:
         layer, datatype = layer2oas(label.layer)
         repetition, rep_offset = repetition_masq2fata(label.repetition)
-        xy = numpy.round(label.offset + rep_offset).astype(int)
+        xy = rint_cast(label.offset + rep_offset)
         properties = annotations_to_properties(label.annotations)
         texts.append(fatrec.Text(
             layer=layer,
