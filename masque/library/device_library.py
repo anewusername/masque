@@ -26,15 +26,13 @@ class DeviceLibrary:
      relevant `Device` object.
 
     This class largely functions the same way as `Library`, but
-     operates on `Device`s rather than `Patterns` and thus has no
-     need for distinctions between primary/secondary devices (as
-     there is no inter-`Device` hierarchy).
+     operates on `Device`s rather than `Patterns`.
 
     Each device is cached the first time it is used. The cache can
      be disabled by setting the `enable_cache` attribute to `False`.
     """
     generators: Dict[str, Callable[[], Device]]
-    cache: Dict[Union[str, Tuple[str, str]], Device]
+    cache: Dict[str, Device]
     enable_cache: bool = True
 
     def __init__(self) -> None:
@@ -44,11 +42,16 @@ class DeviceLibrary:
     def __setitem__(self, key: str, value: Callable[[], Device]) -> None:
         self.generators[key] = value
         if key in self.cache:
+            logger.warning(f'Replaced library item "{key}" & existing cache entry.'
+                           ' Previously-generated Device will *not* be updated!')
             del self.cache[key]
 
     def __delitem__(self, key: str) -> None:
         del self.generators[key]
+
         if key in self.cache:
+            logger.warning(f'Deleting library item "{key}" & existing cache entry.'
+                           ' Previously-generated Device may remain in the wild!')
             del self.cache[key]
 
     def __getitem__(self, key: str) -> Device:
@@ -119,10 +122,10 @@ class DeviceLibrary:
             raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
                                      + pformat(conflicts))
 
-        for name in set(other.generators.keys()) - keep_ours:
-            self.generators[name] = other.generators[name]
-            if name in other.cache:
-                self.cache[name] = other.cache[name]
+        for key in set(other.keys()) - keep_ours:
+            self.generators[key] = other.generators[key]
+            if key in other.cache:
+                self.cache[key] = other.cache[key]
         return self
 
     def clear_cache(self: D) -> D:
