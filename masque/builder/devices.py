@@ -125,7 +125,7 @@ class Device(Copyable, Mirrorable):
     - `Device(pattern, ports={'A': port_a, 'C': port_c})` uses an existing
         pattern and defines some ports.
 
-    - `Device(name='my_dev_name', ports=None)` makes a new empty pattern with
+    - `Device(ports=None)` makes a new empty pattern with
         default ports ('A' and 'B', in opposite directions, at (0, 0)).
 
     - `my_device.build('my_layout')` makes a new pattern and instantiates
@@ -182,7 +182,6 @@ class Device(Copyable, Mirrorable):
             ports: Optional[Dict[str, Port]] = None,
             *,
             tools: Union[None, Tool, Dict[Optional[str], Tool]] = None,
-            name: Optional[str] = None,
             ) -> None:
         """
         If `ports` is `None`, two default ports ('A' and 'B') are created.
@@ -190,14 +189,7 @@ class Device(Copyable, Mirrorable):
           (attached devices will be placed to the left) and 'B' has rotation
           pi (attached devices will be placed to the right).
         """
-        if pattern is not None:
-            if name is not None:
-                raise DeviceError('Only one of `pattern` and `name` may be specified')
-            self.pattern = pattern
-        else:
-            if name is None:
-                raise DeviceError('Must specify either `pattern` or `name`')
-            self.pattern = Pattern(name=name)
+        self.pattern = pattern or Pattern()
 
         if ports is None:
             self.ports = {
@@ -336,25 +328,22 @@ class Device(Copyable, Mirrorable):
 
         return self
 
-    def build(self, name: str) -> 'Device':
+    def build(self) -> 'Device':
         """
         Begin building a new device around an instance of the current device
           (rather than modifying the current device).
 
-        Args:
-            name: A name for the new device
-
         Returns:
             The new `Device` object.
         """
-        pat = Pattern(name)
+        # TODO lib: this needs a name for self, rather than for the built thing
+        pat = Pattern()
         pat.addsp(self.pattern)
         new = Device(pat, ports=self.ports, tools=self.tools)
         return new
 
     def as_interface(
             self,
-            name: str,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
@@ -380,7 +369,6 @@ class Device(Copyable, Mirrorable):
           current device.
 
         Args:
-            name: Name for the new device
             in_prefix: Prepended to port names for newly-created ports with
                 reversed directions compared to the current device.
             out_prefix: Prepended to port names for ports which are directly
@@ -424,12 +412,13 @@ class Device(Copyable, Mirrorable):
         if duplicates:
             raise DeviceError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
 
-        new = Device(name=name, ports={**ports_in, **ports_out}, tools=self.tools)
+        new = Device(ports={**ports_in, **ports_out}, tools=self.tools)
         return new
 
     def plug(
             self: D,
-            other: O,
+            library: Mapping[str, 'Device'],
+            name: str,
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
@@ -438,27 +427,29 @@ class Device(Copyable, Mirrorable):
             set_rotation: Optional[bool] = None,
             ) -> D:
         """
-        Instantiate the device `other` into the current device, connecting
+        Instantiate a device `library[name]` into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
           ports specified by `map_out`.
 
         Examples:
         =========
-        - `my_device.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
-            instantiates `subdevice` into `my_device`, plugging ports 'A' and 'B'
+        - `my_device.plug(lib, 'subdevice', {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
+            instantiates `lib['subdevice']` into `my_device`, plugging ports 'A' and 'B'
             of `my_device` into ports 'C' and 'B' of `subdevice`. The connected ports
             are removed and any unconnected ports from `subdevice` are added to
             `my_device`. Port 'D' of `subdevice` (unconnected) is renamed to 'myport'.
 
-        - `my_device.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
-            of `my_device`. If `wire` has only two ports (e.g. 'A' and 'B'), no `map_out`,
-            argument is provided, and the `inherit_name` argument is not explicitly
-            set to `False`, the unconnected port of `wire` is automatically renamed to
-            'myport'. This allows easy extension of existing ports without changing
-            their names or having to provide `map_out` each time `plug` is called.
+        - `my_device.plug(lib, 'wire', {'myport': 'A'})` places port 'A' of `lib['wire']`
+            at 'myport' of `my_device`.
+            If `'wire'` has only two ports (e.g. 'A' and 'B'), no `map_out` argument is
+            provided, and the `inherit_name` argument is not explicitly set to `False`,
+            the unconnected port of `wire` is automatically renamed to 'myport'. This
+            allows easy extension of existing ports without changing their names or
+            having to provide `map_out` each time `plug` is called.
 
         Args:
-            other: A device to instantiate into the current device.
+            library: A `DeviceLibrary` containing the device to be instatiated.
+            name: The name of the device to be instantiated (from `library`).
             map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
@@ -513,13 +504,14 @@ class Device(Copyable, Mirrorable):
             del self.ports[ki]
             map_out[vi] = None
 
-        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
+        self.place(library, name, offset=translation, rotation=rotation, pivot=pivot,
                    mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
 
     def place(
             self: D,
-            other: O,
+            library: Mapping[str, 'Device'],
+            name: str,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -529,7 +521,7 @@ class Device(Copyable, Mirrorable):
             skip_port_check: bool = False,
             ) -> D:
         """
-        Instantiate the device `other` into the current device, adding its
+        Instantiate the device `library[name]` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
 
         Mirroring is applied before rotation; translation (`offset`) is applied last.
@@ -543,16 +535,17 @@ class Device(Copyable, Mirrorable):
             rather than the port name on the original `pad` device.
 
         Args:
-            other: A device to instantiate into the current device.
-            offset: Offset at which to place `other`. Default (0, 0).
-            rotation: Rotation applied to `other` before placement. Default 0.
+            library: A `DeviceLibrary` containing the device to be instatiated.
+            name: The name of the device to be instantiated (from `library`).
+            offset: Offset at which to place the instance. Default (0, 0).
+            rotation: Rotation applied to the instance before placement. Default 0.
             pivot: Rotation is applied around this pivot point (default (0, 0)).
                 Rotation is applied prior to translation (`offset`).
-            mirrored: Whether `other` should be mirrored across the x and y axes.
+            mirrored: Whether theinstance should be mirrored across the x and y axes.
                 Mirroring is applied before translation and rotation.
             port_map: Dict of `{'old_name': 'new_name'}` mappings, specifying
-                new names for ports in `other`. New names can be `None`, which will
-                delete those ports.
+                new names for ports in the instantiated device. New names can be
+                `None`, which will delete those ports.
             skip_port_check: Can be used to skip the internal call to `check_ports`,
                 in case it has already been performed elsewhere.
 
@@ -561,7 +554,7 @@ class Device(Copyable, Mirrorable):
 
         Raises:
             `DeviceError` if any ports specified in `map_in` or `map_out` do not
-                exist in `self.ports` or `other_names`.
+                exist in `self.ports` or `library[name].ports`.
             `DeviceError` if there are any duplicate names after `map_in` and `map_out`
                 are applied.
         """
@@ -571,6 +564,8 @@ class Device(Copyable, Mirrorable):
 
         if port_map is None:
             port_map = {}
+
+        other = library[name]
 
         if not skip_port_check:
             self.check_ports(other.ports.keys(), map_in=None, map_out=port_map)
@@ -589,7 +584,7 @@ class Device(Copyable, Mirrorable):
             p.translate(offset)
             self.ports[name] = p
 
-        sp = SubPattern(other.pattern, mirrored=mirrored)
+        sp = SubPattern(name, mirrored=mirrored)   #TODO figure out how this should work?!
         sp.rotate_around(pivot, rotation)
         sp.translate(offset)
         self.pattern.subpatterns.append(sp)
@@ -748,19 +743,6 @@ class Device(Copyable, Mirrorable):
         self._dead = True
         return self
 
-    def rename(self: D, name: str) -> D:
-        """
-        Renames the pattern and returns the device
-
-        Args:
-            name: The new name
-
-        Returns:
-            self
-        """
-        self.pattern.name = name
-        return self
-
     def __repr__(self) -> str:
         s = f'<Device {self.pattern} ['
         for name, port in self.ports.items():
@@ -831,7 +813,7 @@ class Device(Copyable, Mirrorable):
 
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, **kwargs)
 
-    def busL(
+    def mpath(
             self: D,
             portspec: Union[str, Sequence[str]],
             ccw: Optional[bool],
@@ -839,7 +821,6 @@ class Device(Copyable, Mirrorable):
             spacing: Optional[Union[float, ArrayLike]] = None,
             set_rotation: Optional[float] = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
-            container_name: str = '_busL',
             force_container: bool = False,
             **kwargs,
             ) -> D:
@@ -873,7 +854,7 @@ class Device(Copyable, Mirrorable):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            dev = Device(name='', ports=ports, tools=self.tools).as_interface(container_name)
+            dev = Device(name='', ports=ports, tools=self.tools).as_interface()
             for name, length in extensions.items():
                 dev.path(name, ccw, length, tool_port_names=tool_port_names)
             return self.plug(dev, {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?

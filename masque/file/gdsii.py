@@ -53,18 +53,22 @@ path_cap_map = {
     }
 
 
+def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
+    return numpy.rint(val, dtype=numpy.int32, casting='unsafe')
+
+
 def write(
-        patterns: Union[Pattern, Sequence[Pattern]],
+        library: Mapping[str, Pattern],
         stream: BinaryIO,
         meters_per_unit: float,
         logical_units_per_unit: float = 1,
         library_name: str = 'masque-klamath',
         *,
         modify_originals: bool = False,
-        disambiguate_func: Callable[[Iterable[Pattern]], None] = None,
+        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> None:
     """
-    Convert a `Pattern` or list of patterns to a GDSII stream,  and then mapping data as follows:
+    Convert a library to a GDSII stream, mapping data as follows:
          Pattern -> GDSII structure
          SubPattern -> GDSII SREF or AREF
          Path -> GSDII path
@@ -85,7 +89,7 @@ def write(
      prior to calling this function.
 
     Args:
-        patterns: A Pattern or list of patterns to convert.
+        library: A {name: Pattern} mapping of patterns to write.
         meters_per_unit: Written into the GDSII file, meters per (database) length unit.
             All distances are assumed to be an integer multiple of this unit, and are stored as such.
         logical_units_per_unit: Written into the GDSII file. Allows the GDSII to specify a
@@ -94,52 +98,48 @@ def write(
         library_name: Library name written into the GDSII file.
             Default 'masque-klamath'.
         modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
-        disambiguate_func: Function which takes a list of patterns and alters them
-            to make their names valid and unique. Default is `disambiguate_pattern_names`, which
-            attempts to adhere to the GDSII standard as well as possible.
+        disambiguate_func: Function which takes a list of pattern names and returns a list of names
+            altered to be valid and unique. Default is `disambiguate_pattern_names`, which
+            attempts to adhere to the GDSII standard reasonably well.
             WARNING: No additional error checking is performed on the results.
     """
-    if isinstance(patterns, Pattern):
-        patterns = [patterns]
-
     if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names          # type: ignore
-    assert(disambiguate_func is not None)       # placate mypy
+        disambiguate_func = disambiguate_pattern_names
 
     if not modify_originals:
-        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
+        library = copy.deepcopy(library)
 
-    patterns = [p.wrap_repeated_shapes() for p in patterns]
+    for p in library.values():
+        library.add(p.wrap_repeated_shapes())
+
+    old_names = list(library.keys())
+    new_names = disambiguate_func(old_names)
+    renamed_lib = {new_name: library[old_name]
+                   for old_name, new_name in zip(old_names, new_names)}
 
     # Create library
-    header = klamath.library.FileHeader(name=library_name.encode('ASCII'),
-                                        user_units_per_db_unit=logical_units_per_unit,
-                                        meters_per_db_unit=meters_per_unit)
+    header = klamath.library.FileHeader(
+        name=library_name.encode('ASCII'),
+        user_units_per_db_unit=logical_units_per_unit,
+        meters_per_db_unit=meters_per_unit,
+        )
     header.write(stream)
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {id(pattern): pattern for pattern in patterns}
-    for pattern in patterns:
-        for i, p in pattern.referenced_patterns_by_id().items():
-            patterns_by_id[i] = p
-
-    disambiguate_func(patterns_by_id.values())
-
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
-    for pat in patterns_by_id.values():
+    for name, pat in renamed_lib.items():
         elements: List[klamath.elements.Element] = []
         elements += _shapes_to_elements(pat.shapes)
         elements += _labels_to_texts(pat.labels)
         elements += _subpatterns_to_refs(pat.subpatterns)
 
-        klamath.library.write_struct(stream, name=pat.name.encode('ASCII'), elements=elements)
+        klamath.library.write_struct(stream, name=name.encode('ASCII'), elements=elements)
     records.ENDLIB.write(stream, None)
 
 
 def writefile(
-        patterns: Union[Sequence[Pattern], Pattern],
+        library: Mapping[str, Pattern],
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
@@ -150,7 +150,7 @@ def writefile(
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
-        patterns: `Pattern` or list of patterns to save
+        library: {name: Pattern} pairs to save.
         filename: Filename to save to.
         *args: passed to `write()`
         **kwargs: passed to `write()`
@@ -216,21 +216,13 @@ def read(
     """
     library_info = _read_header(stream)
 
-    patterns = []
+    patterns_dict = {}
     found_struct = records.BGNSTR.skip_past(stream)
     while found_struct:
         name = records.STRNAME.skip_and_read(stream)
-        pat = read_elements(stream, name=name.decode('ASCII'), raw_mode=raw_mode)
-        patterns.append(pat)
+        pat = read_elements(stream, raw_mode=raw_mode)
+        patterns_dict[name.decode('ASCII')] = pat
         found_struct = records.BGNSTR.skip_past(stream)
-
-    # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
-    #  according to the subpattern.identifier (which is deleted after use).
-    patterns_dict = dict(((p.name, p) for p in patterns))
-    for p in patterns_dict.values():
-        for sp in p.subpatterns:
-            sp.pattern = patterns_dict[sp.identifier[0]]
-            del sp.identifier
 
     return patterns_dict, library_info
 
@@ -250,7 +242,6 @@ def _read_header(stream: BinaryIO) -> Dict[str, Any]:
 
 def read_elements(
         stream: BinaryIO,
-        name: str,
         raw_mode: bool = True,
         ) -> Pattern:
     """
@@ -265,7 +256,7 @@ def read_elements(
     Returns:
         A pattern containing the elements that were read.
     """
-    pat = Pattern(name)
+    pat = Pattern()
 
     elements = klamath.library.read_elements(stream)
     for element in elements:
@@ -276,10 +267,12 @@ def read_elements(
             path = _gpath_to_mpath(element, raw_mode)
             pat.shapes.append(path)
         elif isinstance(element, klamath.elements.Text):
-            label = Label(offset=element.xy.astype(float),
-                          layer=element.layer,
-                          string=element.string.decode('ASCII'),
-                          annotations=_properties_to_annotations(element.properties))
+            label = Label(
+                offset=element.xy.astype(float),
+                layer=element.layer,
+                string=element.string.decode('ASCII'),
+                annotations=_properties_to_annotations(element.properties),
+                )
             pat.labels.append(label)
         elif isinstance(element, klamath.elements.Reference):
             pat.subpatterns.append(_ref_to_subpat(element))
@@ -304,8 +297,7 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
 
 def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
     """
-    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.pattern to None
-     and sets the instance .identifier to (struct_name,).
+    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.target to struct_name.
     """
     xy = ref.xy.astype(float)
     offset = xy[0]
@@ -317,14 +309,15 @@ def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
-    subpat = SubPattern(pattern=None,
-                        offset=offset,
-                        rotation=numpy.deg2rad(ref.angle_deg),
-                        scale=ref.mag,
-                        mirrored=(ref.invert_y, False),
-                        annotations=_properties_to_annotations(ref.properties),
-                        repetition=repetition)
-    subpat.identifier = (ref.struct_name.decode('ASCII'),)
+    subpat = SubPattern(
+        pattern=ref.struct_name.decode('ASCII'),
+        offset=offset,
+        rotation=numpy.deg2rad(ref.angle_deg),
+        scale=ref.mag,
+        mirrored=(ref.invert_y, False),
+        annotations=_properties_to_annotations(ref.properties),
+        repetition=repetition,
+        )
     return subpat
 
 
@@ -334,34 +327,36 @@ def _gpath_to_mpath(gpath: klamath.library.Path, raw_mode: bool) -> Path:
     else:
         raise PatternError(f'Unrecognized path type: {gpath.path_type}')
 
-    mpath = Path(vertices=gpath.xy.astype(float),
-                 layer=gpath.layer,
-                 width=gpath.width,
-                 cap=cap,
-                 offset=numpy.zeros(2),
-                 annotations=_properties_to_annotations(gpath.properties),
-                 raw=raw_mode,
-                 )
+    mpath = Path(
+        vertices=gpath.xy.astype(float),
+        layer=gpath.layer,
+        width=gpath.width,
+        cap=cap,
+        offset=numpy.zeros(2),
+        annotations=_properties_to_annotations(gpath.properties),
+        raw=raw_mode,
+        )
     if cap == Path.Cap.SquareCustom:
         mpath.cap_extensions = gpath.extension
     return mpath
 
 
 def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> Polygon:
-    return Polygon(vertices=boundary.xy[:-1].astype(float),
-                   layer=boundary.layer,
-                   offset=numpy.zeros(2),
-                   annotations=_properties_to_annotations(boundary.properties),
-                   raw=raw_mode,
-                   )
+    return Polygon(
+        vertices=boundary.xy[:-1].astype(float),
+        layer=boundary.layer,
+        offset=numpy.zeros(2),
+        annotations=_properties_to_annotations(boundary.properties),
+        raw=raw_mode,
+        )
 
 
 def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.Reference]:
     refs = []
     for subpat in subpatterns:
-        if subpat.pattern is None:
+        if subpat.target is None:
             continue
-        encoded_name = subpat.pattern.name.encode('ASCII')
+        encoded_name = subpat.target.encode('ASCII')
 
         # Note: GDS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
@@ -377,32 +372,39 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
                 rep.a_vector * rep.a_count,
                 b_vector * b_count,
                 ]
-            aref = klamath.library.Reference(struct_name=encoded_name,
-                                             xy=numpy.round(xy).astype(int),
-                                             colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
-                                             angle_deg=angle_deg,
-                                             invert_y=mirror_across_x,
-                                             mag=subpat.scale,
-                                             properties=properties)
+            aref = klamath.library.Reference(
+                struct_name=encoded_name,
+                xy=rint_cast(xy),
+                colrow=(numpy.rint(rep.a_count), numpy.rint(rep.b_count)),
+                angle_deg=angle_deg,
+                invert_y=mirror_across_x,
+                mag=subpat.scale,
+                properties=properties,
+                )
             refs.append(aref)
         elif rep is None:
-            ref = klamath.library.Reference(struct_name=encoded_name,
-                                            xy=numpy.round([subpat.offset]).astype(int),
-                                            colrow=None,
-                                            angle_deg=angle_deg,
-                                            invert_y=mirror_across_x,
-                                            mag=subpat.scale,
-                                            properties=properties)
+            ref = klamath.library.Reference(
+                struct_name=encoded_name,
+                xy=rint_cast([subpat.offset]),
+                colrow=None,
+                angle_deg=angle_deg,
+                invert_y=mirror_across_x,
+                mag=subpat.scale,
+                properties=properties,
+                )
             refs.append(ref)
         else:
-            new_srefs = [klamath.library.Reference(struct_name=encoded_name,
-                                                   xy=numpy.round([subpat.offset + dd]).astype(int),
-                                                   colrow=None,
-                                                   angle_deg=angle_deg,
-                                                   invert_y=mirror_across_x,
-                                                   mag=subpat.scale,
-                                                   properties=properties)
-                         for dd in rep.displacements]
+            new_srefs = [
+                klamath.library.Reference(
+                    struct_name=encoded_name,
+                    xy=rint_cast([subpat.offset + dd]),
+                    colrow=None,
+                    angle_deg=angle_deg,
+                    invert_y=mirror_across_x,
+                    mag=subpat.scale,
+                    properties=properties,
+                    )
+                for dd in rep.displacements]
             refs += new_srefs
     return refs
 
@@ -443,8 +445,8 @@ def _shapes_to_elements(
         layer, data_type = _mlayer2gds(shape.layer)
         properties = _annotations_to_properties(shape.annotations, 128)
         if isinstance(shape, Path) and not polygonize_paths:
-            xy = numpy.round(shape.vertices + shape.offset).astype(int)
-            width = numpy.round(shape.width).astype(int)
+            xy = rint_cast(shape.vertices + shape.offset)
+            width = rint_cast(shape.width)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
 
             extension: Tuple[int, int]
@@ -453,30 +455,36 @@ def _shapes_to_elements(
             else:
                 extension = (0, 0)
 
-            path = klamath.elements.Path(layer=(layer, data_type),
-                                         xy=xy,
-                                         path_type=path_type,
-                                         width=width,
-                                         extension=extension,
-                                         properties=properties)
+            path = klamath.elements.Path(
+                layer=(layer, data_type),
+                xy=xy,
+                path_type=path_type,
+                width=width,
+                extension=extension,
+                properties=properties,
+                )
             elements.append(path)
         elif isinstance(shape, Polygon):
             polygon = shape
             xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
             numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
             xy_closed[-1] = xy_closed[0]
-            boundary = klamath.elements.Boundary(layer=(layer, data_type),
-                                                 xy=xy_closed,
-                                                 properties=properties)
+            boundary = klamath.elements.Boundary(
+                layer=(layer, data_type),
+                xy=xy_closed,
+                properties=properties,
+                )
             elements.append(boundary)
         else:
             for polygon in shape.to_polygons():
                 xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
                 numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
                 xy_closed[-1] = xy_closed[0]
-                boundary = klamath.elements.Boundary(layer=(layer, data_type),
-                                                     xy=xy_closed,
-                                                     properties=properties)
+                boundary = klamath.elements.Boundary(
+                    layer=(layer, data_type),
+                    xy=xy_closed,
+                    properties=properties,
+                    )
                 elements.append(boundary)
     return elements
 
@@ -486,46 +494,44 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
     for label in labels:
         properties = _annotations_to_properties(label.annotations, 128)
         layer, text_type = _mlayer2gds(label.layer)
-        xy = numpy.round([label.offset]).astype(int)
-        text = klamath.elements.Text(layer=(layer, text_type),
-                                     xy=xy,
-                                     string=label.string.encode('ASCII'),
-                                     properties=properties,
-                                     presentation=0,  # TODO maybe set some of these?
-                                     angle_deg=0,
-                                     invert_y=False,
-                                     width=0,
-                                     path_type=0,
-                                     mag=1)
+        xy = rint_cast([label.offset])
+        text = klamath.elements.Text(
+            layer=(layer, text_type),
+            xy=xy,
+            string=label.string.encode('ASCII'),
+            properties=properties,
+            presentation=0,  # TODO maybe set some of these?
+            angle_deg=0,
+            invert_y=False,
+            width=0,
+            path_type=0,
+            mag=1,
+            )
         texts.append(text)
     return texts
 
 
 def disambiguate_pattern_names(
-        patterns: Sequence[Pattern],
+        names: Iterable[str],
         max_name_length: int = 32,
         suffix_length: int = 6,
-        dup_warn_filter: Optional[Callable[[str], bool]] = None,
-        ) -> None:
+        ) -> List[str]:
     """
     Args:
-        patterns: List of patterns to disambiguate
+        names: List of pattern names to disambiguate
         max_name_length: Names longer than this will be truncated
         suffix_length: Names which get truncated are truncated by this many extra characters. This is to
             leave room for a suffix if one is necessary.
-        dup_warn_filter: (optional) Function for suppressing warnings about cell names changing. Receives
-            the cell name and returns `False` if the warning should be suppressed and `True` if it should
-            be displayed. Default displays all warnings.
     """
-    used_names = []
-    for pat in set(patterns):
+    new_names = []
+    for name in names:
         # Shorten names which already exceed max-length
-        if len(pat.name) > max_name_length:
-            shortened_name = pat.name[:max_name_length - suffix_length]
-            logger.warning(f'Pattern name "{pat.name}" is too long ({len(pat.name)}/{max_name_length} chars),\n'
+        if len(name) > max_name_length:
+            shortened_name = name[:max_name_length - suffix_length]
+            logger.warning(f'Pattern name "{name}" is too long ({len(name)}/{max_name_length} chars),\n'
                            + f' shortening to "{shortened_name}" before generating suffix')
         else:
-            shortened_name = pat.name
+            shortened_name = name
 
         # Remove invalid characters
         sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
@@ -533,7 +539,7 @@ def disambiguate_pattern_names(
         # Add a suffix that makes the name unique
         i = 0
         suffixed_name = sanitized_name
-        while suffixed_name in used_names or suffixed_name == '':
+        while suffixed_name in new_names or suffixed_name == '':
             suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
@@ -542,27 +548,25 @@ def disambiguate_pattern_names(
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+            if dup_warn_filter is None or dup_warn_filter(name):
+                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
                                + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
         if len(encoded_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
+            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{name}"')
         if len(encoded_name) > max_name_length:
             raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n'
-                               + f' originally "{pat.name}"')
+                               + f' originally "{name}"')
 
-        pat.name = suffixed_name
-        used_names.append(suffixed_name)
+        new_names.append(suffixed_name)
+    return new_names
 
 
 def load_library(
         stream: BinaryIO,
-        tag: str,
-        is_secondary: Optional[Callable[[str], bool]] = None,
         *,
         full_load: bool = False,
         ) -> Tuple[Library, Dict[str, Any]]:
@@ -574,28 +578,17 @@ def load_library(
 
     Args:
         stream: Seekable stream. Position 0 should be the start of the file.
-                The caller should leave the stream open while the library
-                is still in use, since the library will need to access it
-                in order to read the structure contents.
-        tag: Unique identifier that will be used to identify this data source
-        is_secondary: Function which takes a structure name and returns
-                      True if the structure should only be used as a subcell
-                      and not appear in the main Library interface.
-                      Default always returns False.
+            The caller should leave the stream open while the library
+            is still in use, since the library will need to access it
+            in order to read the structure contents.
         full_load: If True, force all structures to be read immediately rather
-                   than as-needed. Since data is read sequentially from the file,
-                   this will be faster than using the resulting library's
-                   `precache` method.
+            than as-needed. Since data is read sequentially from the file, this
+            will be faster than using the resulting library's `precache` method.
 
     Returns:
         Library object, allowing for deferred load of structures.
         Additional library info (dict, same format as from `read`).
     """
-    if is_secondary is None:
-        def is_secondary(k: str) -> bool:
-            return False
-    assert(is_secondary is not None)
-
     stream.seek(0)
     lib = Library()
 
@@ -603,7 +596,7 @@ def load_library(
         # Full load approach (immediately load everything)
         patterns, library_info = read(stream)
         for name, pattern in patterns.items():
-            lib.set_const(name, tag, pattern, secondary=is_secondary(name))
+            lib[name] = lambda: pattern
         return lib, library_info
 
     # Normal approach (scan and defer load)
@@ -613,19 +606,17 @@ def load_library(
     for name_bytes, pos in structs.items():
         name = name_bytes.decode('ASCII')
 
-        def mkstruct(pos: int = pos, name: str = name) -> Pattern:
+        def mkstruct(pos: int = pos) -> Pattern:
             stream.seek(pos)
-            return read_elements(stream, name, raw_mode=True)
+            return read_elements(stream, raw_mode=True)
 
-        lib.set_value(name, tag, mkstruct, secondary=is_secondary(name))
+        lib[name] = mkstruct
 
     return lib, library_info
 
 
 def load_libraryfile(
         filename: Union[str, pathlib.Path],
-        tag: str,
-        is_secondary: Optional[Callable[[str], bool]] = None,
         *,
         use_mmap: bool = True,
         full_load: bool = False,
@@ -640,8 +631,6 @@ def load_libraryfile(
 
     Args:
         path: filename or path to read from
-        tag: Unique identifier for library, see `load_library`
-        is_secondary: Function specifying subcess, see `load_library`
         use_mmap: If `True`, will attempt to memory-map the file instead
                   of buffering. In the case of gzipped files, the file
                   is decompressed into a python `bytes` object in memory
@@ -667,4 +656,4 @@ def load_libraryfile(
             stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)
         else:
             stream = io.BufferedReader(base_stream)
-    return load_library(stream, tag, is_secondary)
+    return load_library(stream, full_load=full_load)

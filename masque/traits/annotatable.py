@@ -44,9 +44,6 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
     @property
     def annotations(self) -> annotations_t:
         return self._annotations
-#        # TODO: Find a way to make sure the subclass implements Lockable without dealing with diamond inheritance or this extra hasattr
-#        if hasattr(self, 'is_locked') and self.is_locked():
-#            return MappingProxyType(self._annotations)
 
     @annotations.setter
     def annotations(self, annotations: annotations_t):

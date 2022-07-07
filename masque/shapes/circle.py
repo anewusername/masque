@@ -9,7 +9,6 @@ from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
 from .. import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
-from ..traits import LockableImpl
 
 
 class Circle(Shape, metaclass=AutoSlots):
@@ -54,10 +53,8 @@ class Circle(Shape, metaclass=AutoSlots):
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             raw: bool = False,
             ) -> None:
-        LockableImpl.unlock(self)
         self.identifier = ()
         if raw:
             assert(isinstance(offset, numpy.ndarray))
@@ -76,15 +73,12 @@ class Circle(Shape, metaclass=AutoSlots):
             self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
-        self.set_locked(locked)
 
     def __deepcopy__(self, memo: Dict = None) -> 'Circle':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._annotations = copy.deepcopy(self._annotations)
-        new.set_locked(self.locked)
         return new
 
     def to_polygons(
@@ -138,5 +132,4 @@ class Circle(Shape, metaclass=AutoSlots):
 
     def __repr__(self) -> str:
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
-        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}{dose}{locked}>'
+        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}{dose}>'

@@ -11,13 +11,6 @@ class PatternError(MasqueError):
     """
     pass
 
-class PatternLockedError(PatternError):
-    """
-    Exception raised when trying to modify a locked pattern
-    """
-    def __init__(self):
-        PatternError.__init__(self, 'Tried to modify a locked Pattern, subpattern, or shape')
-
 
 class LibraryError(MasqueError):
     """

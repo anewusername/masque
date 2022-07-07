@@ -11,7 +11,7 @@ Note that OASIS references follow the same convention as `masque`,
   Scaling, rotation, and mirroring apply to individual instances, not grid
    vectors or offsets.
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Optional
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping, Optional
 import re
 import io
 import copy
@@ -22,11 +22,12 @@ import pathlib
 import gzip
 
 import numpy
+from numpy.typing import ArrayLike, NDArray
 import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
-from .utils import clean_pattern_vertices, is_gzipped
+from .utils import is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
@@ -47,19 +48,22 @@ path_cap_map = {
 
 #TODO implement more shape types?
 
+def rint_cast(val: ArrayLike) -> NDArray[numpy.int64]:
+    return numpy.rint(val, dtype=numpy.int64, casting='unsafe')
+
+
 def build(
-        patterns: Union[Pattern, Sequence[Pattern]],
+        library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
         units_per_micron: int,
         layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
         *,
-        modify_originals: bool = False,
-        disambiguate_func: Optional[Callable[[Iterable[Pattern]], None]] = None,
+        disambiguate_func: Optional[Callable[[Iterable[str]], List[str]]] = None,
         annotations: Optional[annotations_t] = None,
         ) -> fatamorgana.OasisLayout:
     """
-    Convert a `Pattern` or list of patterns to an OASIS stream, writing patterns
-     as OASIS cells, subpatterns as Placement records, and other shapes and labels
-     mapped to equivalent record types (Polygon, Path, Circle, Text).
+    Convert a collection of {name: Pattern} pairs to an OASIS stream, writing patterns
+     as OASIS cells, subpatterns as Placement records, and mapping other shapes and labels
+     to equivalent record types (Polygon, Path, Circle, Text).
      Other shape types may be converted to polygons if no equivalent
      record type exists (or is not implemented here yet).
 
@@ -75,7 +79,7 @@ def build(
      prior to calling this function.
 
     Args:
-        patterns: A Pattern or list of patterns to convert.
+        library: A {name: Pattern} mapping of patterns to write.
         units_per_micron: Written into the OASIS file, number of grid steps per micrometer.
             All distances are assumed to be an integer multiple of the grid step, and are stored as such.
         layer_map: Dictionary which translates layer names into layer numbers. If this argument is
@@ -86,11 +90,8 @@ def build(
             into numbers, omit this argument, and manually generate the required
             `fatamorgana.records.LayerName` entries.
             Default is an empty dict (no names provided).
-        modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
-            Default `False`.
-        disambiguate_func: Function which takes a list of patterns and alters them
-            to make their names valid and unique. Default is `disambiguate_pattern_names`.
+        disambiguate_func: Function which takes a list of pattern names and returns a list of names
+            altered to be valid and unique. Default is `disambiguate_pattern_names`.
         annotations: dictionary of key-value pairs which are saved as library-level properties
 
     Returns:
@@ -108,9 +109,6 @@ def build(
     if annotations is None:
         annotations = {}
 
-    if not modify_originals:
-        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
-
     # Create library
     lib = fatamorgana.OasisLayout(unit=units_per_micron, validation=None)
     lib.properties = annotations_to_properties(annotations)
@@ -119,10 +117,12 @@ def build(
         for name, layer_num in layer_map.items():
             layer, data_type = _mlayer2oas(layer_num)
             lib.layers += [
-                fatrec.LayerName(nstring=name,
-                                 layer_interval=(layer, layer),
-                                 type_interval=(data_type, data_type),
-                                 is_textlayer=tt)
+                fatrec.LayerName(
+                    nstring=name,
+                    layer_interval=(layer, layer),
+                    type_interval=(data_type, data_type),
+                    is_textlayer=tt,
+                    )
                 for tt in (True, False)]
 
         def layer2oas(mlayer: layer_t) -> Tuple[int, int]:
@@ -132,17 +132,14 @@ def build(
     else:
         layer2oas = _mlayer2oas
 
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {id(pattern): pattern for pattern in patterns}
-    for pattern in patterns:
-        for i, p in pattern.referenced_patterns_by_id().items():
-            patterns_by_id[i] = p
-
-    disambiguate_func(patterns_by_id.values())
+    old_names = list(library.keys())
+    new_names = disambiguate_func(old_names)
+    renamed_lib = {new_name: library[old_name]
+                   for old_name, new_name in zip(old_names, new_names)}
 
     # Now create a structure for each pattern
-    for pat in patterns_by_id.values():
-        structure = fatamorgana.Cell(name=pat.name)
+    for name, pat in renamed_lib.items():
+        structure = fatamorgana.Cell(name=name)
         lib.cells.append(structure)
 
         structure.properties += annotations_to_properties(pat.annotations)
@@ -229,7 +226,6 @@ def readfile(
 
 def read(
         stream: io.BufferedIOBase,
-        clean_vertices: bool = True,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
@@ -243,9 +239,6 @@ def read(
 
     Args:
         stream: Stream to read from.
-        clean_vertices: If `True`, remove any redundant vertices when loading polygons.
-            The cleaning process removes any polygons with zero area or <3 vertices.
-            Default `True`.
 
     Returns:
         - Dict of `pattern_name`:`Pattern`s generated from OASIS cells
@@ -264,14 +257,14 @@ def read(
         layer_map[str(layer_name.nstring)] = layer_name
     library_info['layer_map'] = layer_map
 
-    patterns = []
+    patterns_dict = {}
     for cell in lib.cells:
         if isinstance(cell.name, int):
             cell_name = lib.cellnames[cell.name].nstring.string
         else:
             cell_name = cell.name.string
 
-        pat = Pattern(name=cell_name)
+        pat = Pattern()
         for element in cell.geometry:
             if isinstance(element, fatrec.XElement):
                 logger.warning('Skipping XElement record')
@@ -453,19 +446,7 @@ def read(
         for placement in cell.placements:
             pat.subpatterns.append(_placement_to_subpat(placement, lib))
 
-        if clean_vertices:
-            clean_pattern_vertices(pat)
-        patterns.append(pat)
-
-    # Create a dict of {pattern.name: pattern, ...}, then fix up all subpattern.pattern entries
-    #  according to the subpattern.identifier (which is deleted after use).
-    patterns_dict = dict(((p.name, p) for p in patterns))
-    for p in patterns_dict.values():
-        for sp in p.subpatterns:
-            ident = sp.identifier[0]
-            name = ident if isinstance(ident, str) else lib.cellnames[ident].nstring.string
-            sp.pattern = patterns_dict[name]
-            del sp.identifier
+        patterns_dict[name] = pat
 
     return patterns_dict, library_info
 
@@ -489,8 +470,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
 
 def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> SubPattern:
     """
-    Helper function to create a SubPattern from a placment. Sets subpat.pattern to None
-     and sets the instance .identifier to (struct_name,).
+    Helper function to create a SubPattern from a placment. Sets subpat.target to the placemen name.
     """
     assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
     xy = numpy.array((placement.x, placement.y))
@@ -502,14 +482,15 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
         rotation = 0
     else:
         rotation = numpy.deg2rad(float(placement.angle))
-    subpat = SubPattern(offset=xy,
-                        pattern=None,
-                        mirrored=(placement.flip, False),
-                        rotation=rotation,
-                        scale=float(mag),
-                        identifier=(name,),
-                        repetition=repetition_fata2masq(placement.repetition),
-                        annotations=annotations)
+    subpat = SubPattern(
+        target=name,
+        offset=xy,
+        mirrored=(placement.flip, False),
+        rotation=rotation,
+        scale=float(mag),
+        repetition=repetition_fata2masq(placement.repetition),
+        annotations=annotations,
+        )
     return subpat
 
 
@@ -518,17 +499,17 @@ def _subpatterns_to_placements(
         ) -> List[fatrec.Placement]:
     refs = []
     for subpat in subpatterns:
-        if subpat.pattern is None:
+        if subpat.target is None:
             continue
 
         # Note: OASIS mirrors first and rotates second
         mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
         frep, rep_offset = repetition_masq2fata(subpat.repetition)
 
-        offset = numpy.round(subpat.offset + rep_offset).astype(int)
+        offset = rint_cast(subpat.offset + rep_offset)
         angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
         ref = fatrec.Placement(
-            name=subpat.pattern.name,
+            name=subpat.target,
             flip=mirror_across_x,
             angle=angle,
             magnification=subpat.scale,
@@ -552,46 +533,51 @@ def _shapes_to_elements(
         repetition, rep_offset = repetition_masq2fata(shape.repetition)
         properties = annotations_to_properties(shape.annotations)
         if isinstance(shape, Circle):
-            offset = numpy.round(shape.offset + rep_offset).astype(int)
-            radius = numpy.round(shape.radius).astype(int)
-            circle = fatrec.Circle(layer=layer,
-                                   datatype=datatype,
-                                   radius=radius,
-                                   x=offset[0],
-                                   y=offset[1],
-                                   properties=properties,
-                                   repetition=repetition)
+            offset = rint_cast(shape.offset + rep_offset)
+            radius = rint_cast(shape.radius)
+            circle = fatrec.Circle(
+                layer=layer,
+                datatype=datatype,
+                radius=radius,
+                x=offset[0],
+                y=offset[1],
+                properties=properties,
+                repetition=repetition,
+                )
             elements.append(circle)
         elif isinstance(shape, Path):
-            xy = numpy.round(shape.offset + shape.vertices[0] + rep_offset).astype(int)
-            deltas = numpy.round(numpy.diff(shape.vertices, axis=0)).astype(int)
-            half_width = numpy.round(shape.width / 2).astype(int)
+            xy = rint_cast(shape.offset + shape.vertices[0] + rep_offset)
+            deltas = rint_cast(numpy.diff(shape.vertices, axis=0))
+            half_width = rint_cast(shape.width / 2)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
             extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
-            path = fatrec.Path(layer=layer,
-                               datatype=datatype,
-                               point_list=deltas,
-                               half_width=half_width,
-                               x=xy[0],
-                               y=xy[1],
-                               extension_start=extension_start,       # TODO implement multiple cap types?
-                               extension_end=extension_end,
-                               properties=properties,
-                               repetition=repetition,
-                               )
+            path = fatrec.Path(
+                layer=layer,
+                datatype=datatype,
+                point_list=deltas,
+                half_width=half_width,
+                x=xy[0],
+                y=xy[1],
+                extension_start=extension_start,       # TODO implement multiple cap types?
+                extension_end=extension_end,
+                properties=properties,
+                repetition=repetition,
+                )
             elements.append(path)
         else:
             for polygon in shape.to_polygons():
-                xy = numpy.round(polygon.offset + polygon.vertices[0] + rep_offset).astype(int)
-                points = numpy.round(numpy.diff(polygon.vertices, axis=0)).astype(int)
-                elements.append(fatrec.Polygon(layer=layer,
-                                               datatype=datatype,
-                                               x=xy[0],
-                                               y=xy[1],
-                                               point_list=points,
-                                               properties=properties,
-                                               repetition=repetition))
+                xy = rint_cast(polygon.offset + polygon.vertices[0] + rep_offset)
+                points = rint_cast(numpy.diff(polygon.vertices, axis=0))
+                elements.append(fatrec.Polygon(
+                    layer=layer,
+                    datatype=datatype,
+                    x=xy[0],
+                    y=xy[1],
+                    point_list=points,
+                    properties=properties,
+                    repetition=repetition,
+                    ))
     return elements
 
 
@@ -603,29 +589,31 @@ def _labels_to_texts(
     for label in labels:
         layer, datatype = layer2oas(label.layer)
         repetition, rep_offset = repetition_masq2fata(label.repetition)
-        xy = numpy.round(label.offset + rep_offset).astype(int)
+        xy = rint_cast(label.offset + rep_offset)
         properties = annotations_to_properties(label.annotations)
-        texts.append(fatrec.Text(layer=layer,
-                                 datatype=datatype,
-                                 x=xy[0],
-                                 y=xy[1],
-                                 string=label.string,
-                                 properties=properties,
-                                 repetition=repetition))
+        texts.append(fatrec.Text(
+            layer=layer,
+            datatype=datatype,
+            x=xy[0],
+            y=xy[1],
+            string=label.string,
+            properties=properties,
+            repetition=repetition,
+            ))
     return texts
 
 
 def disambiguate_pattern_names(
-        patterns,
+        names: Iterable[str],
         dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
-        ) -> None:
-    used_names = []
-    for pat in patterns:
-        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', pat.name)
+        ) -> List[str]:
+    new_names = []
+    for name in names:
+        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', name)
 
         i = 0
         suffixed_name = sanitized_name
-        while suffixed_name in used_names or suffixed_name == '':
+        while suffixed_name in new_names or suffixed_name == '':
             suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
@@ -634,16 +622,16 @@ def disambiguate_pattern_names(
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
         elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(pat.name):
-                logger.warning(f'Pattern name "{pat.name}" ({sanitized_name}) appears multiple times;\n'
+            if dup_warn_filter is None or dup_warn_filter(name):
+                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
                                + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{pat.name}"')
+            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{name}"')
 
-        pat.name = suffixed_name
-        used_names.append(suffixed_name)
+        new_names.append(suffixed_name)
+    return new_names
 
 
 def repetition_fata2masq(

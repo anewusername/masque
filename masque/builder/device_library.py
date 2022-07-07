@@ -79,16 +79,6 @@ class DeviceLibrary:
     def __repr__(self) -> str:
         return '<DeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
 
-    def set_const(self, const: Device) -> None:
-        """
-        Convenience function to avoid having to manually wrap
-         already-generated Device objects into callables.
-
-        Args:
-            const: Pre-generated device object
-        """
-        self.generators[const.pattern.name] = lambda: const
-
     def add(
             self: D,
             other: D,
@@ -175,7 +165,6 @@ class DeviceLibrary:
         def build_dev() -> Device:
             dev = fn()
             dev.pattern = dev2pat(dev)
-            dev.pattern.rename(prefix + name)
             return dev
 
         self[prefix + name] = build_dev
@@ -200,8 +189,8 @@ class DeviceLibrary:
 
         def build_wrapped_dev() -> Device:
             old_dev = self[old_name]
-            wrapper = Pattern(name=name)
-            wrapper.addsp(old_dev.pattern)
+            wrapper = Pattern()
+            wrapper.addsp(old_name)
             return Device(wrapper, old_dev.ports)
 
         self[name] = build_wrapped_dev

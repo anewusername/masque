@@ -4,10 +4,11 @@ from abc import ABCMeta, abstractmethod
 import numpy
 from numpy.typing import NDArray, ArrayLike
 
-from ..traits import (PositionableImpl, LayerableImpl, DoseableImpl,
-                      Rotatable, Mirrorable, Copyable, Scalable,
-                      PivotableImpl, LockableImpl, RepeatableImpl,
-                      AnnotatableImpl)
+from ..traits import (
+    PositionableImpl, LayerableImpl, DoseableImpl,
+    Rotatable, Mirrorable, Copyable, Scalable,
+    PivotableImpl, RepeatableImpl, AnnotatableImpl,
+    )
 
 if TYPE_CHECKING:
     from . import Polygon
@@ -27,7 +28,7 @@ T = TypeVar('T', bound='Shape')
 
 
 class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable,
-            PivotableImpl, RepeatableImpl, LockableImpl, AnnotatableImpl, metaclass=ABCMeta):
+            PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
     """
@@ -303,13 +304,3 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                     dose=self.dose))
 
         return manhattan_polygons
-
-    def lock(self: T) -> T:
-        PositionableImpl._lock(self)
-        LockableImpl.lock(self)
-        return self
-
-    def unlock(self: T) -> T:
-        LockableImpl.unlock(self)
-        PositionableImpl._unlock(self)
-        return self

@@ -12,7 +12,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from .error import PatternError
 from .utils import rotation_matrix_2d, AutoSlots
-from .traits import LockableImpl, Copyable, Scalable, Rotatable, Mirrorable
+from .traits import Copyable, Scalable, Rotatable, Mirrorable
 
 
 class Repetition(Copyable, Rotatable, Mirrorable, Scalable, metaclass=ABCMeta):
@@ -30,7 +30,7 @@ class Repetition(Copyable, Rotatable, Mirrorable, Scalable, metaclass=ABCMeta):
         pass
 
 
-class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
+class Grid(Repetition, metaclass=AutoSlots):
     """
     `Grid` describes a 2D grid formed by two basis vectors and two 'counts' (sizes).
 
@@ -67,7 +67,6 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
             a_count: int,
             b_vector: Optional[ArrayLike] = None,
             b_count: Optional[int] = 1,
-            locked: bool = False,
             ) -> None:
         """
         Args:
@@ -79,7 +78,6 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
                 Can be omitted when specifying a 1D array.
             b_count: Number of elements in the `b_vector` direction.
                 Should be omitted if `b_vector` was omitted.
-            locked: Whether the `Grid` is locked after initialization.
 
         Raises:
             PatternError if `b_*` inputs conflict with each other
@@ -99,12 +97,10 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
         if b_count < 1:
             raise PatternError(f'Repetition has too-small b_count: {b_count}')
 
-        object.__setattr__(self, 'locked', False)
         self.a_vector = a_vector        # type: ignore     # setter handles type conversion
         self.b_vector = b_vector        # type: ignore     # setter handles type conversion
         self.a_count = a_count
         self.b_count = b_count
-        self.locked = locked
 
     @classmethod
     def aligned(
@@ -129,18 +125,17 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
         return cls(a_vector=(x, 0), b_vector=(0, y), a_count=x_count, b_count=y_count)
 
     def __copy__(self) -> 'Grid':
-        new = Grid(a_vector=self.a_vector.copy(),
-                   b_vector=copy.copy(self.b_vector),
-                   a_count=self.a_count,
-                   b_count=self.b_count,
-                   locked=self.locked)
+        new = Grid(
+            a_vector=self.a_vector.copy(),
+            b_vector=copy.copy(self.b_vector),
+            a_count=self.a_count,
+            b_count=self.b_count,
+            )
         return new
 
     def __deepcopy__(self, memo: Dict = None) -> 'Grid':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        LocakbleImpl.unlock(new)
-        new.locked = self.locked
         return new
 
     # a_vector property
@@ -264,36 +259,9 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
             self.b_vector *= c
         return self
 
-    def lock(self) -> 'Grid':
-        """
-        Lock the `Grid`, disallowing changes.
-
-        Returns:
-            self
-        """
-        self.a_vector.flags.writeable = False
-        if self.b_vector is not None:
-            self.b_vector.flags.writeable = False
-        LockableImpl.lock(self)
-        return self
-
-    def unlock(self) -> 'Grid':
-        """
-        Unlock the `Grid`
-
-        Returns:
-            self
-        """
-        self.a_vector.flags.writeable = True
-        if self.b_vector is not None:
-            self.b_vector.flags.writeable = True
-        LockableImpl.unlock(self)
-        return self
-
     def __repr__(self) -> str:
-        locked = ' L' if self.locked else ''
         bv = f', {self.b_vector}' if self.b_vector is not None else ''
-        return (f'<Grid {self.a_count}x{self.b_count} ({self.a_vector}{bv}){locked}>')
+        return (f'<Grid {self.a_count}x{self.b_count} ({self.a_vector}{bv})>')
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, type(self)):
@@ -308,12 +276,10 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
             return False
         if any(self.b_vector[ii] != other.b_vector[ii] for ii in range(2)):
             return False
-        if self.locked != other.locked:
-            return False
         return True
 
 
-class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
+class Arbitrary(Repetition, metaclass=AutoSlots):
     """
     `Arbitrary` is a simple list of (absolute) displacements for instances.
 
@@ -342,47 +308,18 @@ class Arbitrary(LockableImpl, Repetition, metaclass=AutoSlots):
     def __init__(
             self,
             displacements: ArrayLike,
-            locked: bool = False,
             ) -> None:
         """
         Args:
             displacements: List of vectors (Nx2 ndarray) specifying displacements.
-            locked: Whether the object is locked after initialization.
         """
-        object.__setattr__(self, 'locked', False)
         self.displacements = displacements
-        self.locked = locked
-
-    def lock(self) -> 'Arbitrary':
-        """
-        Lock the object, disallowing changes.
-
-        Returns:
-            self
-        """
-        self._displacements.flags.writeable = False
-        LockableImpl.lock(self)
-        return self
-
-    def unlock(self) -> 'Arbitrary':
-        """
-        Unlock the object
-
-        Returns:
-            self
-        """
-        self._displacements.flags.writeable = True
-        LockableImpl.unlock(self)
-        return self
 
     def __repr__(self) -> str:
-        locked = ' L' if self.locked else ''
-        return (f'<Arbitrary {len(self.displacements)}pts {locked}>')
+        return (f'<Arbitrary {len(self.displacements)}pts >')
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, type(self)):
-            return False
-        if self.locked != other.locked:
             return False
         return numpy.array_equal(self.displacements, other.displacements)
 

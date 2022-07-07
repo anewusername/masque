@@ -1,7 +1,7 @@
 """
 Helper functions for file reading and writing
 """
-from typing import Set, Tuple, List
+from typing import Set, Tuple, List, Iterable, Mapping
 import re
 import copy
 import pathlib
@@ -10,19 +10,22 @@ from .. import Pattern, PatternError
 from ..shapes import Polygon, Path
 
 
-def mangle_name(pattern: Pattern, dose_multiplier: float = 1.0) -> str:
+def mangle_name(name: str, dose_multiplier: float = 1.0) -> str:
     """
-    Create a name using `pattern.name`, `id(pattern)`, and the dose multiplier.
+    Create a new name using `name` and the `dose_multiplier`.
 
     Args:
-        pattern: Pattern whose name we want to mangle.
+        name: Name we want to mangle.
         dose_multiplier: Dose multiplier to mangle with.
 
     Returns:
         Mangled name.
     """
+    if dose_multiplier == 1:
+        full_name = name
+    else:
+        full_name = f'{name}_dm{dose_multiplier}'
     expression = re.compile(r'[^A-Za-z0-9_\?\$]')
-    full_name = '{}_{}_{}'.format(pattern.name, dose_multiplier, id(pattern))
     sanitized_name = expression.sub('_', full_name)
     return sanitized_name
 
@@ -51,25 +54,30 @@ def clean_pattern_vertices(pat: Pattern) -> Pattern:
     return pat
 
 
-def make_dose_table(patterns: List[Pattern], dose_multiplier: float = 1.0) -> Set[Tuple[int, float]]:
+def make_dose_table(
+        top_names: Iterable[str],
+        library: Mapping[str, Pattern],
+        dose_multiplier: float = 1.0,
+        ) -> Set[Tuple[int, float]]:
     """
-    Create a set containing `(id(pat), written_dose)` for each pattern (including subpatterns)
+    Create a set containing `(name, written_dose)` for each pattern (including subpatterns)
 
     Args:
+        top_names: Names of all topcells
         pattern: Source Patterns.
         dose_multiplier: Multiplier for all written_dose entries.
 
     Returns:
-        `{(id(subpat.pattern), written_dose), ...}`
+        `{(name, written_dose), ...}`
     """
-    dose_table = {(id(pattern), dose_multiplier) for pattern in patterns}
-    for pattern in patterns:
+    dose_table = {(top_name, dose_multiplier) for top_name in top_names}
+    for name, pattern in library.items():
         for subpat in pattern.subpatterns:
-            if subpat.pattern is None:
+            if subpat.target is None:
                 continue
-            subpat_dose_entry = (id(subpat.pattern), subpat.dose * dose_multiplier)
+            subpat_dose_entry = (subpat.target, subpat.dose * dose_multiplier)
             if subpat_dose_entry not in dose_table:
-                subpat_dose_table = make_dose_table([subpat.pattern], subpat.dose * dose_multiplier)
+                subpat_dose_table = make_dose_table(subpat.target, library, subpat.dose * dose_multiplier)
                 dose_table = dose_table.union(subpat_dose_table)
     return dose_table
 
@@ -96,7 +104,7 @@ def dtype2dose(pattern: Pattern) -> Pattern:
 
 
 def dose2dtype(
-        patterns: List[Pattern],
+        library: List[Pattern],
         ) -> Tuple[List[Pattern], List[float]]:
     """
      For each shape in each pattern, set shape.layer to the tuple
@@ -119,21 +127,16 @@ def dose2dtype(
             dose_list: A list of doses, providing a mapping between datatype (int, list index)
                        and dose (float, list entry).
     """
-    # Get a dict of id(pattern) -> pattern
-    patterns_by_id = {id(pattern): pattern for pattern in patterns}
-    for pattern in patterns:
-        for i, p in pattern.referenced_patterns_by_id().items():
-            patterns_by_id[i] = p
-
+    logger.warning('TODO: dose2dtype() needs to be tested!')
     # Get a table of (id(pat), written_dose) for each pattern and subpattern
-    sd_table = make_dose_table(patterns)
+    sd_table = make_dose_table(library.find_topcells(), library)
 
     # Figure out all the unique doses necessary to write this pattern
     #  This means going through each row in sd_table and adding the dose values needed to write
     #  that subpattern at that dose level
     dose_vals = set()
-    for pat_id, pat_dose in sd_table:
-        pat = patterns_by_id[pat_id]
+    for name, pat_dose in sd_table:
+        pat = library[name]
         for shape in pat.shapes:
             dose_vals.add(shape.dose * pat_dose)
 
@@ -144,21 +147,22 @@ def dose2dtype(
 
     # Create a new pattern for each non-1-dose entry in the dose table
     #   and update the shapes to reflect their new dose
-    new_pats = {}  # (id, dose) -> new_pattern mapping
-    for pat_id, pat_dose in sd_table:
+    new_names = {}  # {(old name, dose): new name} mapping
+    new_lib = {}  # {new_name: new_pattern} mapping
+    for name, pat_dose in sd_table:
+        mangled_name = mangle_name(name, pat_dose)
+        new_names[(name, pat_dose)] = mangled_name
+
+        old_pat = library[name]
+
         if pat_dose == 1:
-            new_pats[(pat_id, pat_dose)] = patterns_by_id[pat_id]
+            new_lib[mangled_name] = old_pat
             continue
 
-        old_pat = patterns_by_id[pat_id]
-        pat = old_pat.copy()  # keep old subpatterns
-        pat.shapes = copy.deepcopy(old_pat.shapes)
-        pat.labels = copy.deepcopy(old_pat.labels)
+        pat = old_pat.deepcopy()
 
-        encoded_name = mangle_name(pat, pat_dose)
         if len(encoded_name) == 0:
-            raise PatternError('Zero-length name after mangle+encode, originally "{}"'.format(pat.name))
-        pat.name = encoded_name
+            raise PatternError('Zero-length name after mangle+encode, originally "{name}"'.format(pat.name))
 
         for shape in pat.shapes:
             data_type = dose_vals_list.index(shape.dose * pat_dose)
@@ -169,15 +173,9 @@ def dose2dtype(
             else:
                 raise PatternError(f'Invalid layer for gdsii: {shape.layer}')
 
-        new_pats[(pat_id, pat_dose)] = pat
+        new_lib[mangled_name] = pat
 
-    # Go back through all the dose-specific patterns and fix up their subpattern entries
-    for (pat_id, pat_dose), pat in new_pats.items():
-        for subpat in pat.subpatterns:
-            dose_mult = subpat.dose * pat_dose
-            subpat.pattern = new_pats[(id(subpat.pattern), dose_mult)]
-
-    return patterns, dose_vals_list
+    return new_lib, dose_vals_list
 
 
 def is_gzipped(path: pathlib.Path) -> bool:
