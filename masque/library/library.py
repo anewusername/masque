@@ -332,6 +332,8 @@ class Library:
         self.cache = {}
         return self
 
+    def __deepcopy__(self: L, memo: Optional[Dict] = None) -> L:
+        raise LibraryError('Library cannot be deepcopied -- python copy.deepcopy() does not copy closures!')
 
 r"""
     #   Add a filter for names which aren't added
