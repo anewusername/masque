@@ -698,11 +698,15 @@ def repetition_masq2fata(
                    Tuple[int, int]]:
     frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
     if isinstance(rep, Grid):
+        a_vector = rint_cast(rep.a_vector)
+        b_vector = rint_cast(rep.b_vector) if rep.b_vector is not None else None
+        a_count = rint_cast(rep.a_count)
+        b_count = rint_cast(rep.b_count) if rep.b_count is not None else None
         frep = fatamorgana.GridRepetition(
-            a_vector=rint_cast(rep.a_vector),
-            b_vector=rint_cast(rep.b_vector),
-            a_count=rint_cast(rep.a_count),
-            b_count=rint_cast(rep.b_count),
+            a_vector=a_vector,
+            b_vector=b_vector,
+            a_count=a_count,
+            b_count=b_count,
             )
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):
