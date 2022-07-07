@@ -31,7 +31,7 @@ import pathlib
 import gzip
 
 import numpy
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 import klamath
 from klamath import records
 
@@ -51,6 +51,10 @@ path_cap_map = {
     2: Path.Cap.Square,
     4: Path.Cap.SquareCustom,
     }
+
+
+def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
+    return numpy.rint(val, dtype=numpy.int32, casting='unsafe')
 
 
 def write(
@@ -392,8 +396,8 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
                 ]
             aref = klamath.library.Reference(
                 struct_name=encoded_name,
-                xy=numpy.round(xy).astype(int),
-                colrow=(numpy.round(rep.a_count), numpy.round(rep.b_count)),
+                xy=rint_cast(xy),
+                colrow=(numpy.rint(rep.a_count), numpy.rint(rep.b_count)),
                 angle_deg=angle_deg,
                 invert_y=mirror_across_x,
                 mag=subpat.scale,
@@ -403,7 +407,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
         elif rep is None:
             ref = klamath.library.Reference(
                 struct_name=encoded_name,
-                xy=numpy.round([subpat.offset]).astype(int),
+                xy=rint_cast([subpat.offset]),
                 colrow=None,
                 angle_deg=angle_deg,
                 invert_y=mirror_across_x,
@@ -414,7 +418,7 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
         else:
             new_srefs = [klamath.library.Reference(
                             struct_name=encoded_name,
-                            xy=numpy.round([subpat.offset + dd]).astype(int),
+                            xy=rint_cast([subpat.offset + dd]),
                             colrow=None,
                             angle_deg=angle_deg,
                             invert_y=mirror_across_x,
@@ -462,8 +466,8 @@ def _shapes_to_elements(
         layer, data_type = _mlayer2gds(shape.layer)
         properties = _annotations_to_properties(shape.annotations, 128)
         if isinstance(shape, Path) and not polygonize_paths:
-            xy = numpy.round(shape.vertices + shape.offset).astype(int)
-            width = numpy.round(shape.width).astype(int)
+            xy = rint_cast(shape.vertices + shape.offset)
+            width = rint_cast(shape.width)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
 
             extension: Tuple[int, int]
@@ -511,7 +515,7 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
     for label in labels:
         properties = _annotations_to_properties(label.annotations, 128)
         layer, text_type = _mlayer2gds(label.layer)
-        xy = numpy.round([label.offset]).astype(int)
+        xy = rint_cast([label.offset])
         text = klamath.elements.Text(
             layer=(layer, text_type),
             xy=xy,
