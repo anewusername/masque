@@ -34,10 +34,11 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('_pattern',
-                 '_mirrored',
-                 'identifier',
-                 )
+    __slots__ = (
+        '_pattern',
+        '_mirrored',
+        'identifier',
+        )
 
     _pattern: Optional['Pattern']
     """ The `Pattern` being instanced """

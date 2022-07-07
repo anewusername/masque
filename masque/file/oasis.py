@@ -285,11 +285,13 @@ def read(
             if isinstance(element, fatrec.Polygon):
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list())), axis=0)
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                poly = Polygon(vertices=vertices,
-                               layer=element.get_layer_tuple(),
-                               offset=element.get_xy(),
-                               annotations=annotations,
-                               repetition=repetition)
+                poly = Polygon(
+                    vertices=vertices,
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    annotations=annotations,
+                    repetition=repetition,
+                    )
 
                 pat.shapes.append(poly)
 
@@ -308,14 +310,16 @@ def read(
                                                                element.get_extension_end()[1]))
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                path = Path(vertices=vertices,
-                            layer=element.get_layer_tuple(),
-                            offset=element.get_xy(),
-                            repetition=repetition,
-                            annotations=annotations,
-                            width=element.get_half_width() * 2,
-                            cap=cap,
-                            **path_args)
+                path = Path(
+                    vertices=vertices,
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    width=element.get_half_width() * 2,
+                    cap=cap,
+                    **path_args,
+                    )
 
                 pat.shapes.append(path)
 
@@ -323,12 +327,13 @@ def read(
                 width = element.get_width()
                 height = element.get_height()
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                rect = Polygon(layer=element.get_layer_tuple(),
-                               offset=element.get_xy(),
-                               repetition=repetition,
-                               vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
-                               annotations=annotations,
-                               )
+                rect = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
+                    annotations=annotations,
+                    )
                 pat.shapes.append(rect)
 
             elif isinstance(element, fatrec.Trapezoid):
@@ -357,12 +362,13 @@ def read(
                         vertices[2, 0] -= b
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                trapz = Polygon(layer=element.get_layer_tuple(),
-                                offset=element.get_xy(),
-                                repetition=repetition,
-                                vertices=vertices,
-                                annotations=annotations,
-                                )
+                trapz = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=vertices,
+                    annotations=annotations,
+                    )
                 pat.shapes.append(trapz)
 
             elif isinstance(element, fatrec.CTrapezoid):
@@ -412,21 +418,24 @@ def read(
                     vertices[0, 1] += width
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                ctrapz = Polygon(layer=element.get_layer_tuple(),
-                                 offset=element.get_xy(),
-                                 repetition=repetition,
-                                 vertices=vertices,
-                                 annotations=annotations,
-                                 )
+                ctrapz = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=vertices,
+                    annotations=annotations,
+                    )
                 pat.shapes.append(ctrapz)
 
             elif isinstance(element, fatrec.Circle):
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                circle = Circle(layer=element.get_layer_tuple(),
-                                offset=element.get_xy(),
-                                repetition=repetition,
-                                annotations=annotations,
-                                radius=float(element.get_radius()))
+                circle = Circle(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    radius=float(element.get_radius()),
+                    )
                 pat.shapes.append(circle)
 
             elif isinstance(element, fatrec.Text):
@@ -436,11 +445,13 @@ def read(
                     string = lib.textstrings[str_or_ref].string
                 else:
                     string = str_or_ref.string
-                label = Label(layer=element.get_layer_tuple(),
-                              offset=element.get_xy(),
-                              repetition=repetition,
-                              annotations=annotations,
-                              string=string)
+                label = Label(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    string=string,
+                    )
                 pat.labels.append(label)
 
             else:
@@ -499,14 +510,16 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
         rotation = 0
     else:
         rotation = numpy.deg2rad(float(placement.angle))
-    subpat = SubPattern(offset=xy,
-                        pattern=None,
-                        mirrored=(placement.flip, False),
-                        rotation=rotation,
-                        scale=float(mag),
-                        identifier=(name,),
-                        repetition=repetition_fata2masq(placement.repetition),
-                        annotations=annotations)
+    subpat = SubPattern(
+        offset=xy,
+        pattern=None,
+        mirrored=(placement.flip, False),
+        rotation=rotation,
+        scale=float(mag),
+        identifier=(name,),
+        repetition=repetition_fata2masq(placement.repetition),
+        annotations=annotations,
+        )
     return subpat
 
 
@@ -532,7 +545,8 @@ def _subpatterns_to_placements(
             properties=annotations_to_properties(subpat.annotations),
             x=offset[0],
             y=offset[1],
-            repetition=frep)
+            repetition=frep,
+            )
 
         refs.append(ref)
     return refs
@@ -551,13 +565,15 @@ def _shapes_to_elements(
         if isinstance(shape, Circle):
             offset = numpy.round(shape.offset + rep_offset).astype(int)
             radius = numpy.round(shape.radius).astype(int)
-            circle = fatrec.Circle(layer=layer,
-                                   datatype=datatype,
-                                   radius=radius,
-                                   x=offset[0],
-                                   y=offset[1],
-                                   properties=properties,
-                                   repetition=repetition)
+            circle = fatrec.Circle(
+                layer=layer,
+                datatype=datatype,
+                radius=radius,
+                x=offset[0],
+                y=offset[1],
+                properties=properties,
+                repetition=repetition,
+                )
             elements.append(circle)
         elif isinstance(shape, Path):
             xy = numpy.round(shape.offset + shape.vertices[0] + rep_offset).astype(int)
@@ -566,29 +582,32 @@ def _shapes_to_elements(
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
             extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
-            path = fatrec.Path(layer=layer,
-                               datatype=datatype,
-                               point_list=deltas,
-                               half_width=half_width,
-                               x=xy[0],
-                               y=xy[1],
-                               extension_start=extension_start,       # TODO implement multiple cap types?
-                               extension_end=extension_end,
-                               properties=properties,
-                               repetition=repetition,
-                               )
+            path = fatrec.Path(
+                layer=layer,
+                datatype=datatype,
+                point_list=deltas,
+                half_width=half_width,
+                x=xy[0],
+                y=xy[1],
+                extension_start=extension_start,       # TODO implement multiple cap types?
+                extension_end=extension_end,
+                properties=properties,
+                repetition=repetition,
+                )
             elements.append(path)
         else:
             for polygon in shape.to_polygons():
                 xy = numpy.round(polygon.offset + polygon.vertices[0] + rep_offset).astype(int)
                 points = numpy.round(numpy.diff(polygon.vertices, axis=0)).astype(int)
-                elements.append(fatrec.Polygon(layer=layer,
-                                               datatype=datatype,
-                                               x=xy[0],
-                                               y=xy[1],
-                                               point_list=points,
-                                               properties=properties,
-                                               repetition=repetition))
+                elements.append(fatrec.Polygon(
+                    layer=layer,
+                    datatype=datatype,
+                    x=xy[0],
+                    y=xy[1],
+                    point_list=points,
+                    properties=properties,
+                    repetition=repetition,
+                    ))
     return elements
 
 
@@ -602,13 +621,15 @@ def _labels_to_texts(
         repetition, rep_offset = repetition_masq2fata(label.repetition)
         xy = numpy.round(label.offset + rep_offset).astype(int)
         properties = annotations_to_properties(label.annotations)
-        texts.append(fatrec.Text(layer=layer,
-                                 datatype=datatype,
-                                 x=xy[0],
-                                 y=xy[1],
-                                 string=label.string,
-                                 properties=properties,
-                                 repetition=repetition))
+        texts.append(fatrec.Text(
+            layer=layer,
+            datatype=datatype,
+            x=xy[0],
+            y=xy[1],
+            string=label.string,
+            properties=properties,
+            repetition=repetition,
+            ))
     return texts
 
 
@@ -648,10 +669,12 @@ def repetition_fata2masq(
         ) -> Optional[Repetition]:
     mrep: Optional[Repetition]
     if isinstance(rep, fatamorgana.GridRepetition):
-        mrep = Grid(a_vector=rep.a_vector,
-                    b_vector=rep.b_vector,
-                    a_count=rep.a_count,
-                    b_count=rep.b_count)
+        mrep = Grid(
+            a_vector=rep.a_vector,
+            b_vector=rep.b_vector,
+            a_count=rep.a_count,
+            b_count=rep.b_count,
+            )
     elif isinstance(rep, fatamorgana.ArbitraryRepetition):
         displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
                                                          rep.y_displacements)), axis=0)
