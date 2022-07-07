@@ -120,23 +120,3 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     def translate(self: I, offset: ArrayLike) -> I:
         self._offset += offset   # type: ignore         # NDArray += ArrayLike should be fine??
         return self
-
-    def _lock(self: I) -> I:
-        """
-        Lock the entity, disallowing further changes
-
-        Returns:
-            self
-        """
-        self._offset.flags.writeable = False
-        return self
-
-    def _unlock(self: I) -> I:
-        """
-        Unlock the entity
-
-        Returns:
-            self
-        """
-        self._offset.flags.writeable = True
-        return self

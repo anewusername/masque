@@ -87,7 +87,7 @@ def build(
             `fatamorgana.records.LayerName` entries.
             Default is an empty dict (no names provided).
         modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
@@ -109,7 +109,7 @@ def build(
         annotations = {}
 
     if not modify_originals:
-        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
+        patterns = copy.deepcopy(patterns)
 
     # Create library
     lib = fatamorgana.OasisLayout(unit=units_per_micron, validation=None)

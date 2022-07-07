@@ -11,7 +11,6 @@ from .. import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
-from ..traits import LockableImpl
 
 
 class PathCap(Enum):
@@ -155,10 +154,8 @@ class Path(Shape, metaclass=AutoSlots):
             dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             raw: bool = False,
             ) -> None:
-        LockableImpl.unlock(self)
         self._cap_extensions = None     # Since .cap setter might access it
 
         self.identifier = ()
@@ -187,18 +184,15 @@ class Path(Shape, metaclass=AutoSlots):
             self.cap_extensions = cap_extensions
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.set_locked(locked)
 
     def __deepcopy__(self, memo: Dict = None) -> 'Path':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        Shape.unlock(new)
         new._offset = self._offset.copy()
         new._vertices = self._vertices.copy()
         new._cap = copy.deepcopy(self._cap, memo)
         new._cap_extensions = copy.deepcopy(self._cap_extensions, memo)
         new._annotations = copy.deepcopy(self._annotations)
-        new.set_locked(self.locked)
         return new
 
     @staticmethod
@@ -424,22 +418,7 @@ class Path(Shape, metaclass=AutoSlots):
             extensions = numpy.zeros(2)
         return extensions
 
-    def lock(self) -> 'Path':
-        self.vertices.flags.writeable = False
-        if self.cap_extensions is not None:
-            self.cap_extensions.flags.writeable = False
-        Shape.lock(self)
-        return self
-
-    def unlock(self) -> 'Path':
-        Shape.unlock(self)
-        self.vertices.flags.writeable = True
-        if self.cap_extensions is not None:
-            self.cap_extensions.flags.writeable = True
-        return self
-
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
         dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        locked = ' L' if self.locked else ''
-        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}{dose}{locked}>'
+        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}{dose}>'

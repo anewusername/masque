@@ -63,7 +63,7 @@ def write(
         patterns: A Pattern or list of patterns to write to the stream.
         stream: Stream object to write to.
         modify_original: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
@@ -75,7 +75,7 @@ def write(
     assert(disambiguate_func is not None)
 
     if not modify_originals:
-        pattern = pattern.deepcopy().deepunlock()
+        pattern = pattern.deepcopy()
 
     # Get a dict of id(pattern) -> pattern
     patterns_by_id = pattern.referenced_patterns_by_id()

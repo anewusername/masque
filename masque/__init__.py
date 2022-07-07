@@ -24,11 +24,10 @@
     metaclass is used to auto-generate slots based on superclass type annotations.
  - File I/O submodules are imported by `masque.file` to avoid creating hard dependencies on
     external file-format reader/writers
- - Pattern locking/unlocking is quite slow for large hierarchies.
 
 """
 
-from .error import PatternError, PatternLockedError
+from .error import PatternError
 from .shapes import Shape
 from .label import Label
 from .subpattern import SubPattern
