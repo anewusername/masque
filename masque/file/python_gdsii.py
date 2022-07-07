@@ -95,7 +95,7 @@ def build(
         library_name: Library name written into the GDSII file.
             Default 'masque-gdsii-write'.
         modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made and `deepunlock()`-ed.
+            process. Otherwise, a copy is made.
             Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`, which
@@ -113,7 +113,7 @@ def build(
     assert(disambiguate_func is not None)       # placate mypy
 
     if not modify_originals:
-        patterns = [p.deepunlock() for p in copy.deepcopy(patterns)]
+        patterns = copy.deepcopy(patterns)
 
     patterns = [p.wrap_repeated_shapes() for p in patterns]
 

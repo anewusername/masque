@@ -18,9 +18,8 @@ from .subpattern import SubPattern
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
-from .error import PatternError, PatternLockedError
-from .traits import LockableImpl, AnnotatableImpl, Scalable, Mirrorable
-from .traits import Rotatable, Positionable
+from .error import PatternError
+from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable
 
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
@@ -29,7 +28,7 @@ visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.
 P = TypeVar('P', bound='Pattern')
 
 
-class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
+class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
@@ -61,7 +60,6 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             labels: Sequence[Label] = (),
             subpatterns: Sequence[SubPattern] = (),
             annotations: Optional[annotations_t] = None,
-            locked: bool = False,
             ) -> None:
         """
         Basic init; arguments get assigned to member variables.
@@ -72,9 +70,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             labels: Initial labels in the Pattern
             subpatterns: Initial subpatterns in the Pattern
             name: An identifier for the Pattern
-            locked: Whether to lock the pattern after construction
         """
-        LockableImpl.unlock(self)
         if isinstance(shapes, list):
             self.shapes = shapes
         else:
@@ -92,15 +88,15 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         self.annotations = annotations if annotations is not None else {}
         self.name = name
-        self.set_locked(locked)
 
     def __copy__(self, memo: Dict = None) -> 'Pattern':
-        return Pattern(name=self.name,
-                       shapes=copy.deepcopy(self.shapes),
-                       labels=copy.deepcopy(self.labels),
-                       subpatterns=[copy.copy(sp) for sp in self.subpatterns],
-                       annotations=copy.deepcopy(self.annotations),
-                       locked=self.locked)
+        return Pattern(
+            name=self.name,
+            shapes=copy.deepcopy(self.shapes),
+            labels=copy.deepcopy(self.labels),
+            subpatterns=[copy.copy(sp) for sp in self.subpatterns],
+            annotations=copy.deepcopy(self.annotations),
+            )
 
     def __deepcopy__(self, memo: Dict = None) -> 'Pattern':
         memo = {} if memo is None else memo
@@ -110,7 +106,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             labels=copy.deepcopy(self.labels, memo),
             subpatterns=copy.deepcopy(self.subpatterns, memo),
             annotations=copy.deepcopy(self.annotations, memo),
-            locked=self.locked)
+            )
         return new
 
     def rename(self: P, name: str) -> P:
@@ -307,14 +303,13 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 sp_transform = False
 
             if subpattern.pattern is not None:
-                result = subpattern.pattern.dfs(visit_before=visit_before,
-                                                visit_after=visit_after,
-                                                transform=sp_transform,
-                                                memo=memo,
-                                                hierarchy=hierarchy + (self,))
-                if result is not subpattern.pattern:
-                    # skip assignment to avoid PatternLockedError unless modified
-                    subpattern.pattern = result
+                subpattern.patern = subpattern.pattern.dfs(
+                    visit_before=visit_before,
+                    visit_after=visit_after,
+                    transform=sp_transform,
+                    memo=memo,
+                    hierarchy=hierarchy + (self,),
+                    )
 
         if visit_after is not None:
             pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
@@ -454,7 +449,7 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             A list of `(Ni, 2)` `numpy.ndarray`s specifying vertices of the polygons. Each ndarray
              is of the form `[[x0, y0], [x1, y1],...]`.
         """
-        pat = self.deepcopy().deepunlock().polygonize().flatten()
+        pat = self.deepcopy().polygonize().flatten()
         return [shape.vertices + shape.offset for shape in pat.shapes]      # type: ignore      # mypy can't figure out that shapes are all Polygons now
 
     @overload
@@ -872,66 +867,6 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.subpatterns.append(SubPattern(*args, **kwargs))
         return self
 
-    def lock(self: P) -> P:
-        """
-        Lock the pattern, raising an exception if it is modified.
-        Also see `deeplock()`.
-
-        Returns:
-            self
-        """
-        if not self.locked:
-            self.shapes = tuple(self.shapes)
-            self.labels = tuple(self.labels)
-            self.subpatterns = tuple(self.subpatterns)
-            LockableImpl.lock(self)
-        return self
-
-    def unlock(self: P) -> P:
-        """
-        Unlock the pattern
-
-        Returns:
-            self
-        """
-        if self.locked:
-            LockableImpl.unlock(self)
-            self.shapes = list(self.shapes)
-            self.labels = list(self.labels)
-            self.subpatterns = list(self.subpatterns)
-        return self
-
-    def deeplock(self: P) -> P:
-        """
-        Recursively lock the pattern, all referenced shapes, subpatterns, and labels.
-
-        Returns:
-            self
-        """
-        self.lock()
-        for ss in chain(self.shapes, self.labels):
-            ss.lock()       # type: ignore      # mypy struggles with multiple inheritance :(
-        for sp in self.subpatterns:
-            sp.deeplock()
-        return self
-
-    def deepunlock(self: P) -> P:
-        """
-        Recursively unlock the pattern, all referenced shapes, subpatterns, and labels.
-
-        This is dangerous unless you have just performed a deepcopy, since anything
-          you change will be changed everywhere it is referenced!
-
-        Return:
-            self
-        """
-        self.unlock()
-        for ss in chain(self.shapes, self.labels):
-            ss.unlock()       # type: ignore      # mypy struggles with multiple inheritance :(
-        for sp in self.subpatterns:
-            sp.deepunlock()
-        return self
-
     @staticmethod
     def load(filename: str) -> 'Pattern':
         """
@@ -1046,5 +981,4 @@ class Pattern(LockableImpl, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         return toplevel
 
     def __repr__(self) -> str:
-        locked = ' L' if self.locked else ''
-        return (f'<Pattern "{self.name}": sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)}{locked}>')
+        return (f'<Pattern "{self.name}": sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)}>')
