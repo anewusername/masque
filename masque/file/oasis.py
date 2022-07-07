@@ -670,15 +670,20 @@ def repetition_masq2fata(
                    Tuple[int, int]]:
     frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
     if isinstance(rep, Grid):
+        a_vector = rint_cast(rep.a_vector)
+        b_vector = rint_cast(rep.b_vector) if rep.b_vector is not None else None
+        a_count = rint_cast(rep.a_count)
+        b_count = rint_cast(rep.b_count) if rep.b_count is not None else None
         frep = fatamorgana.GridRepetition(
-            a_vector=numpy.round(rep.a_vector).astype(int),
-            b_vector=numpy.round(rep.b_vector).astype(int),
-            a_count=numpy.round(rep.a_count).astype(int),
-            b_count=numpy.round(rep.b_count).astype(int))
+            a_vector=a_vector,
+            b_vector=b_vector,
+            a_count=a_count,
+            b_count=b_count,
+            )
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):
         diffs = numpy.diff(rep.displacements, axis=0)
-        diff_ints = numpy.round(diffs).astype(int)
+        diff_ints = rint_cast(diffs)
         frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])
         offset = rep.displacements[0, :]
     else:

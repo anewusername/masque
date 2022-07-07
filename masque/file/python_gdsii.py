@@ -29,7 +29,7 @@ import pathlib
 import gzip
 
 import numpy
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray, ArrayLike
 # python-gdsii
 import gdsii.library    #type: ignore
 import gdsii.structure  #type: ignore
@@ -52,6 +52,10 @@ path_cap_map = {
     2: Path.Cap.Square,
     4: Path.Cap.SquareCustom,
     }
+
+
+def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
+    return numpy.rint(val, dtype=numpy.int32, casting='unsafe')
 
 
 def build(
@@ -409,18 +413,24 @@ def _subpatterns_to_refs(
                 rep.a_vector * rep.a_count,
                 b_vector * b_count,
                 ]
-            ref = gdsii.elements.ARef(struct_name=encoded_name,
-                                      xy=numpy.round(xy).astype(int),
-                                      cols=numpy.round(rep.a_count).astype(int),
-                                      rows=numpy.round(rep.b_count).astype(int))
+            ref = gdsii.elements.ARef(
+                struct_name=encoded_name,
+                xy=rint_cast(xy),
+                cols=rint_cast(rep.a_count),
+                rows=rint_cast(rep.b_count),
+                )
             new_refs = [ref]
         elif rep is None:
-            ref = gdsii.elements.SRef(struct_name=encoded_name,
-                                      xy=numpy.round([subpat.offset]).astype(int))
+            ref = gdsii.elements.SRef(
+                struct_name=encoded_name,
+                xy=rint_cast([subpat.offset]),
+                )
             new_refs = [ref]
         else:
-            new_refs = [gdsii.elements.SRef(struct_name=encoded_name,
-                                            xy=numpy.round([subpat.offset + dd]).astype(int))
+            new_refs = [gdsii.elements.SRef(
+                            struct_name=encoded_name,
+                            xy=rint_cast([subpat.offset + dd]),
+                            )
                         for dd in rep.displacements]
 
         for ref in new_refs:
@@ -470,8 +480,8 @@ def _shapes_to_elements(
         layer, data_type = _mlayer2gds(shape.layer)
         properties = _annotations_to_properties(shape.annotations, 128)
         if isinstance(shape, Path) and not polygonize_paths:
-            xy = numpy.round(shape.vertices + shape.offset).astype(int)
-            width = numpy.round(shape.width).astype(int)
+            xy = rint_cast(shape.vertices + shape.offset)
+            width = rint_cast(shape.width)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
             path = gdsii.elements.Path(layer=layer,
                                        data_type=data_type,
@@ -482,11 +492,14 @@ def _shapes_to_elements(
             elements.append(path)
         else:
             for polygon in shape.to_polygons():
-                xy_open = numpy.round(polygon.vertices + polygon.offset).astype(int)
-                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-                boundary = gdsii.elements.Boundary(layer=layer,
-                                                   data_type=data_type,
-                                                   xy=xy_closed)
+                xy_closed = numpy.empty((polygon.vertices.shape[0] + 1, 2), dtype=numpy.int32)
+                numpy.rint(polygon.vertices + polygon.offset, out=xy_closed[:-1], casting='unsafe')
+                xy_closed[-1] = xy_closed[0]
+                boundary = gdsii.elements.Boundary(
+                    layer=layer,
+                    data_type=data_type,
+                    xy=xy_closed,
+                    )
                 boundary.properties = properties
                 elements.append(boundary)
     return elements
@@ -497,11 +510,13 @@ def _labels_to_texts(labels: List[Label]) -> List[gdsii.elements.Text]:
     for label in labels:
         properties = _annotations_to_properties(label.annotations, 128)
         layer, text_type = _mlayer2gds(label.layer)
-        xy = numpy.round([label.offset]).astype(int)
-        text = gdsii.elements.Text(layer=layer,
-                                   text_type=text_type,
-                                   xy=xy,
-                                   string=label.string.encode('ASCII'))
+        xy = rint_cast([label.offset])
+        text = gdsii.elements.Text(
+            layer=layer,
+            text_type=text_type,
+            xy=xy,
+            string=label.string.encode('ASCII'),
+            )
         text.properties = properties
         texts.append(text)
     return texts

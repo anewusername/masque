@@ -31,7 +31,7 @@ import pathlib
 import gzip
 
 import numpy
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 import klamath
 from klamath import records
 
