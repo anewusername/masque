@@ -39,5 +39,5 @@ from .library import Library, DeviceLibrary
 
 __author__ = 'Jan Petykiewicz'
 
-from .VERSION import __version__
+__version__ = '2.7'
 version = __version__       # legacy

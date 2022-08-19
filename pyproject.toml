@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "masque"
+description = "Lithography mask library"
+readme = "README.md"
+license = { file = "LICENSE.md" }
+authors = [
+    { name="Jan Petykiewicz", email="jan@mpxd.net" },
+    ]
+homepage = "https://mpxd.net/code/jan/masque"
+repository = "https://mpxd.net/code/jan/masque"
+keywords = [
+    "layout",
+    "CAD",
+    "EDA",
+    "mask",
+    "pattern",
+    "lithography",
+    "oas",
+    "gds",
+    "dxf",
+    "svg",
+    "OASIS",
+    "gdsii",
+    "gds2",
+    "stream",
+    ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Scientific/Engineering :: Visualization",
+    ]
+requires-python = ">=3.8"
+dynamic = ["version"]
+dependencies = [
+    "numpy~=1.21",
+    "klamath~=1.2",
+    ]
+
+
+[tool.hatch.version]
+path = "masque/__init__.py"
+
+[project.optional-dependencies]
+oasis = ["fatamorgana~=0.11"]
+dxf = ["ezdxf"]
+svg = ["svgwrite"]
+visualize = ["matplotlib"]
+text = ["matplotlib", "freetype-py"]
+python-gdsii = ["python-gdsii"]
+
