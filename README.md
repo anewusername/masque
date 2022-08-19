@@ -13,7 +13,7 @@ E-beam doses, and the ability to output to multiple formats.
 ## Installation
 
 Requirements:
-* python >= 3.7 (written and tested with 3.8)
+* python >= 3.8
 * numpy
 * klamath (used for `gdsii` i/o and library management)
 * matplotlib (optional, used for `visualization` functions and `text`)
