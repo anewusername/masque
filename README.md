@@ -49,3 +49,9 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
     - boolean ops
 * Construct polygons from bitmap using `skimage.find_contours`
 * Deal with shape repetitions for dxf, svg
+
+* this approach has an issue: how add devices together?
+   - need to add the other device by name
+   - need to know the other device's ports
+   - 
+   - also: device doesn't know its own name, can't wrap itself into a subpattern
