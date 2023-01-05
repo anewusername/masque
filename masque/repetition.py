@@ -3,7 +3,7 @@
      instances of an object .
 """
 
-from typing import Union, Dict, Optional, Sequence, Any
+from typing import Union, Dict, Optional, Sequence, Any, Type
 import copy
 from abc import ABCMeta, abstractmethod
 
@@ -105,6 +105,28 @@ class Grid(LockableImpl, Repetition, metaclass=AutoSlots):
         self.a_count = a_count
         self.b_count = b_count
         self.locked = locked
+
+    @classmethod
+    def aligned(
+            cls: Type,
+            x: float,
+            y: float,
+            x_count: int,
+            y_count: int,
+            ) -> 'Grid':
+        """
+        Simple constructor for an axis-aligned 2D grid
+
+        Args:
+            x: X-step
+            y: Y-step
+            x_count: count of columns
+            y_count: count of rows
+
+        Returns:
+            An Grid instance with the requested values
+        """
+        return cls(a_vector=(x, 0), b_vector=(0, y), a_count=x_count, b_count=y_count)
 
     def __copy__(self) -> 'Grid':
         new = Grid(a_vector=self.a_vector.copy(),
