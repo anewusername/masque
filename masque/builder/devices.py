@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 P = TypeVar('P', bound='Port')
-D = TypeVar('D', bound='Device')
-O = TypeVar('O', bound='Device')
+D  = TypeVar('D',  bound='Device')
+DR  = TypeVar('DR',  bound='DeviceRef')
+PL  = TypeVar('PL',  bound='PortList')
+PL2 = TypeVar('PL2', bound='PortList')
 
 
 class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, metaclass=AutoSlots):
@@ -106,7 +108,337 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
         return f'<{self.offset}, {rot}, [{self.ptype}]>'
 
 
-class Device(Copyable, Mirrorable):
+class PortList(Copyable, Mirrorable, metaclass=ABCMeta):
+    __slots__ = ('ports',)
+
+    ports: Dict[str, Port]
+    """ Uniquely-named ports which can be used to snap to other Device instances"""
+
+    @overload
+    def __getitem__(self, key: str) -> Port:
+        pass
+
+    @overload
+    def __getitem__(self, key: Union[List[str], Tuple[str, ...], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
+        pass
+
+    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
+        """
+        For convenience, ports can be read out using square brackets:
+        - `device['A'] == Port((0, 0), 0)`
+        - `device[['A', 'B']] == {'A': Port((0, 0), 0),
+                                  'B': Port((0, 0), pi)}`
+        """
+        if isinstance(key, str):
+            return self.ports[key]
+        else:
+            return {k: self.ports[k] for k in key}
+
+    def rename_ports(
+            self: PL,
+            mapping: Dict[str, Optional[str]],
+            overwrite: bool = False,
+            ) -> PL:
+        """
+        Renames ports as specified by `mapping`.
+        Ports can be explicitly deleted by mapping them to `None`.
+
+        Args:
+            mapping: Dict of `{'old_name': 'new_name'}` pairs. Names can be mapped
+                to `None` to perform an explicit deletion. `'new_name'` can also
+                overwrite an existing non-renamed port to implicitly delete it if
+                `overwrite` is set to `True`.
+            overwrite: Allows implicit deletion of ports if set to `True`; see `mapping`.
+
+        Returns:
+            self
+        """
+        if not overwrite:
+            duplicates = (set(self.ports.keys()) - set(mapping.keys())) & set(mapping.values())
+            if duplicates:
+                raise DeviceError(f'Unrenamed ports would be overwritten: {duplicates}')
+
+        renamed = {mapping[k]: self.ports.pop(k) for k in mapping.keys()}
+        if None in renamed:
+            del renamed[None]
+
+        self.ports.update(renamed)      # type: ignore
+        return self
+
+    def check_ports(
+            self: PL,
+            other_names: Iterable[str],
+            map_in: Optional[Dict[str, str]] = None,
+            map_out: Optional[Dict[str, Optional[str]]] = None,
+            ) -> PL:
+        """
+        Given the provided port mappings, check that:
+            - All of the ports specified in the mappings exist
+            - There are no duplicate port names after all the mappings are performed
+
+        Args:
+            other_names: List of port names being considered for inclusion into
+                `self.ports` (before mapping)
+            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+                port connections between the two devices.
+            map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
+                new names for unconnected `other_names` ports.
+
+        Returns:
+            self
+
+        Raises:
+            `DeviceError` if any ports specified in `map_in` or `map_out` do not
+                exist in `self.ports` or `other_names`.
+            `DeviceError` if there are any duplicate names after `map_in` and `map_out`
+                are applied.
+        """
+        if map_in is None:
+            map_in = {}
+
+        if map_out is None:
+            map_out = {}
+
+        other = set(other_names)
+
+        missing_inkeys = set(map_in.keys()) - set(self.ports.keys())
+        if missing_inkeys:
+            raise DeviceError(f'`map_in` keys not present in device: {missing_inkeys}')
+
+        missing_invals = set(map_in.values()) - other
+        if missing_invals:
+            raise DeviceError(f'`map_in` values not present in other device: {missing_invals}')
+
+        missing_outkeys = set(map_out.keys()) - other
+        if missing_outkeys:
+            raise DeviceError(f'`map_out` keys not present in other device: {missing_outkeys}')
+
+        orig_remaining = set(self.ports.keys()) - set(map_in.keys())
+        other_remaining = other - set(map_out.keys()) - set(map_in.values())
+        mapped_vals = set(map_out.values())
+        mapped_vals.discard(None)
+
+        conflicts_final = orig_remaining & (other_remaining | mapped_vals)
+        if conflicts_final:
+            raise DeviceError(f'Device ports conflict with existing ports: {conflicts_final}')
+
+        conflicts_partial = other_remaining & mapped_vals
+        if conflicts_partial:
+            raise DeviceError(f'`map_out` targets conflict with non-mapped outputs: {conflicts_partial}')
+
+        map_out_counts = Counter(map_out.values())
+        map_out_counts[None] = 0
+        conflicts_out = {k for k, v in map_out_counts.items() if v > 1}
+        if conflicts_out:
+            raise DeviceError(f'Duplicate targets in `map_out`: {conflicts_out}')
+
+        return self
+
+    def as_interface(
+            self,
+            in_prefix: str = 'in_',
+            out_prefix: str = '',
+            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
+            ) -> 'Device':
+        """
+        Begin building a new device based on all or some of the ports in the
+          current device. Do not include the current device; instead use it
+          to define ports (the "interface") for the new device.
+
+        The ports specified by `port_map` (default: all ports) are copied to
+          new device, and additional (input) ports are created facing in the
+          opposite directions. The specified `in_prefix` and `out_prefix` are
+          prepended to the port names to differentiate them.
+
+        By default, the flipped ports are given an 'in_' prefix and unflipped
+          ports keep their original names, enabling intuitive construction of
+          a device that will "plug into" the current device; the 'in_*' ports
+          are used for plugging the devices together while the original port
+          names are used for building the new device.
+
+        Another use-case could be to build the new device using the 'in_'
+          ports, creating a new device which could be used in place of the
+          current device.
+
+        Args:
+            in_prefix: Prepended to port names for newly-created ports with
+                reversed directions compared to the current device.
+            out_prefix: Prepended to port names for ports which are directly
+                copied from the current device.
+            port_map: Specification for ports to copy into the new device:
+                - If `None`, all ports are copied.
+                - If a sequence, only the listed ports are copied
+                - If a mapping, the listed ports (keys) are copied and
+                    renamed (to the values).
+
+        Returns:
+            The new device, with an empty pattern and 2x as many ports as
+              listed in port_map.
+
+        Raises:
+            `DeviceError` if `port_map` contains port names not present in the
+                current device.
+            `DeviceError` if applying the prefixes results in duplicate port
+                names.
+        """
+        if port_map:
+            if isinstance(port_map, dict):
+                missing_inkeys = set(port_map.keys()) - set(self.ports.keys())
+                orig_ports = {port_map[k]: v for k, v in self.ports.items() if k in port_map}
+            else:
+                port_set = set(port_map)
+                missing_inkeys = port_set - set(self.ports.keys())
+                orig_ports = {k: v for k, v in self.ports.items() if k in port_set}
+
+            if missing_inkeys:
+                raise DeviceError(f'`port_map` keys not present in device: {missing_inkeys}')
+        else:
+            orig_ports = self.ports
+
+        ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
+                    for name, port in orig_ports.items()}
+        ports_out = {f'{out_prefix}{name}': port.deepcopy()
+                    for name, port in orig_ports.items()}
+
+        duplicates = set(ports_out.keys()) & set(ports_in.keys())
+        if duplicates:
+            raise DeviceError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
+
+        new = Device(ports={**ports_in, **ports_out})
+        return new
+
+    def find_transform(
+            self: PL,
+            other: PL2,
+            map_in: Dict[str, str],
+            *,
+            mirrored: Tuple[bool, bool] = (False, False),
+            set_rotation: Optional[bool] = None,
+            ) -> Tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
+        """
+        Given a device `other` and a mapping `map_in` specifying port connections,
+          find the transform which will correctly align the specified ports.
+
+        Args:
+            other: a device
+            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+                port connections between the two devices.
+            mirrored: Mirrors `other` across the x or y axes prior to
+                connecting any ports.
+            set_rotation: If the necessary rotation cannot be determined from
+                the ports being connected (i.e. all pairs have at least one
+                port with `rotation=None`), `set_rotation` must be provided
+                to indicate how much `other` should be rotated. Otherwise,
+                `set_rotation` must remain `None`.
+
+        Returns:
+            - The (x, y) translation (performed last)
+            - The rotation (radians, counterclockwise)
+            - The (x, y) pivot point for the rotation
+
+            The rotation should be performed before the translation.
+        """
+        s_ports = self[map_in.keys()]
+        o_ports = other[map_in.values()]
+
+        s_offsets = numpy.array([p.offset for p in s_ports.values()])
+        o_offsets = numpy.array([p.offset for p in o_ports.values()])
+        s_types = [p.ptype for p in s_ports.values()]
+        o_types = [p.ptype for p in o_ports.values()]
+
+        s_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in s_ports.values()])
+        o_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in o_ports.values()])
+        s_has_rot = numpy.array([p.rotation is not None for p in s_ports.values()], dtype=bool)
+        o_has_rot = numpy.array([p.rotation is not None for p in o_ports.values()], dtype=bool)
+        has_rot = s_has_rot & o_has_rot
+
+        if mirrored[0]:
+            o_offsets[:, 1] *= -1
+            o_rotations *= -1
+        if mirrored[1]:
+            o_offsets[:, 0] *= -1
+            o_rotations *= -1
+            o_rotations += pi
+
+        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
+                                      for st, ot in zip(s_types, o_types)])
+        if type_conflicts.any():
+            ports = numpy.where(type_conflicts)
+            msg = 'Ports have conflicting types:\n'
+            for nn, (k, v) in enumerate(map_in.items()):
+                if type_conflicts[nn]:
+                    msg += f'{k} | {s_types[nn]}:{o_types[nn]} | {v}\n'
+            msg = ''.join(traceback.format_stack()) + '\n' + msg
+            warnings.warn(msg, stacklevel=2)
+
+        rotations = numpy.mod(s_rotations - o_rotations - pi, 2 * pi)
+        if not has_rot.any():
+            if set_rotation is None:
+                DeviceError('Must provide set_rotation if rotation is indeterminate')
+            rotations[:] = set_rotation
+        else:
+            rotations[~has_rot] = rotations[has_rot][0]
+
+        if not numpy.allclose(rotations[:1], rotations):
+            rot_deg = numpy.rad2deg(rotations)
+            msg = f'Port orientations do not match:\n'
+            for nn, (k, v) in enumerate(map_in.items()):
+                msg += f'{k} | {rot_deg[nn]:g} | {v}\n'
+            raise DeviceError(msg)
+
+        pivot = o_offsets[0].copy()
+        rotate_offsets_around(o_offsets, pivot, rotations[0])
+        translations = s_offsets - o_offsets
+        if not numpy.allclose(translations[:1], translations):
+            msg = f'Port translations do not match:\n'
+            for nn, (k, v) in enumerate(map_in.items()):
+                msg += f'{k} | {translations[nn]} | {v}\n'
+            raise DeviceError(msg)
+
+        return translations[0], rotations[0], o_offsets[0]
+
+
+class DeviceRef(PortList):
+    __slots__ = ('name', 'ports')
+
+    name: str
+    """ Name of the pattern this device references """
+
+    ports: Dict[str, Port]
+    """ Uniquely-named ports which can be used to snap to other Device instances"""
+
+    def __init__(
+            self,
+            name: str,
+            ports: Dict[str, Port],
+            ) -> None:
+        self.name = name
+        self.ports = copy.deepcopy(ports)
+
+    def build(self) -> 'Device':
+        """
+        Begin building a new device around an instance of the current device
+          (rather than modifying the current device).
+
+        Returns:
+            The new `Device` object.
+        """
+        pat = Pattern()
+        pat.addsp(self.name)
+        new = Device(pat, ports=self.ports, tools=self.tools)
+        return new
+
+    # TODO do we want to store a SubPattern instead of just a name? then we can translate/rotate/mirror...
+
+    def __repr__(self) -> str:
+        s = f'<DeviceRef {self.name} ['
+        for name, port in self.ports.items():
+            s += f'\n\t{name}: {port}'
+        s += ']>'
+        return s
+
+
+class Device(PortList):
     """
     A `Device` is a combination of a `Pattern` with a set of named `Port`s
       which can be used to "snap" devices together to make complex layouts.
@@ -208,217 +540,24 @@ class Device(Copyable, Mirrorable):
 
         self._dead = False
 
-    @overload
-    def __getitem__(self, key: str) -> Port:
-        pass
-
-    @overload
-    def __getitem__(self, key: Union[List[str], Tuple[str, ...], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
-        pass
-
-    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
-        """
-        For convenience, ports can be read out using square brackets:
-        - `device['A'] == Port((0, 0), 0)`
-        - `device[['A', 'B']] == {'A': Port((0, 0), 0),
-                                  'B': Port((0, 0), pi)}`
-        """
-        if isinstance(key, str):
-            return self.ports[key]
-        else:
-            return {k: self.ports[k] for k in key}
-
-    def rename_ports(
-            self: D,
-            mapping: Dict[str, Optional[str]],
-            overwrite: bool = False,
-            ) -> D:
-        """
-        Renames ports as specified by `mapping`.
-        Ports can be explicitly deleted by mapping them to `None`.
-
-        Args:
-            mapping: Dict of `{'old_name': 'new_name'}` pairs. Names can be mapped
-                to `None` to perform an explicit deletion. `'new_name'` can also
-                overwrite an existing non-renamed port to implicitly delete it if
-                `overwrite` is set to `True`.
-            overwrite: Allows implicit deletion of ports if set to `True`; see `mapping`.
-
-        Returns:
-            self
-        """
-        if not overwrite:
-            duplicates = (set(self.ports.keys()) - set(mapping.keys())) & set(mapping.values())
-            if duplicates:
-                raise DeviceError(f'Unrenamed ports would be overwritten: {duplicates}')
-
-        renamed = {mapping[k]: self.ports.pop(k) for k in mapping.keys()}
-        if None in renamed:
-            del renamed[None]
-
-        self.ports.update(renamed)      # type: ignore
-        return self
-
-    def check_ports(
-            self: D,
-            other_names: Iterable[str],
-            map_in: Optional[Dict[str, str]] = None,
-            map_out: Optional[Dict[str, Optional[str]]] = None,
-            ) -> D:
-        """
-        Given the provided port mappings, check that:
-            - All of the ports specified in the mappings exist
-            - There are no duplicate port names after all the mappings are performed
-
-        Args:
-            other_names: List of port names being considered for inclusion into
-                `self.ports` (before mapping)
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
-                port connections between the two devices.
-            map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
-                new names for unconnected `other_names` ports.
-
-        Returns:
-            self
-
-        Raises:
-            `DeviceError` if any ports specified in `map_in` or `map_out` do not
-                exist in `self.ports` or `other_names`.
-            `DeviceError` if there are any duplicate names after `map_in` and `map_out`
-                are applied.
-        """
-        if map_in is None:
-            map_in = {}
-
-        if map_out is None:
-            map_out = {}
-
-        other = set(other_names)
-
-        missing_inkeys = set(map_in.keys()) - set(self.ports.keys())
-        if missing_inkeys:
-            raise DeviceError(f'`map_in` keys not present in device: {missing_inkeys}')
-
-        missing_invals = set(map_in.values()) - other
-        if missing_invals:
-            raise DeviceError(f'`map_in` values not present in other device: {missing_invals}')
-
-        missing_outkeys = set(map_out.keys()) - other
-        if missing_outkeys:
-            raise DeviceError(f'`map_out` keys not present in other device: {missing_outkeys}')
-
-        orig_remaining = set(self.ports.keys()) - set(map_in.keys())
-        other_remaining = other - set(map_out.keys()) - set(map_in.values())
-        mapped_vals = set(map_out.values())
-        mapped_vals.discard(None)
-
-        conflicts_final = orig_remaining & (other_remaining | mapped_vals)
-        if conflicts_final:
-            raise DeviceError(f'Device ports conflict with existing ports: {conflicts_final}')
-
-        conflicts_partial = other_remaining & mapped_vals
-        if conflicts_partial:
-            raise DeviceError(f'`map_out` targets conflict with non-mapped outputs: {conflicts_partial}')
-
-        map_out_counts = Counter(map_out.values())
-        map_out_counts[None] = 0
-        conflicts_out = {k for k, v in map_out_counts.items() if v > 1}
-        if conflicts_out:
-            raise DeviceError(f'Duplicate targets in `map_out`: {conflicts_out}')
-
-        return self
-
-    def build(self) -> 'Device':
-        """
-        Begin building a new device around an instance of the current device
-          (rather than modifying the current device).
-
-        Returns:
-            The new `Device` object.
-        """
-        # TODO lib: this needs a name for self, rather than for the built thing
-        pat = Pattern()
-        pat.addsp(self.pattern)
-        new = Device(pat, ports=self.ports, tools=self.tools)
-        return new
-
     def as_interface(
             self,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
             ) -> 'Device':
-        """
-        Begin building a new device based on all or some of the ports in the
-          current device. Do not include the current device; instead use it
-          to define ports (the "interface") for the new device.
-
-        The ports specified by `port_map` (default: all ports) are copied to
-          new device, and additional (input) ports are created facing in the
-          opposite directions. The specified `in_prefix` and `out_prefix` are
-          prepended to the port names to differentiate them.
-
-        By default, the flipped ports are given an 'in_' prefix and unflipped
-          ports keep their original names, enabling intuitive construction of
-          a device that will "plug into" the current device; the 'in_*' ports
-          are used for plugging the devices together while the original port
-          names are used for building the new device.
-
-        Another use-case could be to build the new device using the 'in_'
-          ports, creating a new device which could be used in place of the
-          current device.
-
-        Args:
-            in_prefix: Prepended to port names for newly-created ports with
-                reversed directions compared to the current device.
-            out_prefix: Prepended to port names for ports which are directly
-                copied from the current device.
-            port_map: Specification for ports to copy into the new device:
-                - If `None`, all ports are copied.
-                - If a sequence, only the listed ports are copied
-                - If a mapping, the listed ports (keys) are copied and
-                    renamed (to the values).
-
-        Returns:
-            The new device, with an empty pattern and 2x as many ports as
-              listed in port_map.
-
-        Raises:
-            `DeviceError` if `port_map` contains port names not present in the
-                current device.
-            `DeviceError` if applying the prefixes results in duplicate port
-                names.
-        """
-        if port_map:
-            if isinstance(port_map, dict):
-                missing_inkeys = set(port_map.keys()) - set(self.ports.keys())
-                orig_ports = {port_map[k]: v for k, v in self.ports.items() if k in port_map}
-            else:
-                port_set = set(port_map)
-                missing_inkeys = port_set - set(self.ports.keys())
-                orig_ports = {k: v for k, v in self.ports.items() if k in port_set}
-
-            if missing_inkeys:
-                raise DeviceError(f'`port_map` keys not present in device: {missing_inkeys}')
-        else:
-            orig_ports = self.ports
-
-        ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
-                    for name, port in orig_ports.items()}
-        ports_out = {f'{out_prefix}{name}': port.deepcopy()
-                    for name, port in orig_ports.items()}
-
-        duplicates = set(ports_out.keys()) & set(ports_in.keys())
-        if duplicates:
-            raise DeviceError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
-
-        new = Device(ports={**ports_in, **ports_out}, tools=self.tools)
+        new = PortList.as_interface(
+            self,
+            in_prefix=in_prefix,
+            out_prefix=out_prefix,
+            port_map=port_map,
+            )
+        new.tools = self.tools
         return new
 
     def plug(
             self: D,
-            library: Mapping[str, 'Device'],
-            name: str,
+            other: DR,
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
@@ -448,8 +587,7 @@ class Device(Copyable, Mirrorable):
             having to provide `map_out` each time `plug` is called.
 
         Args:
-            library: A `DeviceLibrary` containing the device to be instatiated.
-            name: The name of the device to be instantiated (from `library`).
+            other: A `DeviceRef` describing the device to be instatiated.
             map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
@@ -504,14 +642,13 @@ class Device(Copyable, Mirrorable):
             del self.ports[ki]
             map_out[vi] = None
 
-        self.place(library, name, offset=translation, rotation=rotation, pivot=pivot,
+        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
                    mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
 
     def place(
             self: D,
-            library: Mapping[str, 'Device'],
-            name: str,
+            other: DR,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -521,7 +658,7 @@ class Device(Copyable, Mirrorable):
             skip_port_check: bool = False,
             ) -> D:
         """
-        Instantiate the device `library[name]` into the current device, adding its
+        Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
 
         Mirroring is applied before rotation; translation (`offset`) is applied last.
@@ -535,8 +672,7 @@ class Device(Copyable, Mirrorable):
             rather than the port name on the original `pad` device.
 
         Args:
-            library: A `DeviceLibrary` containing the device to be instatiated.
-            name: The name of the device to be instantiated (from `library`).
+            other: A `DeviceRef` describing the device to be instatiated.
             offset: Offset at which to place the instance. Default (0, 0).
             rotation: Rotation applied to the instance before placement. Default 0.
             pivot: Rotation is applied around this pivot point (default (0, 0)).
@@ -565,8 +701,6 @@ class Device(Copyable, Mirrorable):
         if port_map is None:
             port_map = {}
 
-        other = library[name]
-
         if not skip_port_check:
             self.check_ports(other.ports.keys(), map_in=None, map_out=port_map)
 
@@ -584,101 +718,11 @@ class Device(Copyable, Mirrorable):
             p.translate(offset)
             self.ports[name] = p
 
-        sp = SubPattern(name, mirrored=mirrored)   #TODO figure out how this should work?!
+        sp = SubPattern(other.name, mirrored=mirrored)
         sp.rotate_around(pivot, rotation)
         sp.translate(offset)
         self.pattern.subpatterns.append(sp)
         return self
-
-    def find_transform(
-            self: D,
-            other: O,
-            map_in: Dict[str, str],
-            *,
-            mirrored: Tuple[bool, bool] = (False, False),
-            set_rotation: Optional[bool] = None,
-            ) -> Tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
-        """
-        Given a device `other` and a mapping `map_in` specifying port connections,
-          find the transform which will correctly align the specified ports.
-
-        Args:
-            other: a device
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
-                port connections between the two devices.
-            mirrored: Mirrors `other` across the x or y axes prior to
-                connecting any ports.
-            set_rotation: If the necessary rotation cannot be determined from
-                the ports being connected (i.e. all pairs have at least one
-                port with `rotation=None`), `set_rotation` must be provided
-                to indicate how much `other` should be rotated. Otherwise,
-                `set_rotation` must remain `None`.
-
-        Returns:
-            - The (x, y) translation (performed last)
-            - The rotation (radians, counterclockwise)
-            - The (x, y) pivot point for the rotation
-
-            The rotation should be performed before the translation.
-        """
-        s_ports = self[map_in.keys()]
-        o_ports = other[map_in.values()]
-
-        s_offsets = numpy.array([p.offset for p in s_ports.values()])
-        o_offsets = numpy.array([p.offset for p in o_ports.values()])
-        s_types = [p.ptype for p in s_ports.values()]
-        o_types = [p.ptype for p in o_ports.values()]
-
-        s_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in s_ports.values()])
-        o_rotations = numpy.array([p.rotation if p.rotation is not None else 0 for p in o_ports.values()])
-        s_has_rot = numpy.array([p.rotation is not None for p in s_ports.values()], dtype=bool)
-        o_has_rot = numpy.array([p.rotation is not None for p in o_ports.values()], dtype=bool)
-        has_rot = s_has_rot & o_has_rot
-
-        if mirrored[0]:
-            o_offsets[:, 1] *= -1
-            o_rotations *= -1
-        if mirrored[1]:
-            o_offsets[:, 0] *= -1
-            o_rotations *= -1
-            o_rotations += pi
-
-        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
-                                      for st, ot in zip(s_types, o_types)])
-        if type_conflicts.any():
-            ports = numpy.where(type_conflicts)
-            msg = 'Ports have conflicting types:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
-                if type_conflicts[nn]:
-                    msg += f'{k} | {s_types[nn]}:{o_types[nn]} | {v}\n'
-            msg = ''.join(traceback.format_stack()) + '\n' + msg
-            warnings.warn(msg, stacklevel=2)
-
-        rotations = numpy.mod(s_rotations - o_rotations - pi, 2 * pi)
-        if not has_rot.any():
-            if set_rotation is None:
-                DeviceError('Must provide set_rotation if rotation is indeterminate')
-            rotations[:] = set_rotation
-        else:
-            rotations[~has_rot] = rotations[has_rot][0]
-
-        if not numpy.allclose(rotations[:1], rotations):
-            rot_deg = numpy.rad2deg(rotations)
-            msg = f'Port orientations do not match:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
-                msg += f'{k} | {rot_deg[nn]:g} | {v}\n'
-            raise DeviceError(msg)
-
-        pivot = o_offsets[0].copy()
-        rotate_offsets_around(o_offsets, pivot, rotations[0])
-        translations = s_offsets - o_offsets
-        if not numpy.allclose(translations[:1], translations):
-            msg = f'Port translations do not match:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
-                msg += f'{k} | {translations[nn]} | {v}\n'
-            raise DeviceError(msg)
-
-        return translations[0], rotations[0], o_offsets[0]
 
     def translate(self: D, offset: ArrayLike) -> D:
         """
@@ -697,10 +741,11 @@ class Device(Copyable, Mirrorable):
 
     def rotate_around(self: D, pivot: ArrayLike, angle: float) -> D:
         """
-        Translate the pattern and all ports.
+        Rotate the pattern and all ports.
 
         Args:
-            offset: (x, y) distance to translate by
+            angle: angle (radians, counterclockwise) to rotate by
+            pivot: location to rotate around
 
         Returns:
             self
@@ -712,7 +757,7 @@ class Device(Copyable, Mirrorable):
 
     def mirror(self: D, axis: int) -> D:
         """
-        Translate the pattern and all ports across the specified axis.
+        Mirror the pattern and all ports across the specified axis.
 
         Args:
             axis: Axis to mirror across (x=0, y=1)
