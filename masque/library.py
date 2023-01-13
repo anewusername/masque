@@ -11,6 +11,7 @@ import struct
 import re
 from pprint import pformat
 from collections import defaultdict
+from abc import ABCMeta, abstractmethod
 
 import numpy
 from numpy.typing import ArrayLike, NDArray, NDArray
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
 L = TypeVar('L', bound='Library')
+ML = TypeVar('ML', bound='MutableLibrary')
 LL = TypeVar('LL', bound='LazyLibrary')
 
 
@@ -268,11 +270,11 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _copy(self: ML, other: ML, key: str) -> None:
+    def _merge(self: ML, other: ML, key: str) -> None:
         pass
 
     def add(
-            self: WL,
+            self: ML,
             other: L,
             use_ours: Callable[[str], bool] = lambda name: False,
             use_theirs: Callable[[str], bool] = lambda name: False,
