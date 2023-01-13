@@ -194,7 +194,7 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
-    def as_polygons(self, library: Mapping[str, Pattern]) -> List[NDArray[numpy.float64]]:
+    def as_polygons(self, library: Mapping[str, 'Pattern']) -> List[NDArray[numpy.float64]]:
         """
         Represents the pattern as a list of polygons.
 
