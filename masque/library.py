@@ -250,16 +250,13 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 
 
 class MutableLibrary(Library, metaclass=ABCMeta):
-    @abstractmethod
-    def __setitem__(self, key: str, value: VVV) -> None:
-        pass
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
 
     @abstractmethod
-    def __delitem__(self, key: str) -> None:
+    def __setitem__(self, key: str, value: VVV) -> None:  # TODO
         pass
 
     @abstractmethod
