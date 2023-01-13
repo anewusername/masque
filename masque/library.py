@@ -33,6 +33,7 @@ LL = TypeVar('LL', bound='LazyLibrary')
 
 
 class Library(Mapping[str, Pattern], metaclass=ABCMeta):
+    # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
@@ -203,7 +204,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
             quiet: If `True`, suppress log messages.
 
         Returns:
-            Unique name for this library.
+            Name, unique within this library.
         """
         if sanitize:
             # Remove invalid characters
@@ -252,6 +253,10 @@ class MutableLibrary(Library, metaclass=ABCMeta):
     @abstractmethod
     def __setitem__(self, key: str, value: VVV) -> None:
         pass
+    # inherited abstract functions
+    #def __getitem__(self, key: str) -> 'Pattern':
+    #def __iter__(self) -> Iterator[str]:
+    #def __len__(self) -> int:
 
     @abstractmethod
     def __delitem__(self, key: str) -> None:
