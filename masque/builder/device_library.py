@@ -6,6 +6,7 @@ from typing import Dict, Callable, TypeVar, TYPE_CHECKING
 from typing import Any, Tuple, Union, Iterator
 import logging
 from pprint import pformat
+from abc import ABCMeta, abstractmethod
 
 from ..error import DeviceLibraryError
 from ..library import Library
@@ -20,7 +21,102 @@ D = TypeVar('D', bound='DeviceLibrary')
 L = TypeVar('L', bound='LibDeviceLibrary')
 
 
-class DeviceLibrary:
+class DeviceLibrary(Mapping[str, Device], metaclass=ABCMeta):
+    # inherited abstract functions
+    #def __getitem__(self, key: str) -> Device:
+    #def __iter__(self) -> Iterator[str]:
+    #def __len__(self) -> int:
+
+    #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
+
+    def __repr__(self) -> str:
+        return '<DeviceLibrary with keys ' + repr(list(self.keys())) + '>'
+
+    @abstractmethod
+    def get_name(
+            self,
+            name: str = '__',
+            sanitize: bool = True,
+            max_length: int = 32,
+            quiet: bool = False,
+            ) -> str:
+        """
+        Find a unique name for the device.
+
+        This function may be overridden in a subclass or monkey-patched to fit the caller's requirements.
+
+        Args:
+            name: Preferred name for the pattern. Default '__'.
+            sanitize: Allows only alphanumeric charaters and _?$. Replaces invalid characters with underscores.
+            max_length: Names longer than this will be truncated.
+            quiet: If `True`, suppress log messages.
+
+        Returns:
+            Name, unique within this library.
+        """
+        pass
+
+
+class MutableDeviceLibrary(DeviceLibrary, metaclass=ABCMeta):
+    # inherited abstract functions
+    #def __getitem__(self, key: str) -> 'Device':
+    #def __iter__(self) -> Iterator[str]:
+    #def __len__(self) -> int:
+
+    @abstractmethod
+    def __setitem__(self, key: str, value: VVV) -> None: #TODO
+        pass
+
+    @abstractmethod
+    def __delitem__(self, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def _set(self, key: str, value: Device) -> None:
+        pass
+
+    @abstractmethod
+    def _merge(self: MDL, other: DL, key: str) -> None:
+        pass
+
+    def add(
+            self: MDL,
+            other: DL,
+            use_ours: Callable[[str], bool] = lambda name: False,
+            use_theirs: Callable[[str], bool] = lambda name: False,
+            ) -> MDL:
+        """
+        Add keys from another library into this one.
+
+        There must be no conflicting keys.
+
+        Args:
+            other: The library to insert keys from
+            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
+                Should return `True` if the value from `self` should be used.
+            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
+                Should return `True` if the value from `other` should be used.
+                `use_ours` takes priority over `use_theirs`.
+
+        Returns:
+            self
+        """
+        duplicates = set(self.keys()) & set(other.keys())
+        keep_ours = set(name for name in duplicates if use_ours(name))
+        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
+        conflicts = duplicates - keep_ours - keep_theirs
+        if conflicts:
+            raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
+                                     + pformat(conflicts))
+
+        for name in set(other.keys()) - keep_ours:
+            self._merge(other, name)
+        return self
+
+
+
+
+class LazyDeviceLibrary:
     """
     This class maps names to functions which generate or load the
      relevant `Device` object.
@@ -64,58 +160,21 @@ class DeviceLibrary:
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
 
-    def __contains__(self, key: str) -> bool:
-        return key in self.generators
-
-    def keys(self) -> Iterator[str]:
-        return iter(self.generators.keys())
-
-    def values(self) -> Iterator[Device]:
-        return iter(self[key] for key in self.keys())
-
-    def items(self) -> Iterator[Tuple[str, Device]]:
-        return iter((key, self[key]) for key in self.keys())
-
     def __repr__(self) -> str:
-        return '<DeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
+        return '<LazyDeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
 
-    def add(
-            self: D,
-            other: D,
-            use_ours: Callable[[str], bool] = lambda name: False,
-            use_theirs: Callable[[str], bool] = lambda name: False,
-            ) -> D:
-        """
-        Add keys from another library into this one.
+    def _set(self, key: str, value: Device) -> None:
+        self[key] = lambda: value
 
-        There must be no conflicting keys.
-
-        Args:
-            other: The library to insert keys from
-            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
-                Should return `True` if the value from `self` should be used.
-            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
-                Should return `True` if the value from `other` should be used.
-                `use_ours` takes priority over `use_theirs`.
-
-        Returns:
-            self
-        """
-        duplicates = set(self.keys()) & set(other.keys())
-        keep_ours = set(name for name in duplicates if use_ours(name))
-        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
-        conflicts = duplicates - keep_ours - keep_theirs
-        if conflicts:
-            raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
-                                     + pformat(conflicts))
-
-        for name in set(other.generators.keys()) - keep_ours:
+    def _merge(self: MDL, other: DL, key: str) -> None:
+        if type(self) is type(other):
             self.generators[name] = other.generators[name]
             if name in other.cache:
                 self.cache[name] = other.cache[name]
-        return self
+        else:
+            self._set(key, other[name])
 
-    def clear_cache(self: D) -> D:
+    def clear_cache(self: LDL) -> LDL:
         """
         Clear the cache of this library.
         This is usually used before modifying or deleting cells, e.g. when merging
@@ -124,7 +183,7 @@ class DeviceLibrary:
         Returns:
             self
         """
-        self.cache = {}
+        self.cache.clear()
         return self
 
     def add_device(
