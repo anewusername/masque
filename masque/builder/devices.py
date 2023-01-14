@@ -5,6 +5,7 @@ import warnings
 import traceback
 import logging
 from collections import Counter
+from abc import ABCMeta
 
 import numpy
 from numpy import pi
@@ -23,10 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 P = TypeVar('P', bound='Port')
-D  = TypeVar('D',  bound='Device')
-DR  = TypeVar('DR',  bound='DeviceRef')
 PL  = TypeVar('PL',  bound='PortList')
 PL2 = TypeVar('PL2', bound='PortList')
+D  = TypeVar('D',  bound='Device')
+DR  = TypeVar('DR',  bound='DeviceRef')
 
 
 class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, metaclass=AutoSlots):
@@ -399,7 +400,7 @@ class PortList(Copyable, Mirrorable, metaclass=ABCMeta):
 
 
 class DeviceRef(PortList):
-    __slots__ = ('name', 'ports')
+    __slots__ = ('name',)
 
     name: str
     """ Name of the pattern this device references """
@@ -425,7 +426,7 @@ class DeviceRef(PortList):
         """
         pat = Pattern()
         pat.addsp(self.name)
-        new = Device(pat, ports=self.ports, tools=self.tools)
+        new = Device(pat, ports=self.ports, tools=self.tools)   # TODO should DeviceRef have tools?
         return new
 
     # TODO do we want to store a SubPattern instead of just a name? then we can translate/rotate/mirror...
@@ -491,7 +492,7 @@ class Device(PortList):
         renamed to 'gnd' so that further routing can use this signal or net name
         rather than the port name on the original `pad` device.
     """
-    __slots__ = ('pattern', 'ports', 'tools', '_dead')
+    __slots__ = ('pattern', 'tools', '_dead')
 
     pattern: Pattern
     """ Layout of this device """

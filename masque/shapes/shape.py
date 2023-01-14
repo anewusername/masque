@@ -176,7 +176,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                     return inds
 
                 # Find the y indices on all x gridlines
-                xs = gx[gxi_min:gxi_max]
+                xs = gx[int(gxi_min):int(gxi_max)]
                 inds = get_grid_inds(xs)
 
                 # Find y-intersections for x-midpoints

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
 L = TypeVar('L', bound='Library')
 ML = TypeVar('ML', bound='MutableLibrary')
-LL = TypeVar('LL', bound='LazyLibrary')
+#LL = TypeVar('LL', bound='LazyLibrary')
 
 
 class Library(Mapping[str, Pattern], metaclass=ABCMeta):
@@ -81,9 +81,9 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 
     # TODO maybe not for immutable?
     def subtree(
-            self: L,
+            self,
             tops: Union[str, Sequence[str]],
-            ) -> ML:
+            ) -> WrapLibrary:
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
@@ -143,9 +143,9 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         return self
 
     def flatten(
-            self: L,
+            self,
             tops: Union[str, Sequence[str]],
-            ) -> Dict[str, Pattern]:
+            ) -> Dict[str, 'Pattern']:
         """
         Removes all subpatterns and adds equivalent shapes.
         Also flattens all subpatterns.
@@ -159,7 +159,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        flattened: Dict[str, Optional[Pattern]] = {}
+        flattened: Dict[str, Optional['Pattern']] = {}
 
         def flatten_single(name) -> None:
             flattened[name] = None
@@ -266,16 +266,16 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _set(self, key: str, value: Pattern) -> None:
+    def _set(self, key: str, value: 'Pattern') -> None:
         pass
 
     @abstractmethod
-    def _merge(self: ML, other: ML, key: str) -> None:
+    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
         pass
 
     def add(
             self: ML,
-            other: L,
+            other: Mapping[str, 'Pattern'],
             use_ours: Callable[[str], bool] = lambda name: False,
             use_theirs: Callable[[str], bool] = lambda name: False,
             ) -> ML:
@@ -309,8 +309,8 @@ class MutableLibrary(Library, metaclass=ABCMeta):
     def dfs(
             self: ML,
             top: str,
-            visit_before: visitor_function_t = None,
-            visit_after: visitor_function_t = None,
+            visit_before: Optional[visitor_function_t] = None,
+            visit_after: Optional[visitor_function_t] = None,
             transform: Union[ArrayLike, bool, None] = False,
             memo: Optional[Dict] = None,
             hierarchy: Tuple[str, ...] = (),
@@ -431,7 +431,9 @@ class MutableLibrary(Library, metaclass=ABCMeta):
             self
         """
         # This currently simplifies globally (same shape in different patterns is
-        # merged into the same subpattern target.
+        # merged into the same subpattern target).
+
+        from .pattern import Pattern
 
         if exclude_types is None:
             exclude_types = ()
@@ -517,6 +519,8 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         Returns:
             self
         """
+        from .pattern import Pattern
+
         if name_func is None:
             name_func = lambda _pat, _shape: self.get_name('_rep')
 
@@ -569,11 +573,11 @@ class MutableLibrary(Library, metaclass=ABCMeta):
 
 
 class WrapROLibrary(Library):
-    mapping: Mapping[str, Pattern]
+    mapping: Mapping[str, 'Pattern']
 
     def __init__(
             self,
-            mapping: Mapping[str, Pattern],
+            mapping: Mapping[str, 'Pattern'],
             ) -> None:
         self.mapping = mapping
 
@@ -591,11 +595,11 @@ class WrapROLibrary(Library):
 
 
 class WrapLibrary(MutableLibrary):
-    mapping: MutableMapping[str, Pattern]
+    mapping: MutableMapping[str, 'Pattern']
 
     def __init__(
             self,
-            mapping: MutableMapping[str, Pattern],
+            mapping: MutableMapping[str, 'Pattern'],
             ) -> None:
         self.mapping = mapping
 
@@ -608,16 +612,16 @@ class WrapLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.mapping)
 
-    def __setitem__(self, key: str, value: Pattern) -> None:
+    def __setitem__(self, key: str, value: 'Pattern') -> None:
         self.mapping[key] = value
 
     def __delitem__(self, key: str) -> None:
         del self.mapping[key]
 
-    def _set(self, key: str, value: Pattern) -> None:
+    def _set(self, key: str, value: 'Pattern') -> None:
         self[key] = value
 
-    def _merge(self: ML, other: L, key: str) -> None:
+    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
         self[key] = other[key]
 
     def __repr__(self) -> str:
@@ -631,7 +635,7 @@ class LazyLibrary(MutableLibrary):
 
     The cache can be disabled by setting the `enable_cache` attribute to `False`.
     """
-    dict: Dict[str, Callable[[], Pattern]]
+    dict: Dict[str, Callable[[], 'Pattern']]
     cache: Dict[str, 'Pattern']
     enable_cache: bool = True
 
@@ -639,7 +643,7 @@ class LazyLibrary(MutableLibrary):
         self.dict = {}
         self.cache = {}
 
-    def __setitem__(self, key: str, value: Callable[[], Pattern]) -> None:
+    def __setitem__(self, key: str, value: Callable[[], 'Pattern']) -> None:
         self.dict[key] = value
         if key in self.cache:
             del self.cache[key]
@@ -666,11 +670,11 @@ class LazyLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.dict)
 
-    def _set(self, key: str, value: Pattern) -> None:
+    def _set(self, key: str, value: 'Pattern') -> None:
         self[key] = lambda: value
 
-    def _merge(self: LL, other: L, key: str) -> None:
-        if type(self) is type(other):
+    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
+        if isinstance(other, LazyLibrary):
             self.dict[key] = other.dict[key]
             if key in other.cache:
                 self.cache[key] = other.cache[key]
@@ -703,5 +707,5 @@ class LazyLibrary(MutableLibrary):
         self.cache.clear()
         return self
 
-    def __deepcopy__(self, memo: Dict = None) -> 'LazyLibrary':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'LazyLibrary':
         raise LibraryError('LazyLibrary cannot be deepcopied (deepcopy doesn\'t descend into closures)')

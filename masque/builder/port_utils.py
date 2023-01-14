@@ -5,7 +5,7 @@ Functions for writing port data into a Pattern (`dev2pat`) and retrieving it (`p
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence
+from typing import Sequence, Optional, Mapping
 import logging
 
 import numpy
@@ -50,6 +50,7 @@ def dev2pat(device: Device, layer: layer_t) -> Pattern:
 def pat2dev(
         pattern: Pattern,
         layers: Sequence[layer_t],
+        library: Optional[Mapping[str, Pattern]] = None,
         max_depth: int = 999_999,
         skip_subcells: bool = True,
         ) -> Device:
@@ -102,11 +103,11 @@ def pat2dev(
             angle = numpy.deg2rad(angle_deg) * mirr_factor[0] * mirr_factor[1] + transform[2]
 
             if name in ports:
-                logger.info(f'Duplicate port {name} in pattern {pattern.name}')
+                logger.info(f'Duplicate port {name} in pattern {pattern.name}')     # TODO DFS should include name?
 
             ports[name] = Port(offset=xy_global, rotation=angle, ptype=ptype)
 
         return pat
 
-    pattern.dfs(visit_before=find_ports_each, transform=True)
+    pattern.dfs(visit_before=find_ports_each, transform=True)       #TODO: don't check Library if there are ports in top level
     return Device(pattern, ports)

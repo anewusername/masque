@@ -33,6 +33,7 @@ class Doseable(metaclass=ABCMeta):
     '''
     ---- Methods
     '''
+    @abstractmethod
     def set_dose(self: T, dose: float) -> T:
         """
         Set the dose
@@ -63,7 +64,7 @@ class DoseableImpl(Doseable, metaclass=ABCMeta):
         return self._dose
 
     @dose.setter
-    def dose(self, val: float):
+    def dose(self, val: float) -> None:
         if not val >= 0:
             raise MasqueError('Dose must be non-negative')
         self._dose = val

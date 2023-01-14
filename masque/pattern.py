@@ -80,7 +80,7 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
         self.annotations = annotations if annotations is not None else {}
 
-    def __copy__(self, memo: Dict = None) -> 'Pattern':
+    def __copy__(self) -> 'Pattern':
         return Pattern(
             shapes=copy.deepcopy(self.shapes),
             labels=copy.deepcopy(self.labels),
@@ -88,7 +88,7 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             annotations=copy.deepcopy(self.annotations),
             )
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Pattern':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Pattern':
         memo = {} if memo is None else memo
         new = Pattern(
             shapes=copy.deepcopy(self.shapes, memo),
@@ -116,9 +116,9 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def subset(
             self,
-            shapes: Callable[[Shape], bool] = None,
-            labels: Callable[[Label], bool] = None,
-            subpatterns: Callable[[SubPattern], bool] = None,
+            shapes: Optional[Callable[[Shape], bool]] = None,
+            labels: Optional[Callable[[Label], bool]] = None,
+            subpatterns: Optional[Callable[[SubPattern], bool]] = None,
             ) -> 'Pattern':
         """
         Returns a Pattern containing only the entities (e.g. shapes) for which the
@@ -295,6 +295,7 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
+        entry: Scalable
         for entry in chain(self.shapes, self.subpatterns):
             entry.scale_by(c)
         return self

@@ -35,7 +35,6 @@ def write(
         *,
         modify_originals: bool = False,
         dxf_version='AC1024',
-        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> None:
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
@@ -73,19 +72,14 @@ def write(
             WARNING: No additional error checking is performed on the results.
     """
     #TODO consider supporting DXF arcs?
-    if disambiguate_func is None:
-        disambiguate_func = lambda pats: disambiguate_pattern_names(pats)
-    assert(disambiguate_func is not None)
+
+    #TODO name checking
+    bad_keys = check_valid_names(library.keys())
 
     if not modify_originals:
         library = library.deepcopy()
 
     pattern = library[top_name]
-
-    old_names = list(library.keys())
-    new_names = disambiguate_func(old_names)
-    renamed_lib = {new_name: library[old_name]
-                   for old_name, new_name in zip(old_names, new_names)}
 
     # Create library
     lib = ezdxf.new(dxf_version, setup=True)
@@ -95,7 +89,7 @@ def write(
     _subpatterns_to_refs(msp, pattern.subpatterns)
 
     # Now create a block for each referenced pattern, and add in any shapes
-    for name, pat in renamed_lib.items():
+    for name, pat in library.items():
         assert(pat is not None)
         block = lib.blocks.new(name=name)
 
@@ -388,10 +382,6 @@ def disambiguate_pattern_names(
 
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-        elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(name):
-                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
-                               + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced

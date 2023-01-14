@@ -1,7 +1,7 @@
 from typing import TypeVar, Dict, Tuple, Any
 from abc import ABCMeta, abstractmethod
 
-from ..error import PatternLockedError
+#from ..error import PatternLockedError
 
 
 T = TypeVar('T', bound='Lockable')

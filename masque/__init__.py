@@ -33,8 +33,8 @@ from .label import Label
 from .subpattern import SubPattern
 from .pattern import Pattern
 from .utils import layer_t, annotations_t
-from .library import Library, PatternGenerator
-from .builder import DeviceLibrary, LibDeviceLibrary, Device, Port
+from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary
+from .builder import LazyDeviceLibrary, LibDeviceLibrary, Device, DeviceRef, Port, PortList
 
 
 __author__ = 'Jan Petykiewicz'

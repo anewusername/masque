@@ -19,7 +19,7 @@ Notes:
  * Creation/modification/access times are set to 1900-01-01 for reproducibility.
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
-from typing import Sequence, BinaryIO
+from typing import Sequence, BinaryIO, Mapping
 import re
 import io
 import mmap
@@ -40,7 +40,8 @@ from .. import Pattern, SubPattern, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import layer_t, normalize_mirror, annotations_t
-from ..library import Library
+from ..library import LazyLibrary, WrapLibrary, MutableLibrary
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,6 @@ def write(
         library_name: str = 'masque-klamath',
         *,
         modify_originals: bool = False,
-        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> None:
     """
     Convert a library to a GDSII stream, mapping data as follows:
@@ -100,24 +100,22 @@ def write(
         modify_originals: If `True`, the original pattern is modified as part of the writing
             process. Otherwise, a copy is made.
             Default `False`.
-        disambiguate_func: Function which takes a list of pattern names and returns a list of names
-            altered to be valid and unique. Default is `disambiguate_pattern_names`, which
-            attempts to adhere to the GDSII standard reasonably well.
-            WARNING: No additional error checking is performed on the results.
     """
-    if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names
+    # TODO check name errors
+    bad_keys = check_valid_names(library.keys())
+
+    # TODO check all hierarchy present
 
     if not modify_originals:
-        library = copy.deepcopy(library)
+        library = library.deepcopy() #TODO figure out best approach e.g. if lazy
 
-    for p in library.values():
-        library.add(p.wrap_repeated_shapes())
+    if not isinstance(library, MutableLibrary):
+        if isinstance(library, dict):
+            library = WrapLibrary(library)
+        else:
+            library = WrapLibrary(dict(library))
 
-    old_names = list(library.keys())
-    new_names = disambiguate_func(old_names)
-    renamed_lib = {new_name: library[old_name]
-                   for old_name, new_name in zip(old_names, new_names)}
+    library.wrap_repeated_shapes()
 
     # Create library
     header = klamath.library.FileHeader(
@@ -128,7 +126,7 @@ def write(
     header.write(stream)
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
-    for name, pat in renamed_lib.items():
+    for name, pat in library.items():
         elements: List[klamath.elements.Element] = []
         elements += _shapes_to_elements(pat.shapes)
         elements += _labels_to_texts(pat.labels)
@@ -162,7 +160,7 @@ def writefile(
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        write(patterns, stream, *args, **kwargs)
+        write(library, stream, *args, **kwargs)
 
 
 def readfile(
@@ -310,7 +308,7 @@ def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
                           a_count=a_count, b_count=b_count)
 
     subpat = SubPattern(
-        pattern=ref.struct_name.decode('ASCII'),
+        target=ref.struct_name.decode('ASCII'),
         offset=offset,
         rotation=numpy.deg2rad(ref.angle_deg),
         scale=ref.mag,
@@ -547,10 +545,6 @@ def disambiguate_pattern_names(
 
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-        elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(name):
-                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
-                               + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')
@@ -569,7 +563,7 @@ def load_library(
         stream: BinaryIO,
         *,
         full_load: bool = False,
-        ) -> Tuple[Library, Dict[str, Any]]:
+        ) -> Tuple[LazyLibrary, Dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
         a library from them. This enables deferred reading of structures
@@ -586,11 +580,11 @@ def load_library(
             will be faster than using the resulting library's `precache` method.
 
     Returns:
-        Library object, allowing for deferred load of structures.
+        LazyLibrary object, allowing for deferred load of structures.
         Additional library info (dict, same format as from `read`).
     """
     stream.seek(0)
-    lib = Library()
+    lib = LazyLibrary()
 
     if full_load:
         # Full load approach (immediately load everything)
@@ -620,7 +614,7 @@ def load_libraryfile(
         *,
         use_mmap: bool = True,
         full_load: bool = False,
-        ) -> Tuple[Library, Dict[str, Any]]:
+        ) -> Tuple[LazyLibrary, Dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.
 
@@ -638,7 +632,7 @@ def load_libraryfile(
         full_load: If `True`, immediately loads all data. See `load_library`.
 
     Returns:
-        Library object, allowing for deferred load of structures.
+        LazyLibrary object, allowing for deferred load of structures.
         Additional library info (dict, same format as from `read`).
     """
     path = pathlib.Path(filename)

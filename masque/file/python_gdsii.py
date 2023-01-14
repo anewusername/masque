@@ -65,7 +65,6 @@ def build(
         library_name: str = 'masque-gdsii-write',
         *,
         modify_originals: bool = False,
-        disambiguate_func: Callable[[Iterable[str]], List[str]] = None,
         ) -> gdsii.library.Library:
     """
     Convert a `Pattern` or list of patterns to a GDSII stream, by first calling
@@ -97,22 +96,20 @@ def build(
         modify_originals: If `True`, the original pattern is modified as part of the writing
             process. Otherwise, a copy is made.
             Default `False`.
-        disambiguate_func: Function which takes a list of pattern names and returns a list of names
-            altered to be valid and unique. Default is `disambiguate_pattern_names`, which
-            attempts to adhere to the GDSII standard reasonably well.
-            WARNING: No additional error checking is performed on the results.
 
     Returns:
         `gdsii.library.Library`
     """
-    if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names
+    # TODO check name errors
+    bad_keys = check_valid_names(library.keys())
+
+    # TODO check all hierarchy present
+
 
     if not modify_originals:
-        library = copy.deepcopy(library)
+        library = library.deepcopy() #TODO figure out best approach e.g. if lazy
 
-    for p in library.values():
-        library.add(p.wrap_repeated_shapes())
+    library.wrap_repeated_shapes()
 
     old_names = list(library.keys())
     new_names = disambiguate_func(old_names)
@@ -181,7 +178,7 @@ def writefile(
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        write(patterns, stream, *args, **kwargs)
+        write(library, stream, *args, **kwargs)
 
 
 def readfile(
@@ -248,7 +245,7 @@ def read(
     patterns_dict = {}
     for structure in lib:
         pat = Pattern()
-        name=structure.name.decode('ASCII')
+        name = structure.name.decode('ASCII')
         for element in structure:
             # Switch based on element type:
             if isinstance(element, gdsii.elements.Boundary):
@@ -260,9 +257,11 @@ def read(
                 pat.shapes.append(path)
 
             elif isinstance(element, gdsii.elements.Text):
-                label = Label(offset=element.xy.astype(float),
-                              layer=(element.layer, element.text_type),
-                              string=element.string.decode('ASCII'))
+                label = Label(
+                    offset=element.xy.astype(float),
+                    layer=(element.layer, element.text_type),
+                    string=element.string.decode('ASCII'),
+                    )
                 pat.labels.append(label)
 
             elif isinstance(element, (gdsii.elements.SRef, gdsii.elements.ARef)):
@@ -296,7 +295,7 @@ def _ref_to_subpat(
                        gdsii.elements.ARef]
         ) -> SubPattern:
     """
-    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.target to struct_name.
+    Helper function to create a SubPattern from an SREF or AREF. Sets `subpat.target` to `element.struct_name`.
 
     NOTE: "Absolute" means not affected by parent elements.
            That's not currently supported by masque at all (and not planned).
@@ -330,13 +329,15 @@ def _ref_to_subpat(
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
-    subpat = SubPattern(pattern=None,
-                        offset=offset,
-                        rotation=rotation,
-                        scale=scale,
-                        mirrored=(mirror_across_x, False),
-                        annotations=_properties_to_annotations(element.properties),
-                        repetition=repetition)
+    subpat = SubPattern(
+        target=element.struct_name,
+        offset=offset,
+        rotation=rotation,
+        scale=scale,
+        mirrored=(mirror_across_x, False),
+        annotations=_properties_to_annotations(element.properties),
+        repetition=repetition,
+        )
     return subpat
 
 
@@ -346,14 +347,15 @@ def _gpath_to_mpath(element: gdsii.elements.Path, raw_mode: bool) -> Path:
     else:
         raise PatternError(f'Unrecognized path type: {element.path_type}')
 
-    args = {'vertices': element.xy.astype(float),
-            'layer': (element.layer, element.data_type),
-            'width': element.width if element.width is not None else 0.0,
-            'cap': cap,
-            'offset': numpy.zeros(2),
-            'annotations': _properties_to_annotations(element.properties),
-            'raw': raw_mode,
-           }
+    args = {
+        'vertices': element.xy.astype(float),
+        'layer': (element.layer, element.data_type),
+        'width': element.width if element.width is not None else 0.0,
+        'cap': cap,
+        'offset': numpy.zeros(2),
+        'annotations': _properties_to_annotations(element.properties),
+        'raw': raw_mode,
+        }
 
     if cap == Path.Cap.SquareCustom:
         args['cap_extensions'] = numpy.zeros(2)
@@ -511,7 +513,6 @@ def disambiguate_pattern_names(
         names: Iterable[str],
         max_name_length: int = 32,
         suffix_length: int = 6,
-        dup_warn_filter: Optional[Callable[[str], bool]] = None,
         ) -> List[str]:
     """
     Args:
@@ -519,9 +520,6 @@ def disambiguate_pattern_names(
         max_name_length: Names longer than this will be truncated
         suffix_length: Names which get truncated are truncated by this many extra characters. This is to
             leave room for a suffix if one is necessary.
-        dup_warn_filter: (optional) Function for suppressing warnings about cell names changing. Receives
-            the cell name and returns `False` if the warning should be suppressed and `True` if it should
-            be displayed. Default displays all warnings.
     """
     new_names = []
     for name in names:
@@ -547,10 +545,6 @@ def disambiguate_pattern_names(
 
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-        elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(name):
-                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
-                               + f' renaming to "{suffixed_name}"')
 
         # Encode into a byte-string and perform some final checks
         encoded_name = suffixed_name.encode('ASCII')

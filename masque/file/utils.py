@@ -5,9 +5,14 @@ from typing import Set, Tuple, List, Iterable, Mapping
 import re
 import copy
 import pathlib
+import logging
 
 from .. import Pattern, PatternError
+from ..library import Library, WrapROLibrary
 from ..shapes import Polygon, Path
+
+
+logger = logging.getLogger(__name__)
 
 
 def mangle_name(name: str, dose_multiplier: float = 1.0) -> str:
@@ -58,7 +63,7 @@ def make_dose_table(
         top_names: Iterable[str],
         library: Mapping[str, Pattern],
         dose_multiplier: float = 1.0,
-        ) -> Set[Tuple[int, float]]:
+        ) -> Set[Tuple[str, float]]:
     """
     Create a set containing `(name, written_dose)` for each pattern (including subpatterns)
 
@@ -104,7 +109,7 @@ def dtype2dose(pattern: Pattern) -> Pattern:
 
 
 def dose2dtype(
-        library: List[Pattern],
+        library: Mapping[str, Pattern],
         ) -> Tuple[List[Pattern], List[float]]:
     """
      For each shape in each pattern, set shape.layer to the tuple
@@ -128,6 +133,10 @@ def dose2dtype(
                        and dose (float, list entry).
     """
     logger.warning('TODO: dose2dtype() needs to be tested!')
+
+    if not isinstance(library, Library):
+        library = WrapROLibrary(library)
+
     # Get a table of (id(pat), written_dose) for each pattern and subpattern
     sd_table = make_dose_table(library.find_topcells(), library)
 
@@ -161,8 +170,8 @@ def dose2dtype(
 
         pat = old_pat.deepcopy()
 
-        if len(encoded_name) == 0:
-            raise PatternError('Zero-length name after mangle+encode, originally "{name}"'.format(pat.name))
+        if len(mangled_name) == 0:
+            raise PatternError(f'Zero-length name after mangle, originally "{name}"')
 
         for shape in pat.shapes:
             data_type = dose_vals_list.index(shape.dose * pat_dose)

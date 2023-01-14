@@ -32,6 +32,7 @@ class Layerable(metaclass=ABCMeta):
     '''
     ---- Methods
     '''
+    @abstractmethod
     def set_layer(self: T, layer: layer_t) -> T:
         """
         Set the layer
