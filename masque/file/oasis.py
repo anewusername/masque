@@ -29,6 +29,7 @@ from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringR
 
 from .utils import is_gzipped
 from .. import Pattern, SubPattern, PatternError, Label, Shape
+from ..library import WrapLibrary, MutableLibrary
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
 from ..utils import layer_t, normalize_mirror, annotations_t
@@ -57,7 +58,6 @@ def build(
         units_per_micron: int,
         layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
         *,
-        disambiguate_func: Optional[Callable[[Iterable[str]], List[str]]] = None,
         annotations: Optional[annotations_t] = None,
         ) -> fatamorgana.OasisLayout:
     """
@@ -90,15 +90,22 @@ def build(
             into numbers, omit this argument, and manually generate the required
             `fatamorgana.records.LayerName` entries.
             Default is an empty dict (no names provided).
-        disambiguate_func: Function which takes a list of pattern names and returns a list of names
-            altered to be valid and unique. Default is `disambiguate_pattern_names`.
         annotations: dictionary of key-value pairs which are saved as library-level properties
 
     Returns:
         `fatamorgana.OasisLayout`
     """
-    if isinstance(patterns, Pattern):
-        patterns = [patterns]
+
+    # TODO check names
+    bad_keys = check_valid_names(library.keys())
+
+    # TODO check all hierarchy present
+
+    if not isinstance(library, MutableLibrary):
+        if isinstance(library, dict):
+            library = WrapLibrary(library)
+        else:
+            library = WrapLibrary(dict(library))
 
     if layer_map is None:
         layer_map = {}
@@ -132,13 +139,8 @@ def build(
     else:
         layer2oas = _mlayer2oas
 
-    old_names = list(library.keys())
-    new_names = disambiguate_func(old_names)
-    renamed_lib = {new_name: library[old_name]
-                   for old_name, new_name in zip(old_names, new_names)}
-
     # Now create a structure for each pattern
-    for name, pat in renamed_lib.items():
+    for name, pat in library.items():
         structure = fatamorgana.Cell(name=name)
         lib.cells.append(structure)
 
@@ -152,7 +154,7 @@ def build(
 
 
 def write(
-        patterns: Union[Sequence[Pattern], Pattern],
+        library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
         stream: io.BufferedIOBase,
         *args,
         **kwargs,
@@ -162,17 +164,17 @@ def write(
       for details.
 
     Args:
-        patterns: A Pattern or list of patterns to write to file.
+        library: A {name: Pattern} mapping of patterns to write.
         stream: Stream to write to.
         *args: passed to `oasis.build()`
         **kwargs: passed to `oasis.build()`
     """
-    lib = build(patterns, *args, **kwargs)
+    lib = build(library, *args, **kwargs)
     lib.write(stream)
 
 
 def writefile(
-        patterns: Union[Sequence[Pattern], Pattern],
+        library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
@@ -183,7 +185,7 @@ def writefile(
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
-        patterns: `Pattern` or list of patterns to save
+        library: A {name: Pattern} mapping of patterns to write.
         filename: Filename to save to.
         *args: passed to `oasis.write`
         **kwargs: passed to `oasis.write`
@@ -195,7 +197,7 @@ def writefile(
         open_func = open
 
     with io.BufferedWriter(open_func(path, mode='wb')) as stream:
-        write(patterns, stream, *args, **kwargs)
+        write(library, stream, *args, **kwargs)
 
 
 def readfile(
@@ -281,11 +283,13 @@ def read(
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list()[:-1])), axis=0)
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                poly = Polygon(vertices=vertices,
-                               layer=element.get_layer_tuple(),
-                               offset=element.get_xy(),
-                               annotations=annotations,
-                               repetition=repetition)
+                poly = Polygon(
+                    vertices=vertices,
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    annotations=annotations,
+                    repetition=repetition,
+                    )
 
                 pat.shapes.append(poly)
 
@@ -304,14 +308,16 @@ def read(
                                                                element.get_extension_end()[1]))
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                path = Path(vertices=vertices,
-                            layer=element.get_layer_tuple(),
-                            offset=element.get_xy(),
-                            repetition=repetition,
-                            annotations=annotations,
-                            width=element.get_half_width() * 2,
-                            cap=cap,
-                            **path_args)
+                path = Path(
+                    vertices=vertices,
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    width=element.get_half_width() * 2,
+                    cap=cap,
+                    **path_args,
+                    )
 
                 pat.shapes.append(path)
 
@@ -319,12 +325,13 @@ def read(
                 width = element.get_width()
                 height = element.get_height()
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                rect = Polygon(layer=element.get_layer_tuple(),
-                               offset=element.get_xy(),
-                               repetition=repetition,
-                               vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
-                               annotations=annotations,
-                               )
+                rect = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
+                    annotations=annotations,
+                    )
                 pat.shapes.append(rect)
 
             elif isinstance(element, fatrec.Trapezoid):
@@ -408,21 +415,24 @@ def read(
                     vertices[0, 1] += width
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                ctrapz = Polygon(layer=element.get_layer_tuple(),
-                                 offset=element.get_xy(),
-                                 repetition=repetition,
-                                 vertices=vertices,
-                                 annotations=annotations,
-                                 )
+                ctrapz = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=vertices,
+                    annotations=annotations,
+                    )
                 pat.shapes.append(ctrapz)
 
             elif isinstance(element, fatrec.Circle):
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                circle = Circle(layer=element.get_layer_tuple(),
-                                offset=element.get_xy(),
-                                repetition=repetition,
-                                annotations=annotations,
-                                radius=float(element.get_radius()))
+                circle = Circle(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    radius=float(element.get_radius()),
+                    )
                 pat.shapes.append(circle)
 
             elif isinstance(element, fatrec.Text):
@@ -432,11 +442,13 @@ def read(
                     string = lib.textstrings[str_or_ref].string
                 else:
                     string = str_or_ref.string
-                label = Label(layer=element.get_layer_tuple(),
-                              offset=element.get_xy(),
-                              repetition=repetition,
-                              annotations=annotations,
-                              string=string)
+                label = Label(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    annotations=annotations,
+                    string=string,
+                    )
                 pat.labels.append(label)
 
             else:
@@ -446,7 +458,7 @@ def read(
         for placement in cell.placements:
             pat.subpatterns.append(_placement_to_subpat(placement, lib))
 
-        patterns_dict[name] = pat
+        patterns_dict[cell_name] = pat
 
     return patterns_dict, library_info
 
@@ -516,7 +528,8 @@ def _subpatterns_to_placements(
             properties=annotations_to_properties(subpat.annotations),
             x=offset[0],
             y=offset[1],
-            repetition=frep)
+            repetition=frep,
+            )
 
         refs.append(ref)
     return refs
@@ -605,7 +618,6 @@ def _labels_to_texts(
 
 def disambiguate_pattern_names(
         names: Iterable[str],
-        dup_warn_filter: Callable[[str], bool] = None,      # If returns False, don't warn about this name
         ) -> List[str]:
     new_names = []
     for name in names:
@@ -621,10 +633,6 @@ def disambiguate_pattern_names(
 
         if sanitized_name == '':
             logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-        elif suffixed_name != sanitized_name:
-            if dup_warn_filter is None or dup_warn_filter(name):
-                logger.warning(f'Pattern name "{name}" ({sanitized_name}) appears multiple times;\n'
-                               + f' renaming to "{suffixed_name}"')
 
         if len(suffixed_name) == 0:
             # Should never happen since zero-length names are replaced

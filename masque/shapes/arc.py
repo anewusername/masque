@@ -195,7 +195,7 @@ class Arc(Shape, metaclass=AutoSlots):
         self.poly_max_arclen = poly_max_arclen
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Arc':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Arc':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()

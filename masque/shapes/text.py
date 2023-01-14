@@ -100,7 +100,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             self.annotations = annotations if annotations is not None else {}
         self.font_path = font_path
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Text':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Text':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()

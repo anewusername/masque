@@ -185,7 +185,7 @@ class Path(Shape, metaclass=AutoSlots):
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Path':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Path':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -245,8 +245,8 @@ class Path(Shape, metaclass=AutoSlots):
 
     def to_polygons(
             self,
-            poly_num_points: int = None,
-            poly_max_arclen: float = None,
+            poly_num_points: Optional[int] = None,
+            poly_max_arclen: Optional[float] = None,
             ) -> List['Polygon']:
         extensions = self._calculate_cap_extensions()
 

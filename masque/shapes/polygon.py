@@ -345,8 +345,8 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     def to_polygons(
             self,
-            poly_num_points: int = None,        # unused
-            poly_max_arclen: float = None,      # unused
+            poly_num_points: Optional[int] = None,        # unused
+            poly_max_arclen: Optional[float] = None,      # unused
             ) -> List['Polygon']:
         return [copy.deepcopy(self)]
 

@@ -94,7 +94,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             )
         return new
 
-    def __deepcopy__(self, memo: Dict = None) -> 'SubPattern':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'SubPattern':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new.repetition = copy.deepcopy(self.repetition, memo)

@@ -133,7 +133,7 @@ class Grid(Repetition, metaclass=AutoSlots):
             )
         return new
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Grid':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Grid':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         return new
@@ -239,7 +239,7 @@ class Grid(Repetition, metaclass=AutoSlots):
         a_extent = self.a_vector * self.a_count
         b_extent = self.b_vector * self.b_count if (self.b_vector is not None) else 0       # type: Union[NDArray[numpy.float64], float]
 
-        corners = ((0, 0), a_extent, b_extent, a_extent + b_extent)
+        corners = numpy.stack(((0, 0), a_extent, b_extent, a_extent + b_extent))
         xy_min = numpy.min(corners, axis=0)
         xy_max = numpy.max(corners, axis=0)
         return numpy.array((xy_min, xy_max))

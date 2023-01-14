@@ -10,110 +10,15 @@ from abc import ABCMeta, abstractmethod
 
 from ..error import DeviceLibraryError
 from ..library import Library
-from ..builder import Device
+from ..builder import Device, DeviceRef
 from .. import Pattern
 
 
 logger = logging.getLogger(__name__)
 
 
-D = TypeVar('D', bound='DeviceLibrary')
-L = TypeVar('L', bound='LibDeviceLibrary')
-
-
-class DeviceLibrary(Mapping[str, Device], metaclass=ABCMeta):
-    # inherited abstract functions
-    #def __getitem__(self, key: str) -> Device:
-    #def __iter__(self) -> Iterator[str]:
-    #def __len__(self) -> int:
-
-    #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
-
-    def __repr__(self) -> str:
-        return '<DeviceLibrary with keys ' + repr(list(self.keys())) + '>'
-
-    @abstractmethod
-    def get_name(
-            self,
-            name: str = '__',
-            sanitize: bool = True,
-            max_length: int = 32,
-            quiet: bool = False,
-            ) -> str:
-        """
-        Find a unique name for the device.
-
-        This function may be overridden in a subclass or monkey-patched to fit the caller's requirements.
-
-        Args:
-            name: Preferred name for the pattern. Default '__'.
-            sanitize: Allows only alphanumeric charaters and _?$. Replaces invalid characters with underscores.
-            max_length: Names longer than this will be truncated.
-            quiet: If `True`, suppress log messages.
-
-        Returns:
-            Name, unique within this library.
-        """
-        pass
-
-
-class MutableDeviceLibrary(DeviceLibrary, metaclass=ABCMeta):
-    # inherited abstract functions
-    #def __getitem__(self, key: str) -> 'Device':
-    #def __iter__(self) -> Iterator[str]:
-    #def __len__(self) -> int:
-
-    @abstractmethod
-    def __setitem__(self, key: str, value: VVV) -> None: #TODO
-        pass
-
-    @abstractmethod
-    def __delitem__(self, key: str) -> None:
-        pass
-
-    @abstractmethod
-    def _set(self, key: str, value: Device) -> None:
-        pass
-
-    @abstractmethod
-    def _merge(self: MDL, other: DL, key: str) -> None:
-        pass
-
-    def add(
-            self: MDL,
-            other: DL,
-            use_ours: Callable[[str], bool] = lambda name: False,
-            use_theirs: Callable[[str], bool] = lambda name: False,
-            ) -> MDL:
-        """
-        Add keys from another library into this one.
-
-        There must be no conflicting keys.
-
-        Args:
-            other: The library to insert keys from
-            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
-                Should return `True` if the value from `self` should be used.
-            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
-                Should return `True` if the value from `other` should be used.
-                `use_ours` takes priority over `use_theirs`.
-
-        Returns:
-            self
-        """
-        duplicates = set(self.keys()) & set(other.keys())
-        keep_ours = set(name for name in duplicates if use_ours(name))
-        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
-        conflicts = duplicates - keep_ours - keep_theirs
-        if conflicts:
-            raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
-                                     + pformat(conflicts))
-
-        for name in set(other.keys()) - keep_ours:
-            self._merge(other, name)
-        return self
-
-
+DL = TypeVar('DL', bound='LazyDeviceLibrary')
+LDL = TypeVar('LDL', bound='LibDeviceLibrary')
 
 
 class LazyDeviceLibrary:
@@ -147,15 +52,9 @@ class LazyDeviceLibrary:
         if key in self.cache:
             del self.cache[key]
 
-    def __getitem__(self, key: str) -> Device:
-        if self.enable_cache and key in self.cache:
-            logger.debug(f'found {key} in cache')
-            return self.cache[key]
-
-        logger.debug(f'loading {key}')
-        dev = self.generators[key]()
-        self.cache[key] = dev
-        return dev
+    def __getitem__(self, key: str) -> DeviceRef:
+        dev = self.get_device(key)
+        return DeviceRef(name=key, ports=dev.ports)
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
@@ -163,16 +62,16 @@ class LazyDeviceLibrary:
     def __repr__(self) -> str:
         return '<LazyDeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
 
-    def _set(self, key: str, value: Device) -> None:
-        self[key] = lambda: value
+    def get_device(self, key: str) -> Device:
+        if self.enable_cache and key in self.cache:
+            logger.debug(f'found {key} in cache')
+            dev = self.cache[key]
+            return dev
 
-    def _merge(self: MDL, other: DL, key: str) -> None:
-        if type(self) is type(other):
-            self.generators[name] = other.generators[name]
-            if name in other.cache:
-                self.cache[name] = other.cache[name]
-        else:
-            self._set(key, other[name])
+        logger.debug(f'loading {key}')
+        dev = self.generators[key]()
+        self.cache[key] = dev
+        return dev
 
     def clear_cache(self: LDL) -> LDL:
         """
@@ -254,10 +153,46 @@ class LazyDeviceLibrary:
 
         self[name] = build_wrapped_dev
 
+    def add(
+            self: DL,
+            other: DL2,
+            use_ours: Callable[[str], bool] = lambda name: False,
+            use_theirs: Callable[[str], bool] = lambda name: False,
+            ) -> DL:
+        """
+        Add keys from another library into this one.
 
-class LibDeviceLibrary(DeviceLibrary):
+        There must be no conflicting keys.
+
+        Args:
+            other: The library to insert keys from
+            use_ours: Decision function for name conflicts. Will be called with duplicate cell names.
+                Should return `True` if the value from `self` should be used.
+            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
+                Should return `True` if the value from `other` should be used.
+                `use_ours` takes priority over `use_theirs`.
+
+        Returns:
+            self
+        """
+        duplicates = set(self.keys()) & set(other.keys())
+        keep_ours = set(name for name in duplicates if use_ours(name))
+        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
+        conflicts = duplicates - keep_ours - keep_theirs
+        if conflicts:
+            raise DeviceLibraryError('Duplicate keys encountered in DeviceLibrary merge: '
+                                     + pformat(conflicts))
+
+        for name in set(other.keys()) - keep_ours:
+            self.generators[name] = other.generators[name]
+            if name in other.cache:
+                self.cache[name] = other.cache[name]
+        return self
+
+
+class LibDeviceLibrary(LazyDeviceLibrary):
     """
-    Extends `DeviceLibrary`, enabling it to ingest `Library` objects
+    Extends `LazyDeviceLibrary`, enabling it to ingest `Library` objects
      (e.g. obtained by loading a GDS file).
 
     Each `Library` object must be accompanied by a `pat2dev` function,
@@ -269,11 +204,11 @@ class LibDeviceLibrary(DeviceLibrary):
      `Library` which is kept in sync with the `DeviceLibrary` when
      devices are removed (or new libraries added via `add_library()`).
     """
-    underlying: Library
+    underlying: LazyLibrary
 
     def __init__(self) -> None:
-        DeviceLibrary.__init__(self)
-        self.underlying = Library()
+        LazyDeviceLibrary.__init__(self)
+        self.underlying = LazyLibrary()
 
     def __setitem__(self, key: str, value: Callable[[], Device]) -> None:
         self.generators[key] = value
@@ -286,25 +221,24 @@ class LibDeviceLibrary(DeviceLibrary):
         #   wrapped device. To avoid that, we need to set ourselves as the "true" source of
         #   the `Pattern` named `key`.
         if key in self.underlying:
-            raise DeviceLibraryError(f'Device name {key} already exists in underlying Library!'
-                                     ' Demote or delete it first.')
+            raise DeviceLibraryError(f'Device name {key} already exists in underlying Library!')
 
         # NOTE that this means the `Device` may be cached without the `Pattern` being in
         #  the `underlying` cache yet!
-        self.underlying.set_value(key, '__DeviceLibrary', lambda: self[key].pattern)
+        self.underlying[key] = lambda: self.get_device(key).pattern
 
     def __delitem__(self, key: str) -> None:
-        DeviceLibrary.__delitem__(self, key)
+        LazyDeviceLibrary.__delitem__(self, key)
         if key in self.underlying:
             del self.underlying[key]
 
     def add_library(
-            self: L,
-            lib: Library,
+            self: LDL,
+            lib: Mapping[str, Pattern],
             pat2dev: Callable[[Pattern], Device],
             use_ours: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
             use_theirs: Callable[[Union[str, Tuple[str, str]]], bool] = lambda name: False,
-            ) -> L:
+            ) -> LDL:
         """
         Add a pattern `Library` into this `LibDeviceLibrary`.
 
@@ -335,12 +269,11 @@ class LibDeviceLibrary(DeviceLibrary):
         if bad_duplicates:
             raise DeviceLibraryError('Duplicate devices (no action specified): ' + pformat(bad_duplicates))
 
-        # No 'bad' duplicates, so all duplicates should be overwritten
-        for name in keep_theirs:
-            self.underlying.demote(name)
-
         self.underlying.add(lib, use_ours, use_theirs)
 
         for name in lib:
-            self.generators[name] = lambda name=name: pat2dev(self.underlying[name])
+            def gen(name=name):
+                return pat2dev(self.underlying[name])
+
+            self.generators[name] = gen
         return self

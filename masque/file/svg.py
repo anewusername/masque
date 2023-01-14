@@ -114,7 +114,7 @@ def writefile_inverted(
     pattern = library[top]
 
     # Polygonize and flatten pattern
-    pattern.polygonize().flatten()
+    pattern.polygonize().flatten(library)
 
     bounds = pattern.get_bounds(library=library)
     if bounds is None:

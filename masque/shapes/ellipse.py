@@ -125,7 +125,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
 
-    def __deepcopy__(self, memo: Dict = None) -> 'Ellipse':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Ellipse':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
