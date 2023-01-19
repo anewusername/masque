@@ -34,9 +34,6 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     """
     __slots__ = ()      # Children should use AutoSlots
 
-    identifier: Tuple
-    """ An arbitrary identifier for the shape, usually empty but used by `Pattern.flatten()` """
-
     def __copy__(self) -> 'Shape':
         cls = self.__class__
         new = cls.__new__(cls)

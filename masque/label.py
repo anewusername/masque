@@ -18,13 +18,10 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
     """
     A text annotation with a position and layer (but no size; it is not drawn)
     """
-    __slots__ = ( '_string', 'identifier')
+    __slots__ = ( '_string', )
 
     _string: str
     """ Label string """
-
-    identifier: Tuple
-    """ Arbitrary identifier tuple, useful for keeping track of history when flattening """
 
     '''
     ---- Properties
@@ -49,9 +46,7 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             layer: layer_t = 0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            identifier: Tuple = (),
             ) -> None:
-        self.identifier = identifier
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
         self.layer = layer
@@ -64,7 +59,6 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             offset=self.offset.copy(),
             layer=self.layer,
             repetition=self.repetition,
-            identifier=self.identifier,
             )
 
     def __deepcopy__(self: L, memo: Optional[Dict] = None) -> L:
