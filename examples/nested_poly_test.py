@@ -10,11 +10,12 @@ p.AddPaths([
   [(10, 10), (10, -10), (9, -10), (9, 10)],
   [(10, -10), (-10, -10), (-10, -9), (10, -9)],
   ], PT_SUBJECT, closed=True)
-p.Execute2?
-p.Execute?
+#p.Execute2?
+#p.Execute?
 p.Execute(PT_UNION, PT_NONZERO, PT_NONZERO)
 p.Execute(CT_UNION, PT_NONZERO, PT_NONZERO)
 p.Execute(CT_UNION, PFT_NONZERO, PFT_NONZERO)
+
 p = Pyclipper()
 p.AddPaths([
   [(-10, -10), (-10, 10), (-9, 10), (-9, -10)],
@@ -23,6 +24,6 @@ p.AddPaths([
   [(10, -10), (-10, -10), (-10, -9), (10, -9)],
   ], PT_SUBJECT, closed=True)
 r = p.Execute2(CT_UNION, PFT_NONZERO, PFT_NONZERO)
-r
-r.Childs
-%history -f nested_poly_test.py
+
+#r.Childs
+
