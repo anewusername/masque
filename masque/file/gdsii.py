@@ -457,7 +457,7 @@ def _shapes_to_elements(
                 layer=(layer, data_type),
                 xy=xy,
                 path_type=path_type,
-                width=width,
+                width=int(width),
                 extension=extension,
                 properties=properties,
                 )
