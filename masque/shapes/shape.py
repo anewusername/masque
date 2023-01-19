@@ -15,9 +15,11 @@ if TYPE_CHECKING:
 
 
 # Type definitions
-normalized_shape_tuple = Tuple[Tuple,
-                               Tuple[NDArray[numpy.float64], float, float, bool, float],
-                               Callable[[], 'Shape']]
+normalized_shape_tuple = Tuple[
+    Tuple,
+    Tuple[NDArray[numpy.float64], float, float, bool, float],
+    Callable[[], 'Shape'],
+    ]
 
 # ## Module-wide defaults
 # Default number of points per polygon for shapes

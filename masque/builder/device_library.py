@@ -22,7 +22,7 @@ DL2 = TypeVar('DL2', bound='LazyDeviceLibrary')
 LDL = TypeVar('LDL', bound='LibDeviceLibrary')
 
 
-class LazyDeviceLibrary:
+class LazyDeviceLibrary(Mapping[str, DeviceRef]):
     """
     This class maps names to functions which generate or load the
      relevant `Device` object.
@@ -61,7 +61,7 @@ class LazyDeviceLibrary:
         return iter(self.keys())
 
     def __repr__(self) -> str:
-        return '<LazyDeviceLibrary with keys ' + repr(list(self.generators.keys())) + '>'
+        return '<LazyDeviceLibrary with keys ' + repr(list(self.keys())) + '>'
 
     def get_device(self, key: str) -> Device:
         if self.enable_cache and key in self.cache:
