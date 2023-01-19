@@ -158,7 +158,6 @@ class Path(Shape, metaclass=AutoSlots):
             ) -> None:
         self._cap_extensions = None     # Since .cap setter might access it
 
-        self.identifier = ()
         if raw:
             assert(isinstance(vertices, numpy.ndarray))
             assert(isinstance(offset, numpy.ndarray))

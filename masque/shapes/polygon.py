@@ -84,7 +84,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
             ) -> None:
-        self.identifier = ()
         if raw:
             assert(isinstance(vertices, numpy.ndarray))
             assert(isinstance(offset, numpy.ndarray))

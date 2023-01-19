@@ -75,7 +75,6 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
             ) -> None:
-        self.identifier = ()
         if raw:
             assert(isinstance(offset, numpy.ndarray))
             assert(isinstance(mirrored, numpy.ndarray))

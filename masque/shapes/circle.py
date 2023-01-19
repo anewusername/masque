@@ -55,7 +55,6 @@ class Circle(Shape, metaclass=AutoSlots):
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
             ) -> None:
-        self.identifier = ()
         if raw:
             assert(isinstance(offset, numpy.ndarray))
             self._radius = radius

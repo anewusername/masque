@@ -34,16 +34,13 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
     SubPattern provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('_target', '_mirrored', 'identifier')
+    __slots__ = ('_target', '_mirrored')
 
     _target: Optional[str]
     """ The name of the `Pattern` being instanced """
 
     _mirrored: NDArray[numpy.bool_]
     """ Whether to mirror the instance across the x and/or y axes. """
-
-    identifier: Tuple[Any, ...]
-    """ Arbitrary identifier, used internally by some `masque` functions. """
 
     def __init__(
             self,
@@ -56,7 +53,6 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             scale: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
-            identifier: Tuple[Any, ...] = (),
             ) -> None:
         """
         Args:
@@ -67,9 +63,7 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             dose: Scaling factor applied to the dose.
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
-            identifier: Arbitrary tuple, used internally by some `masque` functions.
         """
-        self.identifier = identifier
         self.target = target
         self.offset = offset
         self.rotation = rotation
