@@ -871,7 +871,7 @@ class Device(PortList):
             **kwargs,
             ) -> D:
         if self._dead:
-            logger.error('Skipping busL() since device is dead')
+            logger.error('Skipping mpath() since device is dead')
             return self
 
         bound_types = set()
@@ -884,9 +884,9 @@ class Device(PortList):
                 bound = kwargs[bt]
 
         if not bound_types:
-            raise DeviceError('No bound type specified for busL')
+            raise DeviceError('No bound type specified for mpath')
         elif len(bound_types) > 1:
-            raise DeviceError(f'Too many bound types specified for busL: {bound_types}')
+            raise DeviceError(f'Too many bound types specified for mpath: {bound_types}')
         bound_type = tuple(bound_types)[0]
 
         if isinstance(portspec, str):
