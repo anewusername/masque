@@ -138,7 +138,7 @@ def dose2dtype(
         library = WrapROLibrary(library)
 
     # Get a table of (id(pat), written_dose) for each pattern and subpattern
-    sd_table = make_dose_table(library.find_topcells(), library)
+    sd_table = make_dose_table(library.find_toplevel(), library)
 
     # Figure out all the unique doses necessary to write this pattern
     #  This means going through each row in sd_table and adding the dose values needed to write

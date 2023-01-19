@@ -3,13 +3,13 @@ DeviceLibrary class for managing unique name->device mappings and
  deferred loading or creation.
 """
 from typing import Dict, Callable, TypeVar, TYPE_CHECKING
-from typing import Any, Tuple, Union, Iterator
+from typing import Any, Tuple, Union, Iterator, Mapping
 import logging
 from pprint import pformat
 from abc import ABCMeta, abstractmethod
 
 from ..error import DeviceLibraryError
-from ..library import Library
+from ..library import Library, LazyLibrary
 from ..builder import Device, DeviceRef
 from .. import Pattern
 
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 DL = TypeVar('DL', bound='LazyDeviceLibrary')
+DL2 = TypeVar('DL2', bound='LazyDeviceLibrary')
 LDL = TypeVar('LDL', bound='LibDeviceLibrary')
 
 

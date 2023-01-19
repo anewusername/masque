@@ -684,7 +684,7 @@ class LazyLibrary(MutableLibrary):
     def __repr__(self) -> str:
         return '<LazyLibrary with keys ' + repr(list(self.dict.keys())) + '>'
 
-    def precache(self: L) -> L:
+    def precache(self: LL) -> LL:
         """
         Force all patterns into the cache
 
@@ -695,7 +695,7 @@ class LazyLibrary(MutableLibrary):
             _ = self.dict.__getitem__(key)
         return self
 
-    def clear_cache(self: L) -> L:
+    def clear_cache(self: LL) -> LL:
         """
         Clear the cache of this library.
         This is usually used before modifying or deleting cells, e.g. when merging
