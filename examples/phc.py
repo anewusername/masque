@@ -32,14 +32,13 @@ def hole(layer: layer_t,
         Pattern, named `'hole'`
     """
     pat = Pattern('hole', shapes=[
-        Circle(radius=radius, offset=(0, 0), layer=layer, dose=1.0)
+        Circle(radius=radius, offset=(0, 0), layer=layer)
         ])
     return pat
 
 
 def perturbed_l3(lattice_constant: float,
                  hole: Pattern,
-                 trench_dose: float = 1.0,
                  trench_layer: layer_t = (1, 0),
                  shifts_a: Sequence[float] = (0.15, 0, 0.075),
                  shifts_r: Sequence[float] = (1.0, 1.0, 1.0),
@@ -53,7 +52,6 @@ def perturbed_l3(lattice_constant: float,
     Args:
         lattice_constant: Distance between nearest neighbor holes
         hole: `Pattern` object containing a single hole
-        trench_dose: Dose for the trenches. Default 1.0. (Hole dose is 1.0.)
         trench_layer: Layer for the trenches, default `(1, 0)`.
         shifts_a: passed to `pcgen.l3_shift`; specifies lattice constant
             (1 - multiplicative factor) for shifting holes adjacent to
@@ -85,10 +83,8 @@ def perturbed_l3(lattice_constant: float,
     trench_dx = max_xy[0] - min_xy[0]
 
     pat.shapes += [
-        Polygon.rect(ymin=max_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width,
-                     layer=trench_layer, dose=trench_dose),
-        Polygon.rect(ymax=min_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width,
-                     layer=trench_layer, dose=trench_dose),
+        Polygon.rect(ymin=max_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width, layer=trench_layer),
+        Polygon.rect(ymax=min_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width, layer=trench_layer),
         ]
 
     ports = {

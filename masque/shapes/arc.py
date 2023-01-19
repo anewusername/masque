@@ -162,7 +162,6 @@ class Arc(Shape, metaclass=AutoSlots):
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
@@ -179,7 +178,6 @@ class Arc(Shape, metaclass=AutoSlots):
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
             self._layer = layer
-            self._dose = dose
         else:
             self.radii = radii
             self.angles = angles
@@ -189,7 +187,6 @@ class Arc(Shape, metaclass=AutoSlots):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-            self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
@@ -256,7 +253,7 @@ class Arc(Shape, metaclass=AutoSlots):
         ys = numpy.hstack((ys1, ys2))
         xys = numpy.vstack((xs, ys)).T
 
-        poly = Polygon(xys, dose=self.dose, layer=self.layer, offset=self.offset, rotation=self.rotation)
+        poly = Polygon(xys, layer=self.layer, offset=self.offset, rotation=self.rotation)
         return [poly]
 
     def get_bounds(self) -> NDArray[numpy.float64]:
@@ -368,7 +365,7 @@ class Arc(Shape, metaclass=AutoSlots):
         width = self.width
 
         return ((type(self), radii, angles, width / norm_value, self.layer),
-                (self.offset, scale / norm_value, rotation, False, self.dose),
+                (self.offset, scale / norm_value, rotation, False),
                 lambda: Arc(radii=radii * norm_value, angles=angles, width=width * norm_value, layer=self.layer))
 
     def get_cap_edges(self) -> NDArray[numpy.float64]:
@@ -425,5 +422,4 @@ class Arc(Shape, metaclass=AutoSlots):
     def __repr__(self) -> str:
         angles = f' a°{numpy.rad2deg(self.angles)}'
         rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}{dose}>'
+        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}>'

@@ -409,7 +409,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         """
         Iterates through all `Pattern`s. Within each `Pattern`, it iterates
          over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
-         offset-, dose-, and rotation-independent form. Each shape whose normalized form appears
+         offset-, and rotation-independent form. Each shape whose normalized form appears
          more than once is removed and re-added using subpattern objects referencing a newly-created
          `Pattern` containing only the normalized form of the shape.
 
@@ -468,7 +468,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         for pat in tuple(self.values()):
             #  Store `[(index_in_shapes, values_from_normalized_form), ...]` for all shapes which
             # are to be replaced.
-            # The `values` are `(offset, scale, rotation, dose)`.
+            # The `values` are `(offset, scale, rotation)`.
 
             shape_table: MutableMapping[Tuple, List] = defaultdict(list)
             for i, shape in enumerate(pat.shapes):
@@ -489,9 +489,9 @@ class MutableLibrary(Library, metaclass=ABCMeta):
             for label in shape_table:
                 target = label2name(label)
                 for i, values in shape_table[label]:
-                    offset, scale, rotation, mirror_x, dose = values
+                    offset, scale, rotation, mirror_x = values
                     pat.addsp(target=target, offset=offset, scale=scale,
-                              rotation=rotation, dose=dose, mirrored=(mirror_x, False))
+                              rotation=rotation, mirrored=(mirror_x, False))
                     shapes_to_remove.append(i)
 
             # Remove any shapes for which we have created subpatterns.

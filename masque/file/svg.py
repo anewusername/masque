@@ -26,8 +26,8 @@ def writefile(
 
     Note that this function modifies the Pattern.
 
-    If `custom_attributes` is `True`, non-standard `pattern_layer` and `pattern_dose` attributes
-     are written to the relevant elements.
+    If `custom_attributes` is `True`, a non-standard `pattern_layer` attribute
+     is written to the relevant elements.
 
     It is often a good idea to run `pattern.subpatternize()` on pattern prior to
      calling this function, especially if calling `.polygonize()` will result in very
@@ -39,8 +39,8 @@ def writefile(
     Args:
         pattern: Pattern to write to file. Modified by this function.
         filename: Filename to write to.
-        custom_attributes: Whether to write non-standard `pattern_layer` and
-            `pattern_dose` attributes to the SVG elements.
+        custom_attributes: Whether to write non-standard `pattern_layer` attribute to the
+            SVG elements.
     """
     pattern = library[top]
 
@@ -61,8 +61,7 @@ def writefile(
     svg = svgwrite.Drawing(filename, profile='full', viewBox=viewbox_string,
                            debug=(not custom_attributes))
 
-    # Now create a group for each row in sd_table (ie, each pattern + dose combination)
-    #  and add in any Boundary and Use elements
+    # Now create a group for each pattern and add in any Boundary and Use elements
     for name, pat in library.items():
         svg_group = svg.g(id=mangle_name(name), fill='blue', stroke='red')
 
@@ -73,7 +72,6 @@ def writefile(
                 path = svg.path(d=path_spec)
                 if custom_attributes:
                     path['pattern_layer'] = polygon.layer
-                    path['pattern_dose'] = polygon.dose
 
                 svg_group.add(path)
 
@@ -82,8 +80,6 @@ def writefile(
                 continue
             transform = f'scale({subpat.scale:g}) rotate({subpat.rotation:g}) translate({subpat.offset[0]:g},{subpat.offset[1]:g})'
             use = svg.use(href='#' + mangle_name(subpat.target), transform=transform)
-            if custom_attributes:
-                use['pattern_dose'] = subpat.dose
             svg_group.add(use)
 
         svg.defs.add(svg_group)

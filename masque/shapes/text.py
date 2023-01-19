@@ -70,7 +70,6 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             rotation: float = 0.0,
             mirrored: ArrayLike = (False, False),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
@@ -80,7 +79,6 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             assert(isinstance(mirrored, numpy.ndarray))
             self._offset = offset
             self._layer = layer
-            self._dose = dose
             self._string = string
             self._height = height
             self._rotation = rotation
@@ -90,7 +88,6 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         else:
             self.offset = offset
             self.layer = layer
-            self.dose = dose
             self.string = string
             self.height = height
             self.rotation = rotation
@@ -119,7 +116,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
             # Move these polygons to the right of the previous letter
             for xys in raw_polys:
-                poly = Polygon(xys, dose=self.dose, layer=self.layer)
+                poly = Polygon(xys, layer=self.layer)
                 poly.mirror2d(self.mirrored)
                 poly.scale_by(self.height)
                 poly.offset = self.offset + [total_advance, 0]
@@ -144,7 +141,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
         rotation += self.rotation
         rotation %= 2 * pi
         return ((type(self), self.string, self.font_path, self.layer),
-                (self.offset, self.height / norm_value, rotation, mirror_x, self.dose),
+                (self.offset, self.height / norm_value, rotation, mirror_x),
                 lambda: Text(string=self.string,
                              height=self.height * norm_value,
                              font_path=self.font_path,
@@ -254,6 +251,5 @@ def get_char_as_polygons(
 
     def __repr__(self) -> str:
         rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}{dose}>'
+        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}>'

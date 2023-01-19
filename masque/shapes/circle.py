@@ -50,7 +50,6 @@ class Circle(Shape, metaclass=AutoSlots):
             poly_max_arclen: Optional[float] = None,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
@@ -62,14 +61,12 @@ class Circle(Shape, metaclass=AutoSlots):
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
             self._layer = layer
-            self._dose = dose
         else:
             self.radius = radius
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-            self.dose = dose
         self.poly_num_points = poly_num_points
         self.poly_max_arclen = poly_max_arclen
 
@@ -105,7 +102,7 @@ class Circle(Shape, metaclass=AutoSlots):
         ys = numpy.sin(thetas) * self.radius
         xys = numpy.vstack((xs, ys)).T
 
-        return [Polygon(xys, offset=self.offset, dose=self.dose, layer=self.layer)]
+        return [Polygon(xys, offset=self.offset, layer=self.layer)]
 
     def get_bounds(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset - self.radius,
@@ -126,9 +123,8 @@ class Circle(Shape, metaclass=AutoSlots):
         rotation = 0.0
         magnitude = self.radius / norm_value
         return ((type(self), self.layer),
-                (self.offset, magnitude, rotation, False, self.dose),
+                (self.offset, magnitude, rotation, False),
                 lambda: Circle(radius=norm_value, layer=self.layer))
 
     def __repr__(self) -> str:
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}{dose}>'
+        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}>'
