@@ -3,8 +3,8 @@
 Masque is a Python module for designing lithography masks.
 
 The general idea is to implement something resembling the GDSII file-format, but
-with some vectorized element types (eg. circles, not just polygons), better support for
-E-beam doses, and the ability to output to multiple formats.
+with some vectorized element types (eg. circles, not just polygons) and the ability
+to output to multiple formats.
 
 - [Source repository](https://mpxd.net/code/jan/masque)
 - [PyPI](https://pypi.org/project/masque)

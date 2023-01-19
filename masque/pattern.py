@@ -415,20 +415,6 @@ class Pattern(AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.mirror_element_centers(axis)
         return self
 
-    def scale_element_doses(self: P, c: float) -> P:
-        """
-        Multiply all shape and subpattern doses by a factor
-
-        Args:
-            c: Factor to multiply doses by
-
-        Return:
-            self
-        """
-        for entry in chain(self.shapes, self.subpatterns):
-            entry.dose *= c
-        return self
-
     def copy(self: P) -> P:
         """
         Return a copy of the Pattern, deep-copying shapes and copying subpattern

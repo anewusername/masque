@@ -5,8 +5,8 @@ import numpy
 from numpy.typing import NDArray, ArrayLike
 
 from ..traits import (
-    PositionableImpl, LayerableImpl, DoseableImpl,
     Rotatable, Mirrorable, Copyable, Scalable,
+    PositionableImpl, LayerableImpl,
     PivotableImpl, RepeatableImpl, AnnotatableImpl,
     )
 
@@ -27,7 +27,7 @@ DEFAULT_POLY_NUM_POINTS = 24
 T = TypeVar('T', bound='Shape')
 
 
-class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable, Copyable, Scalable,
+class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Abstract class specifying functions common to all shapes.
@@ -68,7 +68,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
     @abstractmethod
     def normalized_form(self: T, norm_value: int) -> normalized_shape_tuple:
         """
-        Writes the shape in a standardized notation, with offset, scale, rotation, and dose
+        Writes the shape in a standardized notation, with offset, scale, and rotation
          information separated out from the remaining values.
 
         Args:
@@ -83,7 +83,7 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
               `(intrinsic, extrinsic, constructor)`. These are further broken down as:
               `intrinsic`: A tuple of basic types containing all information about the instance that
                          is not contained in 'extrinsic'. Usually, `intrinsic[0] == type(self)`.
-              `extrinsic`: `([x_offset, y_offset], scale, rotation, mirror_across_x_axis, dose)`
+              `extrinsic`: `([x_offset, y_offset], scale, rotation, mirror_across_x_axis)`
               `constructor`: A callable (no arguments) which returns an instance of `type(self)` with
                            internal state equivalent to `intrinsic`.
         """
@@ -195,12 +195,10 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 vertex_lists.append(vlist)
             polygon_contours.append(numpy.vstack(vertex_lists))
 
-        manhattan_polygons = []
-        for contour in polygon_contours:
-            manhattan_polygons.append(Polygon(
-                vertices=contour,
-                layer=self.layer,
-                dose=self.dose))
+        manhattan_polygons = [
+            Polygon(vertices=contour, layer=self.layer)
+            for contour in polygon_contours
+            ]
 
         return manhattan_polygons
 
@@ -298,6 +296,6 @@ class Shape(PositionableImpl, LayerableImpl, DoseableImpl, Rotatable, Mirrorable
                 manhattan_polygons.append(Polygon(
                     vertices=vertices,
                     layer=self.layer,
-                    dose=self.dose))
+                    ))
 
         return manhattan_polygons

@@ -15,7 +15,7 @@ from .error import PatternError
 from .utils import is_scalar, AutoSlots, annotations_t
 from .repetition import Repetition
 from .traits import (
-    PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl,
+    PositionableImpl, RotatableImpl, ScalableImpl,
     Mirrorable, PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
     )
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 S = TypeVar('S', bound='SubPattern')
 
 
-class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mirrorable,
+class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
                  PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
                  metaclass=AutoSlots):
     """
@@ -49,7 +49,6 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             mirrored: Optional[Sequence[bool]] = None,
-            dose: float = 1.0,
             scale: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
@@ -60,14 +59,12 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             offset: (x, y) offset applied to the referenced pattern. Not affected by rotation etc.
             rotation: Rotation (radians, counterclockwise) relative to the referenced pattern's (0, 0).
             mirrored: Whether to mirror the referenced pattern across its x and y axes.
-            dose: Scaling factor applied to the dose.
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
         """
         self.target = target
         self.offset = offset
         self.rotation = rotation
-        self.dose = dose
         self.scale = scale
         if mirrored is None:
             mirrored = (False, False)
@@ -80,7 +77,6 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             target=self.target,
             offset=self.offset.copy(),
             rotation=self.rotation,
-            dose=self.dose,
             scale=self.scale,
             mirrored=self.mirrored.copy(),
             repetition=copy.deepcopy(self.repetition),
@@ -150,8 +146,6 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
             pattern.rotate_around((0.0, 0.0), self.rotation)
         if numpy.any(self.offset):
             pattern.translate_elements(self.offset)
-        if self.dose != 1:
-            pattern.scale_element_doses(self.dose)
 
         if self.repetition is not None:
             combined = type(pattern)()
@@ -204,5 +198,4 @@ class SubPattern(PositionableImpl, DoseableImpl, RotatableImpl, ScalableImpl, Mi
         rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
         scale = f' d{self.scale:g}' if self.scale != 1 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        return f'<SubPattern {name} at {self.offset}{rotation}{scale}{mirrored}{dose}>'
+        return f'<SubPattern {name} at {self.offset}{rotation}{scale}{mirrored}>'

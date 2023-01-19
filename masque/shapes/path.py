@@ -151,7 +151,6 @@ class Path(Shape, metaclass=AutoSlots):
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
@@ -167,7 +166,6 @@ class Path(Shape, metaclass=AutoSlots):
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
             self._layer = layer
-            self._dose = dose
             self._width = width
             self._cap = cap
             self._cap_extensions = cap_extensions
@@ -177,7 +175,6 @@ class Path(Shape, metaclass=AutoSlots):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-            self.dose = dose
             self.width = width
             self.cap = cap
             self.cap_extensions = cap_extensions
@@ -204,7 +201,6 @@ class Path(Shape, metaclass=AutoSlots):
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            dose: float = 1.0,
             ) -> 'Path':
         """
         Build a path by specifying the turn angles and travel distances
@@ -225,7 +221,6 @@ class Path(Shape, metaclass=AutoSlots):
                 `mirrored=(True, False)` results in a reflection across the x-axis,
                 multiplying the path's y-coordinates by -1. Default `(False, False)`
             layer: Layer, default `0`
-            dose: Dose, default `1.0`
 
         Returns:
             The resulting Path object
@@ -240,7 +235,7 @@ class Path(Shape, metaclass=AutoSlots):
 
         return Path(vertices=verts, width=width, cap=cap, cap_extensions=cap_extensions,
                     offset=offset, rotation=rotation, mirrored=mirrored,
-                    layer=layer, dose=dose)
+                    layer=layer)
 
     def to_polygons(
             self,
@@ -255,7 +250,7 @@ class Path(Shape, metaclass=AutoSlots):
 
         if self.width == 0:
             verts = numpy.vstack((v, v[::-1]))
-            return [Polygon(offset=self.offset, vertices=verts, dose=self.dose, layer=self.layer)]
+            return [Polygon(offset=self.offset, vertices=verts, layer=self.layer)]
 
         perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
 
@@ -306,12 +301,12 @@ class Path(Shape, metaclass=AutoSlots):
         o1.append(v[-1] - perp[-1])
         verts = numpy.vstack((o0, o1[::-1]))
 
-        polys = [Polygon(offset=self.offset, vertices=verts, dose=self.dose, layer=self.layer)]
+        polys = [Polygon(offset=self.offset, vertices=verts, layer=self.layer)]
 
         if self.cap == PathCap.Circle:
             #for vert in v:         # not sure if every vertex, or just ends?
             for vert in [v[0], v[-1]]:
-                circ = Circle(offset=vert, radius=self.width / 2, dose=self.dose, layer=self.layer)
+                circ = Circle(offset=vert, radius=self.width / 2, layer=self.layer)
                 polys += circ.to_polygons(poly_num_points=poly_num_points, poly_max_arclen=poly_max_arclen)
 
         return polys
@@ -372,7 +367,7 @@ class Path(Shape, metaclass=AutoSlots):
         width0 = self.width / norm_value
 
         return ((type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer),
-                (offset, scale / norm_value, rotation, False, self.dose),
+                (offset, scale / norm_value, rotation, False),
                 lambda: Path(reordered_vertices * norm_value, width=self.width * norm_value,
                              cap=self.cap, layer=self.layer))
 
@@ -419,5 +414,4 @@ class Path(Shape, metaclass=AutoSlots):
 
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}{dose}>'
+        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}>'

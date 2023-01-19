@@ -79,7 +79,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             rotation: float = 0.0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             annotations: Optional[annotations_t] = None,
             raw: bool = False,
@@ -92,14 +91,12 @@ class Polygon(Shape, metaclass=AutoSlots):
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
             self._layer = layer
-            self._dose = dose
         else:
             self.vertices = vertices
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-            self.dose = dose
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
@@ -118,7 +115,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             rotation: float = 0.0,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             ) -> 'Polygon':
         """
@@ -129,7 +125,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             rotation: Rotation counterclockwise, in radians
             offset: Offset, default `(0, 0)`
             layer: Layer, default `0`
-            dose: Dose, default `1.0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -140,8 +135,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                                    [+1, +1],
                                    [+1, -1]], dtype=float)
         vertices = 0.5 * side_length * norm_square
-        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose,
-                       repetition=repetition)
+        poly = Polygon(vertices, offset=offset, layer=layer, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -153,7 +147,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             rotation: float = 0,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             ) -> 'Polygon':
         """
@@ -165,7 +158,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             rotation: Rotation counterclockwise, in radians
             offset: Offset, default `(0, 0)`
             layer: Layer, default `0`
-            dose: Dose, default `1.0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -175,8 +167,7 @@ class Polygon(Shape, metaclass=AutoSlots):
                                       [-lx, +ly],
                                       [+lx, +ly],
                                       [+lx, -ly]], dtype=float)
-        poly = Polygon(vertices, offset=offset, layer=layer, dose=dose,
-                       repetition=repetition)
+        poly = Polygon(vertices, offset=offset, layer=layer, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -192,7 +183,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             ymax: Optional[float] = None,
             ly: Optional[float] = None,
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             ) -> 'Polygon':
         """
@@ -211,7 +201,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             ymax: Maximum y coordinate
             ly: Length along y direction
             layer: Layer, default `0`
-            dose: Dose, default `1.0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -277,8 +266,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
 
-        poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr),
-                                 layer=layer, dose=dose, repetition=repetition)
+        poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr), layer=layer, repetition=repetition)
         return poly
 
     @staticmethod
@@ -290,7 +278,6 @@ class Polygon(Shape, metaclass=AutoSlots):
             center: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             layer: layer_t = 0,
-            dose: float = 1.0,
             repetition: Optional[Repetition] = None,
             ) -> 'Polygon':
         """
@@ -310,7 +297,6 @@ class Polygon(Shape, metaclass=AutoSlots):
                 `0` results in four axis-aligned sides (the long sides of the
                 irregular octagon).
             layer: Layer, default `0`
-            dose: Dose, default `1.0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -337,7 +323,7 @@ class Polygon(Shape, metaclass=AutoSlots):
             side_length = 2 * inner_radius / s
 
         vertices = 0.5 * side_length * norm_oct
-        poly = Polygon(vertices, offset=center, layer=layer, dose=dose, repetition=repetition)
+        poly = Polygon(vertices, offset=center, layer=layer, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -390,7 +376,7 @@ class Polygon(Shape, metaclass=AutoSlots):
         # TODO: normalize mirroring?
 
         return ((type(self), reordered_vertices.data.tobytes(), self.layer),
-                (offset, scale / norm_value, rotation, False, self.dose),
+                (offset, scale / norm_value, rotation, False),
                 lambda: Polygon(reordered_vertices * norm_value, layer=self.layer))
 
     def clean_vertices(self) -> 'Polygon':
@@ -425,5 +411,4 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
-        dose = f' d{self.dose:g}' if self.dose != 1 else ''
-        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}{dose}>'
+        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}>'
