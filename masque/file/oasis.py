@@ -11,7 +11,7 @@ Note that OASIS references follow the same convention as `masque`,
   Scaling, rotation, and mirroring apply to individual instances, not grid
    vectors or offsets.
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping, Optional
+from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping, Optional, cast
 import re
 import io
 import copy
@@ -482,7 +482,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
 
 def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> SubPattern:
     """
-    Helper function to create a SubPattern from a placment. Sets subpat.target to the placemen name.
+    Helper function to create a SubPattern from a placment. Sets subpat.target to the placement name.
     """
     assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
     xy = numpy.array((placement.x, placement.y))
@@ -551,7 +551,7 @@ def _shapes_to_elements(
             circle = fatrec.Circle(
                 layer=layer,
                 datatype=datatype,
-                radius=radius,
+                radius=cast(int, radius),
                 x=offset[0],
                 y=offset[1],
                 properties=properties,
@@ -568,8 +568,8 @@ def _shapes_to_elements(
             path = fatrec.Path(
                 layer=layer,
                 datatype=datatype,
-                point_list=deltas,
-                half_width=half_width,
+                point_list=cast(Sequence[Sequence[int]], deltas),
+                half_width=cast(int, half_width),
                 x=xy[0],
                 y=xy[1],
                 extension_start=extension_start,       # TODO implement multiple cap types?
@@ -587,7 +587,7 @@ def _shapes_to_elements(
                     datatype=datatype,
                     x=xy[0],
                     y=xy[1],
-                    point_list=points,
+                    point_list=cast(List[List[int]], points),
                     properties=properties,
                     repetition=repetition,
                     ))
@@ -674,16 +674,16 @@ def repetition_masq2fata(
         a_count = rint_cast(rep.a_count)
         b_count = rint_cast(rep.b_count) if rep.b_count is not None else None
         frep = fatamorgana.GridRepetition(
-            a_vector=a_vector,
-            b_vector=b_vector,
-            a_count=a_count,
-            b_count=b_count,
+            a_vector=cast(List[int], a_vector),
+            b_vector=cast(Optional[List[int]], b_vector),
+            a_count=cast(int, a_count),
+            b_count=cast(Optional[int], b_count),
             )
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):
         diffs = numpy.diff(rep.displacements, axis=0)
         diff_ints = rint_cast(diffs)
-        frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])
+        frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])        # type: ignore
         offset = rep.displacements[0, :]
     else:
         assert(rep is None)

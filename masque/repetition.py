@@ -39,10 +39,10 @@ class Grid(Repetition, metaclass=AutoSlots):
 
     Note that the offsets in either the 2D or 1D grids do not have to be axis-aligned.
     """
-    __slots__ = ('_a_vector',
-                 '_b_vector',
-                 '_a_count',
-                 '_b_count')
+    __slots__ = (
+        '_a_vector','_b_vector',
+        '_a_count', '_b_count',
+        )
 
     _a_vector: NDArray[numpy.float64]
     """ Vector `[x, y]` specifying the first lattice vector of the grid.

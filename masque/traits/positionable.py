@@ -30,10 +30,10 @@ class Positionable(metaclass=ABCMeta):
         """
         pass
 
-#    @offset.setter
-#    @abstractmethod
-#    def offset(self, val: ArrayLike):
-#        pass
+    @offset.setter
+    @abstractmethod
+    def offset(self, val: ArrayLike):
+        pass
 
     @abstractmethod
     def set_offset(self: T, offset: ArrayLike) -> T:

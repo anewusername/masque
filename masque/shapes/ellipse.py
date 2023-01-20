@@ -17,8 +17,12 @@ class Ellipse(Shape, metaclass=AutoSlots):
     An ellipse, which has a position, two radii, and a rotation.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.
     """
-    __slots__ = ('_radii', '_rotation',
-                 'poly_num_points', 'poly_max_arclen')
+    __slots__ = (
+        '_radii', '_rotation',
+        'poly_num_points', 'poly_max_arclen',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations',
+        )
 
     _radii: NDArray[numpy.float64]
     """ Ellipse radii """

@@ -19,7 +19,11 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
-    __slots__ = ('_vertices',)
+    __slots__ = (
+        '_vertices',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations',
+        )
 
     _vertices: NDArray[numpy.float64]
     """ Nx2 ndarray of vertices `[[x0, y0], [x1, y1], ...]` """

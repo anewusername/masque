@@ -77,7 +77,7 @@ def poly_contains_points(
     vertices = numpy.array(vertices, copy=False)
 
     if points.size == 0:
-        return numpy.zeros(0)
+        return numpy.zeros(0, dtype=numpy.int8)
 
     min_bounds = numpy.min(vertices, axis=0)[None, :]
     max_bounds = numpy.max(vertices, axis=0)[None, :]

@@ -11,6 +11,6 @@ from .bitwise import get_bit, set_bit
 from .vertices import (
     remove_duplicate_vertices, remove_colinear_vertices, poly_contains_points
     )
-from .transform import rotation_matrix_2d, normalize_mirror
+from .transform import rotation_matrix_2d, normalize_mirror, rotate_offsets_around
 
 #from . import pack2d
