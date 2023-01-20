@@ -38,3 +38,17 @@ def normalize_mirror(mirrored: Sequence[bool]) -> Tuple[bool, float]:
     mirror_x = (mirrored_x != mirrored_y)  # XOR
     angle = numpy.pi if mirrored_y else 0
     return mirror_x, angle
+
+
+def rotate_offsets_around(
+        offsets: NDArray[numpy.float64],
+        pivot: NDArray[numpy.float64],
+        angle: float,
+        ) -> NDArray[numpy.float64]:
+    """
+    Rotates offsets around a pivot point.
+    """
+    offsets -= pivot
+    offsets[:] = (rotation_matrix_2d(angle) @ offsets.T).T
+    offsets += pivot
+    return offsets

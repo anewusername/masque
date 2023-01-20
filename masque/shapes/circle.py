@@ -15,7 +15,11 @@ class Circle(Shape, metaclass=AutoSlots):
     """
     A circle, which has a position and radius.
     """
-    __slots__ = ('_radius', 'poly_num_points', 'poly_max_arclen')
+    __slots__ = (
+        '_radius', 'poly_num_points', 'poly_max_arclen',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations',
+        )
 
     _radius: float
     """ Circle radius """

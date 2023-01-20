@@ -21,8 +21,12 @@ class Arc(Shape, metaclass=AutoSlots):
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.
     The start and stop angle are measured counterclockwise from the first (x) radius.
     """
-    __slots__ = ('_radii', '_angles', '_width', '_rotation',
-                 'poly_num_points', 'poly_max_arclen')
+    __slots__ = (
+        '_radii', '_angles', '_width', '_rotation',
+        'poly_num_points', 'poly_max_arclen',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations',
+        )
 
     _radii: NDArray[numpy.float64]
     """ Two radii for defining an ellipse """

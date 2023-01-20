@@ -22,7 +22,11 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
     Text (to be printed e.g. as a set of polygons).
     This is distinct from non-printed Label objects.
     """
-    __slots__ = ('_string', '_height', '_mirrored', 'font_path')
+    __slots__ = (
+        '_string', '_height', '_mirrored', 'font_path',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations', '_rotation',
+        )
 
     _string: str
     _height: float

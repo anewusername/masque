@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 # Type definitions
 normalized_shape_tuple = Tuple[
     Tuple,
-    Tuple[NDArray[numpy.float64], float, float, bool, float],
+    Tuple[NDArray[numpy.float64], float, float, bool],
     Callable[[], 'Shape'],
     ]
 

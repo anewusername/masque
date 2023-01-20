@@ -28,7 +28,11 @@ class Path(Shape, metaclass=AutoSlots):
 
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
-    __slots__ = ('_vertices', '_width', '_cap', '_cap_extensions')
+    __slots__ = (
+        '_vertices', '_width', '_cap', '_cap_extensions',
+        # Inherited
+        '_offset', '_layer', '_repetition', '_annotations',
+        )
     _vertices: NDArray[numpy.float64]
     _width: float
     _cap: PathCap
