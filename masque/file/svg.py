@@ -21,7 +21,7 @@ def writefile(
     """
     Write a Pattern to an SVG file, by first calling .polygonize() on it
      to change the shapes into polygons, and then writing patterns as SVG
-     groups (<g>, inside <defs>), polygons as paths (<path>), and subpatterns
+     groups (<g>, inside <defs>), polygons as paths (<path>), and refs
      as <use> elements.
 
     Note that this function modifies the Pattern.
@@ -29,7 +29,7 @@ def writefile(
     If `custom_attributes` is `True`, a non-standard `pattern_layer` attribute
      is written to the relevant elements.
 
-    It is often a good idea to run `pattern.subpatternize()` on pattern prior to
+    It is often a good idea to run `pattern.dedup()` on pattern prior to
      calling this function, especially if calling `.polygonize()` will result in very
      many vertices.
 
@@ -75,11 +75,11 @@ def writefile(
 
                 svg_group.add(path)
 
-        for subpat in pat.subpatterns:
-            if subpat.target is None:
+        for ref in pat.refs:
+            if ref.target is None:
                 continue
-            transform = f'scale({subpat.scale:g}) rotate({subpat.rotation:g}) translate({subpat.offset[0]:g},{subpat.offset[1]:g})'
-            use = svg.use(href='#' + mangle_name(subpat.target), transform=transform)
+            transform = f'scale({ref.scale:g}) rotate({ref.rotation:g}) translate({ref.offset[0]:g},{ref.offset[1]:g})'
+            use = svg.use(href='#' + mangle_name(ref.target), transform=transform)
             svg_group.add(use)
 
         svg.defs.add(svg_group)

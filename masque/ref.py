@@ -1,5 +1,5 @@
 """
- SubPattern provides basic support for nesting Pattern objects within each other, by adding
+ Ref provides basic support for nesting Pattern objects within each other, by adding
   offset, rotation, scaling, and other such properties to the reference.
 """
 #TODO more top-level documentation
@@ -24,17 +24,22 @@ if TYPE_CHECKING:
     from . import Pattern
 
 
-S = TypeVar('S', bound='SubPattern')
+R = TypeVar('R', bound='Ref')
 
 
-class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
-                 PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
-                 metaclass=AutoSlots):
+class Ref(
+        PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
+        PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
+        ):
     """
-    SubPattern provides basic support for nesting Pattern objects within each other, by adding
+    `Ref` provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
     """
-    __slots__ = ('_target', '_mirrored')
+    __slots__ = (
+        '_target', '_mirrored',
+        # inherited
+        '_offset', '_rotation', 'scale', '_repetition', '_annotations',
+        )
 
     _target: Optional[str]
     """ The name of the `Pattern` being instanced """
@@ -72,8 +77,8 @@ class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
 
-    def __copy__(self) -> 'SubPattern':
-        new = SubPattern(
+    def __copy__(self) -> 'Ref':
+        new = Ref(
             target=self.target,
             offset=self.offset.copy(),
             rotation=self.rotation,
@@ -84,7 +89,7 @@ class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
             )
         return new
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'SubPattern':
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Ref':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new.repetition = copy.deepcopy(self.repetition, memo)
@@ -127,7 +132,7 @@ class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
 
         Returns:
             A copy of the referenced Pattern which has been scaled, rotated, etc.
-             according to this `SubPattern`'s properties.
+             according to this `Ref`'s properties.
         """
         if pattern is None:
             if library is None:
@@ -178,7 +183,7 @@ class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
             ) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
-         extent of the `SubPattern` in each dimension.
+         extent of the `Ref` in each dimension.
         Returns `None` if the contained `Pattern` is empty.
 
         Args:
@@ -198,4 +203,4 @@ class SubPattern(PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
         rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
         scale = f' d{self.scale:g}' if self.scale != 1 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        return f'<SubPattern {name} at {self.offset}{rotation}{scale}{mirrored}>'
+        return f'<Ref {name} at {self.offset}{rotation}{scale}{mirrored}>'

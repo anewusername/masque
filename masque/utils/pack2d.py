@@ -8,7 +8,7 @@ from numpy.typing import NDArray, ArrayLike
 
 from ..error import MasqueError
 from ..pattern import Pattern
-from ..subpattern import SubPattern
+from ..ref import Ref
 
 
 def pack_patterns(
@@ -29,8 +29,8 @@ def pack_patterns(
     locations, reject_inds = packer(sizes, regions, presort=presort, allow_rejects=allow_rejects)
 
     pat = Pattern()
-    pat.subpatterns = [SubPattern(pp, offset=oo + loc)
-                       for pp, oo, loc in zip(patterns, offsets, locations)]
+    pat.refs = [Ref(pp, offset=oo + loc)
+                for pp, oo, loc in zip(patterns, offsets, locations)]
 
     rejects = [patterns[ii] for ii in reject_inds]
     return pat, rejects

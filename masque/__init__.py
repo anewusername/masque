@@ -8,9 +8,9 @@
 
  `Pattern` is a basic object containing a 2D lithography mask, composed of a list of `Shape`
   objects, a list of `Label` objects, and a list of references to other `Patterns` (using
-  `SubPattern`).
+  `Ref`).
 
- `SubPattern` provides basic support for nesting `Pattern` objects within each other, by adding
+ `Ref` provides basic support for nesting `Pattern` objects within each other, by adding
   offset, rotation, scaling, repetition, and other such properties to a Pattern reference.
 
  Note that the methods for these classes try to avoid copying wherever possible, so unless
@@ -30,12 +30,12 @@
 from .error import PatternError
 from .shapes import Shape
 from .label import Label
-from .subpattern import SubPattern
+from .ref import Ref
 from .pattern import Pattern
 from .utils import layer_t, annotations_t
 from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary
-from .builder import LazyDeviceLibrary, LibDeviceLibrary, Device, DeviceRef, Port, PortList
-
+from .ports import Port, PortList
+from .builder import Builder, PortsRef, Tool
 
 __author__ = 'Jan Petykiewicz'
 

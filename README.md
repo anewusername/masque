@@ -35,9 +35,9 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
 
 ## Translation
 - `Pattern`: OASIS or GDS "Cell", DXF "Block"
-- `SubPattern`: GDS "AREF/SREF", OASIS "Placement"
+- `Ref`: GDS "AREF/SREF", OASIS "Placement"
 - `Shape`: OASIS or GDS "Geometry element", DXF "LWPolyline" or "Polyline"
-- `repetition`: OASIS "repetition". GDS "AREF" is a `SubPattern` combined with a `Grid` repetition.
+- `repetition`: OASIS "repetition". GDS "AREF" is a `Ref` combined with a `Grid` repetition.
 - `Label`: OASIS, GDS, DXF "Text".
 - `annotation`: OASIS or GDS "property"
 
@@ -54,4 +54,4 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
    - need to add the other device by name
    - need to know the other device's ports
    - 
-   - also: device doesn't know its own name, can't wrap itself into a subpattern
+   - also: device doesn't know its own name, can't wrap itself into a ref

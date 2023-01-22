@@ -1,13 +1,14 @@
-from typing import TypeVar
+from typing import TypeVar, cast
 from abc import ABCMeta, abstractmethod
 
 import numpy
 from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
-#from .positionable import Positionable
+from .positionable import Positionable
 from ..error import MasqueError
 from ..utils import is_scalar, rotation_matrix_2d
+
 
 T = TypeVar('T', bound='Rotatable')
 I = TypeVar('I', bound='RotatableImpl')
@@ -112,9 +113,9 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
 
     def rotate_around(self: J, pivot: ArrayLike, rotation: float) -> J:
         pivot = numpy.array(pivot, dtype=float)
-        self.translate(-pivot)
-        self.rotate(rotation)
+        cast(Positionable, self).translate(-pivot)
+        cast(Rotatable, self).rotate(rotation)
         self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      #type: ignore #TODO: mypy#3004
-        self.translate(+pivot)
+        cast(Positionable, self).translate(+pivot)
         return self
 

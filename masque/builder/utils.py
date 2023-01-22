@@ -9,11 +9,11 @@ from ..utils import rotation_matrix_2d
 from ..error import BuildError
 
 if TYPE_CHECKING:
-    from .devices import Port
+    from ..ports import Port, PortList
 
 
 def ell(
-        ports: Dict[str, 'Port'],
+        ports: Union[Mapping[str, 'Port'], 'PortList'],
         ccw: Optional[bool],
         bound_type: str,
         bound: Union[float, ArrayLike],

@@ -2,7 +2,7 @@
 Library class for managing unique name->pattern mappings and
  deferred loading or creation.
 """
-from typing import List, Dict, Callable, TypeVar, Type, TYPE_CHECKING
+from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING
 from typing import Any, Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
 import logging
 import copy
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
 L = TypeVar('L', bound='Library')
 ML = TypeVar('ML', bound='MutableLibrary')
-#LL = TypeVar('LL', bound='LazyLibrary')
+LL = TypeVar('LL', bound='LazyLibrary')
 
 
 class Library(Mapping[str, Pattern], metaclass=ABCMeta):
@@ -51,7 +51,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
             skip: Optional[Set[Optional[str]]] = None,
             ) -> Set[Optional[str]]:
         """
-        Get the set of all pattern names referenced by `top`. Recursively traverses into any subpatterns.
+        Get the set of all pattern names referenced by `top`. Recursively traverses into any refs.
 
         Args:
             top: Name of the top pattern(s) to check.
@@ -83,7 +83,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
     def subtree(
             self,
             tops: Union[str, Sequence[str]],
-            ) -> WrapLibrary:
+            ) -> Library:
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
@@ -92,12 +92,12 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
             tops: Name(s) of patterns to keep
 
         Returns:
-            A `Library` containing only `tops` and the patterns they reference.
+            A `WrapROLibrary` containing only `tops` and the patterns they reference.
         """
         keep: Set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
-        new = WrapLibrary(filtered)
+        new = WrapROLibrary(filtered)
         return new
 
     def polygonize(
@@ -147,8 +147,8 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
             tops: Union[str, Sequence[str]],
             ) -> Dict[str, 'Pattern']:
         """
-        Removes all subpatterns and adds equivalent shapes.
-        Also flattens all subpatterns.
+        Removes all refs and adds equivalent shapes.
+        Also flattens all referenced patterns.
 
         Args:
             tops: The pattern(s) to flattern.
@@ -165,8 +165,8 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
             flattened[name] = None
             pat = self[name].deepcopy()
 
-            for subpat in pat.subpatterns:
-                target = subpat.target
+            for ref in pat.refs:
+                target = ref.target
                 if target is None:
                     continue
 
@@ -175,10 +175,10 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
                 if flattened[target] is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
 
-                p = subpat.as_pattern(pattern=flattened[target])
+                p = ref.as_pattern(pattern=flattened[target])
                 pat.append(p)
 
-            pat.subpatterns.clear()
+            pat.refs.clear()
             flattened[name] = pat
 
         for top in tops:
@@ -245,13 +245,16 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         names = set(self.keys())
         not_toplevel: Set[Optional[str]] = set()
         for name in names:
-            not_toplevel |= set(sp.target for sp in self[name].subpatterns)
+            not_toplevel |= set(sp.target for sp in self[name].refs)
 
         toplevel = list(names - not_toplevel)
         return toplevel
 
 
-class MutableLibrary(Library, metaclass=ABCMeta):
+VVV = TypeVar('VVV')
+
+
+class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -317,11 +320,11 @@ class MutableLibrary(Library, metaclass=ABCMeta):
             ) -> ML:
         """
         Convenience function.
-        Performs a depth-first traversal of a pattern and its subpatterns.
+        Performs a depth-first traversal of a pattern and its referenced patterns.
         At each pattern in the tree, the following sequence is called:
             ```
             current_pattern = visit_before(current_pattern, **vist_args)
-            for sp in current_pattern.subpatterns]
+            for sp in current_pattern.refs]
                 self.dfs(sp.target, visit_before, visit_after, updated_transform,
                          memo, (current_pattern,) + hierarchy)
             current_pattern = visit_after(current_pattern, **visit_args)
@@ -336,10 +339,10 @@ class MutableLibrary(Library, metaclass=ABCMeta):
 
         Args:
             top: Name of the pattern to start at (root node of the tree).
-            visit_before: Function to call before traversing subpatterns.
+            visit_before: Function to call before traversing refs.
                 Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
                 pattern. Default `None` (not called).
-            visit_after: Function to call after traversing subpatterns.
+            visit_after: Function to call after traversing refs.
                 Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
                 pattern. Default `None` (not called).
             transform: Initial value for `visit_args['transform']`.
@@ -368,24 +371,24 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         if visit_before is not None:
             pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)        # type: ignore
 
-        for subpattern in pat.subpatterns:
+        for ref in pat.refs:
             if transform is not False:
                 sign = numpy.ones(2)
                 if transform[3]:
                     sign[1] = -1
-                xy = numpy.dot(rotation_matrix_2d(transform[2]), subpattern.offset * sign)
-                mirror_x, angle = normalize_mirror(subpattern.mirrored)
-                angle += subpattern.rotation
+                xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
+                mirror_x, angle = normalize_mirror(ref.mirrored)
+                angle += ref.rotation
                 sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
                 sp_transform[3] %= 2
             else:
                 sp_transform = False
 
-            if subpattern.target is None:
+            if ref.target is None:
                 continue
 
             self.dfs(
-                top=subpattern.target,
+                top=ref.target,
                 visit_before=visit_before,
                 visit_after=visit_after,
                 transform=sp_transform,
@@ -399,7 +402,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         self._set(top, pat)
         return self
 
-    def subpatternize(
+    def dedup(
             self: ML,
             norm_value: int = int(1e6),
             exclude_types: Tuple[Type] = (Polygon,),
@@ -410,7 +413,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
         Iterates through all `Pattern`s. Within each `Pattern`, it iterates
          over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
          offset-, and rotation-independent form. Each shape whose normalized form appears
-         more than once is removed and re-added using subpattern objects referencing a newly-created
+         more than once is removed and re-added using `Ref` objects referencing a newly-created
          `Pattern` containing only the normalized form of the shape.
 
         Note:
@@ -424,14 +427,14 @@ class MutableLibrary(Library, metaclass=ABCMeta):
                 speed or convenience. Default: `(shapes.Polygon,)`
             label2name: Given a label tuple as returned by `shape.normalized_form(...)`, pick
                 a name for the generated pattern. Default `self.get_name('_shape')`.
-            threshold: Only replace shapes with subpatterns if there will be at least this many
+            threshold: Only replace shapes with refs if there will be at least this many
                 instances.
 
         Returns:
             self
         """
         # This currently simplifies globally (same shape in different patterns is
-        # merged into the same subpattern target).
+        # merged into the same ref target).
 
         from .pattern import Pattern
 
@@ -483,18 +486,18 @@ class MutableLibrary(Library, metaclass=ABCMeta):
                 shape_table[label].append((i, values))
 
             #  For repeated shapes, create a `Pattern` holding a normalized shape object,
-            # and add `pat.subpatterns` entries for each occurrence in pat. Also, note down that
-            # we should delete the `pat.shapes` entries for which we made SubPatterns.
+            # and add `pat.refs` entries for each occurrence in pat. Also, note down that
+            # we should delete the `pat.shapes` entries for which we made `Ref`s.
             shapes_to_remove = []
             for label in shape_table:
                 target = label2name(label)
                 for i, values in shape_table[label]:
                     offset, scale, rotation, mirror_x = values
-                    pat.addsp(target=target, offset=offset, scale=scale,
-                              rotation=rotation, mirrored=(mirror_x, False))
+                    pat.ref(target=target, offset=offset, scale=scale,
+                            rotation=rotation, mirrored=(mirror_x, False))
                     shapes_to_remove.append(i)
 
-            # Remove any shapes for which we have created subpatterns.
+            # Remove any shapes for which we have created refs.
             for i in sorted(shapes_to_remove, reverse=True):
                 del pat.shapes[i]
 
@@ -509,8 +512,8 @@ class MutableLibrary(Library, metaclass=ABCMeta):
             ) -> ML:
         """
         Wraps all shapes and labels with a non-`None` `repetition` attribute
-          into a `SubPattern`/`Pattern` combination, and applies the `repetition`
-          to each `SubPattern` instead of its contained shape.
+          into a `Ref`/`Pattern` combination, and applies the `repetition`
+          to each `Ref` instead of its contained shape.
 
         Args:
             name_func: Function f(this_pattern, shape) which generates a name for the
@@ -533,7 +536,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
 
                 name = name_func(pat, shape)
                 self._set(name, Pattern(shapes=[shape]))
-                pat.addsp(name, repetition=shape.repetition)
+                pat.ref(name, repetition=shape.repetition)
                 shape.repetition = None
             pat.shapes = new_shapes
 
@@ -544,7 +547,7 @@ class MutableLibrary(Library, metaclass=ABCMeta):
                     continue
                 name = name_func(pat, label)
                 self._set(name, Pattern(labels=[label]))
-                pat.addsp(name, repetition=label.repetition)
+                pat.ref(name, repetition=label.repetition)
                 label.repetition = None
             pat.labels = new_labels
 
@@ -682,7 +685,7 @@ class LazyLibrary(MutableLibrary):
             self._set(key, other[key])
 
     def __repr__(self) -> str:
-        return '<LazyLibrary with keys ' + repr(list(self.dict.keys())) + '>'
+        return '<LazyLibrary with keys ' + repr(list(self.keys())) + '>'
 
     def precache(self: LL) -> LL:
         """

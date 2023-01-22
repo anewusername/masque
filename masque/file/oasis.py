@@ -28,7 +28,7 @@ import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
 from .utils import is_gzipped
-from .. import Pattern, SubPattern, PatternError, Label, Shape
+from .. import Pattern, Ref, PatternError, Label, Shape
 from ..library import WrapLibrary, MutableLibrary
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
@@ -62,7 +62,7 @@ def build(
         ) -> fatamorgana.OasisLayout:
     """
     Convert a collection of {name: Pattern} pairs to an OASIS stream, writing patterns
-     as OASIS cells, subpatterns as Placement records, and mapping other shapes and labels
+     as OASIS cells, refs as Placement records, and mapping other shapes and labels
      to equivalent record types (Polygon, Path, Circle, Text).
      Other shape types may be converted to polygons if no equivalent
      record type exists (or is not implemented here yet).
@@ -148,7 +148,7 @@ def build(
 
         structure.geometry += _shapes_to_elements(pat.shapes, layer2oas)
         structure.geometry += _labels_to_texts(pat.labels, layer2oas)
-        structure.placements += _subpatterns_to_placements(pat.subpatterns)
+        structure.placements += _refs_to_placements(pat.refs)
 
     return lib
 
@@ -232,7 +232,7 @@ def read(
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
-     are translated into SubPattern objects.
+     are translated into Ref objects.
 
     Additional library info is returned in a dict, containing:
       'units_per_micrometer': number of database units per micrometer (all values are in database units)
@@ -456,7 +456,7 @@ def read(
                 continue
 
         for placement in cell.placements:
-            pat.subpatterns.append(_placement_to_subpat(placement, lib))
+            pat.refs.append(_placement_to_ref(placement, lib))
 
         patterns_dict[cell_name] = pat
 
@@ -480,9 +480,9 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> SubPattern:
+def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> Ref:
     """
-    Helper function to create a SubPattern from a placment. Sets subpat.target to the placement name.
+    Helper function to create a Ref from a placment. Sets ref.target to the placement name.
     """
     assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
     xy = numpy.array((placement.x, placement.y))
@@ -494,7 +494,7 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
         rotation = 0
     else:
         rotation = numpy.deg2rad(float(placement.angle))
-    subpat = SubPattern(
+    ref = Ref(
         target=name,
         offset=xy,
         mirrored=(placement.flip, False),
@@ -503,29 +503,29 @@ def _placement_to_subpat(placement: fatrec.Placement, lib: fatamorgana.OasisLayo
         repetition=repetition_fata2masq(placement.repetition),
         annotations=annotations,
         )
-    return subpat
+    return ref
 
 
-def _subpatterns_to_placements(
-        subpatterns: List[SubPattern],
+def _refs_to_placements(
+        refs: List[Ref],
         ) -> List[fatrec.Placement]:
     refs = []
-    for subpat in subpatterns:
-        if subpat.target is None:
+    for ref in refs:
+        if ref.target is None:
             continue
 
         # Note: OASIS mirrors first and rotates second
-        mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
-        frep, rep_offset = repetition_masq2fata(subpat.repetition)
+        mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
+        frep, rep_offset = repetition_masq2fata(ref.repetition)
 
-        offset = rint_cast(subpat.offset + rep_offset)
-        angle = numpy.rad2deg(subpat.rotation + extra_angle) % 360
+        offset = rint_cast(ref.offset + rep_offset)
+        angle = numpy.rad2deg(ref.rotation + extra_angle) % 360
         ref = fatrec.Placement(
-            name=subpat.target,
+            name=ref.target,
             flip=mirror_across_x,
             angle=angle,
-            magnification=subpat.scale,
-            properties=annotations_to_properties(subpat.annotations),
+            magnification=ref.scale,
+            properties=annotations_to_properties(ref.annotations),
             x=offset[0],
             y=offset[1],
             repetition=frep,
