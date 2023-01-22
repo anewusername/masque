@@ -1,5 +1,5 @@
-from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
-from typing import overload, KeysView, ValuesView, ItemsView
+from typing import Dict, Iterable, List, Tuple, Iterator, Optional, Sequence, MutableMapping
+from typing import overload, KeysView, ValuesView, ItemsView, TYPE_CHECKING, Union, TypeVar, Any
 import copy
 import warnings
 import traceback
@@ -16,6 +16,9 @@ from .utils import AutoSlots, rotate_offsets_around
 from .error import DeviceError
 from .library import MutableLibrary
 from .builder import Tool
+
+if TYPE_CHECKING:
+    from .builder import Builder
 
 
 logger = logging.getLogger(__name__)
@@ -117,10 +120,10 @@ class PortList(metaclass=ABCMeta):
         pass
 
     @overload
-    def __getitem__(self, key: Union[List[str], Tuple[str, ...], KeysView[str], ValuesView[str]]) -> PortList:
+    def __getitem__(self, key: Union[List[str], Tuple[str, ...], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
         pass
 
-    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, PortList]:
+    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
         """
         For convenience, ports can be read out using square brackets:
         - `pattern['A'] == Port((0, 0), 0)`
@@ -137,7 +140,7 @@ class PortList(metaclass=ABCMeta):
             return {k: self.ports[k] for k in key}
 
     # TODO add Mapping stuff to PortsList
-    def keys(self) -> KeysView[Port]:
+    def keys(self) -> KeysView[str]:
         return self.ports.keys()
 
     def values(self) -> ValuesView[Port]:
@@ -250,7 +253,7 @@ class PortList(metaclass=ABCMeta):
             self,
             library: MutableLibrary,
             *,
-            tools: Optional[Dict[str, Tool]] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
@@ -296,6 +299,8 @@ class PortList(metaclass=ABCMeta):
             `DeviceError` if applying the prefixes results in duplicate port
                 names.
         """
+        from .pattern import Pattern
+
         if port_map:
             if isinstance(port_map, dict):
                 missing_inkeys = set(port_map.keys()) - set(self.ports.keys())
@@ -319,7 +324,7 @@ class PortList(metaclass=ABCMeta):
         if duplicates:
             raise DeviceError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
 
-        new = Builder(library=library, ports={**ports_in, **ports_out}, tools=tools)
+        new = Builder(library=library, pattern=Pattern(ports={**ports_in, **ports_out}), tools=tools)
         return new
 
     def find_transform(

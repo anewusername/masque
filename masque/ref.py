@@ -162,13 +162,13 @@ class Ref(
 
         return pattern
 
-    def rotate(self: S, rotation: float) -> S:
+    def rotate(self: R, rotation: float) -> R:
         self.rotation += rotation
         if self.repetition is not None:
             self.repetition.rotate(rotation)
         return self
 
-    def mirror(self: S, axis: int) -> S:
+    def mirror(self: R, axis: int) -> R:
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
         if self.repetition is not None:

@@ -4,7 +4,7 @@ Tools are objects which dynamically generate simple single-use devices (e.g. wir
 from typing import TYPE_CHECKING, Optional, Sequence
 
 if TYPE_CHECKING:
-    from .devices import Device
+    from ..pattern import Pattern
 
 
 class Tool:
@@ -17,6 +17,6 @@ class Tool:
             out_ptype: Optional[str] = None,
             port_names: Sequence[str] = ('A', 'B'),
             **kwargs,
-            ) -> 'Device':
+            ) -> 'Pattern':
         raise NotImplementedError(f'path() not implemented for {type(self)}')
 
