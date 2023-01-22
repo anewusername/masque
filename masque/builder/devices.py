@@ -1,5 +1,5 @@
 from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
-from typing import overload, KeysView, ValuesView
+from typing import overload, KeysView, ValuesView, MutableMapping
 import copy
 import warnings
 import traceback
@@ -46,7 +46,11 @@ class PortsRef(PortList):
         self.name = name
         self.ports = copy.deepcopy(ports)
 
-    def build(self, library: MutableLibrary) -> 'Builder':
+    def build(
+            self,
+            library: MutableLibrary,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            ) -> 'Builder':
         """
         Begin building a new device around an instance of the current device
           (rather than modifying the current device).
@@ -56,7 +60,7 @@ class PortsRef(PortList):
         """
         pat = Pattern(ports=self.ports)
         pat.ref(self.name)
-        new = Builder(library=library, pattern=pat, tools=self.tools)   # TODO should Ref have tools?
+        new = Builder(library=library, pattern=pat, tools=tools)   # TODO should Ref have tools?
         return new
 
     # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
@@ -148,7 +152,7 @@ class Builder(PortList):
             library: MutableLibrary,
             pattern: Optional[Pattern] = None,
             *,
-            tools: Union[None, Tool, Dict[Optional[str], Tool]] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             ) -> None:
         """
         If `ports` is `None`, two default ports ('A' and 'B') are created.
@@ -173,7 +177,7 @@ class Builder(PortList):
         elif isinstance(tools, Tool):
             self.tools = {None: tools}
         else:
-            self.tools = tools
+            self.tools = dict(tools)
 
         self._dead = False
 
@@ -546,12 +550,12 @@ class Builder(PortList):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            bld = ports.as_interface(self.library, tools=self.tools)
+            bld = Pattern(ports=ports).as_interface(self.library, tools=self.tools)    # TODO: maybe Builder static as_interface-like should optionally take ports instead? Maybe constructor could do it?
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
             self.library._set(name, bld.pattern)
-            return self.plug(PortsRef(name, pat.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
+            return self.plug(PortsRef(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?
 

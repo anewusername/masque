@@ -13,7 +13,7 @@ from numpy import inf
 from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
-from .refs import Ref
+from .ref import Ref
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
@@ -56,7 +56,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             labels: Sequence[Label] = (),
             refs: Sequence[Ref] = (),
             annotations: Optional[annotations_t] = None,
-            ports: Optional[Mapping[str, Port]] = None
+            ports: Optional[Mapping[str, 'Port']] = None
             ) -> None:
         """
         Basic init; arguments get assigned to member variables.
@@ -130,8 +130,17 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.refs += other_pattern.refs
         self.shapes += other_pattern.shapes
         self.labels += other_pattern.labels
-        self.annotations += other_pattern.annotations
-        self.ports += other_pattern.ports
+
+        annotation_conflicts = set(self.annotations.keys()) & set(other_pattern.annotations.keys())
+        if annotation_conflicts:
+            raise PatternError(f'Annotation keys overlap: {annotation_conflicts}')
+        self.annotations.update(other_pattern.annotations)
+
+        port_conflicts = set(self.ports.keys()) & set(other_pattern.ports.keys())
+        if port_conflicts:
+            raise PatternError(f'Port names overlap: {port_conflicts}')
+        self.ports.update(other_pattern.ports)
+
         return self
 
     def subset(
@@ -139,8 +148,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             shapes: Optional[Callable[[Shape], bool]] = None,
             labels: Optional[Callable[[Label], bool]] = None,
             refs: Optional[Callable[[Ref], bool]] = None,
-            annotations: Optional[Callable[[annotation_t], bool]] = None,
-            ports: Optional[Callable[[str], bool]] = None,
+            annotations: Optional[Callable[[str, List[Union[int, float, str]]], bool]] = None,
+            ports: Optional[Callable[[str, Port], bool]] = None,
             default_keep: bool = False
             ) -> 'Pattern':
         """
@@ -179,12 +188,12 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             pat.refs = copy.copy(self.refs)
 
         if annotations is not None:
-            pat.annotations = [s for s in self.annotations if annotations(s)]
+            pat.annotations = {k: v for k, v in self.annotations.items() if annotations(k, v)}
         elif default_keep:
             pat.annotations = copy.copy(self.annotations)
 
         if ports is not None:
-            pat.ports = {k: v for k, v in self.ports.items() if ports(k)}
+            pat.ports = {k: v for k, v in self.ports.items() if ports(k, v)}
         elif default_keep:
             pat.ports = copy.copy(self.ports)
 

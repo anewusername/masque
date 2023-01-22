@@ -1,9 +1,10 @@
-from typing import Dict, Tuple, List, Optional, Union, Any, cast, Sequence, TYPE_CHECKING
+from typing import Dict, Tuple, List, Mapping, Sequence, SupportsFloat
+from typing import Optional, Union, Any, cast, TYPE_CHECKING
 from pprint import pformat
 
 import numpy
 from numpy import pi
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from ..utils import rotation_matrix_2d
 from ..error import BuildError
@@ -135,6 +136,7 @@ def ell(
     #   D-----------|  `d_to_align[3]`
     #
     d_to_align = x_start.max() - x_start    # distance to travel to align all
+    offsets: NDArray[numpy.float64]
     if bound_type == 'min_past_furthest':
         #     A------------------V  `d_to_exit[0]`
         #               B-----V     `d_to_exit[1]`
@@ -154,6 +156,7 @@ def ell(
         travel = d_to_align - (ch_offsets.max() - ch_offsets)
         offsets = travel - travel.min().clip(max=0)
 
+    rot_bound: SupportsFloat
     if bound_type in ('emin', 'min_extension',
                       'emax', 'max_extension',
                       'min_past_furthest',):
