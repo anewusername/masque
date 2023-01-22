@@ -36,7 +36,7 @@ import klamath
 from klamath import records
 
 from .utils import is_gzipped
-from .. import Pattern, SubPattern, PatternError, Label, Shape
+from .. import Pattern, Ref, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import layer_t, normalize_mirror, annotations_t
@@ -70,7 +70,7 @@ def write(
     """
     Convert a library to a GDSII stream, mapping data as follows:
          Pattern -> GDSII structure
-         SubPattern -> GDSII SREF or AREF
+         Ref -> GDSII SREF or AREF
          Path -> GSDII path
          Shape (other than path) -> GDSII boundary/ies
          Label -> GDSII text
@@ -82,7 +82,7 @@ def write(
         datatype is chosen to be `shape.layer[1]` if available,
             otherwise `0`
 
-    It is often a good idea to run `pattern.subpatternize()` prior to calling this function,
+    It is often a good idea to run `pattern.dedup()` prior to calling this function,
      especially if calling `.polygonize()` will result in very many vertices.
 
     If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
@@ -107,7 +107,7 @@ def write(
     # TODO check all hierarchy present
 
     if not modify_originals:
-        library = library.deepcopy() #TODO figure out best approach e.g. if lazy
+        library = copy.deepcopy(library)   #TODO figure out best approach e.g. if lazy
 
     if not isinstance(library, MutableLibrary):
         if isinstance(library, dict):
@@ -130,7 +130,7 @@ def write(
         elements: List[klamath.elements.Element] = []
         elements += _shapes_to_elements(pat.shapes)
         elements += _labels_to_texts(pat.labels)
-        elements += _subpatterns_to_refs(pat.subpatterns)
+        elements += _mrefs_to_grefs(pat.refs)
 
         klamath.library.write_struct(stream, name=name.encode('ASCII'), elements=elements)
     records.ENDLIB.write(stream, None)
@@ -196,7 +196,7 @@ def read(
     """
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
-     are translated into SubPattern objects.
+     are translated into Ref objects.
 
     Additional library info is returned in a dict, containing:
       'name': name of the library
@@ -273,7 +273,7 @@ def read_elements(
                 )
             pat.labels.append(label)
         elif isinstance(element, klamath.elements.Reference):
-            pat.subpatterns.append(_ref_to_subpat(element))
+            pat.refs.append(_gref_to_mref(element))
     return pat
 
 
@@ -293,9 +293,9 @@ def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
     return layer, data_type
 
 
-def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
+def _gref_to_mref(ref: klamath.library.Reference) -> Ref:
     """
-    Helper function to create a SubPattern from an SREF or AREF. Sets subpat.target to struct_name.
+    Helper function to create a Ref from an SREF or AREF. Sets ref.target to struct_name.
     """
     xy = ref.xy.astype(float)
     offset = xy[0]
@@ -307,7 +307,7 @@ def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
-    subpat = SubPattern(
+    ref = Ref(
         target=ref.struct_name.decode('ASCII'),
         offset=offset,
         rotation=numpy.deg2rad(ref.angle_deg),
@@ -316,7 +316,7 @@ def _ref_to_subpat(ref: klamath.library.Reference) -> SubPattern:
         annotations=_properties_to_annotations(ref.properties),
         repetition=repetition,
         )
-    return subpat
+    return ref
 
 
 def _gpath_to_mpath(gpath: klamath.library.Path, raw_mode: bool) -> Path:
@@ -349,45 +349,45 @@ def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> 
         )
 
 
-def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.Reference]:
+def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
     refs = []
-    for subpat in subpatterns:
-        if subpat.target is None:
+    for ref in refs:
+        if ref.target is None:
             continue
-        encoded_name = subpat.target.encode('ASCII')
+        encoded_name = ref.target.encode('ASCII')
 
         # Note: GDS mirrors first and rotates second
-        mirror_across_x, extra_angle = normalize_mirror(subpat.mirrored)
-        rep = subpat.repetition
-        angle_deg = numpy.rad2deg(subpat.rotation + extra_angle) % 360
-        properties = _annotations_to_properties(subpat.annotations, 512)
+        mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
+        rep = ref.repetition
+        angle_deg = numpy.rad2deg(ref.rotation + extra_angle) % 360
+        properties = _annotations_to_properties(ref.annotations, 512)
 
         if isinstance(rep, Grid):
             b_vector = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
             b_count = rep.b_count if rep.b_count is not None else 1
-            xy: NDArray[numpy.float64] = numpy.array(subpat.offset) + [
-                [0, 0],
+            xy = numpy.array(ref.offset) + numpy.array([
+                [0.0, 0.0],
                 rep.a_vector * rep.a_count,
                 b_vector * b_count,
-                ]
+                ])
             aref = klamath.library.Reference(
                 struct_name=encoded_name,
                 xy=rint_cast(xy),
                 colrow=(numpy.rint(rep.a_count), numpy.rint(rep.b_count)),
                 angle_deg=angle_deg,
                 invert_y=mirror_across_x,
-                mag=subpat.scale,
+                mag=ref.scale,
                 properties=properties,
                 )
             refs.append(aref)
         elif rep is None:
             ref = klamath.library.Reference(
                 struct_name=encoded_name,
-                xy=rint_cast([subpat.offset]),
+                xy=rint_cast([ref.offset]),
                 colrow=None,
                 angle_deg=angle_deg,
                 invert_y=mirror_across_x,
-                mag=subpat.scale,
+                mag=ref.scale,
                 properties=properties,
                 )
             refs.append(ref)
@@ -395,11 +395,11 @@ def _subpatterns_to_refs(subpatterns: List[SubPattern]) -> List[klamath.library.
             new_srefs = [
                 klamath.library.Reference(
                     struct_name=encoded_name,
-                    xy=rint_cast([subpat.offset + dd]),
+                    xy=rint_cast([ref.offset + dd]),
                     colrow=None,
                     angle_deg=angle_deg,
                     invert_y=mirror_across_x,
-                    mag=subpat.scale,
+                    mag=ref.scale,
                     properties=properties,
                     )
                 for dd in rep.displacements]
@@ -636,6 +636,7 @@ def load_libraryfile(
         Additional library info (dict, same format as from `read`).
     """
     path = pathlib.Path(filename)
+    stream: BinaryIO
     if is_gzipped(path):
         if mmap:
             logger.info('Asked to mmap a gzipped file, reading into memory instead...')

@@ -13,7 +13,7 @@ from numpy import inf
 from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
-from .subpattern import SubPattern
+from .refs import Ref
 from .shapes import Shape, Polygon
 from .label import Label
 from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
@@ -28,9 +28,9 @@ P = TypeVar('P', bound='Pattern')
 class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
-     (via SubPattern). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
+     (via Ref). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
-    __slots__ = ('shapes', 'labels', 'subpatterns', 'ports')
+    __slots__ = ('shapes', 'labels', 'refs', 'ports')
 
     shapes: List[Shape]
     """ List of all shapes in this Pattern.
@@ -40,8 +40,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     labels: List[Label]
     """ List of all labels in this Pattern. """
 
-    subpatterns: List[SubPattern]
-    """ List of all references to other patterns (`SubPattern`s) in this `Pattern`.
+    refs: List[Ref]
+    """ List of all references to other patterns (`Ref`s) in this `Pattern`.
     Multiple objects in this list may reference the same Pattern object
       (i.e. multiple instances of the same object).
     """
@@ -54,18 +54,18 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             *,
             shapes: Sequence[Shape] = (),
             labels: Sequence[Label] = (),
-            subpatterns: Sequence[SubPattern] = (),
+            refs: Sequence[Ref] = (),
             annotations: Optional[annotations_t] = None,
             ports: Optional[Mapping[str, Port]] = None
             ) -> None:
         """
         Basic init; arguments get assigned to member variables.
-         Non-list inputs for shapes and subpatterns get converted to lists.
+         Non-list inputs for shapes and refs get converted to lists.
 
         Args:
             shapes: Initial shapes in the Pattern
             labels: Initial labels in the Pattern
-            subpatterns: Initial subpatterns in the Pattern
+            refs: Initial refs in the Pattern
             annotations: Initial annotations for the pattern
             ports: Any ports in the pattern
         """
@@ -79,10 +79,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         else:
             self.labels = list(labels)
 
-        if isinstance(subpatterns, list):
-            self.subpatterns = subpatterns
+        if isinstance(refs, list):
+            self.refs = refs
         else:
-            self.subpatterns = list(subpatterns)
+            self.refs = list(refs)
 
         if ports is not None:
             ports = dict(copy.deepcopy(ports))
@@ -90,7 +90,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         self.annotations = annotations if annotations is not None else {}
 
     def __repr__(self) -> str:
-        s = f'<Pattern: sh{len(self.shapes)} sp{len(self.subpatterns)} la{len(self.labels)} ['
+        s = f'<Pattern: sh{len(self.shapes)} sp{len(self.refs)} la{len(self.labels)} ['
         for name, port in self.ports.items():
             s += f'\n\t{name}: {port}'
         s += ']>'
@@ -100,7 +100,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         return Pattern(
             shapes=copy.deepcopy(self.shapes),
             labels=copy.deepcopy(self.labels),
-            subpatterns=[copy.copy(sp) for sp in self.subpatterns],
+            refs=[copy.copy(sp) for sp in self.refs],
             annotations=copy.deepcopy(self.annotations),
             ports=copy.deepcopy(self.ports),
             )
@@ -110,7 +110,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         new = Pattern(
             shapes=copy.deepcopy(self.shapes, memo),
             labels=copy.deepcopy(self.labels, memo),
-            subpatterns=copy.deepcopy(self.subpatterns, memo),
+            refs=copy.deepcopy(self.refs, memo),
             annotations=copy.deepcopy(self.annotations, memo),
             ports=copy.deepcopy(self.ports),
             )
@@ -118,7 +118,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def append(self: P, other_pattern: Pattern) -> P:
         """
-        Appends all shapes, labels and subpatterns from other_pattern to self's shapes,
+        Appends all shapes, labels and refs from other_pattern to self's shapes,
           labels, and supbatterns.
 
         Args:
@@ -127,7 +127,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        self.subpatterns += other_pattern.subpatterns
+        self.refs += other_pattern.refs
         self.shapes += other_pattern.shapes
         self.labels += other_pattern.labels
         self.annotations += other_pattern.annotations
@@ -138,7 +138,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self,
             shapes: Optional[Callable[[Shape], bool]] = None,
             labels: Optional[Callable[[Label], bool]] = None,
-            subpatterns: Optional[Callable[[SubPattern], bool]] = None,
+            refs: Optional[Callable[[Ref], bool]] = None,
             annotations: Optional[Callable[[annotation_t], bool]] = None,
             ports: Optional[Callable[[str], bool]] = None,
             default_keep: bool = False
@@ -146,19 +146,19 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         """
         Returns a Pattern containing only the entities (e.g. shapes) for which the
           given entity_func returns True.
-        Self is _not_ altered, but shapes, labels, and subpatterns are _not_ copied, just referenced.
+        Self is _not_ altered, but shapes, labels, and refs are _not_ copied, just referenced.
 
         Args:
             shapes: Given a shape, returns a boolean denoting whether the shape is a member of the subset.
             labels: Given a label, returns a boolean denoting whether the label is a member of the subset.
-            subpatterns: Given a subpattern, returns a boolean denoting if it is a member of the subset.
+            refs: Given a ref, returns a boolean denoting if it is a member of the subset.
             annotations: Given an annotation, returns a boolean denoting if it is a member of the subset.
             ports: Given a port, returns a boolean denoting if it is a member of the subset.
             default_keep: If `True`, keeps all elements of a given type if no function is supplied.
                 Default `False` (discards all elements).
 
         Returns:
-            A Pattern containing all the shapes and subpatterns for which the parameter
+            A Pattern containing all the shapes and refs for which the parameter
                 functions return True
         """
         pat = Pattern()
@@ -173,10 +173,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         elif default_keep:
             pat.labels = copy.copy(self.labels)
 
-        if subpatterns is not None:
-            pat.subpatterns = [s for s in self.subpatterns if subpatterns(s)]
+        if refs is not None:
+            pat.refs = [s for s in self.refs if refs(s)]
         elif default_keep:
-            pat.subpatterns = copy.copy(self.subpatterns)
+            pat.refs = copy.copy(self.refs)
 
         if annotations is not None:
             pat.annotations = [s for s in self.annotations if annotations(s)]
@@ -259,7 +259,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             A set of all pattern names referenced by this pattern.
         """
-        return set(sp.target for sp in self.subpatterns)
+        return set(sp.target for sp in self.refs)
 
     def get_bounds(
             self,
@@ -286,10 +286,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             min_bounds = numpy.minimum(min_bounds, bounds[0, :])
             max_bounds = numpy.maximum(max_bounds, bounds[1, :])
 
-        if self.subpatterns and (library is None):
-            raise PatternError('Must provide a library to get_bounds() to resolve subpatterns')
+        if self.refs and (library is None):
+            raise PatternError('Must provide a library to get_bounds() to resolve refs')
 
-        for entry in self.subpatterns:
+        for entry in self.refs:
             bounds = entry.get_bounds(library=library)
             if bounds is None:
                 continue
@@ -317,7 +317,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def translate_elements(self: P, offset: ArrayLike) -> P:
         """
-        Translates all shapes, label, and subpatterns by the given offset.
+        Translates all shapes, label, and refs by the given offset.
 
         Args:
             offset: (x, y) to translate by
@@ -325,13 +325,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns, self.labels, self.ports):
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
             cast(Positionable, entry).translate(offset)
         return self
 
     def scale_elements(self: P, c: float) -> P:
         """"
-        Scales all shapes and subpatterns by the given value.
+        Scales all shapes and refs by the given value.
 
         Args:
             c: factor to scale by
@@ -339,14 +339,14 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns):
+        for entry in chain(self.shapes, self.refs):
             cast(Scalable, entry).scale_by(c)
         return self
 
     def scale_by(self: P, c: float) -> P:
         """
         Scale this Pattern by the given value
-         (all shapes and subpatterns and their offsets are scaled)
+         (all shapes and refs and their offsets are scaled)
 
         Args:
             c: factor to scale by
@@ -354,7 +354,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns):
+        for entry in chain(self.shapes, self.refs):
             cast(Positionable, entry).offset *= c
             cast(Scalable, entry).scale_by(c)
 
@@ -393,7 +393,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def rotate_element_centers(self: P, rotation: float) -> P:
         """
-        Rotate the offsets of all shapes, labels, and subpatterns around (0, 0)
+        Rotate the offsets of all shapes, labels, and refs around (0, 0)
 
         Args:
             rotation: Angle to rotate by (counter-clockwise, radians)
@@ -401,14 +401,14 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns, self.labels, self.ports):
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
             old_offset = cast(Positionable, entry).offset
             cast(Positionable, entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
         return self
 
     def rotate_elements(self: P, rotation: float) -> P:
         """
-        Rotate each shape and subpattern around its center (offset)
+        Rotate each shape and refs around its center (offset)
 
         Args:
             rotation: Angle to rotate by (counter-clockwise, radians)
@@ -416,13 +416,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns):
+        for entry in chain(self.shapes, self.refs):
             cast(Rotatable, entry).rotate(rotation)
         return self
 
     def mirror_element_centers(self: P, axis: int) -> P:
         """
-        Mirror the offsets of all shapes, labels, and subpatterns across an axis
+        Mirror the offsets of all shapes, labels, and refs across an axis
 
         Args:
             axis: Axis to mirror across
@@ -431,13 +431,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns, self.labels, self.ports):
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
             cast(Positionable, entry).offset[axis - 1] *= -1
         return self
 
     def mirror_elements(self: P, axis: int) -> P:
         """
-        Mirror each shape and subpattern across an axis, relative to its
+        Mirror each shape and refs across an axis, relative to its
           offset
 
         Args:
@@ -447,7 +447,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.subpatterns):
+        for entry in chain(self.shapes, self.refs):
             cast(Mirrorable, entry).mirror(axis)
         return self
 
@@ -468,7 +468,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def copy(self: P) -> P:
         """
-        Return a copy of the Pattern, deep-copying shapes and copying subpattern
+        Return a copy of the Pattern, deep-copying shapes and copying refs
          entries, but not deep-copying any referenced patterns.
 
         See also: `Pattern.deepcopy()`
@@ -490,25 +490,25 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     def is_empty(self) -> bool:
         """
         Returns:
-            True if the pattern is contains no shapes, labels, or subpatterns.
+            True if the pattern is contains no shapes, labels, or refs.
         """
-        return (len(self.subpatterns) == 0
+        return (len(self.refs) == 0
                 and len(self.shapes) == 0
                 and len(self.labels) == 0)
 
-    def addsp(self: P, *args: Any, **kwargs: Any) -> P:
+    def ref(self: P, *args: Any, **kwargs: Any) -> P:
         """
-        Convenience function which constructs a subpattern object and adds it
+        Convenience function which constructs a `Ref` object and adds it
          to this pattern.
 
         Args:
-            *args: Passed to `SubPattern()`
-            **kwargs: Passed to `SubPattern()`
+            *args: Passed to `Ref()`
+            **kwargs: Passed to `Ref()`
 
         Returns:
             self
         """
-        self.subpatterns.append(SubPattern(*args, **kwargs))
+        self.refs.append(Ref(*args, **kwargs))
         return self
 
     def flatten(
@@ -516,7 +516,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             library: Mapping[str, P],
             ) -> 'Pattern':
         """
-        Removes all subpatterns (recursively) and adds equivalent shapes.
+        Removes all refs (recursively) and adds equivalent shapes.
         Alters the current pattern in-place
 
         Args:
@@ -534,8 +534,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 pat = library[name].deepcopy()
                 flattened[name] = None
 
-            for subpat in pat.subpatterns:
-                target = subpat.target
+            for ref in pat.refs:
+                target = ref.target
                 if target is None:
                     continue
 
@@ -544,10 +544,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
                 if flattened[target] is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
 
-                p = subpat.as_pattern(pattern=flattened[target])
+                p = ref.as_pattern(pattern=flattened[target])
                 pat.append(p)
 
-            pat.subpatterns.clear()
+            pat.refs.clear()
             flattened[name] = pat
 
         flatten_single(None)
@@ -579,8 +579,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         from matplotlib import pyplot       # type: ignore
         import matplotlib.collections       # type: ignore
 
-        if self.subpatterns and library is None:
-            raise PatternError('Must provide a library when visualizing a pattern with subpatterns')
+        if self.refs and library is None:
+            raise PatternError('Must provide a library when visualizing a pattern with refs')
 
         offset = numpy.array(offset, dtype=float)
 
@@ -604,8 +604,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         axes.add_collection(mpl_poly_collection)
         pyplot.axis('equal')
 
-        for subpat in self.subpatterns:
-            subpat.as_pattern(library=library).visualize(
+        for ref in self.refs:
+            ref.as_pattern(library=library).visualize(
                 library=library,
                 offset=offset,
                 overdraw=True,

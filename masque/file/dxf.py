@@ -13,7 +13,7 @@ import gzip
 import numpy
 import ezdxf        # type: ignore
 
-from .. import Pattern, SubPattern, PatternError, Label, Shape
+from .. import Pattern, Ref, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
@@ -39,7 +39,7 @@ def write(
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
      into polygons, and then writing patterns as DXF `Block`s, polygons as `LWPolyline`s,
-     and subpatterns as `Insert`s.
+     and refs as `Insert`s.
 
     The top level pattern's name is not written to the DXF file. Nested patterns keep their
      names.
@@ -49,7 +49,7 @@ def write(
         tuple: (1, 2) -> '1.2'
         str: '1.2' -> '1.2' (no change)
 
-    It is often a good idea to run `pattern.subpatternize()` prior to calling this function,
+    It is often a good idea to run `pattern.dedup()` prior to calling this function,
      especially if calling `.polygonize()` will result in very many vertices.
 
     If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
@@ -86,7 +86,7 @@ def write(
     msp = lib.modelspace()
     _shapes_to_elements(msp, pattern.shapes)
     _labels_to_texts(msp, pattern.labels)
-    _subpatterns_to_refs(msp, pattern.subpatterns)
+    _mrefs_to_drefs(msp, pattern.refs)
 
     # Now create a block for each referenced pattern, and add in any shapes
     for name, pat in library.items():
@@ -95,7 +95,7 @@ def write(
 
         _shapes_to_elements(block, pat.shapes)
         _labels_to_texts(block, pat.labels)
-        _subpatterns_to_refs(block, pat.subpatterns)
+        _mrefs_to_drefs(block, pat.refs)
 
     lib.write(stream)
 
@@ -163,7 +163,7 @@ def read(
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
-     are translated into `SubPattern` objects.
+     are translated into `Ref` objects.
 
     If an object has no layer it is set to this module's `DEFAULT_LAYER` ("DEFAULT").
 
@@ -268,57 +268,57 @@ def _read_block(block, clean_vertices: bool) -> Tuple[str, Pattern]:
                                           b_vector=(0, attr['row_spacing']),
                                           a_count=attr['column_count'],
                                           b_count=attr['row_count'])
-            pat.subpatterns.append(SubPattern(**args))
+            pat.ref(**args)
         else:
             logger.warning(f'Ignoring DXF element {element.dxftype()} (not implemented).')
     return name, pat
 
 
-def _subpatterns_to_refs(
+def _mrefs_to_drefs(
         block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-        subpatterns: List[SubPattern],
+        refs: List[Ref],
         ) -> None:
-    for subpat in subpatterns:
-        if subpat.target is None:
+    for ref in refs:
+        if ref.target is None:
             continue
-        encoded_name = subpat.target
+        encoded_name = ref.target
 
-        rotation = (subpat.rotation * 180 / numpy.pi) % 360
+        rotation = (ref.rotation * 180 / numpy.pi) % 360
         attribs = {
-            'xscale': subpat.scale * (-1 if subpat.mirrored[1] else 1),
-            'yscale': subpat.scale * (-1 if subpat.mirrored[0] else 1),
+            'xscale': ref.scale * (-1 if ref.mirrored[1] else 1),
+            'yscale': ref.scale * (-1 if ref.mirrored[0] else 1),
             'rotation': rotation,
             }
 
-        rep = subpat.repetition
+        rep = ref.repetition
         if rep is None:
-            block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
+            block.add_blockref(encoded_name, ref.offset, dxfattribs=attribs)
         elif isinstance(rep, Grid):
             a = rep.a_vector
             b = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
-            rotated_a = rotation_matrix_2d(-subpat.rotation) @ a
-            rotated_b = rotation_matrix_2d(-subpat.rotation) @ b
+            rotated_a = rotation_matrix_2d(-ref.rotation) @ a
+            rotated_b = rotation_matrix_2d(-ref.rotation) @ b
             if rotated_a[1] == 0 and rotated_b[0] == 0:
                 attribs['column_count'] = rep.a_count
                 attribs['row_count'] = rep.b_count
                 attribs['column_spacing'] = rotated_a[0]
                 attribs['row_spacing'] = rotated_b[1]
-                block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
+                block.add_blockref(encoded_name, ref.offset, dxfattribs=attribs)
             elif rotated_a[0] == 0 and rotated_b[1] == 0:
                 attribs['column_count'] = rep.b_count
                 attribs['row_count'] = rep.a_count
                 attribs['column_spacing'] = rotated_b[0]
                 attribs['row_spacing'] = rotated_a[1]
-                block.add_blockref(encoded_name, subpat.offset, dxfattribs=attribs)
+                block.add_blockref(encoded_name, ref.offset, dxfattribs=attribs)
             else:
                 #NOTE: We could still do non-manhattan (but still orthogonal) grids by getting
                 #       creative with counter-rotated nested patterns, but probably not worth it.
                 # Instead, just break appart the grid into individual elements:
                 for dd in rep.displacements:
-                    block.add_blockref(encoded_name, subpat.offset + dd, dxfattribs=attribs)
+                    block.add_blockref(encoded_name, ref.offset + dd, dxfattribs=attribs)
         else:
             for dd in rep.displacements:
-                block.add_blockref(encoded_name, subpat.offset + dd, dxfattribs=attribs)
+                block.add_blockref(encoded_name, ref.offset + dd, dxfattribs=attribs)
 
 
 def _shapes_to_elements(

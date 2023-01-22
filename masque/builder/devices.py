@@ -11,9 +11,10 @@ import numpy
 from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
-from ..pattern import Pattern
-from ..subpattern import SubPattern
 from ..traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
+from ..pattern import Pattern
+from ..ref import Ref
+from ..library import MutableLibrary
 from ..utils import AutoSlots
 from ..error import DeviceError
 from ..ports import PortList, Port
@@ -24,18 +25,18 @@ from .utils import ell
 logger = logging.getLogger(__name__)
 
 
-D  = TypeVar('D',  bound='Device')
-DR  = TypeVar('DR',  bound='DeviceRef')
+B  = TypeVar('B',  bound='Builder')
+PR  = TypeVar('PR',  bound='PortsRef')
 
 
-class DeviceRef(PortList):
-    __slots__ = ('name',)
+class PortsRef(PortList):
+    __slots__ = ('name', 'ports')
 
     name: str
     """ Name of the pattern this device references """
 
     ports: Dict[str, Port]
-    """ Uniquely-named ports which can be used to snap to other Device instances"""
+    """ Uniquely-named ports which can be used to snap instances together"""
 
     def __init__(
             self,
@@ -45,31 +46,32 @@ class DeviceRef(PortList):
         self.name = name
         self.ports = copy.deepcopy(ports)
 
-    def build(self) -> 'Device':
+    def build(self, library: MutableLibrary) -> 'Builder':
         """
         Begin building a new device around an instance of the current device
           (rather than modifying the current device).
 
         Returns:
-            The new `Device` object.
+            The new `Builder` object.
         """
-        pat = Pattern()
-        pat.addsp(self.name)
-        new = Device(pat, ports=self.ports, tools=self.tools)   # TODO should DeviceRef have tools?
+        pat = Pattern(ports=self.ports)
+        pat.ref(self.name)
+        new = Builder(library=library, pattern=pat, tools=self.tools)   # TODO should Ref have tools?
         return new
 
-    # TODO do we want to store a SubPattern instead of just a name? then we can translate/rotate/mirror...
+    # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
 
     def __repr__(self) -> str:
-        s = f'<DeviceRef {self.name} ['
+        s = f'<PortsRef {self.name} ['
         for name, port in self.ports.items():
             s += f'\n\t{name}: {port}'
         s += ']>'
         return s
 
 
-class Device(PortList):
+class Builder(PortList):
     """
+    TODO DOCUMENT Builder
     A `Device` is a combination of a `Pattern` with a set of named `Port`s
       which can be used to "snap" devices together to make complex layouts.
 
@@ -121,13 +123,16 @@ class Device(PortList):
         renamed to 'gnd' so that further routing can use this signal or net name
         rather than the port name on the original `pad` device.
     """
-    __slots__ = ('pattern', 'tools', '_dead')
+    __slots__ = ('pattern', 'library', 'tools', '_dead')
 
     pattern: Pattern
     """ Layout of this device """
 
-    ports: Dict[str, Port]
-    """ Uniquely-named ports which can be used to snap to other Device instances"""
+    library: MutableLibrary
+    """
+    Library from which existing patterns should be referenced, and to which
+    new ones should be added
+    """
 
     tools: Dict[Optional[str], Tool]
     """
@@ -140,8 +145,8 @@ class Device(PortList):
 
     def __init__(
             self,
+            library: MutableLibrary,
             pattern: Optional[Pattern] = None,
-            ports: Optional[Dict[str, Port]] = None,
             *,
             tools: Union[None, Tool, Dict[Optional[str], Tool]] = None,
             ) -> None:
@@ -151,15 +156,17 @@ class Device(PortList):
           (attached devices will be placed to the left) and 'B' has rotation
           pi (attached devices will be placed to the right).
         """
+        self.library = library
         self.pattern = pattern or Pattern()
 
-        if ports is None:
-            self.ports = {
-                'A': Port([0, 0], rotation=0),
-                'B': Port([0, 0], rotation=pi),
-                }
-        else:
-            self.ports = copy.deepcopy(ports)
+        ## TODO add_port_pair function to add ports at location with rotation
+        #if ports is None:
+        #    self.ports = {
+        #        'A': Port([0, 0], rotation=0),
+        #        'B': Port([0, 0], rotation=pi),
+        #        }
+        #else:
+        #    self.ports = copy.deepcopy(ports)
 
         if tools is None:
             self.tools = {}
@@ -175,9 +182,9 @@ class Device(PortList):
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
-            ) -> 'Device':
-        new = PortList.as_interface(
-            self,
+            ) -> 'Builder':
+        new = self.pattern.as_interface(
+            library=self.library,
             in_prefix=in_prefix,
             out_prefix=out_prefix,
             port_map=port_map,
@@ -186,15 +193,15 @@ class Device(PortList):
         return new
 
     def plug(
-            self: D,
-            other: DR,
+            self: B,
+            other: PR,
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
             mirrored: Tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
             set_rotation: Optional[bool] = None,
-            ) -> D:
+            ) -> B:
         """
         Instantiate a device `library[name]` into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
@@ -264,8 +271,12 @@ class Device(PortList):
         map_out = copy.deepcopy(map_out)
 
         self.check_ports(other.ports.keys(), map_in, map_out)
-        translation, rotation, pivot = self.find_transform(other, map_in, mirrored=mirrored,
-                                                           set_rotation=set_rotation)
+        translation, rotation, pivot = self.find_transform(
+            other,
+            map_in,
+            mirrored=mirrored,
+            set_rotation=set_rotation,
+            )
 
         # get rid of plugged ports
         for ki, vi in map_in.items():
@@ -273,12 +284,12 @@ class Device(PortList):
             map_out[vi] = None
 
         self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                   mirrored=mirrored, port_map=map_out, skip_port_check=True)
+            mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
 
     def place(
-            self: D,
-            other: DR,
+            self: B,
+            other: PR,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -286,7 +297,7 @@ class Device(PortList):
             mirrored: Tuple[bool, bool] = (False, False),
             port_map: Optional[Dict[str, Optional[str]]] = None,
             skip_port_check: bool = False,
-            ) -> D:
+            ) -> B:
         """
         Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
@@ -348,13 +359,13 @@ class Device(PortList):
             p.translate(offset)
             self.ports[name] = p
 
-        sp = SubPattern(other.name, mirrored=mirrored)
+        sp = Ref(other.name, mirrored=mirrored)
         sp.rotate_around(pivot, rotation)
         sp.translate(offset)
-        self.pattern.subpatterns.append(sp)
+        self.pattern.refs.append(sp)
         return self
 
-    def translate(self: D, offset: ArrayLike) -> D:
+    def translate(self: B, offset: ArrayLike) -> B:
         """
         Translate the pattern and all ports.
 
@@ -369,7 +380,7 @@ class Device(PortList):
             port.translate(offset)
         return self
 
-    def rotate_around(self: D, pivot: ArrayLike, angle: float) -> D:
+    def rotate_around(self: B, pivot: ArrayLike, angle: float) -> B:
         """
         Rotate the pattern and all ports.
 
@@ -385,7 +396,7 @@ class Device(PortList):
             port.rotate_around(pivot, angle)
         return self
 
-    def mirror(self: D, axis: int) -> D:
+    def mirror(self: B, axis: int) -> B:
         """
         Mirror the pattern and all ports across the specified axis.
 
@@ -400,7 +411,7 @@ class Device(PortList):
             p.mirror(axis)
         return self
 
-    def set_dead(self: D) -> D:
+    def set_dead(self: B) -> B:
         """
         Disallows further changes through `plug()` or `place()`.
         This is meant for debugging:
@@ -419,17 +430,18 @@ class Device(PortList):
         return self
 
     def __repr__(self) -> str:
-        s = f'<Device {self.pattern} ['
-        for name, port in self.ports.items():
-            s += f'\n\t{name}: {port}'
-        s += ']>'
+        s = f'<Builder {self.pattern} >'
+        # '['
+        # for name, port in self.ports.items():
+        #     s += f'\n\t{name}: {port}'
+        # s += ']>'
         return s
 
     def retool(
-            self: D,
+            self: B,
             tool: Tool,
             keys: Union[Optional[str], Sequence[Optional[str]]] = None,
-            ) -> D:
+            ) -> B:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
         else:
@@ -438,37 +450,41 @@ class Device(PortList):
         return self
 
     def path(
-            self: D,
+            self: B,
             portspec: str,
             ccw: Optional[bool],
             length: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
+            base_name: str = '_path_',
             **kwargs,
-            ) -> D:
+            ) -> B:
         if self._dead:
             logger.error('Skipping path() since device is dead')
             return self
 
         tool = self.tools.get(portspec, self.tools[None])
-        in_ptype = self.ports[portspec].ptype
-        dev = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
-        return self.plug(dev, {portspec: tool_port_names[0]})
+        in_ptype = self.pattern[portspec].ptype
+        pat = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
+        name = self.library.get_name(base_name)
+        self.library._set(name, pat)
+        return self.plug(PortsRef(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
-            self: D,
+            self: B,
             portspec: str,
             ccw: Optional[bool],
             position: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
+            base_name: str = '_pathto_',
             **kwargs,
-            ) -> D:
+            ) -> B:
         if self._dead:
             logger.error('Skipping path_to() since device is dead')
             return self
 
-        port = self.ports[portspec]
+        port = self.pattern[portspec]
         x, y = port.offset
         if port.rotation is None:
             raise DeviceError(f'Port {portspec} has no rotation and cannot be used for path_to()')
@@ -486,10 +502,10 @@ class Device(PortList):
                 raise DeviceError(f'path_to routing to behind source port: y={y:g} to {position:g}')
             length = numpy.abs(position - y)
 
-        return self.path(portspec, ccw, length, tool_port_names=tool_port_names, **kwargs)
+        return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
     def mpath(
-            self: D,
+            self: B,
             portspec: Union[str, Sequence[str]],
             ccw: Optional[bool],
             *,
@@ -497,8 +513,9 @@ class Device(PortList):
             set_rotation: Optional[float] = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
             force_container: bool = False,
+            base_name: str = '_mpath_',
             **kwargs,
-            ) -> D:
+            ) -> B:
         if self._dead:
             logger.error('Skipping mpath() since device is dead')
             return self
@@ -520,7 +537,7 @@ class Device(PortList):
 
         if isinstance(portspec, str):
             portspec = [portspec]
-        ports = self[tuple(portspec)]
+        ports = self.pattern[tuple(portspec)]
 
         extensions = ell(ports, ccw, spacing=spacing, bound=bound, bound_type=bound_type, set_rotation=set_rotation)
 
@@ -529,10 +546,12 @@ class Device(PortList):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            dev = Device(name='', ports=ports, tools=self.tools).as_interface()
-            for name, length in extensions.items():
-                dev.path(name, ccw, length, tool_port_names=tool_port_names)
-            return self.plug(dev, {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
+            bld = ports.as_interface(self.library, tools=self.tools)
+            for port_name, length in extensions.items():
+                bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
+            name = self.library.get_name(base_name)
+            self.library._set(name, bld.pattern)
+            return self.plug(PortsRef(name, pat.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?
 
