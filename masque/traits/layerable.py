@@ -4,6 +4,9 @@ from abc import ABCMeta, abstractmethod
 from ..utils import layer_t
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 T = TypeVar('T', bound='Layerable')
 I = TypeVar('I', bound='LayerableImpl')
 
@@ -50,7 +53,7 @@ class LayerableImpl(Layerable, metaclass=ABCMeta):
     """
     Simple implementation of Layerable
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _layer: layer_t
     """ Layer number, pair, or name """

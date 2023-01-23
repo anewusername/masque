@@ -127,7 +127,7 @@ def readfile(
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
-        ) -> Tuple[Pattern, Dict[str, Any]]:
+        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 

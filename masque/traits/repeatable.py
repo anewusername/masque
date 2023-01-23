@@ -4,6 +4,9 @@ from abc import ABCMeta, abstractmethod
 from ..error import MasqueError
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 if TYPE_CHECKING:
     from ..repetition import Repetition
 
@@ -55,7 +58,7 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     """
     Simple implementation of `Repeatable`
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _repetition: Optional['Repetition']
     """ Repetition object, or None (single instance only) """

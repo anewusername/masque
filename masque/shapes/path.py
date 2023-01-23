@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Sequence, Any
+from typing import List, Tuple, Dict, Optional, Sequence, Any, cast
 import copy
 from enum import Enum
 
@@ -365,7 +365,7 @@ class Path(Shape, metaclass=AutoSlots):
         x_min = rotated_vertices[:, 0].argmin()
         if not is_scalar(x_min):
             y_min = rotated_vertices[x_min, 1].argmin()
-            x_min = x_min[y_min]
+            x_min = cast(Sequence, x_min)[y_min]
         reordered_vertices = numpy.roll(rotated_vertices, -x_min, axis=0)
 
         width0 = self.width / norm_value

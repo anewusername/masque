@@ -6,6 +6,9 @@ from ..utils import annotations_t
 from ..error import MasqueError
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 T = TypeVar('T', bound='Annotatable')
 I = TypeVar('I', bound='AnnotatableImpl')
 
@@ -33,7 +36,7 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
     """
     Simple implementation of `Annotatable`.
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _annotations: annotations_t
     """ Dictionary storing annotation name/value pairs """
@@ -46,7 +49,7 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
         return self._annotations
 
     @annotations.setter
-    def annotations(self, annotations: annotations_t):
+    def annotations(self, annotations: annotations_t) -> None:
         if not isinstance(annotations, dict):
             raise MasqueError(f'annotations expected dict, got {type(annotations)}')
         self._annotations = annotations

@@ -484,8 +484,10 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
     assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
     xy = numpy.array((placement.x, placement.y))
     mag = placement.magnification if placement.magnification is not None else 1
+
     pname = placement.get_name()
-    name = pname if isinstance(pname, int) else pname.string
+    name: Union[int, str] = pname if isinstance(pname, int) else pname.string       # TODO deal with referenced names
+
     annotations = properties_to_annotations(placement.properties, lib.propnames, lib.propstrings)
     if placement.angle is None:
         rotation = 0
@@ -506,7 +508,7 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
 def _refs_to_placements(
         refs: List[Ref],
         ) -> List[fatrec.Placement]:
-    refs = []
+    placements = []
     for ref in refs:
         if ref.target is None:
             continue
@@ -517,7 +519,7 @@ def _refs_to_placements(
 
         offset = rint_cast(ref.offset + rep_offset)
         angle = numpy.rad2deg(ref.rotation + extra_angle) % 360
-        ref = fatrec.Placement(
+        placement = fatrec.Placement(
             name=ref.target,
             flip=mirror_across_x,
             angle=angle,
@@ -528,8 +530,8 @@ def _refs_to_placements(
             repetition=frep,
             )
 
-        refs.append(ref)
-    return refs
+        placements.append(placement)
+    return placements
 
 
 def _shapes_to_elements(
