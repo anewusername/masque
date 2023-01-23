@@ -626,3 +626,4 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             pyplot.xlabel('x')
             pyplot.ylabel('y')
             pyplot.show()
+

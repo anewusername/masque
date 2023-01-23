@@ -17,6 +17,7 @@ from .. import Pattern, Ref, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
+from .gdsii import check_valid_names
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,6 @@ def write(
         library: Mapping[str, Pattern],
         stream: io.TextIOBase,
         *,
-        modify_originals: bool = False,
         dxf_version='AC1024',
         ) -> None:
     """
@@ -49,8 +49,8 @@ def write(
         tuple: (1, 2) -> '1.2'
         str: '1.2' -> '1.2' (no change)
 
-    It is often a good idea to run `pattern.dedup()` prior to calling this function,
-     especially if calling `.polygonize()` will result in very many vertices.
+    DXF does not support shape repetition (only block repeptition). Please call
+    library.wrap_repeated_shapes() before writing to file.
 
     If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
@@ -64,20 +64,13 @@ def write(
         library: A {name: Pattern} mapping of patterns. Only `top_name` and patterns referenced
             by it are written.
         stream: Stream object to write to.
-        modify_original: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made.
-            Default `False`.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
             WARNING: No additional error checking is performed on the results.
     """
     #TODO consider supporting DXF arcs?
 
-    #TODO name checking
-    bad_keys = check_valid_names(library.keys())
-
-    if not modify_originals:
-        library = library.deepcopy()
+    check_valid_names(library.keys())
 
     pattern = library[top_name]
 
@@ -329,6 +322,10 @@ def _shapes_to_elements(
     # Add `LWPolyline`s for each shape.
     #   Could set do paths with width setting, but need to consider endcaps.
     for shape in shapes:
+        if shape.repetition is not None:
+            raise PatternError('Shape repetitions are not supported by DXF.'
+                ' Please call library.wrap_repeated_shapes() before writing to file.')
+
         attribs = {'layer': _mlayer2dxf(shape.layer)}
         for polygon in shape.to_polygons():
             xy_open = polygon.vertices + polygon.offset

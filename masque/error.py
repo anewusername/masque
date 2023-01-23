@@ -19,21 +19,13 @@ class LibraryError(MasqueError):
     pass
 
 
-class DeviceLibraryError(MasqueError):
-    """
-    Exception raised by DeviceLibrary classes
-    """
-    pass
-
-
-class DeviceError(MasqueError):
-    """
-    Exception raised by Device and Port objects
-    """
-    pass
-
-
 class BuildError(MasqueError):
+    """
+    Exception raised by builder-related functions
+    """
+    pass
+
+class PortError(MasqueError):
     """
     Exception raised by builder-related functions
     """

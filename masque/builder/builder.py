@@ -1,5 +1,5 @@
 from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
-from typing import overload, KeysView, ValuesView, MutableMapping
+from typing import overload, KeysView, ValuesView, MutableMapping, Mapping
 import copy
 import warnings
 import traceback
@@ -15,8 +15,7 @@ from ..traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirro
 from ..pattern import Pattern
 from ..ref import Ref
 from ..library import MutableLibrary
-from ..utils import AutoSlots
-from ..error import DeviceError
+from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from .tools import Tool
 from .utils import ell
@@ -150,8 +149,9 @@ class Builder(PortList):
     def __init__(
             self,
             library: MutableLibrary,
-            pattern: Optional[Pattern] = None,
             *,
+            pattern: Optional[Pattern] = None,
+            ports: Optional[Mapping[str, Port]] = None,
             tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             ) -> None:
         """
@@ -161,16 +161,15 @@ class Builder(PortList):
           pi (attached devices will be placed to the right).
         """
         self.library = library
-        self.pattern = pattern or Pattern()
+        if pattern is not None:
+            self.pattern = pattern
+        else:
+            self.pattern = Pattern()
 
-        ## TODO add_port_pair function to add ports at location with rotation
-        #if ports is None:
-        #    self.ports = {
-        #        'A': Port([0, 0], rotation=0),
-        #        'B': Port([0, 0], rotation=pi),
-        #        }
-        #else:
-        #    self.ports = copy.deepcopy(ports)
+        if ports is not None:
+            if self.pattern.ports:
+                raise BuildError('Ports supplied for pattern with pre-existing ports!')
+            self.pattern.ports.update(copy.deepcopy(ports))
 
         if tools is None:
             self.tools = {}
@@ -181,19 +180,109 @@ class Builder(PortList):
 
         self._dead = False
 
-    def as_interface(
-            self,
+    @classmethod
+    def interface(
+            cls,
+            source: Union[PortList, Mapping[str, Port]],
+            *,
+            library: Optional[MutableLibrary] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
-            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None
+            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
             ) -> 'Builder':
-        new = self.pattern.as_interface(
-            library=self.library,
-            in_prefix=in_prefix,
-            out_prefix=out_prefix,
-            port_map=port_map,
-            )
-        new.tools = self.tools
+        """
+        Begin building a new device based on all or some of the ports in the
+          source device. Do not include the source device; instead use it
+          to define ports (the "interface") for the new device.
+
+        The ports specified by `port_map` (default: all ports) are copied to
+          new device, and additional (input) ports are created facing in the
+          opposite directions. The specified `in_prefix` and `out_prefix` are
+          prepended to the port names to differentiate them.
+
+        By default, the flipped ports are given an 'in_' prefix and unflipped
+          ports keep their original names, enabling intuitive construction of
+          a device that will "plug into" the current device; the 'in_*' ports
+          are used for plugging the devices together while the original port
+          names are used for building the new device.
+
+        Another use-case could be to build the new device using the 'in_'
+          ports, creating a new device which could be used in place of the
+          current device.
+
+        Args:
+            source: A collection of ports (e.g. Pattern, Builder, or dict)
+                from which to create the interface.
+            library: Used for buildin functions; if not passed and the source
+            library: Library from which existing patterns should be referenced,
+                and to which new ones should be added. If not provided,
+                the source's library will be used (if available).
+            tools: Tool objects are used to dynamically generate new single-use
+                patterns (e.g wires or waveguides) while building. If not provided,
+                the source's tools will be reused (if available).
+            in_prefix: Prepended to port names for newly-created ports with
+                reversed directions compared to the current device.
+            out_prefix: Prepended to port names for ports which are directly
+                copied from the current device.
+            port_map: Specification for ports to copy into the new device:
+                - If `None`, all ports are copied.
+                - If a sequence, only the listed ports are copied
+                - If a mapping, the listed ports (keys) are copied and
+                    renamed (to the values).
+
+        Returns:
+            The new builder, with an empty pattern and 2x as many ports as
+              listed in port_map.
+
+        Raises:
+            `PortError` if `port_map` contains port names not present in the
+                current device.
+            `PortError` if applying the prefixes results in duplicate port
+                names.
+        """
+        from ..pattern import Pattern
+
+        if library is None:
+            if hasattr(source, 'library') and isinstance(source, MutableLibrary):
+                library = source.library
+            else:
+                raise BuildError('No library provided (and not present in `source.library`')
+
+        if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
+            tools = source.tools
+
+        if isinstance(source, PortList):
+            orig_ports = source.ports
+        elif isinstance(source, dict):
+            orig_ports = source
+        else:
+            raise BuildError(f'Unable to get ports from {type(source)}: {source}')
+
+        if port_map:
+            if isinstance(port_map, dict):
+                missing_inkeys = set(port_map.keys()) - set(orig_ports.keys())
+                mapped_ports = {port_map[k]: v for k, v in orig_ports.items() if k in port_map}
+            else:
+                port_set = set(port_map)
+                missing_inkeys = port_set - set(orig_ports.keys())
+                mapped_ports = {k: v for k, v in orig_ports.items() if k in port_set}
+
+            if missing_inkeys:
+                raise PortError(f'`port_map` keys not present in source: {missing_inkeys}')
+        else:
+            mapped_ports = orig_ports
+
+        ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
+                    for name, port in mapped_ports.items()}
+        ports_out = {f'{out_prefix}{name}': port.deepcopy()
+                    for name, port in mapped_ports.items()}
+
+        duplicates = set(ports_out.keys()) & set(ports_in.keys())
+        if duplicates:
+            raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
+
+        new = Builder(library=library, ports={**ports_in, **ports_out}, tools=tools)
         return new
 
     def plug(
@@ -252,11 +341,11 @@ class Builder(PortList):
             self
 
         Raises:
-            `DeviceError` if any ports specified in `map_in` or `map_out` do not
+            `PortError` if any ports specified in `map_in` or `map_out` do not
                 exist in `self.ports` or `other_names`.
-            `DeviceError` if there are any duplicate names after `map_in` and `map_out`
+            `PortError` if there are any duplicate names after `map_in` and `map_out`
                 are applied.
-            `DeviceError` if the specified port mapping is not achieveable (the ports
+            `PortError` if the specified port mapping is not achieveable (the ports
                 do not line up)
         """
         if self._dead:
@@ -334,9 +423,9 @@ class Builder(PortList):
             self
 
         Raises:
-            `DeviceError` if any ports specified in `map_in` or `map_out` do not
+            `PortError` if any ports specified in `map_in` or `map_out` do not
                 exist in `self.ports` or `library[name].ports`.
-            `DeviceError` if there are any duplicate names after `map_in` and `map_out`
+            `PortError` if there are any duplicate names after `map_in` and `map_out`
                 are applied.
         """
         if self._dead:
@@ -491,19 +580,19 @@ class Builder(PortList):
         port = self.pattern[portspec]
         x, y = port.offset
         if port.rotation is None:
-            raise DeviceError(f'Port {portspec} has no rotation and cannot be used for path_to()')
+            raise PortError(f'Port {portspec} has no rotation and cannot be used for path_to()')
 
         if not numpy.isclose(port.rotation % (pi / 2), 0):
-            raise DeviceError('path_to was asked to route from non-manhattan port')
+            raise BuildError('path_to was asked to route from non-manhattan port')
 
         is_horizontal = numpy.isclose(port.rotation % pi, 0)
         if is_horizontal:
             if numpy.sign(numpy.cos(port.rotation)) == numpy.sign(position - x):
-                raise DeviceError(f'path_to routing to behind source port: x={x:g} to {position:g}')
+                raise BuildError(f'path_to routing to behind source port: x={x:g} to {position:g}')
             length = numpy.abs(position - x)
         else:
             if numpy.sign(numpy.sin(port.rotation)) == numpy.sign(position - y):
-                raise DeviceError(f'path_to routing to behind source port: y={y:g} to {position:g}')
+                raise BuildError(f'path_to routing to behind source port: y={y:g} to {position:g}')
             length = numpy.abs(position - y)
 
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
@@ -534,9 +623,9 @@ class Builder(PortList):
                 bound = kwargs[bt]
 
         if not bound_types:
-            raise DeviceError('No bound type specified for mpath')
+            raise BuildError('No bound type specified for mpath')
         elif len(bound_types) > 1:
-            raise DeviceError(f'Too many bound types specified for mpath: {bound_types}')
+            raise BuildError(f'Too many bound types specified for mpath: {bound_types}')
         bound_type = tuple(bound_types)[0]
 
         if isinstance(portspec, str):
@@ -550,7 +639,7 @@ class Builder(PortList):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            bld = Pattern(ports=ports).as_interface(self.library, tools=self.tools)    # TODO: maybe Builder static as_interface-like should optionally take ports instead? Maybe constructor could do it?
+            bld = Builder.interface(source=ports, library=self.library, tools=self.tools)    # TODO: maybe Builder static as_interface-like should optionally take ports instead? Maybe constructor could do it?
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)

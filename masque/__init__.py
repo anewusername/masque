@@ -27,7 +27,7 @@
 
 """
 
-from .error import PatternError
+from .error import MasqueError, PatternError, LibraryError, BuildError
 from .shapes import Shape
 from .label import Label
 from .ref import Ref

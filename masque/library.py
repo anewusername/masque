@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-visitor_function_t = Callable[['Pattern', Tuple['Pattern'], Dict, NDArray[numpy.float64]], 'Pattern']
+visitor_function_t = Callable[..., 'Pattern']
 L = TypeVar('L', bound='Library')
 ML = TypeVar('ML', bound='MutableLibrary')
 LL = TypeVar('LL', bound='LazyLibrary')
@@ -250,6 +250,109 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         toplevel = list(names - not_toplevel)
         return toplevel
 
+    def dfs(
+            self: L,
+            top: str,
+            visit_before: Optional[visitor_function_t] = None,
+            visit_after: Optional[visitor_function_t] = None,
+            *,
+            hierarchy: Tuple[str, ...] = (),
+            transform: Union[ArrayLike, bool, None] = False,
+            memo: Optional[Dict] = None,
+            ) -> L:
+        """
+        Convenience function.
+        Performs a depth-first traversal of a pattern and its referenced patterns.
+        At each pattern in the tree, the following sequence is called:
+            ```
+            hierarchy += (top,)
+            current_pattern = visit_before(current_pattern, **vist_args)
+            for sp in current_pattern.refs]
+                self.dfs(sp.target, visit_before, visit_after,
+                         hierarchy, updated_transform, memo)
+            current_pattern = visit_after(current_pattern, **visit_args)
+            ```
+          where `visit_args` are
+            `hierarchy`:  (top_pattern, L1_pattern, L2_pattern, ..., parent_pattern, current_pattern)
+                          tuple of all parent-and-higher pattern names
+            `transform`:  numpy.ndarray containing cumulative
+                          [x_offset, y_offset, rotation (rad), mirror_x (0 or 1)]
+                          for the instance being visited
+            `memo`:  Arbitrary dict (not altered except by `visit_before()` and `visit_after()`)
+
+        Args:
+            top: Name of the pattern to start at (root node of the tree).
+            visit_before: Function to call before traversing refs.
+                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
+                pattern. Default `None` (not called).
+            visit_after: Function to call after traversing refs.
+                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
+                pattern. Default `None` (not called).
+            transform: Initial value for `visit_args['transform']`.
+                Can be `False`, in which case the transform is not calculated.
+                `True` or `None` is interpreted as `[0, 0, 0, 0]`.
+            memo: Arbitrary dict for use by `visit_*()` functions. Default `None` (empty dict).
+            hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
+                Appended to the start of the generated `visit_args['hierarchy']`.
+                Default is an empty tuple.
+
+        Returns:
+            self
+        """
+        if memo is None:
+            memo = {}
+
+        if transform is None or transform is True:
+            transform = numpy.zeros(4)
+        elif transform is not False:
+            transform = numpy.array(transform)
+
+        if top in hierarchy:
+            raise LibraryError('.dfs() called on pattern with circular reference')
+
+        hierarchy += (top,)
+
+        pat = self[top]
+        if visit_before is not None:
+            pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)
+
+        for ref in pat.refs:
+            if transform is not False:
+                sign = numpy.ones(2)
+                if transform[3]:
+                    sign[1] = -1
+                xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
+                mirror_x, angle = normalize_mirror(ref.mirrored)
+                angle += ref.rotation
+                sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
+                sp_transform[3] %= 2
+            else:
+                sp_transform = False
+
+            if ref.target is None:
+                continue
+
+            self.dfs(
+                top=ref.target,
+                visit_before=visit_before,
+                visit_after=visit_after,
+                transform=sp_transform,
+                memo=memo,
+                hierarchy=hierarchy,
+                )
+
+        if visit_after is not None:
+            pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)
+
+        if self[top] is not pat:
+            if isinstance(self, MutableLibrary):
+                self._set(top, pat)
+            else:
+                raise LibraryError('visit_* functions returned a new `Pattern` object'
+                                   ' but the library is immutable')
+
+        return self
+
 
 VVV = TypeVar('VVV')
 
@@ -306,100 +409,6 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
         for key in set(other.keys()) - keep_ours:
             self._merge(other, key)
 
-        return self
-
-    #TODO maybe also in immutable case?
-    def dfs(
-            self: ML,
-            top: str,
-            visit_before: Optional[visitor_function_t] = None,
-            visit_after: Optional[visitor_function_t] = None,
-            transform: Union[ArrayLike, bool, None] = False,
-            memo: Optional[Dict] = None,
-            hierarchy: Tuple[str, ...] = (),
-            ) -> ML:
-        """
-        Convenience function.
-        Performs a depth-first traversal of a pattern and its referenced patterns.
-        At each pattern in the tree, the following sequence is called:
-            ```
-            current_pattern = visit_before(current_pattern, **vist_args)
-            for sp in current_pattern.refs]
-                self.dfs(sp.target, visit_before, visit_after, updated_transform,
-                         memo, (current_pattern,) + hierarchy)
-            current_pattern = visit_after(current_pattern, **visit_args)
-            ```
-          where `visit_args` are
-            `hierarchy`:  (top_pattern, L1_pattern, L2_pattern, ..., parent_pattern)
-                          tuple of all parent-and-higher patterns
-            `transform`:  numpy.ndarray containing cumulative
-                          [x_offset, y_offset, rotation (rad), mirror_x (0 or 1)]
-                          for the instance being visited
-            `memo`:  Arbitrary dict (not altered except by `visit_before()` and `visit_after()`)
-
-        Args:
-            top: Name of the pattern to start at (root node of the tree).
-            visit_before: Function to call before traversing refs.
-                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
-                pattern. Default `None` (not called).
-            visit_after: Function to call after traversing refs.
-                Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
-                pattern. Default `None` (not called).
-            transform: Initial value for `visit_args['transform']`.
-                Can be `False`, in which case the transform is not calculated.
-                `True` or `None` is interpreted as `[0, 0, 0, 0]`.
-            memo: Arbitrary dict for use by `visit_*()` functions. Default `None` (empty dict).
-            hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
-                Appended to the start of the generated `visit_args['hierarchy']`.
-                Default is an empty tuple.
-
-        Returns:
-            self
-        """
-        if memo is None:
-            memo = {}
-
-        if transform is None or transform is True:
-            transform = numpy.zeros(4)
-        elif transform is not False:
-            transform = numpy.array(transform)
-
-        if top in hierarchy:
-            raise PatternError('.dfs() called on pattern with circular reference')
-
-        pat = self[top]
-        if visit_before is not None:
-            pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)        # type: ignore
-
-        for ref in pat.refs:
-            if transform is not False:
-                sign = numpy.ones(2)
-                if transform[3]:
-                    sign[1] = -1
-                xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
-                mirror_x, angle = normalize_mirror(ref.mirrored)
-                angle += ref.rotation
-                sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
-                sp_transform[3] %= 2
-            else:
-                sp_transform = False
-
-            if ref.target is None:
-                continue
-
-            self.dfs(
-                top=ref.target,
-                visit_before=visit_before,
-                visit_after=visit_after,
-                transform=sp_transform,
-                memo=memo,
-                hierarchy=hierarchy + (top,),
-                )
-
-        if visit_after is not None:
-            pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)         # type: ignore
-
-        self._set(top, pat)
         return self
 
     def dedup(

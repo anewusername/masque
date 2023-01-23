@@ -20,6 +20,8 @@ import struct
 import logging
 import pathlib
 import gzip
+import string
+from pprint import pformat
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
@@ -28,7 +30,7 @@ import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
 from .utils import is_gzipped
-from .. import Pattern, Ref, PatternError, Label, Shape
+from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..library import WrapLibrary, MutableLibrary
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
@@ -95,9 +97,7 @@ def build(
     Returns:
         `fatamorgana.OasisLayout`
     """
-
-    # TODO check names
-    bad_keys = check_valid_names(library.keys())
+    check_valid_names(library.keys())
 
     # TODO check all hierarchy present
 
@@ -109,9 +109,6 @@ def build(
 
     if layer_map is None:
         layer_map = {}
-
-    if disambiguate_func is None:
-        disambiguate_func = disambiguate_pattern_names
 
     if annotations is None:
         annotations = {}
@@ -616,32 +613,6 @@ def _labels_to_texts(
     return texts
 
 
-def disambiguate_pattern_names(
-        names: Iterable[str],
-        ) -> List[str]:
-    new_names = []
-    for name in names:
-        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', name)
-
-        i = 0
-        suffixed_name = sanitized_name
-        while suffixed_name in new_names or suffixed_name == '':
-            suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
-
-            suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
-            i += 1
-
-        if sanitized_name == '':
-            logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-
-        if len(suffixed_name) == 0:
-            # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{name}"')
-
-        new_names.append(suffixed_name)
-    return new_names
-
-
 def repetition_fata2masq(
         rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None],
         ) -> Optional[Repetition]:
@@ -734,3 +705,25 @@ def properties_to_annotations(
     properties = [fatrec.Property(key, vals, is_standard=False)
                   for key, vals in annotations.items()]
     return properties
+
+
+def check_valid_names(
+        names: Iterable[str],
+        ) -> None:
+    """
+    Check all provided names to see if they're valid GDSII cell names.
+
+    Args:
+        names: Collection of names to check
+        max_length: Max allowed length
+
+    """
+    allowed_chars = set(string.ascii_letters + string.digits + string.punctuation + ' ')
+
+    bad_chars = [
+        name for name in names
+        if not set(name).issubset(allowed_chars)
+        ]
+
+    if bad_chars:
+        raise LibraryError('Names contain invalid characters:\n' + pformat(bad_chars))
