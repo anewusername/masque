@@ -19,7 +19,7 @@ Notes:
  * Creation/modification/access times are set to 1900-01-01 for reproducibility.
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
-from typing import Sequence, BinaryIO, Mapping
+from typing import Sequence, BinaryIO, Mapping, cast
 import re
 import io
 import mmap
@@ -298,7 +298,7 @@ def _gref_to_mref(ref: klamath.library.Reference) -> Ref:
         repetition = Grid(a_vector=a_vector, b_vector=b_vector,
                           a_count=a_count, b_count=b_count)
 
-    ref = Ref(
+    mref = Ref(
         target=ref.struct_name.decode('ASCII'),
         offset=offset,
         rotation=numpy.deg2rad(ref.angle_deg),
@@ -307,7 +307,7 @@ def _gref_to_mref(ref: klamath.library.Reference) -> Ref:
         annotations=_properties_to_annotations(ref.properties),
         repetition=repetition,
         )
-    return ref
+    return mref
 
 
 def _gpath_to_mpath(gpath: klamath.library.Path, raw_mode: bool) -> Path:
@@ -341,7 +341,7 @@ def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> 
 
 
 def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
-    refs = []
+    grefs = []
     for ref in refs:
         if ref.target is None:
             continue
@@ -370,9 +370,9 @@ def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
                 mag=ref.scale,
                 properties=properties,
                 )
-            refs.append(aref)
+            grefs.append(aref)
         elif rep is None:
-            ref = klamath.library.Reference(
+            sref = klamath.library.Reference(
                 struct_name=encoded_name,
                 xy=rint_cast([ref.offset]),
                 colrow=None,
@@ -381,7 +381,7 @@ def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
                 mag=ref.scale,
                 properties=properties,
                 )
-            refs.append(ref)
+            grefs.append(sref)
         else:
             new_srefs = [
                 klamath.library.Reference(
@@ -394,8 +394,8 @@ def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
                     properties=properties,
                     )
                 for dd in rep.displacements]
-            refs += new_srefs
-    return refs
+            grefs += new_srefs
+    return grefs
 
 
 def _properties_to_annotations(properties: Dict[int, bytes]) -> annotations_t:
@@ -635,17 +635,17 @@ def load_libraryfile(
     if is_gzipped(path):
         if mmap:
             logger.info('Asked to mmap a gzipped file, reading into memory instead...')
-            base_stream = gzip.open(path, mode='rb')
-            stream = io.BytesIO(base_stream.read())
+            gz_stream = gzip.open(path, mode='rb')
+            stream = io.BytesIO(gz_stream.read())       # type: ignore
         else:
-            base_stream = gzip.open(path, mode='rb')
-            stream = io.BufferedReader(base_stream)
+            gz_stream = gzip.open(path, mode='rb')
+            stream = io.BufferedReader(gz_stream)       # type: ignore
     else:
-        base_stream = open(path, mode='rb')
         if mmap:
-            stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)
+            base_stream = open(path, mode='rb', buffering=0)
+            stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)    # type: ignore
         else:
-            stream = io.BufferedReader(base_stream)
+            stream = open(path, mode='rb')
     return load_library(stream, full_load=full_load)
 
 

@@ -5,6 +5,9 @@ from ..error import MasqueError
 from ..utils import is_scalar
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 T = TypeVar('T', bound='Scalable')
 I = TypeVar('I', bound='ScalableImpl')
 
@@ -36,7 +39,7 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
     """
     Simple implementation of Scalable
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _scale: float
     """ scale factor for the entity """

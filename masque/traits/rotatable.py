@@ -10,6 +10,9 @@ from ..error import MasqueError
 from ..utils import is_scalar, rotation_matrix_2d
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 T = TypeVar('T', bound='Rotatable')
 I = TypeVar('I', bound='RotatableImpl')
 P = TypeVar('P', bound='Pivotable')
@@ -43,7 +46,7 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
     """
     Simple implementation of `Rotatable`
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _rotation: float
     """ rotation for the object, radians counterclockwise """

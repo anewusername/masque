@@ -9,6 +9,9 @@ from numpy.typing import NDArray, ArrayLike
 from ..error import MasqueError
 
 
+_empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
+
+
 T = TypeVar('T', bound='Positionable')
 I = TypeVar('I', bound='PositionableImpl')
 
@@ -85,7 +88,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     """
     Simple implementation of Positionable
     """
-    __slots__ = ()
+    __slots__ = _empty_slots
 
     _offset: NDArray[numpy.float64]
     """ `[x_offset, y_offset]` """
@@ -108,7 +111,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
 
         if val.size != 2:
             raise MasqueError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten()
+        self._offset = val.flatten()        # type: ignore
 
     '''
     ---- Methods
