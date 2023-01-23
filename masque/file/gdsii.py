@@ -29,6 +29,8 @@ import struct
 import logging
 import pathlib
 import gzip
+import string
+from pprint import pformat
 
 import numpy
 from numpy.typing import NDArray, ArrayLike
@@ -36,7 +38,7 @@ import klamath
 from klamath import records
 
 from .utils import is_gzipped
-from .. import Pattern, Ref, PatternError, Label, Shape
+from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import layer_t, normalize_mirror, annotations_t
@@ -64,8 +66,6 @@ def write(
         meters_per_unit: float,
         logical_units_per_unit: float = 1,
         library_name: str = 'masque-klamath',
-        *,
-        modify_originals: bool = False,
         ) -> None:
     """
     Convert a library to a GDSII stream, mapping data as follows:
@@ -82,8 +82,8 @@ def write(
         datatype is chosen to be `shape.layer[1]` if available,
             otherwise `0`
 
-    It is often a good idea to run `pattern.dedup()` prior to calling this function,
-     especially if calling `.polygonize()` will result in very many vertices.
+    GDS does not support shape repetition (only cell repeptition). Please call
+    library.wrap_repeated_shapes() before writing to file.
 
     If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
      prior to calling this function.
@@ -97,25 +97,16 @@ def write(
             Default `1`.
         library_name: Library name written into the GDSII file.
             Default 'masque-klamath'.
-        modify_originals: If `True`, the original pattern is modified as part of the writing
-            process. Otherwise, a copy is made.
-            Default `False`.
     """
-    # TODO check name errors
-    bad_keys = check_valid_names(library.keys())
+    check_valid_names(library.keys())
 
     # TODO check all hierarchy present
-
-    if not modify_originals:
-        library = copy.deepcopy(library)   #TODO figure out best approach e.g. if lazy
 
     if not isinstance(library, MutableLibrary):
         if isinstance(library, dict):
             library = WrapLibrary(library)
         else:
             library = WrapLibrary(dict(library))
-
-    library.wrap_repeated_shapes()
 
     # Create library
     header = klamath.library.FileHeader(
@@ -440,6 +431,10 @@ def _shapes_to_elements(
     elements: List[klamath.elements.Element] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
+        if shape.repetition is not None:
+            raise PatternError('Shape repetitions are not supported by GDS.'
+                ' Please call library.wrap_repeated_shapes() before writing to file.')
+
         layer, data_type = _mlayer2gds(shape.layer)
         properties = _annotations_to_properties(shape.annotations, 128)
         if isinstance(shape, Path) and not polygonize_paths:
@@ -652,3 +647,37 @@ def load_libraryfile(
         else:
             stream = io.BufferedReader(base_stream)
     return load_library(stream, full_load=full_load)
+
+
+def check_valid_names(
+        names: Iterable[str],
+        max_length: int = 32,
+        ) -> None:
+    """
+    Check all provided names to see if they're valid GDSII cell names.
+
+    Args:
+        names: Collection of names to check
+        max_length: Max allowed length
+
+    """
+    allowed_chars = set(string.ascii_letters + string.digits + '_?$')
+
+    bad_chars = [
+        name for name in names
+        if not set(name).issubset(allowed_chars)
+        ]
+
+    bad_lengths = [
+        name for name in names
+        if len(name) > max_length
+        ]
+
+    if bad_chars:
+        logger.error('Names contain invalid characters:\n' + pformat(bad_chars))
+
+    if bad_lengths:
+        logger.error(f'Names too long (>{max_length}:\n' + pformat(bad_chars))
+
+    if bad_chars or bad_lengths:
+        raise LibraryError('Library contains invalid names, see log above')

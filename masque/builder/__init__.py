@@ -1,3 +1,3 @@
-from .devices import Builder, PortsRef
+from .builder import Builder, PortsRef
 from .utils import ell
 from .tools import Tool
