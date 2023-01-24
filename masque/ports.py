@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Tuple, KeysView, ValuesView, ItemsView
+from typing import Dict, Iterable, List, Tuple, KeysView, ValuesView
 from typing import overload, Union, Optional, TypeVar
 import warnings
 import traceback
@@ -132,15 +132,9 @@ class PortList(metaclass=ABCMeta):
         else:
             return {k: self.ports[k] for k in key}
 
-    # TODO add Mapping stuff to PortsList
-    def keys(self) -> KeysView[str]:
-        return self.ports.keys()
-
-    def values(self) -> ValuesView[Port]:
-        return self.ports.values()
-
-    def items(self) -> ItemsView[str, Port]:
-        return self.ports.items()
+    # NOTE: Didn't add keys(), items(), values(), __contains__(), etc.
+    # because it's weird on stuff like Pattern that contains other lists
+    # and because you can just grab .ports and use that instead
 
     def rename_ports(
             self: PL,
