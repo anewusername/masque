@@ -1,7 +1,10 @@
 """
 DXF file format readers and writers
+
+Notes:
+ * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Mapping
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Mapping, TextIO
 import re
 import io
 import base64
@@ -114,13 +117,23 @@ def writefile(
         **kwargs: passed to `dxf.write`
     """
     path = pathlib.Path(filename)
-    if path.suffix == '.gz':
-        open_func: Callable = gzip.open
-    else:
-        open_func = open
 
-    with open_func(path, mode='wt') as stream:
-        write(top_name, library, stream, *args, **kwargs)
+    streams: Tuple[Any, ...]
+    stream: TextIO
+    if path.suffix == '.gz':
+        base_stream = open(path, mode='wb')
+        gz_stream = gzip.GzipFile(filename='', mtime=0, fileobj=base_stream)
+        stream = io.TextIOWrapper(gz_stream)        # type: ignore
+        streams = (stream, gz_stream, base_stream)
+    else:
+        stream = open(path, mode='wt')
+        streams = (stream,)
+
+    try:
+        write(library, top_name, stream, *args, **kwargs)
+    finally:
+        for ss in streams:
+            ss.close()
 
 
 def readfile(
@@ -131,7 +144,7 @@ def readfile(
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
-    Will automatically decompress files with a .gz suffix.
+    Will automatically decompress gzipped files.
 
     Args:
         filename: Filename to save to.
@@ -139,7 +152,7 @@ def readfile(
         **kwargs: passed to `dxf.read`
     """
     path = pathlib.Path(filename)
-    if path.suffix == '.gz':
+    if is_gzipped(path):
         open_func: Callable = gzip.open
     else:
         open_func = open
@@ -150,8 +163,7 @@ def readfile(
 
 
 def read(
-        stream: io.TextIOBase,
-        clean_vertices: bool = True,
+        stream: TextIO,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
@@ -162,9 +174,6 @@ def read(
 
     Args:
         stream: Stream to read from.
-        clean_vertices: If `True`, remove any redundant vertices when loading polygons.
-            The cleaning process removes any polygons with zero area or <3 vertices.
-            Default `True`.
 
     Returns:
         - Top level pattern

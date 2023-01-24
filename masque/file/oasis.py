@@ -10,9 +10,12 @@ Note that OASIS references follow the same convention as `masque`,
 
   Scaling, rotation, and mirroring apply to individual instances, not grid
    vectors or offsets.
+
+Notes:
+ * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping, Optional, cast
-import io
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
+from typing import BinaryIO, Mapping, Optional, cast, Sequence
 import logging
 import pathlib
 import gzip
@@ -147,7 +150,7 @@ def build(
 
 def write(
         library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
-        stream: io.BufferedIOBase,
+        stream: BinaryIO,
         *args,
         **kwargs,
         ) -> None:
@@ -183,13 +186,20 @@ def writefile(
         **kwargs: passed to `oasis.write`
     """
     path = pathlib.Path(filename)
-    if path.suffix == '.gz':
-        open_func: Callable = gzip.open
-    else:
-        open_func = open
 
-    with io.BufferedWriter(open_func(path, mode='wb')) as stream:
+    base_stream = open(path, mode='wb')
+    streams: Tuple[Any, ...] = (base_stream,)
+    if path.suffix == '.gz':
+        stream = cast(BinaryIO, gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+        streams += (stream,)
+    else:
+        stream = base_stream
+
+    try:
         write(library, stream, *args, **kwargs)
+    finally:
+        for ss in streams:
+            ss.close()
 
 
 def readfile(
@@ -213,13 +223,13 @@ def readfile(
     else:
         open_func = open
 
-    with io.BufferedReader(open_func(path, mode='rb')) as stream:
+    with open_func(path, mode='rb') as stream:
         results = read(stream, *args, **kwargs)
     return results
 
 
 def read(
-        stream: io.BufferedIOBase,
+        stream: BinaryIO,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
