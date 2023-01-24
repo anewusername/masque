@@ -88,7 +88,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self.refs = list(refs)
 
         if ports is not None:
-            ports = dict(copy.deepcopy(ports))
+            self.ports = dict(copy.deepcopy(ports))
+        else:
+            self.ports = {}
 
         self.annotations = annotations if annotations is not None else {}
 

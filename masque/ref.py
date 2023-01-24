@@ -178,8 +178,8 @@ class Ref(
     def get_bounds(
             self,
             *,
-            pattern: Optional[Pattern] = None,
-            library: Optional[Mapping[str, Pattern]] = None,
+            pattern: Optional['Pattern'] = None,
+            library: Optional[Mapping[str, 'Pattern']] = None,
             ) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the

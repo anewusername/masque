@@ -12,9 +12,9 @@ from ..ref import Ref
 from ..library import MutableLibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
+from ..abstract import Abstract
 from .tools import Tool
 from .utils import ell
-from .abstract import Abstract
 
 
 logger = logging.getLogger(__name__)

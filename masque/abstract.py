@@ -3,13 +3,12 @@ from typing import MutableMapping, TYPE_CHECKING
 import copy
 import logging
 
-from ..pattern import Pattern
-from ..library import MutableLibrary
-from ..ports import PortList, Port
-from .tools import Tool
+from .pattern import Pattern
+from .ports import PortList, Port
 
 if TYPE_CHECKING:
-    from .builder import Builder
+    from .builder import Builder, Tool
+    from .library import MutableLibrary
 
 
 logger = logging.getLogger(__name__)
@@ -34,8 +33,8 @@ class Abstract(PortList):
 
     def build(
             self,
-            library: MutableLibrary,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            library: 'MutableLibrary',
+            tools: Union[None, 'Tool', MutableMapping[Optional[str], 'Tool']] = None,
             ) -> 'Builder':
         """
         Begin building a new device around an instance of the current device
