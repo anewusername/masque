@@ -3,6 +3,8 @@ DXF file format readers and writers
 
 Notes:
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
+ * ezdxf sets creation time, write time, $VERSIONGUID, and $FINGERPRINTGUID
+    to unique values, so byte-for-byte reproducibility is not achievable for now
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Mapping, TextIO
 import re
