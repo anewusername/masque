@@ -3,9 +3,8 @@ Library class for managing unique name->pattern mappings and
  deferred loading or creation.
 """
 from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING
-from typing import Any, Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
+from typing import Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
 import logging
-import copy
 import base64
 import struct
 import re
@@ -14,7 +13,7 @@ from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 
 import numpy
-from numpy.typing import ArrayLike, NDArray, NDArray
+from numpy.typing import ArrayLike
 
 from .error import LibraryError, PatternError
 from .utils import rotation_matrix_2d, normalize_mirror
@@ -45,21 +44,51 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
     def __repr__(self) -> str:
         return '<Library with keys ' + repr(list(self.keys())) + '>'
 
-    def referenced_patterns(
+    def dangling_references(
             self,
-            tops: Union[str, Sequence[str]],
-            skip: Optional[Set[Optional[str]]] = None,
+            tops: Union[None, str, Sequence[str]] = None,
             ) -> Set[Optional[str]]:
         """
-        Get the set of all pattern names referenced by `top`. Recursively traverses into any refs.
+        Get the set of all pattern names not present in the library but referenced
+        by `tops`, recursively traversing any refs.
+
+        If `tops` are not given, all patterns in the library are checked.
 
         Args:
-            top: Name of the top pattern(s) to check.
+            tops: Name(s) of the pattern(s) to check.
+                Default is all patterns in the library.
             skip: Memo, set patterns which have already been traversed.
 
         Returns:
             Set of all referenced pattern names
         """
+        if tops is None:
+            tops = tuple(self.keys())
+
+        referenced = self.referenced_patterns(tops)
+        return referenced - set(self.keys())
+
+    def referenced_patterns(
+            self,
+            tops: Union[None, str, Sequence[str]] = None,
+            skip: Optional[Set[Optional[str]]] = None,
+            ) -> Set[Optional[str]]:
+        """
+        Get the set of all pattern names referenced by `tops`. Recursively traverses into any refs.
+
+        If `tops` are not given, all patterns in the library are checked.
+
+        Args:
+            tops: Name(s) of the pattern(s) to check.
+                Default is all patterns in the library.
+            skip: Memo, set patterns which have already been traversed.
+
+        Returns:
+            Set of all referenced pattern names
+        """
+        if tops is None:
+            tops = tuple(self.keys())
+
         if skip is None:
             skip = set([None])
 
@@ -73,17 +102,17 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 
         # Perform recursive lookups, but only once for each name
         for target in targets - skip:
-            assert(target is not None)
-            self.referenced_patterns(target, skip)
+            assert target is not None
+            if target in self:
+                targets |= self.referenced_patterns(target, skip=skip)
             skip.add(target)
 
         return targets
 
-    # TODO maybe not for immutable?
     def subtree(
             self,
             tops: Union[str, Sequence[str]],
-            ) -> Library:
+            ) -> 'Library':
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
@@ -184,7 +213,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         for top in tops:
             flatten_single(top)
 
-        assert(None not in flattened.values())
+        assert None not in flattened.values()
         return flattened    # type: ignore
 
     def get_name(
@@ -364,7 +393,7 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
     #def __len__(self) -> int:
 
     @abstractmethod
-    def __setitem__(self, key: str, value: VVV) -> None:  # TODO
+    def __setitem__(self, key: str, value: VVV) -> None:
         pass
 
     @abstractmethod
@@ -390,7 +419,7 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
 
         Args:
             other: The library to insert keys from
-            use_ours: Decision function for name conflicts, called with cell name.
+            use_ours: Decision function for name conflicts, called with pattern name.
                 Should return `True` if the value from `self` should be used.
             use_theirs: Decision function for name conflicts. Same format as `use_ours`.
                 Should return `True` if the value from `other` should be used.
@@ -451,13 +480,14 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
             exclude_types = ()
 
         if label2name is None:
-            label2name = lambda label: self.get_name('_shape')
-
+            def label2name(label):
+                return self.get_name('_shape_')
+            #label2name = lambda label: self.get_name('_shape')
 
         shape_counts: MutableMapping[Tuple, int] = defaultdict(int)
         shape_funcs = {}
 
-        ### First pass ###
+        # ## First pass ##
         #  Using the label tuple from `.normalized_form()` as a key, check how many of each shape
         # are present and store the shape function for each one
         for pat in tuple(self.values()):
@@ -476,7 +506,7 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
             shape_pat = Pattern(shapes=[shape_func()])
             shape_pats[label] = shape_pat
 
-        ### Second pass ###
+        # ## Second pass ##
         for pat in tuple(self.values()):
             #  Store `[(index_in_shapes, values_from_normalized_form), ...]` for all shapes which
             # are to be replaced.
@@ -534,7 +564,9 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
         from .pattern import Pattern
 
         if name_func is None:
-            name_func = lambda _pat, _shape: self.get_name('_rep')
+            def name_func(_pat, _shape):
+                return self.get_name('_rep_')
+            #name_func = lambda _pat, _shape: self.get_name('_rep')
 
         for pat in tuple(self.values()):
             new_shapes = []
@@ -710,7 +742,7 @@ class LazyLibrary(MutableLibrary):
     def clear_cache(self: LL) -> LL:
         """
         Clear the cache of this library.
-        This is usually used before modifying or deleting cells, e.g. when merging
+        This is usually used before modifying or deleting patterns, e.g. when merging
           with another library.
 
         Returns:

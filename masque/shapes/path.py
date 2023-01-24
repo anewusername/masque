@@ -76,7 +76,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # cap_extensions property
     @property
-    def cap_extensions(self) -> Optional[Any]:  #TODO mypy#3004  NDArray[numpy.float64]]:
+    def cap_extensions(self) -> Optional[Any]:  # TODO mypy#3004  NDArray[numpy.float64]]:
         """
         Path end-cap extension
 
@@ -99,7 +99,7 @@ class Path(Shape, metaclass=AutoSlots):
 
     # vertices property
     @property
-    def vertices(self) -> Any:  #TODO mypy#3004  NDArray[numpy.float64]]:
+    def vertices(self) -> Any:  # TODO mypy#3004  NDArray[numpy.float64]]:
         """
         Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
@@ -162,9 +162,9 @@ class Path(Shape, metaclass=AutoSlots):
         self._cap_extensions = None     # Since .cap setter might access it
 
         if raw:
-            assert(isinstance(vertices, numpy.ndarray))
-            assert(isinstance(offset, numpy.ndarray))
-            assert(isinstance(cap_extensions, numpy.ndarray) or cap_extensions is None)
+            assert isinstance(vertices, numpy.ndarray)
+            assert isinstance(offset, numpy.ndarray)
+            assert isinstance(cap_extensions, numpy.ndarray) or cap_extensions is None
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
@@ -229,7 +229,7 @@ class Path(Shape, metaclass=AutoSlots):
         Returns:
             The resulting Path object
         """
-        #TODO: needs testing
+        # TODO: needs testing
         direction = numpy.array([1, 0])
 
         verts = [numpy.zeros(2)]
@@ -409,7 +409,7 @@ class Path(Shape, metaclass=AutoSlots):
         if self.cap == PathCap.Square:
             extensions = numpy.full(2, self.width / 2)
         elif self.cap == PathCap.SquareCustom:
-            assert(isinstance(self.cap_extensions, numpy.ndarray))
+            assert isinstance(self.cap_extensions, numpy.ndarray)
             extensions = self.cap_extensions
         else:
             # Flush or Circle

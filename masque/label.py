@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Optional, TypeVar
+from typing import Dict, Optional, TypeVar
 import copy
 
 import numpy

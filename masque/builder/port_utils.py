@@ -82,6 +82,7 @@ def pat2dev(
 
     ports = {}
     annotated_cells = set()
+
     def find_ports_each(pat, hierarchy, transform, memo) -> Pattern:
         if len(hierarchy) > max_depth:
             if max_depth >= 999_999:

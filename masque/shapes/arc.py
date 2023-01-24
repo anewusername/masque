@@ -48,7 +48,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
     # radius properties
     @property
-    def radii(self) -> Any:         #TODO mypy#3004   NDArray[numpy.float64]:
+    def radii(self) -> Any:         # TODO mypy#3004   NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
@@ -85,7 +85,7 @@ class Arc(Shape, metaclass=AutoSlots):
 
     # arc start/stop angle properties
     @property
-    def angles(self) -> Any:            #TODO mypy#3004    NDArray[numpy.float64]:
+    def angles(self) -> Any:            # TODO mypy#3004    NDArray[numpy.float64]:
         """
         Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation
@@ -171,9 +171,9 @@ class Arc(Shape, metaclass=AutoSlots):
             raw: bool = False,
             ) -> None:
         if raw:
-            assert(isinstance(radii, numpy.ndarray))
-            assert(isinstance(angles, numpy.ndarray))
-            assert(isinstance(offset, numpy.ndarray))
+            assert isinstance(radii, numpy.ndarray)
+            assert isinstance(angles, numpy.ndarray)
+            assert isinstance(offset, numpy.ndarray)
             self._radii = radii
             self._angles = angles
             self._width = width

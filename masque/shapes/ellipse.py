@@ -38,7 +38,7 @@ class Ellipse(Shape, metaclass=AutoSlots):
 
     # radius properties
     @property
-    def radii(self) -> Any:         #TODO mypy#3004  NDArray[numpy.float64]:
+    def radii(self) -> Any:         # TODO mypy#3004  NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
@@ -106,8 +106,8 @@ class Ellipse(Shape, metaclass=AutoSlots):
             raw: bool = False,
             ) -> None:
         if raw:
-            assert(isinstance(radii, numpy.ndarray))
-            assert(isinstance(offset, numpy.ndarray))
+            assert isinstance(radii, numpy.ndarray)
+            assert isinstance(offset, numpy.ndarray)
             self._radii = radii
             self._offset = offset
             self._rotation = rotation

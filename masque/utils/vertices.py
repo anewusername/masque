@@ -83,7 +83,7 @@ def poly_contains_points(
     max_bounds = numpy.max(vertices, axis=0)[None, :]
 
     trivially_outside = ((points < min_bounds).any(axis=1)
-                       | (points > max_bounds).any(axis=1))
+                       | (points > max_bounds).any(axis=1))     # noqa: E128
 
     nontrivial = ~trivially_outside
     if trivially_outside.all():
@@ -101,10 +101,10 @@ def poly_contains_points(
 
     dv = numpy.roll(verts, -1, axis=0) - verts
     is_left = (dv[:, 0] * (ntpts[..., 1] - verts[:, 1])        # >0 if left of dv, <0 if right, 0 if on the line
-             - dv[:, 1] * (ntpts[..., 0] - verts[:, 0]))
+             - dv[:, 1] * (ntpts[..., 0] - verts[:, 0]))    # noqa: E128
 
     winding_number = ((upward & (is_left > 0)).sum(axis=0)
-                  - (downward & (is_left < 0)).sum(axis=0))
+                  - (downward & (is_left < 0)).sum(axis=0))    # noqa: E128
 
     nontrivial_inside = winding_number != 0        # filter nontrivial points based on winding number
     if include_boundary:

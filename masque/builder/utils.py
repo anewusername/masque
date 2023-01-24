@@ -1,5 +1,5 @@
-from typing import Dict, Tuple, List, Mapping, Sequence, SupportsFloat
-from typing import Optional, Union, Any, cast, TYPE_CHECKING
+from typing import Dict, Mapping, Sequence, SupportsFloat
+from typing import Optional, Union, cast, TYPE_CHECKING
 from pprint import pformat
 
 import numpy
@@ -173,7 +173,7 @@ def ell(
 
         if bound_type in ('emin', 'min_extension', 'min_past_furthest'):
             offsets += rot_bound.max()
-        elif bound_type in('emax', 'max_extension'):
+        elif bound_type in ('emax', 'max_extension'):
             offsets += rot_bound.min() - offsets.max()
     else:
         if numpy.size(bound) == 2:
@@ -194,7 +194,7 @@ def ell(
         if extension < 0:
             ext_floor = -numpy.floor(extension)
             raise BuildError(f'Position is too close by at least {ext_floor}. Total extensions would be\n\t'
-                            + '\n\t'.join(f'{key}: {off}' for key, off in zip(ports.keys(), offsets)))
+                             + '\n\t'.join(f'{key}: {off}' for key, off in zip(ports.keys(), offsets)))
 
     result = dict(zip(ports.keys(), offsets))
     return result

@@ -2,11 +2,10 @@
  Base object representing a lithography mask.
 """
 
-from typing import List, Callable, Tuple, Dict, Union, Set, Sequence, Optional, Type, overload, cast
-from typing import Mapping, MutableMapping, Iterable, TypeVar, Any
+from typing import List, Callable, Dict, Union, Set, Sequence, Optional, cast
+from typing import Mapping, TypeVar, Any
 import copy
 from itertools import chain
-from collections import defaultdict
 
 import numpy
 from numpy import inf
@@ -14,9 +13,9 @@ from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
-from .shapes import Shape, Polygon
+from .shapes import Shape
 from .label import Label
-from .utils import rotation_matrix_2d, normalize_mirror, AutoSlots, annotations_t
+from .utils import rotation_matrix_2d, AutoSlots, annotations_t
 from .error import PatternError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable
 from .ports import Port, PortList
@@ -30,7 +29,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via Ref). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
-    __slots__ = ('shapes', 'labels', 'refs', 'ports')
+    __slots__ = (
+        'shapes', 'labels', 'refs', 'ports',
+        # inherited
+        '_offset', '_annotations'
+        )
 
     shapes: List[Shape]
     """ List of all shapes in this Pattern.
@@ -116,7 +119,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             )
         return new
 
-    def append(self: P, other_pattern: Pattern) -> P:
+    def append(self: P, other_pattern: 'Pattern') -> P:
         """
         Appends all shapes, labels and refs from other_pattern to self's shapes,
           labels, and supbatterns.
@@ -321,7 +324,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             `[[x_min, y_min], [x_max, y_max]]`
         """
         bounds = self.get_bounds(library)
-        assert(bounds is not None)
+        assert bounds is not None
         return bounds
 
     def translate_elements(self: P, offset: ArrayLike) -> P:

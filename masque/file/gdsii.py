@@ -18,14 +18,10 @@ Notes:
  * GDS does not support library- or structure-level annotations
  * Creation/modification/access times are set to 1900-01-01 for reproducibility.
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Optional
-from typing import Sequence, BinaryIO, Mapping, cast
-import re
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
+from typing import BinaryIO, Mapping
 import io
 import mmap
-import copy
-import base64
-import struct
 import logging
 import pathlib
 import gzip
@@ -83,10 +79,13 @@ def write(
             otherwise `0`
 
     GDS does not support shape repetition (only cell repeptition). Please call
-    library.wrap_repeated_shapes() before writing to file.
+    `library.wrap_repeated_shapes()` before writing to file.
 
-    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
-     prior to calling this function.
+    Other functions you may want to call:
+        - `masque.file.gdsii.check_valid_names(library.keys())` to check for invalid names
+        - `library.dangling_references()` to check for references to missing patterns
+        - `pattern.polygonize()` for any patterns with shapes other
+            than `masque.shapes.Polygon` or `masque.shapes.Path`
 
     Args:
         library: A {name: Pattern} mapping of patterns to write.
@@ -98,10 +97,6 @@ def write(
         library_name: Library name written into the GDSII file.
             Default 'masque-klamath'.
     """
-    check_valid_names(library.keys())
-
-    # TODO check all hierarchy present
-
     if not isinstance(library, MutableLibrary):
         if isinstance(library, dict):
             library = WrapLibrary(library)
@@ -433,7 +428,7 @@ def _shapes_to_elements(
     for shape in shapes:
         if shape.repetition is not None:
             raise PatternError('Shape repetitions are not supported by GDS.'
-                ' Please call library.wrap_repeated_shapes() before writing to file.')
+                               ' Please call library.wrap_repeated_shapes() before writing to file.')
 
         layer, data_type = _mlayer2gds(shape.layer)
         properties = _annotations_to_properties(shape.annotations, 128)
@@ -502,56 +497,6 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
             )
         texts.append(text)
     return texts
-
-
-def disambiguate_pattern_names(
-        names: Iterable[str],
-        max_name_length: int = 32,
-        suffix_length: int = 6,
-        ) -> List[str]:
-    """
-    Args:
-        names: List of pattern names to disambiguate
-        max_name_length: Names longer than this will be truncated
-        suffix_length: Names which get truncated are truncated by this many extra characters. This is to
-            leave room for a suffix if one is necessary.
-    """
-    new_names = []
-    for name in names:
-        # Shorten names which already exceed max-length
-        if len(name) > max_name_length:
-            shortened_name = name[:max_name_length - suffix_length]
-            logger.warning(f'Pattern name "{name}" is too long ({len(name)}/{max_name_length} chars),\n'
-                           + f' shortening to "{shortened_name}" before generating suffix')
-        else:
-            shortened_name = name
-
-        # Remove invalid characters
-        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', shortened_name)
-
-        # Add a suffix that makes the name unique
-        i = 0
-        suffixed_name = sanitized_name
-        while suffixed_name in new_names or suffixed_name == '':
-            suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
-
-            suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
-            i += 1
-
-        if sanitized_name == '':
-            logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-
-        # Encode into a byte-string and perform some final checks
-        encoded_name = suffixed_name.encode('ASCII')
-        if len(encoded_name) == 0:
-            # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize+encode,\n originally "{name}"')
-        if len(encoded_name) > max_name_length:
-            raise PatternError(f'Pattern name "{encoded_name!r}" length > {max_name_length} after encode,\n'
-                               + f' originally "{name}"')
-
-        new_names.append(suffixed_name)
-    return new_names
 
 
 def load_library(

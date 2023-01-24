@@ -1,14 +1,11 @@
 """
 Helper functions for file reading and writing
 """
-from typing import Set, Tuple, List, Iterable, Mapping
 import re
-import copy
 import pathlib
 import logging
 
 from .. import Pattern, PatternError
-from ..library import Library, WrapROLibrary
 from ..shapes import Polygon, Path
 
 

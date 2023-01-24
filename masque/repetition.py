@@ -3,7 +3,7 @@
      instances of an object .
 """
 
-from typing import Union, Dict, Optional, Sequence, Any, Type
+from typing import Union, Dict, Optional, Any, Type
 import copy
 from abc import ABCMeta, abstractmethod
 
@@ -40,7 +40,7 @@ class Grid(Repetition, metaclass=AutoSlots):
     Note that the offsets in either the 2D or 1D grids do not have to be axis-aligned.
     """
     __slots__ = (
-        '_a_vector','_b_vector',
+        '_a_vector', '_b_vector',
         '_a_count', '_b_count',
         )
 
