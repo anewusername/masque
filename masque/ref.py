@@ -196,7 +196,7 @@ class Ref(
             raise PatternError('as_pattern() must be given a pattern or library.')
         if pattern is None and self.target is None:
             return None
-        if self.target not in library:
+        if library is not None and self.target not in library:
             raise PatternError(f'get_bounds() called on dangling reference to "{self.target}"')
         return self.as_pattern(pattern=pattern, library=library).get_bounds()
 
