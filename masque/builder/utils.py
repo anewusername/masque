@@ -83,6 +83,9 @@ def ell(
     if not ports:
         raise BuildError('Empty port list passed to `ell()`')
 
+    if isinstance(ports, PortList):
+        ports = PortList.ports
+
     if ccw is None:
         if spacing is not None and not numpy.isclose(spacing, 0):
             raise BuildError('Spacing must be 0 or None when ccw=None')
