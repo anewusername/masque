@@ -48,7 +48,7 @@ path_cap_map = {
     PathExtensionScheme.Arbitrary: Path.Cap.SquareCustom,
     }
 
-#TODO implement more shape types?
+#TODO implement more shape types in OASIS?
 
 def rint_cast(val: ArrayLike) -> NDArray[numpy.int64]:
     return numpy.rint(val).astype(numpy.int64)
@@ -306,8 +306,10 @@ def read(
 
                 path_args: Dict[str, Any] = {}
                 if cap == Path.Cap.SquareCustom:
-                    path_args['cap_extensions'] = numpy.array((element.get_extension_start()[1],
-                                                               element.get_extension_end()[1]))
+                    path_args['cap_extensions'] = numpy.array((
+                        element.get_extension_start()[1],
+                        element.get_extension_end()[1],
+                        ))
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 path = Path(
@@ -362,12 +364,13 @@ def read(
                         vertices[2, 0] -= b
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                trapz = Polygon(layer=element.get_layer_tuple(),
-                                offset=element.get_xy(),
-                                repetition=repetition,
-                                vertices=vertices,
-                                annotations=annotations,
-                                )
+                trapz = Polygon(
+                    layer=element.get_layer_tuple(),
+                    offset=element.get_xy(),
+                    repetition=repetition,
+                    vertices=vertices,
+                    annotations=annotations,
+                    )
                 pat.shapes.append(trapz)
 
             elif isinstance(element, fatrec.CTrapezoid):
@@ -630,8 +633,10 @@ def repetition_fata2masq(
                     a_count=rep.a_count,
                     b_count=rep.b_count)
     elif isinstance(rep, fatamorgana.ArbitraryRepetition):
-        displacements = numpy.cumsum(numpy.column_stack((rep.x_displacements,
-                                                         rep.y_displacements)), axis=0)
+        displacements = numpy.cumsum(numpy.column_stack((
+            rep.x_displacements,
+            rep.y_displacements,
+            )), axis=0)
         displacements = numpy.vstack(([0, 0], displacements))
         mrep = Arbitrary(displacements)
     elif rep is None:
