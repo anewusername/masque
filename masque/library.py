@@ -22,7 +22,7 @@ from .error import LibraryError, PatternError
 from .utils import rotation_matrix_2d, normalize_mirror
 from .shapes import Shape, Polygon
 from .label import Label
-from .builder.abstract import Abstract
+from .abstract import Abstract
 
 if TYPE_CHECKING:
     from .pattern import Pattern
@@ -37,7 +37,7 @@ ML = TypeVar('ML', bound='MutableLibrary')
 LL = TypeVar('LL', bound='LazyLibrary')
 
 
-class Library(Mapping[str, Pattern], metaclass=ABCMeta):
+class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -61,7 +61,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         return Abstract(name=name, ports=self[name].ports)
 
     def __repr__(self) -> str:
-        return '<Library with keys ' + repr(list(self.keys())) + '>'
+        return '<Library with keys\n' + pformat(list(self.keys())) + '>'
 
     def dangling_references(
             self,
@@ -142,7 +142,11 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
         Returns:
             A `WrapROLibrary` containing only `tops` and the patterns they reference.
         """
+        if isinstance(tops, str):
+            tops = (tops,)
+
         keep: Set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
         new = WrapROLibrary(filtered)
@@ -405,7 +409,7 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 VVV = TypeVar('VVV')
 
 
-class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
+class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -627,7 +631,11 @@ class MutableLibrary(Generic[VVV], Library, metaclass=ABCMeta):
         Returns:
             A `Library` containing only `tops` and the patterns they reference.
         """
+        if isinstance(tops, str):
+            tops = (tops,)
+
         keep: Set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep |= set(tops)
 
         new = type(self)()
         for key in keep:
@@ -654,7 +662,7 @@ class WrapROLibrary(Library):
         return len(self.mapping)
 
     def __repr__(self) -> str:
-        return f'<WrapROLibrary ({type(self.mapping)}) with keys ' + repr(list(self.keys())) + '>'
+        return f'<WrapROLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
 
 class WrapLibrary(MutableLibrary):
@@ -662,9 +670,12 @@ class WrapLibrary(MutableLibrary):
 
     def __init__(
             self,
-            mapping: MutableMapping[str, 'Pattern'],
+            mapping: Optional[MutableMapping[str, 'Pattern']] = None,
             ) -> None:
-        self.mapping = mapping
+        if mapping is None:
+            self.mapping = {}
+        else:
+            self.mapping = mapping
 
     def __getitem__(self, key: str) -> 'Pattern':
         return self.mapping[key]
@@ -688,7 +699,7 @@ class WrapLibrary(MutableLibrary):
         self[key] = other[key]
 
     def __repr__(self) -> str:
-        return f'<WrapLibrary ({type(self.mapping)}) with keys ' + repr(list(self.keys())) + '>'
+        return f'<WrapLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
 
 class LazyLibrary(MutableLibrary):
@@ -745,7 +756,7 @@ class LazyLibrary(MutableLibrary):
             self._set(key, other[key])
 
     def __repr__(self) -> str:
-        return '<LazyLibrary with keys ' + repr(list(self.keys())) + '>'
+        return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'
 
     def precache(self: LL) -> LL:
         """

@@ -30,7 +30,7 @@ import string
 from pprint import pformat
 
 import numpy
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 import klamath
 from klamath import records
 
@@ -54,7 +54,7 @@ path_cap_map = {
 
 
 def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
-    return numpy.rint(val, dtype=numpy.int32, casting='unsafe')
+    return numpy.rint(val).astype(numpy.int32)
 
 
 def write(

@@ -14,27 +14,29 @@ import pathlib
 import gzip
 
 import numpy
-import ezdxf        # type: ignore
+import ezdxf
 
-from .. import Pattern, Ref, PatternError, Label, Shape
-from ..shapes import Polygon, Path
+from .. import Pattern, Ref, PatternError, Label
+from ..library import Library, WrapROLibrary
+from ..shapes import Shape, Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
+from .utils import is_gzipped
 
 
 logger = logging.getLogger(__name__)
 
 
-logger.warning('DXF support is experimental and only slightly tested!')
+logger.warning('DXF support is experimental!')
 
 
 DEFAULT_LAYER = 'DEFAULT'
 
 
 def write(
+        library: Mapping[str, Pattern],    # TODO could allow library=None for flat DXF
         top_name: str,
-        library: Mapping[str, Pattern],
-        stream: io.TextIOBase,
+        stream: TextIO,
         *,
         dxf_version='AC1024',
         ) -> None:
@@ -65,17 +67,23 @@ def write(
      array with rotated instances must be manhattan _after_ having a compensating rotation applied.
 
     Args:
-        top_name: Name of the top-level pattern to write.
         library: A {name: Pattern} mapping of patterns. Only `top_name` and patterns referenced
             by it are written.
+        top_name: Name of the top-level pattern to write.
         stream: Stream object to write to.
         disambiguate_func: Function which takes a list of patterns and alters them
             to make their names valid and unique. Default is `disambiguate_pattern_names`.
             WARNING: No additional error checking is performed on the results.
     """
     #TODO consider supporting DXF arcs?
+    if not isinstance(library, Library):
+        if isinstance(library, dict):
+            library = WrapROLibrary(library)
+        else:
+            library = WrapROLibrary(dict(library))
 
     pattern = library[top_name]
+    subtree = library.subtree(top_name)
 
     # Create library
     lib = ezdxf.new(dxf_version, setup=True)
@@ -85,8 +93,11 @@ def write(
     _mrefs_to_drefs(msp, pattern.refs)
 
     # Now create a block for each referenced pattern, and add in any shapes
-    for name, pat in library.items():
+    for name, pat in subtree.items():
         assert pat is not None
+        if name == top_name:
+            continue
+
         block = lib.blocks.new(name=name)
 
         _shapes_to_elements(block, pat.shapes)
@@ -97,8 +108,8 @@ def write(
 
 
 def writefile(
-        top_name: str,
         library: Mapping[str, Pattern],
+        top_name: str,
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
@@ -109,9 +120,9 @@ def writefile(
     Will automatically compress the file if it has a .gz suffix.
 
     Args:
-        top_name: Name of the top-level pattern to write.
         library: A {name: Pattern} mapping of patterns. Only `top_name` and patterns referenced
             by it are written.
+        top_name: Name of the top-level pattern to write.
         filename: Filename to save to.
         *args: passed to `dxf.write`
         **kwargs: passed to `dxf.write`
@@ -181,19 +192,19 @@ def read(
     lib = ezdxf.read(stream)
     msp = lib.modelspace()
 
-    npat = _read_block(msp, clean_vertices)
+    npat = _read_block(msp)
     patterns_dict = dict(
-        [npat] + [_read_block(bb, clean_vertices) for bb in lib.blocks if bb.name != '*Model_Space']
+        [npat] + [_read_block(bb) for bb in lib.blocks if bb.name != '*Model_Space']
         )
 
-    library_info = {
-        'layers': [ll.dxfattribs() for ll in lib.layers]
-        }
+    library_info = dict(
+        layers=[ll.dxfattribs() for ll in lib.layers],
+        )
 
     return patterns_dict, library_info
 
 
-def _read_block(block, clean_vertices: bool) -> Tuple[str, Pattern]:
+def _read_block(block) -> Tuple[str, Pattern]:
     name = block.name
     pat = Pattern()
     for element in block:
@@ -225,18 +236,13 @@ def _read_block(block, clean_vertices: bool) -> Tuple[str, Pattern]:
                 else:
                     shape = Path(layer=layer, width=width, vertices=points[:, :2])
 
-            if clean_vertices:
-                try:
-                    shape.clean_vertices()
-                except PatternError:
-                    continue
-
             pat.shapes.append(shape)
 
         elif eltype in ('TEXT',):
-            args = {'offset': numpy.array(element.get_pos()[1])[:2],
-                    'layer': element.dxfattribs().get('layer', DEFAULT_LAYER),
-                   }
+            args = dict(
+                offset=numpy.array(element.get_pos()[1])[:2],
+                layer=element.dxfattribs().get('layer', DEFAULT_LAYER),
+                )
             string = element.dxfattribs().get('text', '')
 #            height = element.dxfattribs().get('height', 0)
 #            if height != 0:
@@ -257,20 +263,21 @@ def _read_block(block, clean_vertices: bool) -> Tuple[str, Pattern]:
 
             offset = numpy.array(attr.get('insert', (0, 0, 0)))[:2]
 
-            args = {
-                'target': (attr.get('name', None),),
-                'offset': offset,
-                'scale': scale,
-                'mirrored': mirrored,
-                'rotation': rotation,
-                'pattern': None,
-                }
+            args = dict(
+                target=attr.get('name', None),
+                offset=offset,
+                scale=scale,
+                mirrored=mirrored,
+                rotation=rotation,
+                )
 
             if 'column_count' in attr:
-                args['repetition'] = Grid(a_vector=(attr['column_spacing'], 0),
-                                          b_vector=(0, attr['row_spacing']),
-                                          a_count=attr['column_count'],
-                                          b_count=attr['row_count'])
+                args['repetition'] = Grid(
+                    a_vector=(attr['column_spacing'], 0),
+                    b_vector=(0, attr['row_spacing']),
+                    a_count=attr['column_count'],
+                    b_count=attr['row_count'],
+                    )
             pat.ref(**args)
         else:
             logger.warning(f'Ignoring DXF element {element.dxftype()} (not implemented).')
@@ -286,12 +293,12 @@ def _mrefs_to_drefs(
             continue
         encoded_name = ref.target
 
-        rotation = (ref.rotation * 180 / numpy.pi) % 360
-        attribs = {
-            'xscale': ref.scale * (-1 if ref.mirrored[1] else 1),
-            'yscale': ref.scale * (-1 if ref.mirrored[0] else 1),
-            'rotation': rotation,
-            }
+        rotation = numpy.rad2deg(ref.rotation) % 360
+        attribs = dict(
+            xscale=ref.scale * (-1 if ref.mirrored[1] else 1),
+            yscale=ref.scale * (-1 if ref.mirrored[0] else 1),
+            rotation=rotation,
+            )
 
         rep = ref.repetition
         if rep is None:
@@ -338,7 +345,7 @@ def _shapes_to_elements(
                 ' Please call library.wrap_repeated_shapes() before writing to file.'
                 )
 
-        attribs = {'layer': _mlayer2dxf(shape.layer)}
+        attribs = dict(layer=_mlayer2dxf(shape.layer))
         for polygon in shape.to_polygons():
             xy_open = polygon.vertices + polygon.offset
             xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
@@ -350,7 +357,7 @@ def _labels_to_texts(
         labels: List[Label],
         ) -> None:
     for label in labels:
-        attribs = {'layer': _mlayer2dxf(label.layer)}
+        attribs = dict(layer=_mlayer2dxf(label.layer))
         xy = label.offset
         block.add_text(label.string, dxfattribs=attribs).set_pos(xy, align='BOTTOM_LEFT')
 

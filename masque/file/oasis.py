@@ -39,7 +39,7 @@ from ..utils import layer_t, normalize_mirror, annotations_t
 logger = logging.getLogger(__name__)
 
 
-logger.warning('OASIS support is experimental and mostly untested!')
+logger.warning('OASIS support is experimental!')
 
 
 path_cap_map = {
@@ -51,7 +51,7 @@ path_cap_map = {
 #TODO implement more shape types?
 
 def rint_cast(val: ArrayLike) -> NDArray[numpy.int64]:
-    return numpy.rint(val, dtype=numpy.int64, casting='unsafe')
+    return numpy.rint(val).astype(numpy.int64)
 
 
 def build(
