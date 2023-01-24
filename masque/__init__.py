@@ -35,7 +35,7 @@ from .pattern import Pattern
 from .utils import layer_t, annotations_t
 from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary
 from .ports import Port, PortList
-from .builder import Builder, PortsRef, Tool
+from .builder import Builder, Abstract, Tool
 
 __author__ = 'Jan Petykiewicz'
 
