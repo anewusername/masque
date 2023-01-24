@@ -19,10 +19,10 @@ from .error import LibraryError, PatternError
 from .utils import rotation_matrix_2d, normalize_mirror
 from .shapes import Shape, Polygon
 from .label import Label
+from .builder.abstract import Abstract
 
 if TYPE_CHECKING:
     from .pattern import Pattern
-    from .builder import Abstract
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,16 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 
     #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
 
-    def abstract(self, name: str) -> 'Abstract':
+    def abstract(self, name: str) -> Abstract:
+        """
+        Return an `Abstract` (name & ports) for the pattern in question.
+
+        Args:
+            name: The pattern name
+
+        Returns:
+            An `Abstract` object for the pattern
+        """
         return Abstract(name=name, ports=self[name].ports)
 
     def __repr__(self) -> str:
