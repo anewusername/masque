@@ -46,7 +46,7 @@ class Abstract(PortList):
         """
         pat = Pattern(ports=self.ports)
         pat.ref(self.name)
-        new = Builder(library=library, pattern=pat, tools=tools)   # TODO should Ref have tools?
+        new = Builder(library=library, pattern=pat, tools=tools)   # TODO should Abstract have tools?
         return new
 
     # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
