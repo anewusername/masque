@@ -71,9 +71,6 @@ def write(
             by it are written.
         top_name: Name of the top-level pattern to write.
         stream: Stream object to write to.
-        disambiguate_func: Function which takes a list of patterns and alters them
-            to make their names valid and unique. Default is `disambiguate_pattern_names`.
-            WARNING: No additional error checking is performed on the results.
     """
     #TODO consider supporting DXF arcs?
     if not isinstance(library, Library):
@@ -370,41 +367,3 @@ def _mlayer2dxf(layer: layer_t) -> str:
     if isinstance(layer, tuple):
         return f'{layer[0]}.{layer[1]}'
     raise PatternError(f'Unknown layer type: {layer} ({type(layer)})')
-
-
-def disambiguate_pattern_names(
-        names: Iterable[str],
-        max_name_length: int = 32,
-        suffix_length: int = 6,
-        ) -> List[str]:
-    """
-    Args:
-        names: List of pattern names to disambiguate
-        max_name_length: Names longer than this will be truncated
-        suffix_length: Names which get truncated are truncated by this many extra characters. This is to
-            leave room for a suffix if one is necessary.
-    """
-    new_names = []
-    for name in names:
-        sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', name)
-
-        i = 0
-        suffixed_name = sanitized_name
-        while suffixed_name in new_names or suffixed_name == '':
-            suffix = base64.b64encode(struct.pack('>Q', i), b'$?').decode('ASCII')
-
-            suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
-            i += 1
-
-        if sanitized_name == '':
-            logger.warning(f'Empty pattern name saved as "{suffixed_name}"')
-
-        if len(suffixed_name) == 0:
-            # Should never happen since zero-length names are replaced
-            raise PatternError(f'Zero-length name after sanitize,\n originally "{name}"')
-        if len(suffixed_name) > max_name_length:
-            raise PatternError(f'Pattern name "{suffixed_name!r}" length > {max_name_length} after encode,\n'
-                               + f' originally "{name}"')
-
-        new_names.append(suffixed_name)
-    return new_names
