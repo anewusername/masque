@@ -1,6 +1,9 @@
 """
-Library class for managing unique name->pattern mappings and
+Library classes for managing unique name->pattern mappings and
  deferred loading or creation.
+
+# TODO documentn all library classes
+# TODO toplevel documentation of library, classes, and abstracts
 """
 from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING
 from typing import Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
