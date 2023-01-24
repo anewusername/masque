@@ -19,11 +19,10 @@ from .utils import ell
 logger = logging.getLogger(__name__)
 
 
-B  = TypeVar('B',  bound='Builder')
-PR  = TypeVar('PR',  bound='PortsRef')
+BB  = TypeVar('BB',  bound='Builder')
 
 
-class PortsRef(PortList):
+class Abstract(PortList):
     __slots__ = ('name', 'ports')
 
     name: str
@@ -60,7 +59,7 @@ class PortsRef(PortList):
     # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
 
     def __repr__(self) -> str:
-        s = f'<PortsRef {self.name} ['
+        s = f'<Abstract {self.name} ['
         for name, port in self.ports.items():
             s += f'\n\t{name}: {port}'
         s += ']>'
@@ -280,7 +279,7 @@ class Builder(PortList):
 
     def plug(
             self: B,
-            other: PR,
+            other: Abstract,
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
@@ -375,7 +374,7 @@ class Builder(PortList):
 
     def place(
             self: B,
-            other: PR,
+            other: Abstract,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -554,7 +553,7 @@ class Builder(PortList):
         pat = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
         name = self.library.get_name(base_name)
         self.library._set(name, pat)
-        return self.plug(PortsRef(name, pat.ports), {portspec: tool_port_names[0]})
+        return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
             self: B,
@@ -637,7 +636,7 @@ class Builder(PortList):
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
             self.library._set(name, bld.pattern)
-            return self.plug(PortsRef(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
+            return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?
 

@@ -1,3 +1,3 @@
-from .builder import Builder, PortsRef
+from .builder import Builder, Abstract
 from .utils import ell
 from .tools import Tool
