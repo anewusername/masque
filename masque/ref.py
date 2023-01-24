@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Dict, Tuple, Optional, Sequence, Mapping, TYPE_CHECKING, Any, TypeVar
+from typing import Dict, Optional, Sequence, Mapping, TYPE_CHECKING, Any, TypeVar
 import copy
 
 import numpy
@@ -12,7 +12,7 @@ from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
 from .error import PatternError
-from .utils import is_scalar, AutoSlots, annotations_t
+from .utils import is_scalar, annotations_t
 from .repetition import Repetition
 from .traits import (
     PositionableImpl, RotatableImpl, ScalableImpl,
@@ -109,7 +109,7 @@ class Ref(
 
     # Mirrored property
     @property
-    def mirrored(self) -> Any:   #TODO mypy#3004  NDArray[numpy.bool_]:
+    def mirrored(self) -> Any:   # TODO mypy#3004  NDArray[numpy.bool_]:
         return self._mirrored
 
     @mirrored.setter
@@ -121,8 +121,8 @@ class Ref(
     def as_pattern(
             self,
             *,
-            pattern: Optional[Pattern] = None,
-            library: Optional[Mapping[str, Pattern]] = None,
+            pattern: Optional['Pattern'] = None,
+            library: Optional[Mapping[str, 'Pattern']] = None,
             ) -> 'Pattern':
         """
         Args:
@@ -138,7 +138,7 @@ class Ref(
             if library is None:
                 raise PatternError('as_pattern() must be given a pattern or library.')
 
-            assert(self.target is not None)
+            assert self.target is not None
             pattern = library[self.target]
 
         pattern = pattern.deepcopy()
@@ -196,6 +196,8 @@ class Ref(
             raise PatternError('as_pattern() must be given a pattern or library.')
         if pattern is None and self.target is None:
             return None
+        if self.target not in library:
+            raise PatternError(f'get_bounds() called on dangling reference to "{self.target}"')
         return self.as_pattern(pattern=pattern, library=library).get_bounds()
 
     def __repr__(self) -> str:

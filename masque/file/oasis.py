@@ -12,11 +12,7 @@ Note that OASIS references follow the same convention as `masque`,
    vectors or offsets.
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping, Optional, cast
-import re
 import io
-import copy
-import base64
-import struct
 import logging
 import pathlib
 import gzip
@@ -77,8 +73,11 @@ def build(
         If a layer map is provided, layer strings will be converted
             automatically, and layer names will be written to the file.
 
-    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
-     prior to calling this function.
+    Other functions you may want to call:
+        - `masque.file.oasis.check_valid_names(library.keys())` to check for invalid names
+        - `library.dangling_references()` to check for references to missing patterns
+        - `pattern.polygonize()` for any patterns with shapes other
+            than `masque.shapes.Polygon`, `masque.shapes.Path`, or `masque.shapes.Circle`
 
     Args:
         library: A {name: Pattern} mapping of patterns to write.
@@ -97,10 +96,6 @@ def build(
     Returns:
         `fatamorgana.OasisLayout`
     """
-    check_valid_names(library.keys())
-
-    # TODO check all hierarchy present
-
     if not isinstance(library, MutableLibrary):
         if isinstance(library, dict):
             library = WrapLibrary(library)
@@ -130,7 +125,7 @@ def build(
                 for tt in (True, False)]
 
         def layer2oas(mlayer: layer_t) -> Tuple[int, int]:
-            assert(layer_map is not None)
+            assert layer_map is not None
             layer_num = layer_map[mlayer] if isinstance(mlayer, str) else mlayer
             return _mlayer2oas(layer_num)
     else:
@@ -270,7 +265,7 @@ def read(
                 # note XELEMENT has no repetition
                 continue
 
-            assert(not isinstance(element.repetition, fatamorgana.ReuseRepetition))
+            assert not isinstance(element.repetition, fatamorgana.ReuseRepetition)
             repetition = repetition_fata2masq(element.repetition)
 
             # Switch based on element type:
@@ -481,7 +476,7 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
     """
     Helper function to create a Ref from a placment. Sets ref.target to the placement name.
     """
-    assert(not isinstance(placement.repetition, fatamorgana.ReuseRepetition))
+    assert not isinstance(placement.repetition, fatamorgana.ReuseRepetition)
     xy = numpy.array((placement.x, placement.y))
     mag = placement.magnification if placement.magnification is not None else 1
 
@@ -659,7 +654,7 @@ def repetition_masq2fata(
         frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])        # type: ignore
         offset = rep.displacements[0, :]
     else:
-        assert(rep is None)
+        assert rep is None
         frep = None
         offset = (0, 0)
     return frep, offset
@@ -682,14 +677,14 @@ def properties_to_annotations(
         ) -> annotations_t:
     annotations = {}
     for proprec in properties:
-        assert(proprec.name is not None)
+        assert proprec.name is not None
         if isinstance(proprec.name, int):
             key = propnames[proprec.name].string
         else:
             key = proprec.name.string
         values: List[Union[str, float, int]] = []
 
-        assert(proprec.values is not None)
+        assert proprec.values is not None
         for value in proprec.values:
             if isinstance(value, (float, int)):
                 values.append(value)

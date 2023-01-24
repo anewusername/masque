@@ -1,6 +1,5 @@
-from typing import Dict, Iterable, List, Tuple, Iterator, Optional, Sequence, MutableMapping
-from typing import overload, KeysView, ValuesView, ItemsView, TYPE_CHECKING, Union, TypeVar, Any
-import copy
+from typing import Dict, Iterable, List, Tuple, KeysView, ValuesView, ItemsView
+from typing import overload, Union, Optional, TypeVar
 import warnings
 import traceback
 import logging
@@ -14,15 +13,9 @@ from numpy.typing import ArrayLike, NDArray
 from .traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
 from .utils import AutoSlots, rotate_offsets_around
 from .error import PortError
-from .library import MutableLibrary
-from .builder import Tool
-
-if TYPE_CHECKING:
-    from .builder import Builder
 
 
 logger = logging.getLogger(__name__)
-
 
 
 P = TypeVar('P', bound='Port')
@@ -200,8 +193,6 @@ class PortList(metaclass=ABCMeta):
         Returns:
             self
         """
-
-
         new_ports = {
             names[0]: Port(offset, rotation=rotation, ptype=ptype),
             names[1]: Port(offset, rotation=rotation + pi, ptype=ptype),
@@ -335,7 +326,6 @@ class PortList(metaclass=ABCMeta):
         type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
                                       for st, ot in zip(s_types, o_types)])
         if type_conflicts.any():
-            ports = numpy.where(type_conflicts)
             msg = 'Ports have conflicting types:\n'
             for nn, (k, v) in enumerate(map_in.items()):
                 if type_conflicts[nn]:
@@ -353,7 +343,7 @@ class PortList(metaclass=ABCMeta):
 
         if not numpy.allclose(rotations[:1], rotations):
             rot_deg = numpy.rad2deg(rotations)
-            msg = f'Port orientations do not match:\n'
+            msg = 'Port orientations do not match:\n'
             for nn, (k, v) in enumerate(map_in.items()):
                 msg += f'{k} | {rot_deg[nn]:g} | {v}\n'
             raise PortError(msg)
@@ -362,7 +352,7 @@ class PortList(metaclass=ABCMeta):
         rotate_offsets_around(o_offsets, pivot, rotations[0])
         translations = s_offsets - o_offsets
         if not numpy.allclose(translations[:1], translations):
-            msg = f'Port translations do not match:\n'
+            msg = 'Port translations do not match:\n'
             for nn, (k, v) in enumerate(map_in.items()):
                 msg += f'{k} | {translations[nn]} | {v}\n'
             raise PortError(msg)

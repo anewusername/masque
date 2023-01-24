@@ -1,7 +1,7 @@
 """
 DXF file format readers and writers
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Sequence, Iterable, Mapping
+from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Mapping
 import re
 import io
 import base64
@@ -17,7 +17,6 @@ from .. import Pattern, Ref, PatternError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
-from .gdsii import check_valid_names
 
 
 logger = logging.getLogger(__name__)
@@ -52,8 +51,11 @@ def write(
     DXF does not support shape repetition (only block repeptition). Please call
     library.wrap_repeated_shapes() before writing to file.
 
-    If you want pattern polygonized with non-default arguments, just call `pattern.polygonize()`
-     prior to calling this function.
+    Other functions you may want to call:
+        - `masque.file.oasis.check_valid_names(library.keys())` to check for invalid names
+        - `library.dangling_references()` to check for references to missing patterns
+        - `pattern.polygonize()` for any patterns with shapes other
+            than `masque.shapes.Polygon` or `masque.shapes.Path`
 
     Only `Grid` repetition objects with manhattan basis vectors are preserved as arrays. Since DXF
      rotations apply to basis vectors while `masque`'s rotations do not, the basis vectors of an
@@ -70,8 +72,6 @@ def write(
     """
     #TODO consider supporting DXF arcs?
 
-    check_valid_names(library.keys())
-
     pattern = library[top_name]
 
     # Create library
@@ -83,7 +83,7 @@ def write(
 
     # Now create a block for each referenced pattern, and add in any shapes
     for name, pat in library.items():
-        assert(pat is not None)
+        assert pat is not None
         block = lib.blocks.new(name=name)
 
         _shapes_to_elements(block, pat.shapes)
@@ -173,8 +173,9 @@ def read(
     msp = lib.modelspace()
 
     npat = _read_block(msp, clean_vertices)
-    patterns_dict = dict([npat]
-        + [_read_block(bb, clean_vertices) for bb in lib.blocks if bb.name != '*Model_Space'])
+    patterns_dict = dict(
+        [npat] + [_read_block(bb, clean_vertices) for bb in lib.blocks if bb.name != '*Model_Space']
+        )
 
     library_info = {
         'layers': [ll.dxfattribs() for ll in lib.layers]
@@ -323,8 +324,10 @@ def _shapes_to_elements(
     #   Could set do paths with width setting, but need to consider endcaps.
     for shape in shapes:
         if shape.repetition is not None:
-            raise PatternError('Shape repetitions are not supported by DXF.'
-                ' Please call library.wrap_repeated_shapes() before writing to file.')
+            raise PatternError(
+                'Shape repetitions are not supported by DXF.'
+                ' Please call library.wrap_repeated_shapes() before writing to file.'
+                )
 
         attribs = {'layer': _mlayer2dxf(shape.layer)}
         for polygon in shape.to_polygons():

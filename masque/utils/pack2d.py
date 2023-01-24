@@ -11,31 +11,6 @@ from ..pattern import Pattern
 from ..ref import Ref
 
 
-def pack_patterns(
-        library: Mapping[str, Pattern],
-        patterns: Sequence[str],
-        regions: numpy.ndarray,
-        spacing: Tuple[float, float],
-        presort: bool = True,
-        allow_rejects: bool = True,
-        packer: Callable = maxrects_bssf,
-        ) -> Tuple[Pattern, List[str]]:
-    half_spacing = numpy.array(spacing) / 2
-
-    bounds = [library[pp].get_bounds() for pp in patterns]
-    sizes = [bb[1] - bb[0] + spacing if bb is not None else spacing for bb in bounds]
-    offsets = [half_spacing - bb[0] if bb is not None else (0, 0) for bb in bounds]
-
-    locations, reject_inds = packer(sizes, regions, presort=presort, allow_rejects=allow_rejects)
-
-    pat = Pattern()
-    pat.refs = [Ref(pp, offset=oo + loc)
-                for pp, oo, loc in zip(patterns, offsets, locations)]
-
-    rejects = [patterns[ii] for ii in reject_inds]
-    return pat, rejects
-
-
 def maxrects_bssf(
         rects: ArrayLike,
         containers: ArrayLike,
@@ -165,3 +140,28 @@ def guillotine_bssf_sas(rect_sizes: numpy.ndarray,
                                 new_region0, new_region1))
 
     return rect_locs, rejected_inds
+
+
+def pack_patterns(
+        library: Mapping[str, Pattern],
+        patterns: Sequence[str],
+        regions: numpy.ndarray,
+        spacing: Tuple[float, float],
+        presort: bool = True,
+        allow_rejects: bool = True,
+        packer: Callable = maxrects_bssf,
+        ) -> Tuple[Pattern, List[str]]:
+    half_spacing = numpy.array(spacing) / 2
+
+    bounds = [library[pp].get_bounds() for pp in patterns]
+    sizes = [bb[1] - bb[0] + spacing if bb is not None else spacing for bb in bounds]
+    offsets = [half_spacing - bb[0] if bb is not None else (0, 0) for bb in bounds]
+
+    locations, reject_inds = packer(sizes, regions, presort=presort, allow_rejects=allow_rejects)
+
+    pat = Pattern()
+    pat.refs = [Ref(pp, offset=oo + loc)
+                for pp, oo, loc in zip(patterns, offsets, locations)]
+
+    rejects = [patterns[ii] for ii in reject_inds]
+    return pat, rejects

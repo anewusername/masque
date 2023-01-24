@@ -59,7 +59,7 @@ class Circle(Shape, metaclass=AutoSlots):
             raw: bool = False,
             ) -> None:
         if raw:
-            assert(isinstance(offset, numpy.ndarray))
+            assert isinstance(offset, numpy.ndarray)
             self._radius = radius
             self._offset = offset
             self._repetition = repetition

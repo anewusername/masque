@@ -3,11 +3,11 @@ from abc import ABCMeta, abstractmethod
 
 import numpy
 from numpy import pi
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
 from .positionable import Positionable
 from ..error import MasqueError
-from ..utils import is_scalar, rotation_matrix_2d
+from ..utils import rotation_matrix_2d
 
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
@@ -118,7 +118,7 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
         pivot = numpy.array(pivot, dtype=float)
         cast(Positionable, self).translate(-pivot)
         cast(Rotatable, self).rotate(rotation)
-        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      #type: ignore #TODO: mypy#3004
+        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      # type: ignore # TODO: mypy#3004
         cast(Positionable, self).translate(+pivot)
         return self
 

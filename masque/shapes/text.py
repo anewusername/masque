@@ -55,7 +55,7 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
 
     # Mirrored property
     @property
-    def mirrored(self) -> Any:   #TODO mypy#3004  NDArray[numpy.bool_]:
+    def mirrored(self) -> Any:   # TODO mypy#3004  NDArray[numpy.bool_]:
         return self._mirrored
 
     @mirrored.setter
@@ -79,8 +79,8 @@ class Text(RotatableImpl, Shape, metaclass=AutoSlots):
             raw: bool = False,
             ) -> None:
         if raw:
-            assert(isinstance(offset, numpy.ndarray))
-            assert(isinstance(mirrored, numpy.ndarray))
+            assert isinstance(offset, numpy.ndarray)
+            assert isinstance(mirrored, numpy.ndarray)
             self._offset = offset
             self._layer = layer
             self._string = string

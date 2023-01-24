@@ -1,7 +1,7 @@
 """
 Type definitions
 """
-from typing import Union, Tuple, Sequence, Dict, List
+from typing import Union, Tuple, Dict, List
 
 
 layer_t = Union[int, Tuple[int, int], str]

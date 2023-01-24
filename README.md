@@ -15,7 +15,7 @@ to output to multiple formats.
 Requirements:
 * python >= 3.8
 * numpy
-* klamath (used for `gdsii` i/o and library management)
+* klamath (optional, used for `gdsii` i/o)
 * matplotlib (optional, used for `visualization` functions and `text`)
 * ezdxf (optional, used for `dxf` i/o)
 * fatamorgana (optional, used for `oasis` i/o)
@@ -49,9 +49,3 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
     - boolean ops
 * Construct polygons from bitmap using `skimage.find_contours`
 * Deal with shape repetitions for dxf, svg
-
-* this approach has an issue: how add devices together?
-   - need to add the other device by name
-   - need to know the other device's ports
-   - 
-   - also: device doesn't know its own name, can't wrap itself into a ref

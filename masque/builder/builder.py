@@ -1,17 +1,12 @@
-from typing import Dict, Iterable, List, Tuple, Union, TypeVar, Any, Iterator, Optional, Sequence
-from typing import overload, KeysView, ValuesView, MutableMapping, Mapping
+from typing import Dict, Tuple, Union, TypeVar, Optional, Sequence
+from typing import MutableMapping, Mapping
 import copy
-import warnings
-import traceback
 import logging
-from collections import Counter
-from abc import ABCMeta
 
 import numpy
 from numpy import pi
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
-from ..traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
 from ..pattern import Pattern
 from ..ref import Ref
 from ..library import MutableLibrary
@@ -241,8 +236,6 @@ class Builder(PortList):
             `PortError` if applying the prefixes results in duplicate port
                 names.
         """
-        from ..pattern import Pattern
-
         if library is None:
             if hasattr(source, 'library') and isinstance(source, MutableLibrary):
                 library = source.library
@@ -276,7 +269,7 @@ class Builder(PortList):
         ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
                     for name, port in mapped_ports.items()}
         ports_out = {f'{out_prefix}{name}': port.deepcopy()
-                    for name, port in mapped_ports.items()}
+                     for name, port in mapped_ports.items()}
 
         duplicates = set(ports_out.keys()) & set(ports_in.keys())
         if duplicates:
@@ -377,7 +370,7 @@ class Builder(PortList):
             map_out[vi] = None
 
         self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-            mirrored=mirrored, port_map=map_out, skip_port_check=True)
+                   mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
 
     def place(

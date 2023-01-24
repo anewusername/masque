@@ -30,7 +30,7 @@ class Polygon(Shape, metaclass=AutoSlots):
 
     # vertices property
     @property
-    def vertices(self) -> Any:        #TODO mypy#3004   NDArray[numpy.float64]:
+    def vertices(self) -> Any:        # TODO mypy#3004   NDArray[numpy.float64]:
         """
         Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """
@@ -88,8 +88,8 @@ class Polygon(Shape, metaclass=AutoSlots):
             raw: bool = False,
             ) -> None:
         if raw:
-            assert(isinstance(vertices, numpy.ndarray))
-            assert(isinstance(offset, numpy.ndarray))
+            assert isinstance(vertices, numpy.ndarray)
+            assert isinstance(offset, numpy.ndarray)
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
@@ -212,17 +212,17 @@ class Polygon(Shape, metaclass=AutoSlots):
         """
         if lx is None:
             if xctr is None:
-                assert(xmin is not None)
-                assert(xmax is not None)
+                assert xmin is not None
+                assert xmax is not None
                 xctr = 0.5 * (xmax + xmin)
                 lx = xmax - xmin
             elif xmax is None:
-                assert(xmin is not None)
-                assert(xctr is not None)
+                assert xmin is not None
+                assert xctr is not None
                 lx = 2 * (xctr - xmin)
             elif xmin is None:
-                assert(xctr is not None)
-                assert(xmax is not None)
+                assert xctr is not None
+                assert xmax is not None
                 lx = 2 * (xmax - xctr)
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
@@ -230,29 +230,29 @@ class Polygon(Shape, metaclass=AutoSlots):
             if xctr is not None:
                 pass
             elif xmax is None:
-                assert(xmin is not None)
-                assert(lx is not None)
+                assert xmin is not None
+                assert lx is not None
                 xctr = xmin + 0.5 * lx
             elif xmin is None:
-                assert(xmax is not None)
-                assert(lx is not None)
+                assert xmax is not None
+                assert lx is not None
                 xctr = xmax - 0.5 * lx
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
 
         if ly is None:
             if yctr is None:
-                assert(ymin is not None)
-                assert(ymax is not None)
+                assert ymin is not None
+                assert ymax is not None
                 yctr = 0.5 * (ymax + ymin)
                 ly = ymax - ymin
             elif ymax is None:
-                assert(ymin is not None)
-                assert(yctr is not None)
+                assert ymin is not None
+                assert yctr is not None
                 ly = 2 * (yctr - ymin)
             elif ymin is None:
-                assert(yctr is not None)
-                assert(ymax is not None)
+                assert yctr is not None
+                assert ymax is not None
                 ly = 2 * (ymax - yctr)
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
@@ -260,12 +260,12 @@ class Polygon(Shape, metaclass=AutoSlots):
             if yctr is not None:
                 pass
             elif ymax is None:
-                assert(ymin is not None)
-                assert(ly is not None)
+                assert ymin is not None
+                assert ly is not None
                 yctr = ymin + 0.5 * ly
             elif ymin is None:
-                assert(ly is not None)
-                assert(ymax is not None)
+                assert ly is not None
+                assert ymax is not None
                 yctr = ymax - 0.5 * ly
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
@@ -330,7 +330,6 @@ class Polygon(Shape, metaclass=AutoSlots):
         poly = Polygon(vertices, offset=center, layer=layer, repetition=repetition)
         poly.rotate(rotation)
         return poly
-
 
     def to_polygons(
             self,

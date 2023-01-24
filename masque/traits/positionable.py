@@ -80,7 +80,7 @@ class Positionable(metaclass=ABCMeta):
         This is handy for destructuring like `xy_min, xy_max = entity.get_bounds_nonempty()`
         """
         bounds = self.get_bounds()
-        assert(bounds is not None)
+        assert bounds is not None
         return bounds
 
 
@@ -98,7 +98,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     '''
     # offset property
     @property
-    def offset(self) -> Any:  #TODO mypy#3003  NDArray[numpy.float64]:
+    def offset(self) -> Any:  # TODO mypy#3003  NDArray[numpy.float64]:
         """
         [x, y] offset
         """
