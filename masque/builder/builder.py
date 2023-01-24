@@ -278,7 +278,7 @@ class Builder(PortList):
         return new
 
     def plug(
-            self: B,
+            self: BB,
             other: Abstract,
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
@@ -286,7 +286,7 @@ class Builder(PortList):
             mirrored: Tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
             set_rotation: Optional[bool] = None,
-            ) -> B:
+            ) -> BB:
         """
         Instantiate a device `library[name]` into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
@@ -373,7 +373,7 @@ class Builder(PortList):
         return self
 
     def place(
-            self: B,
+            self: BB,
             other: Abstract,
             *,
             offset: ArrayLike = (0, 0),
@@ -382,7 +382,7 @@ class Builder(PortList):
             mirrored: Tuple[bool, bool] = (False, False),
             port_map: Optional[Dict[str, Optional[str]]] = None,
             skip_port_check: bool = False,
-            ) -> B:
+            ) -> BB:
         """
         Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
@@ -450,7 +450,7 @@ class Builder(PortList):
         self.pattern.refs.append(sp)
         return self
 
-    def translate(self: B, offset: ArrayLike) -> B:
+    def translate(self: BB, offset: ArrayLike) -> BB:
         """
         Translate the pattern and all ports.
 
@@ -465,7 +465,7 @@ class Builder(PortList):
             port.translate(offset)
         return self
 
-    def rotate_around(self: B, pivot: ArrayLike, angle: float) -> B:
+    def rotate_around(self: BB, pivot: ArrayLike, angle: float) -> BB:
         """
         Rotate the pattern and all ports.
 
@@ -481,7 +481,7 @@ class Builder(PortList):
             port.rotate_around(pivot, angle)
         return self
 
-    def mirror(self: B, axis: int) -> B:
+    def mirror(self: BB, axis: int) -> BB:
         """
         Mirror the pattern and all ports across the specified axis.
 
@@ -496,7 +496,7 @@ class Builder(PortList):
             p.mirror(axis)
         return self
 
-    def set_dead(self: B) -> B:
+    def set_dead(self: BB) -> BB:
         """
         Disallows further changes through `plug()` or `place()`.
         This is meant for debugging:
@@ -523,10 +523,10 @@ class Builder(PortList):
         return s
 
     def retool(
-            self: B,
+            self: BB,
             tool: Tool,
             keys: Union[Optional[str], Sequence[Optional[str]]] = None,
-            ) -> B:
+            ) -> BB:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
         else:
@@ -535,7 +535,7 @@ class Builder(PortList):
         return self
 
     def path(
-            self: B,
+            self: BB,
             portspec: str,
             ccw: Optional[bool],
             length: float,
@@ -543,7 +543,7 @@ class Builder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_path_',
             **kwargs,
-            ) -> B:
+            ) -> BB:
         if self._dead:
             logger.error('Skipping path() since device is dead')
             return self
@@ -556,7 +556,7 @@ class Builder(PortList):
         return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
-            self: B,
+            self: BB,
             portspec: str,
             ccw: Optional[bool],
             position: float,
@@ -564,7 +564,7 @@ class Builder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_pathto_',
             **kwargs,
-            ) -> B:
+            ) -> BB:
         if self._dead:
             logger.error('Skipping path_to() since device is dead')
             return self
@@ -590,7 +590,7 @@ class Builder(PortList):
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
     def mpath(
-            self: B,
+            self: BB,
             portspec: Union[str, Sequence[str]],
             ccw: Optional[bool],
             *,
@@ -600,7 +600,7 @@ class Builder(PortList):
             force_container: bool = False,
             base_name: str = '_mpath_',
             **kwargs,
-            ) -> B:
+            ) -> BB:
         if self._dead:
             logger.error('Skipping mpath() since device is dead')
             return self
@@ -631,7 +631,7 @@ class Builder(PortList):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            bld = Builder.interface(source=ports, library=self.library, tools=self.tools)    # TODO: maybe Builder static as_interface-like should optionally take ports instead? Maybe constructor could do it?
+            bld = Builder.interface(source=ports, library=self.library, tools=self.tools)
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
