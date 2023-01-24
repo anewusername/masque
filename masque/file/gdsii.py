@@ -16,10 +16,11 @@ Notes:
  * PLEX is not supported
  * ELFLAGS are not supported
  * GDS does not support library- or structure-level annotations
- * Creation/modification/access times are set to 1900-01-01 for reproducibility.
+ * GDS creation/modification/access times are set to 1900-01-01 for reproducibility.
+ * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
-from typing import BinaryIO, Mapping
+from typing import BinaryIO, Mapping, cast
 import io
 import mmap
 import logging
@@ -140,13 +141,20 @@ def writefile(
         **kwargs: passed to `write()`
     """
     path = pathlib.Path(filename)
-    if path.suffix == '.gz':
-        open_func: Callable = gzip.open
-    else:
-        open_func = open
 
-    with io.BufferedWriter(open_func(path, mode='wb')) as stream:
+    base_stream = open(path, mode='wb')
+    streams: Tuple[Any, ...] = (base_stream,)
+    if path.suffix == '.gz':
+        stream = cast(BinaryIO, gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+        streams = (stream,) + streams
+    else:
+        stream = base_stream
+
+    try:
         write(library, stream, *args, **kwargs)
+    finally:
+        for ss in streams:
+            ss.close()
 
 
 def readfile(
@@ -170,7 +178,7 @@ def readfile(
     else:
         open_func = open
 
-    with io.BufferedReader(open_func(path, mode='rb')) as stream:
+    with open_func(path, mode='rb') as stream:
         results = read(stream, *args, **kwargs)
     return results
 
