@@ -22,6 +22,7 @@ from .label import Label
 
 if TYPE_CHECKING:
     from .pattern import Pattern
+    from .builder import Abstract
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,9 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
     #def __len__(self) -> int:
 
     #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
+
+    def abstract(self, name: str) -> 'Abstract':
+        return Abstract(name=name, ports=self[name].ports)
 
     def __repr__(self) -> str:
         return '<Library with keys ' + repr(list(self.keys())) + '>'
