@@ -33,7 +33,7 @@ from .label import Label
 from .ref import Ref
 from .pattern import Pattern
 from .utils import layer_t, annotations_t
-from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary
+from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary, AbstractView
 from .ports import Port, PortList
 from .builder import Builder, Abstract, Tool
 
