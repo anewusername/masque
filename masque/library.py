@@ -42,6 +42,9 @@ class Library(Mapping[str, Pattern], metaclass=ABCMeta):
 
     #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
 
+    def abstract_view(self) -> 'AbstractView':
+        return AbstractView(self)
+
     def abstract(self, name: str) -> Abstract:
         """
         Return an `Abstract` (name & ports) for the pattern in question.
@@ -766,3 +769,19 @@ class LazyLibrary(MutableLibrary):
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'LazyLibrary':
         raise LibraryError('LazyLibrary cannot be deepcopied (deepcopy doesn\'t descend into closures)')
+
+
+class AbstractView(Mapping[str, Abstract]):
+    library: Library
+
+    def __init__(self, library: Library) -> None:
+        self.library = library
+
+    def __getitem__(self, key: str) -> Abstract:
+        return self.library.abstract(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return self.library.__iter__()
+
+    def __len__(self) -> int:
+        return self.library.__len__()
