@@ -283,7 +283,10 @@ def read(
 
             # Switch based on element type:
             if isinstance(element, fatrec.Polygon):
-                vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list())), axis=0)
+                # Drop last point (`fatamorgana` returns explicity closed list; we use implicit close)
+                # also need `cumsum` to convert from deltas to locations
+                vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list()[:-1])), axis=0)
+
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
                 poly = Polygon(vertices=vertices,
                                layer=element.get_layer_tuple(),
