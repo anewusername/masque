@@ -142,7 +142,7 @@ def waveguide(
         left=Port((-extent, 0), rotation=0, ptype='pcwg'),
         right=Port((extent, 0), rotation=pi, ptype='pcwg'),
         )
-    pat2dev(pat)
+    dev2pat(pat)
     print(pat)
     return pat
 
@@ -183,7 +183,7 @@ def bend(
                     extent * numpy.sqrt(3) / 2),
                    rotation=pi * 4 / 3, ptype='pcwg'),
         )
-    pat2dev(pat)
+    dev2pat(pat)
     return pat
 
 
@@ -222,7 +222,7 @@ def y_splitter(
         'bot': Port((extent / 2, -extent * numpy.sqrt(3) / 2), rotation=pi * 2 / 3, ptype='pcwg'),
         }
 
-    pat2dev(pat)
+    dev2pat(pat)
     return pat
 
 
@@ -311,7 +311,7 @@ def main(interactive: bool = True) -> None:
     # We can also add text labels for our circuit's ports.
     #   They will appear at the uppermost hierarchy level, while the individual
     # device ports will appear further down, in their respective cells.
-    pat2dev(circ.pattern)
+    dev2pat(circ.pattern)
 
     # Add the pattern into our library
     lib['my_circuit'] = circ.pattern
@@ -319,7 +319,7 @@ def main(interactive: bool = True) -> None:
     # Check if we forgot to include any patterns... ooops!
     if dangling := lib.dangling_refs():
         print('Warning: The following patterns are referenced, but not present in the'
-              f'library! {dangling}')
+              f' library! {dangling}')
         print('We\'ll solve this by merging in shape_lib, which contains those shapes...')
 
         lib.add(shape_lib)

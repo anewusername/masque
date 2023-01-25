@@ -207,7 +207,7 @@ class Builder(PortList):
                 names.
         """
         if library is None:
-            if hasattr(source, 'library') and isinstance(source, MutableLibrary):
+            if hasattr(source, 'library') and isinstance(source.library, MutableLibrary):
                 library = source.library
             else:
                 raise BuildError('No library provided (and not present in `source.library`')

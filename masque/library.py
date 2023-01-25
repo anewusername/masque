@@ -713,11 +713,13 @@ class LazyLibrary(MutableLibrary):
     """
     dict: Dict[str, Callable[[], 'Pattern']]
     cache: Dict[str, 'Pattern']
+    _lookups_in_progress: Set[str]
     enable_cache: bool = True
 
     def __init__(self) -> None:
         self.dict = {}
         self.cache = {}
+        self._lookups_in_progress = set()
 
     def __setitem__(self, key: str, value: Callable[[], 'Pattern']) -> None:
         self.dict[key] = value
@@ -735,8 +737,17 @@ class LazyLibrary(MutableLibrary):
             logger.debug(f'found {key} in cache')
             return self.cache[key]
 
+        if key in self._lookups_in_progress:
+            raise LibraryError(
+                f'Detected multiple simultaneous lookups of "{key}".\n'
+                'This may be caused by an invalid (cyclical) reference, or buggy code.\n'
+                'If you are lazy-loading a file, try a non-lazy load and check for refernce cycles.'        # TODO give advice on finding cycles
+                )
+
+        self._lookups_in_progress.add(key)
         func = self.dict[key]
         pat = func()
+        self._lookups_in_progress.remove(key)
         self.cache[key] = pat
         return pat
 
