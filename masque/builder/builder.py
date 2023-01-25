@@ -97,19 +97,30 @@ class Builder(PortList):
     _dead: bool
     """ If True, plug()/place() are skipped (for debugging)"""
 
+    @property
+    def ports(self) -> Dict[str, Port]:
+        return self.pattern.ports
+
+    @ports.setter
+    def ports(self, value: Dict[str, Port]) -> None:
+        self.pattern.ports = value
+
     def __init__(
             self,
             library: MutableLibrary,
             *,
             pattern: Optional[Pattern] = None,
-            ports: Optional[Mapping[str, Port]] = None,
+            ports: Union[None, str, Mapping[str, Port]] = None,
             tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             ) -> None:
         """
-        If `ports` is `None`, two default ports ('A' and 'B') are created.
-        Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
-          (attached devices will be placed to the left) and 'B' has rotation
-          pi (attached devices will be placed to the right).
+        # TODO documentation for Builder() constructor
+
+        # TODO MOVE THE BELOW DOCS to PortList
+        # If `ports` is `None`, two default ports ('A' and 'B') are created.
+        # Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
+        #   (attached devices will be placed to the left) and 'B' has rotation
+        #   pi (attached devices will be placed to the right).
         """
         self.library = library
         if pattern is not None:
@@ -120,7 +131,10 @@ class Builder(PortList):
         if ports is not None:
             if self.pattern.ports:
                 raise BuildError('Ports supplied for pattern with pre-existing ports!')
-            self.pattern.ports.update(copy.deepcopy(ports))
+            if isinstance(ports, str):
+                ports = library.abstract(ports).ports
+
+            self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
         if tools is None:
             self.tools = {}
@@ -509,7 +523,7 @@ class Builder(PortList):
         in_ptype = self.pattern[portspec].ptype
         pat = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
         name = self.library.get_name(base_name)
-        self.library._set(name, pat)
+        self.library.set_const(name, pat)
         return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
@@ -592,7 +606,7 @@ class Builder(PortList):
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
-            self.library._set(name, bld.pattern)
+            self.library.set_const(name, bld.pattern)
             return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?

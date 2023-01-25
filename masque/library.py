@@ -63,7 +63,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def __repr__(self) -> str:
         return '<Library with keys\n' + pformat(list(self.keys())) + '>'
 
-    def dangling_references(
+    def dangling_refs(
             self,
             tops: Union[None, str, Sequence[str]] = None,
             ) -> Set[Optional[str]]:
@@ -304,11 +304,11 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def dfs(
             self: L,
-            top: str,
+            pattern: 'Pattern',
             visit_before: Optional[visitor_function_t] = None,
             visit_after: Optional[visitor_function_t] = None,
             *,
-            hierarchy: Tuple[str, ...] = (),
+            hierarchy: Tuple[Optional[str], ...] = (None,),
             transform: Union[ArrayLike, bool, None] = False,
             memo: Optional[Dict] = None,
             ) -> L:
@@ -317,23 +317,23 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         Performs a depth-first traversal of a pattern and its referenced patterns.
         At each pattern in the tree, the following sequence is called:
             ```
-            hierarchy += (top,)
             current_pattern = visit_before(current_pattern, **vist_args)
             for sp in current_pattern.refs]
                 self.dfs(sp.target, visit_before, visit_after,
-                         hierarchy, updated_transform, memo)
+                         hierarchy + (sp.target,), updated_transform, memo)
             current_pattern = visit_after(current_pattern, **visit_args)
             ```
           where `visit_args` are
-            `hierarchy`:  (top_pattern, L1_pattern, L2_pattern, ..., parent_pattern, current_pattern)
-                          tuple of all parent-and-higher pattern names
+            `hierarchy`:  (top_pattern_or_None, L1_pattern, L2_pattern, ..., parent_pattern)
+                          tuple of all parent-and-higher pattern names. Top pattern name may be
+                          `None` if not provided in first call to .dfs()
             `transform`:  numpy.ndarray containing cumulative
                           [x_offset, y_offset, rotation (rad), mirror_x (0 or 1)]
                           for the instance being visited
             `memo`:  Arbitrary dict (not altered except by `visit_before()` and `visit_after()`)
 
         Args:
-            top: Name of the pattern to start at (root node of the tree).
+            pattern: Pattern object to start at ("top"/root node of the tree).
             visit_before: Function to call before traversing refs.
                 Should accept a `Pattern` and `**visit_args`, and return the (possibly modified)
                 pattern. Default `None` (not called).
@@ -345,8 +345,8 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 `True` or `None` is interpreted as `[0, 0, 0, 0]`.
             memo: Arbitrary dict for use by `visit_*()` functions. Default `None` (empty dict).
             hierarchy: Tuple of patterns specifying the hierarchy above the current pattern.
-                Appended to the start of the generated `visit_args['hierarchy']`.
-                Default is an empty tuple.
+                Default is (None,), which will be used as a placeholder for the top pattern's
+                name if not overridden.
 
         Returns:
             self
@@ -359,16 +359,12 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         elif transform is not False:
             transform = numpy.array(transform)
 
-        if top in hierarchy:
-            raise LibraryError('.dfs() called on pattern with circular reference')
+        original_pattern = pattern
 
-        hierarchy += (top,)
-
-        pat = self[top]
         if visit_before is not None:
-            pat = visit_before(pat, hierarchy=hierarchy, memo=memo, transform=transform)
+            pattern = visit_before(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
 
-        for ref in pat.refs:
+        for ref in pattern.refs:
             if transform is not False:
                 sign = numpy.ones(2)
                 if transform[3]:
@@ -376,32 +372,38 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
                 mirror_x, angle = normalize_mirror(ref.mirrored)
                 angle += ref.rotation
-                sp_transform = transform + (xy[0], xy[1], angle, mirror_x)
-                sp_transform[3] %= 2
+                ref_transform = transform + (xy[0], xy[1], angle, mirror_x)
+                ref_transform[3] %= 2
             else:
-                sp_transform = False
+                ref_transform = False
 
             if ref.target is None:
                 continue
+            if ref.target in hierarchy:
+                raise LibraryError(f'.dfs() called on pattern with circular reference to "{ref.target}"')
 
             self.dfs(
-                top=ref.target,
+                pattern=self[ref.target],
                 visit_before=visit_before,
                 visit_after=visit_after,
-                transform=sp_transform,
+                hierarchy=hierarchy + (ref.target,),
+                transform=ref_transform,
                 memo=memo,
-                hierarchy=hierarchy,
                 )
 
         if visit_after is not None:
-            pat = visit_after(pat, hierarchy=hierarchy, memo=memo, transform=transform)
+            pattern = visit_after(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
 
-        if self[top] is not pat:
-            if isinstance(self, MutableLibrary):
-                self._set(top, pat)
-            else:
+        if pattern is not original_pattern:
+            name = hierarchy[-1]
+            if not isintance(self, MutableLibrary):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but the library is immutable')
+            if name is None:
+                raise LibraryError('visit_* functions returned a new `Pattern` object'
+                                   ' but no top-level name was provided in `hierarchy`')
+
+            self.set_const(name, pattern)
 
         return self
 
@@ -424,7 +426,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _set(self, key: str, value: 'Pattern') -> None:
+    def set_const(self, key: str, value: 'Pattern') -> None:
         pass
 
     @abstractmethod
@@ -564,7 +566,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                 del pat.shapes[i]
 
         for ll, pp in shape_pats.items():
-            self._set(label2name(ll), pp)
+            self.set_const(label2name(ll), pp)
 
         return self
 
@@ -599,7 +601,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                     continue
 
                 name = name_func(pat, shape)
-                self._set(name, Pattern(shapes=[shape]))
+                self.set_const(name, Pattern(shapes=[shape]))
                 pat.ref(name, repetition=shape.repetition)
                 shape.repetition = None
             pat.shapes = new_shapes
@@ -610,7 +612,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                     new_labels.append(label)
                     continue
                 name = name_func(pat, label)
-                self._set(name, Pattern(labels=[label]))
+                self.set_const(name, Pattern(labels=[label]))
                 pat.ref(name, repetition=label.repetition)
                 label.repetition = None
             pat.labels = new_labels
@@ -692,7 +694,7 @@ class WrapLibrary(MutableLibrary):
     def __delitem__(self, key: str) -> None:
         del self.mapping[key]
 
-    def _set(self, key: str, value: 'Pattern') -> None:
+    def set_const(self, key: str, value: 'Pattern') -> None:
         self[key] = value
 
     def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
@@ -744,7 +746,7 @@ class LazyLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.dict)
 
-    def _set(self, key: str, value: 'Pattern') -> None:
+    def set_const(self, key: str, value: 'Pattern') -> None:
         self[key] = lambda: value
 
     def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
@@ -753,7 +755,7 @@ class LazyLibrary(MutableLibrary):
             if key in other.cache:
                 self.cache[key] = other.cache[key]
         else:
-            self._set(key, other[key])
+            self.set_const(key, other[key])
 
     def __repr__(self) -> str:
         return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'

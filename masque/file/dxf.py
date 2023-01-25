@@ -6,11 +6,8 @@ Notes:
  * ezdxf sets creation time, write time, $VERSIONGUID, and $FINGERPRINTGUID
     to unique values, so byte-for-byte reproducibility is not achievable for now
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Iterable, Mapping, TextIO
-import re
+from typing import List, Any, Dict, Tuple, Callable, Union, Mapping, TextIO
 import io
-import base64
-import struct
 import logging
 import pathlib
 import gzip
@@ -60,7 +57,7 @@ def write(
 
     Other functions you may want to call:
         - `masque.file.oasis.check_valid_names(library.keys())` to check for invalid names
-        - `library.dangling_references()` to check for references to missing patterns
+        - `library.dangling_refs()` to check for references to missing patterns
         - `pattern.polygonize()` for any patterns with shapes other
             than `masque.shapes.Polygon` or `masque.shapes.Path`
 

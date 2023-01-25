@@ -30,9 +30,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
      (via Ref). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
     """
     __slots__ = (
-        'shapes', 'labels', 'refs', 'ports',
+        'shapes', 'labels', 'refs', '_ports',
         # inherited
-        '_offset', '_annotations'
+        '_offset', '_annotations',
         )
 
     shapes: List[Shape]
@@ -49,8 +49,16 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
       (i.e. multiple instances of the same object).
     """
 
-    ports: Dict[str, Port]
+    _ports: Dict[str, Port]
     """ Uniquely-named ports which can be used to snap to other Pattern instances"""
+
+    @property
+    def ports(self) -> Dict[str, Port]:
+        return self._ports
+
+    @ports.setter
+    def ports(self, value: Dict[str, Port]) -> None:
+        self._ports = value
 
     def __init__(
             self,
@@ -331,7 +339,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def translate_elements(self: P, offset: ArrayLike) -> P:
         """
-        Translates all shapes, label, and refs by the given offset.
+        Translates all shapes, label, refs, and ports by the given offset.
 
         Args:
             offset: (x, y) to translate by
@@ -339,7 +347,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
             cast(Positionable, entry).translate(offset)
         return self
 
@@ -360,7 +368,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
     def scale_by(self: P, c: float) -> P:
         """
         Scale this Pattern by the given value
-         (all shapes and refs and their offsets are scaled)
+         (all shapes and refs and their offsets are scaled,
+          as are all label and port offsets)
 
         Args:
             c: factor to scale by
@@ -407,7 +416,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
 
     def rotate_element_centers(self: P, rotation: float) -> P:
         """
-        Rotate the offsets of all shapes, labels, and refs around (0, 0)
+        Rotate the offsets of all shapes, labels, refs, and ports around (0, 0)
 
         Args:
             rotation: Angle to rotate by (counter-clockwise, radians)
@@ -415,14 +424,14 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
             old_offset = cast(Positionable, entry).offset
             cast(Positionable, entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
         return self
 
     def rotate_elements(self: P, rotation: float) -> P:
         """
-        Rotate each shape and refs around its center (offset)
+        Rotate each shape, ref, and port around its origin (offset)
 
         Args:
             rotation: Angle to rotate by (counter-clockwise, radians)
@@ -430,54 +439,54 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs):
+        for entry in chain(self.shapes, self.refs, self.ports.values()):
             cast(Rotatable, entry).rotate(rotation)
         return self
 
-    def mirror_element_centers(self: P, axis: int) -> P:
+    def mirror_element_centers(self: P, across_axis: int) -> P:
         """
         Mirror the offsets of all shapes, labels, and refs across an axis
 
         Args:
-            axis: Axis to mirror across
+            across_axis: Axis to mirror across
                 (0: mirror across x axis, 1: mirror across y axis)
 
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports):
-            cast(Positionable, entry).offset[axis - 1] *= -1
+        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
+            cast(Positionable, entry).offset[across_axis - 1] *= -1
         return self
 
-    def mirror_elements(self: P, axis: int) -> P:
+    def mirror_elements(self: P, across_axis: int) -> P:
         """
-        Mirror each shape and refs across an axis, relative to its
-          offset
+        Mirror each shape, ref, and pattern across an axis, relative
+          to its offset
 
         Args:
-            axis: Axis to mirror across
+            across_axis: Axis to mirror across
                 (0: mirror across x axis, 1: mirror across y axis)
 
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs):
-            cast(Mirrorable, entry).mirror(axis)
+        for entry in chain(self.shapes, self.refs, self.ports.values()):
+            cast(Mirrorable, entry).mirror(across_axis)
         return self
 
-    def mirror(self: P, axis: int) -> P:
+    def mirror(self: P, across_axis: int) -> P:
         """
         Mirror the Pattern across an axis
 
         Args:
-            axis: Axis to mirror across
+            across_axis: Axis to mirror across
                 (0: mirror across x axis, 1: mirror across y axis)
 
         Returns:
             self
         """
-        self.mirror_elements(axis)
-        self.mirror_element_centers(axis)
+        self.mirror_elements(across_axis)
+        self.mirror_element_centers(across_axis)
         return self
 
     def copy(self: P) -> P:
