@@ -78,7 +78,7 @@ def build(
 
     Other functions you may want to call:
         - `masque.file.oasis.check_valid_names(library.keys())` to check for invalid names
-        - `library.dangling_references()` to check for references to missing patterns
+        - `library.dangling_refs()` to check for references to missing patterns
         - `pattern.polygonize()` for any patterns with shapes other
             than `masque.shapes.Polygon`, `masque.shapes.Path`, or `masque.shapes.Circle`
 

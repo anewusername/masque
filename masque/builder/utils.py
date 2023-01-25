@@ -10,11 +10,11 @@ from ..utils import rotation_matrix_2d
 from ..error import BuildError
 
 if TYPE_CHECKING:
-    from ..ports import Port, PortList
+    from ..ports import Port
 
 
 def ell(
-        ports: Union[Mapping[str, 'Port'], 'PortList'],
+        ports: Mapping[str, 'Port'],
         ccw: Optional[bool],
         bound_type: str,
         bound: Union[float, ArrayLike],
@@ -82,9 +82,6 @@ def ell(
     """
     if not ports:
         raise BuildError('Empty port list passed to `ell()`')
-
-    if isinstance(ports, PortList):
-        ports = PortList.ports
 
     if ccw is None:
         if spacing is not None and not numpy.isclose(spacing, 0):

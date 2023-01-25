@@ -5,10 +5,11 @@ Functions for writing port data into a Pattern (`dev2pat`) and retrieving it (`p
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence, Optional, Mapping
+from typing import Sequence, Optional, Mapping, Tuple, Dict
 import logging
 
 import numpy
+from numpy.typing import NDArray
 
 from ..pattern import Pattern
 from ..label import Label
@@ -50,13 +51,16 @@ def dev2pat(pattern: Pattern, layer: layer_t) -> Pattern:
 
 
 def pat2dev(
-        library: Mapping[str, Pattern],
-        top: str,
         layers: Sequence[layer_t],
+        library: Mapping[str, Pattern],
+        pattern: Pattern,
+        name: Optional[str] = None,
         max_depth: int = 999_999,
         skip_subcells: bool = True,
         ) -> Pattern:
     """
+    # TODO fixup documentation in port_utils
+    # TODO move port_utils to utils.file?
     Examine `pattern` for labels specifying port info, and use that info
       to fill out its `ports` attribute.
 
@@ -64,8 +68,8 @@ def pat2dev(
       'name:ptype angle_deg'
 
     Args:
-        pattern: Pattern object to scan for labels.
         layers: Search for labels on all the given layers.
+        pattern: Pattern object to scan for labels.
         max_depth: Maximum hierarcy depth to search. Default 999_999.
             Reduce this to 0 to avoid ever searching subcells.
         skip_subcells: If port labels are found at a given hierarcy level,
@@ -73,52 +77,51 @@ def pat2dev(
             to contain their own port info without interfering with supercells'
             port data.
             Default True.
+        blacklist: If a cell name appears in the blacklist, do not ea
 
     Returns:
         The updated `pattern`. Port labels are not removed.
     """
+    print(f'TODO pat2dev {name}')
+    if pattern.ports:
+        logger.warning(f'Pattern {name if name else pattern} already had ports, skipping pat2dev')
+        return pattern
+
     if not isinstance(library, Library):
         library = WrapROLibrary(library)
 
-    ports = {}
-    annotated_cells = set()
+    pat2dev_flat(layers, pattern, name)
+    if (skip_subcells and pattern.ports) or max_depth == 0:
+        return pattern
 
-    def find_ports_each(pat, hierarchy, transform, memo) -> Pattern:
-        if len(hierarchy) > max_depth:
-            if max_depth >= 999_999:
-                logger.warning(f'pat2dev reached max depth ({max_depth})')
-            return pat
+    # Load ports for all subpatterns
+    for target in set(rr.target for rr in pat.refs):
+        pp = pat2dev(
+            layers=layers,
+            library=library,
+            pattern=library[target],
+            name=target,
+            max_depth=max_depth-1,
+            skip_subcells=skip_subcells,
+            blacklist=blacklist + {name},
+            )
+        found_ports |= bool(pp.ports)
 
-        if skip_subcells and any(parent in annotated_cells for parent in hierarchy):
-            return pat
+    for ref in pat.refs:
+        aa = library.abstract(ref.target)
+        if not aa.ports:
+            continue
 
-        cell_name = hierarchy[-1]
-        pat2dev_flat(pat, cell_name)
+        aa.apply_ref_transform(ref)
 
-        if skip_subcells:
-            annotated_cells.add(cell_name)
-
-        mirr_factor = numpy.array((1, -1)) ** transform[3]
-        rot_matrix = rotation_matrix_2d(transform[2])
-        for name, port in pat.ports.items():
-            port.offset = transform[:2] + rot_matrix @ (port.offset * mirr_factor)
-            port.rotation = port.rotation * mirr_factor[0] * mirr_factor[1] + transform[2]
-            ports[name] = port
-
-        return pat
-
-    # update `ports`
-    library.dfs(top=top, visit_before=find_ports_each, transform=True)
-
-    pattern = library[top]
-    pattern.check_ports(other_names=ports.keys())
-    pattern.ports.update(ports)
+        pattern.check_ports(other_names=aa.ports.keys())
+        pattern.ports.update(aa.ports)
     return pattern
 
 
 def pat2dev_flat(
-        pattern: Pattern,
         layers: Sequence[layer_t],
+        pattern: Pattern,
         cell_name: Optional[str] = None,
         ) -> Pattern:
     """
@@ -131,8 +134,8 @@ def pat2dev_flat(
     The pattern is assumed to be flat (have no `refs`) and have no pre-existing ports.
 
     Args:
-        pattern: Pattern object to scan for labels.
         layers: Search for labels on all the given layers.
+        pattern: Pattern object to scan for labels.
         cell_name: optional, used for warning message only
 
     Returns:

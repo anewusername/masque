@@ -29,8 +29,11 @@ def triangular_lattice(
     Returns:
         `[[x0, y0], [x1, 1], ...]` denoting lattice sites.
     """
-    sx, sy = numpy.meshgrid(numpy.arange(dims[0], dtype=float),
-                            numpy.arange(dims[1], dtype=float), indexing='ij')
+    sx, sy = numpy.meshgrid(
+        numpy.arange(dims[0], dtype=float),
+        numpy.arange(dims[1], dtype=float),
+        indexing='ij',
+        )
 
     sx[sy % 2 == 1] += 0.5
     sy *= numpy.sqrt(3) / 2

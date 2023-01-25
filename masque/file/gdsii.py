@@ -19,8 +19,8 @@ Notes:
  * GDS creation/modification/access times are set to 1900-01-01 for reproducibility.
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
-from typing import BinaryIO, Mapping, cast
+from typing import List, Dict, Tuple, Callable, Union, Iterable, Mapping
+from typing import BinaryIO, cast, Optional, Any
 import io
 import mmap
 import logging
@@ -39,7 +39,7 @@ from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import layer_t, normalize_mirror, annotations_t
-from ..library import LazyLibrary, WrapLibrary, MutableLibrary
+from ..library import LazyLibrary, WrapLibrary, MutableLibrary, Library
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def write(
 
     Other functions you may want to call:
         - `masque.file.gdsii.check_valid_names(library.keys())` to check for invalid names
-        - `library.dangling_references()` to check for references to missing patterns
+        - `library.dangling_refs()` to check for references to missing patterns
         - `pattern.polygonize()` for any patterns with shapes other
             than `masque.shapes.Polygon` or `masque.shapes.Path`
 
@@ -188,6 +188,7 @@ def read(
         raw_mode: bool = True,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
+    # TODO check GDSII file for cycles!
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
      translated into Pattern objects; boundaries are translated into polygons, and srefs and arefs
      are translated into Ref objects.
@@ -511,6 +512,7 @@ def load_library(
         stream: BinaryIO,
         *,
         full_load: bool = False,
+        postprocess: Optional[Callable[[Library, str, Pattern], Pattern]] = None
         ) -> Tuple[LazyLibrary, Dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
@@ -526,6 +528,8 @@ def load_library(
         full_load: If True, force all structures to be read immediately rather
             than as-needed. Since data is read sequentially from the file, this
             will be faster than using the resulting library's `precache` method.
+        postprocess: If given, this function is used to post-process each
+            pattern *upon first load only*.
 
     Returns:
         LazyLibrary object, allowing for deferred load of structures.
@@ -548,9 +552,14 @@ def load_library(
     for name_bytes, pos in structs.items():
         name = name_bytes.decode('ASCII')
 
-        def mkstruct(pos: int = pos) -> Pattern:
+        def mkstruct(pos: int = pos, name: str = name) -> Pattern:
+            logger.error(f'mkstruct {name} @ {pos:x}')
             stream.seek(pos)
-            return read_elements(stream, raw_mode=True)
+            pat = read_elements(stream, raw_mode=True)
+            if postprocess is not None:
+                pat = postprocess(lib, name, pat)
+                logger.error(f'mkstruct post {name} @ {pos:x}')
+            return pat
 
         lib[name] = mkstruct
 
@@ -562,6 +571,7 @@ def load_libraryfile(
         *,
         use_mmap: bool = True,
         full_load: bool = False,
+        postprocess: Optional[Callable[[Library, str], Pattern]] = None
         ) -> Tuple[LazyLibrary, Dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.
@@ -578,6 +588,7 @@ def load_libraryfile(
                   is decompressed into a python `bytes` object in memory
                   and reopened as an `io.BytesIO` stream.
         full_load: If `True`, immediately loads all data. See `load_library`.
+        postprocess: Passed to `load_library`
 
     Returns:
         LazyLibrary object, allowing for deferred load of structures.
@@ -599,7 +610,7 @@ def load_libraryfile(
             stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)    # type: ignore
         else:
             stream = open(path, mode='rb')
-    return load_library(stream, full_load=full_load)
+    return load_library(stream, full_load=full_load, postprocess=postprocess)
 
 
 def check_valid_names(

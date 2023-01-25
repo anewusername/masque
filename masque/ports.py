@@ -4,7 +4,7 @@ import warnings
 import traceback
 import logging
 from collections import Counter
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 
 import numpy
 from numpy import pi
@@ -103,10 +103,18 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
 
 
 class PortList(metaclass=ABCMeta):
-    __slots__ = ()      # For use with AutoSlots
+    __slots__ = ()      # Allow subclasses to use __slots__
 
-    ports: Dict[str, Port]
-    """ Uniquely-named ports which can be used to snap to other Device instances"""
+    @property
+    @abstractmethod
+    def ports(self) -> Dict[str, Port]:
+        """ Uniquely-named ports which can be used to snap to other Device instances"""
+        pass
+
+    @ports.setter
+    @abstractmethod
+    def ports(self, value: Dict[str, Port]) -> None:
+        pass
 
     @overload
     def __getitem__(self, key: str) -> Port:
