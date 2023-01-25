@@ -53,7 +53,9 @@ def dev2pat(pattern: Pattern, layer: layer_t) -> Pattern:
 def pat2dev(
         layers: Sequence[layer_t],
         library: Mapping[str, Pattern],
-        pattern: Pattern,
+        pattern: Pattern,               # Pattern is good since we don't want to do library[name] to avoid infinite recursion.
+                                        # LazyLibrary protects against library[ref.target] causing a circular lookup.
+                                        # For others, maybe check for cycles up front? TODO
         name: Optional[str] = None,
         max_depth: int = 999_999,
         skip_subcells: bool = True,
@@ -94,20 +96,24 @@ def pat2dev(
     if (skip_subcells and pattern.ports) or max_depth == 0:
         return pattern
 
-    # Load ports for all subpatterns
-    for target in set(rr.target for rr in pat.refs):
+    # Load ports for all subpatterns, and use any we find
+    found_ports = False
+    for target in set(rr.target for rr in pattern.refs):
         pp = pat2dev(
             layers=layers,
             library=library,
             pattern=library[target],
             name=target,
-            max_depth=max_depth-1,
+            max_depth=max_depth - 1,
             skip_subcells=skip_subcells,
             blacklist=blacklist + {name},
             )
         found_ports |= bool(pp.ports)
 
-    for ref in pat.refs:
+    if not found_ports:
+        return pattern
+
+    for ref in pattern.refs:
         aa = library.abstract(ref.target)
         if not aa.ports:
             continue

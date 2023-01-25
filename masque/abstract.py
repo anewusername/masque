@@ -1,9 +1,12 @@
-from typing import Dict
+from typing import Dict, TypeVar
 #from typing import Union, Optional, MutableMapping, TYPE_CHECKING
 import copy
 import logging
 
+from numpy.typing import ArrayLike
+
 #from .pattern import Pattern
+from .ref import Ref
 from .ports import PortList, Port
 
 #if TYPE_CHECKING:
