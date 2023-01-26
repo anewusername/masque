@@ -434,7 +434,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
     def name_and_set(
             self,
-            base_name: str
+            base_name: str,
             value: Union['Pattern', Callable[[], 'Pattern']],
             ) -> str:
         """
