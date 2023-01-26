@@ -413,6 +413,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
+    #def __setitem__(self, key: str, value: 'Pattern') -> None:
+    #def __delitem__(self, key: str) -> None:
 
     @abstractmethod
     def __setitem__(
