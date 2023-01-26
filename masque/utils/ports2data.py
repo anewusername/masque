@@ -1,5 +1,6 @@
 """
-Functions for writing port data into a Pattern (`dev2pat`) and retrieving it (`pat2dev`).
+Functions for writing port data into Pattern geometry/annotations/labels (`ports_to_data`)
+and retrieving it (`data_to_ports`).
 
   These use the format 'name:ptype angle_deg' written into labels, which are placed at
 the port locations. This particular approach is just a sensible default; feel free to
@@ -21,7 +22,7 @@ from ..library import Library, WrapROLibrary
 logger = logging.getLogger(__name__)
 
 
-def dev2pat(pattern: Pattern, layer: layer_t) -> Pattern:
+def ports_to_data(pattern: Pattern, layer: layer_t) -> Pattern:
     """
     Place a text label at each port location, specifying the port data in the format
         'name:ptype angle_deg'
@@ -49,7 +50,7 @@ def dev2pat(pattern: Pattern, layer: layer_t) -> Pattern:
     return pattern
 
 
-def pat2dev(
+def data_to_ports(
         layers: Sequence[layer_t],
         library: Mapping[str, Pattern],
         pattern: Pattern,               # Pattern is good since we don't want to do library[name] to avoid infinite recursion.
@@ -84,13 +85,13 @@ def pat2dev(
     """
     print(f'TODO pat2dev {name}')
     if pattern.ports:
-        logger.warning(f'Pattern {name if name else pattern} already had ports, skipping pat2dev')
+        logger.warning(f'Pattern {name if name else pattern} already had ports, skipping data_to_ports')
         return pattern
 
     if not isinstance(library, Library):
         library = WrapROLibrary(library)
 
-    pat2dev_flat(layers, pattern, name)
+    data_to_ports_flat(layers, pattern, name)
     if (skip_subcells and pattern.ports) or max_depth == 0:
         return pattern
 
@@ -99,7 +100,7 @@ def pat2dev(
     for target in set(rr.target for rr in pattern.refs):
         if target is None:
             continue
-        pp = pat2dev(
+        pp = data_to_ports(
             layers=layers,
             library=library,
             pattern=library[target],
@@ -126,7 +127,7 @@ def pat2dev(
     return pattern
 
 
-def pat2dev_flat(
+def data_to_ports_flat(
         layers: Sequence[layer_t],
         pattern: Pattern,
         cell_name: Optional[str] = None,
