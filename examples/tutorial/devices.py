@@ -8,7 +8,7 @@ from masque import (
     layer_t, Pattern, Ref, Label, Builder, Port, Polygon,
     WrapLibrary, Library,
     )
-from masque.builder import port_utils
+from masque.utils import ports2data
 from masque.file.gdsii import writefile, check_valid_names
 
 import pcgen
@@ -20,20 +20,20 @@ LATTICE_CONSTANT = 512
 RADIUS = LATTICE_CONSTANT / 2 * 0.75
 
 
-def dev2pat(dev: Pattern) -> Pattern:
+def ports_to_data(pat: Pattern) -> Pattern:
     """
     Bake port information into the pattern.
     This places a label at each port location on layer (3, 0) with text content
       'name:ptype angle_deg'
     """
-    return port_utils.dev2pat(dev, layer=(3, 0))
+    return ports2data.ports_to_data(pat, layer=(3, 0))
 
 
-def pat2dev(lib: Mapping[str, Pattern], name: str, pat: Pattern) -> Pattern:
+def data_to_ports(lib: Mapping[str, Pattern], name: str, pat: Pattern) -> Pattern:
     """
-    Scans the Pattern to determine port locations. Same format as `dev2pat`
+    Scans the Pattern to determine port locations. Same port format as `ports_to_data`
     """
-    return port_utils.pat2dev(layers=[(3, 0)], library=lib, pattern=pat, name=name)
+    return ports2data.data_to_ports(layers=[(3, 0)], library=lib, pattern=pat, name=name)
 
 
 def perturbed_l3(
@@ -103,7 +103,7 @@ def perturbed_l3(
         output=Port((extent, 0), rotation=pi, ptype='pcwg'),
         )
 
-    dev2pat(pat)
+    ports_to_data(pat)
     return pat
 
 
@@ -142,8 +142,8 @@ def waveguide(
         left=Port((-extent, 0), rotation=0, ptype='pcwg'),
         right=Port((extent, 0), rotation=pi, ptype='pcwg'),
         )
-    dev2pat(pat)
-    print(pat)
+
+    ports_to_data(pat)
     return pat
 
 
@@ -183,7 +183,7 @@ def bend(
                     extent * numpy.sqrt(3) / 2),
                    rotation=pi * 4 / 3, ptype='pcwg'),
         )
-    dev2pat(pat)
+    ports_to_data(pat)
     return pat
 
 
@@ -222,7 +222,7 @@ def y_splitter(
         'bot': Port((extent / 2, -extent * numpy.sqrt(3) / 2), rotation=pi * 2 / 3, ptype='pcwg'),
         }
 
-    dev2pat(pat)
+    ports_to_data(pat)
     return pat
 
 
@@ -311,7 +311,7 @@ def main(interactive: bool = True) -> None:
     # We can also add text labels for our circuit's ports.
     #   They will appear at the uppermost hierarchy level, while the individual
     # device ports will appear further down, in their respective cells.
-    dev2pat(circ.pattern)
+    ports_to_data(circ.pattern)
 
     # Add the pattern into our library
     lib['my_circuit'] = circ.pattern

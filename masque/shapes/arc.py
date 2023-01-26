@@ -7,12 +7,12 @@ from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
-from .. import PatternError
+from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, layer_t, annotations_t
 
 
-class Arc(Shape, metaclass=AutoSlots):
+class Arc(Shape):
     """
     An elliptical arc, formed by cutting off an elliptical ring with two rays which exit from its
      center. It has a position, two radii, a start and stop angle, a rotation, and a width.
