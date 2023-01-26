@@ -432,6 +432,26 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
         pass
 
+    def name_and_set(
+            self,
+            base_name: str
+            value: Union['Pattern', Callable[[], 'Pattern']],
+            ) -> str:
+        """
+        Convenience method which finds a suitable name for the provided
+        pattern, adds it with that name, and returns the name.
+
+        Args:
+            base_name: Prefix used when naming the pattern
+            value: The pattern (or callable used to generate it)
+
+        Returns:
+            The name of the pattern.
+        """
+        name = self.get_name(base_name)
+        self[name] = value
+        return name
+
     def add(
             self: ML,
             other: Mapping[str, 'Pattern'],
