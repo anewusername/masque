@@ -432,6 +432,21 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
         pass
 
+    def rename(self: ML, old_name: str, new_name: str) -> ML:
+        """
+        Rename a pattern.
+
+        Args:
+            old_name: Current name for the pattern
+            new_name: New name for the pattern
+
+        Returns:
+            self
+        """
+        self[new_name] = self[old_name]
+        del self[old_name]
+        return self
+
     def name_and_set(
             self,
             base_name: str,
@@ -809,6 +824,23 @@ class LazyLibrary(MutableLibrary):
 
     def __repr__(self) -> str:
         return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'
+
+    def rename(self: LL, old_name: str, new_name: str) -> LL:
+        """
+        Rename a pattern.
+
+        Args:
+            old_name: Current name for the pattern
+            new_name: New name for the pattern
+
+        Returns:
+            self
+        """
+        self[new_name] = self.dict[old_name]        # copy over function
+        if old_name in self.cache:
+            self.cache[new_name] = self.cache[old_name]
+        del self[old_name]
+        return self
 
     def precache(self: LL) -> LL:
         """
