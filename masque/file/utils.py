@@ -1,9 +1,13 @@
 """
 Helper functions for file reading and writing
 """
+from typing import Union, IO, Iterator
 import re
 import pathlib
 import logging
+import tempfile
+import shutil
+from contextlib import contextmanager
 
 from .. import Pattern, PatternError
 from ..shapes import Polygon, Path
@@ -55,3 +59,23 @@ def is_gzipped(path: pathlib.Path) -> bool:
     with open(path, 'rb') as stream:
         magic_bytes = stream.read(2)
         return magic_bytes == b'\x1f\x8b'
+
+
+@contextmanager
+def tmpfile(path: Union[str, pathlib.Path]) -> Iterator[IO[bytes]]:
+    """
+    Context manager which allows you to write to a temporary file,
+    and move that file into its final location only after the write
+    has finished.
+    """
+    path = pathlib.Path(path)
+    suffixes = ''.join(path.suffixes)
+    with tempfile.NamedTemporaryFile(suffix=suffixes, delete=False) as tmp_stream:
+        yield tmp_stream
+
+    try:
+        shutil.move(tmp_stream.name, path)
+    finally:
+        pathlib.Path(tmp_stream.name).unlink(missing_ok=True)
+
+

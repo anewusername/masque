@@ -15,7 +15,7 @@ Notes:
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
 from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
-from typing import BinaryIO, Mapping, Optional, cast, Sequence
+from typing import IO, Mapping, Optional, cast, Sequence
 import logging
 import pathlib
 import gzip
@@ -28,7 +28,7 @@ import fatamorgana
 import fatamorgana.records as fatrec
 from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringReference
 
-from .utils import is_gzipped
+from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..library import WrapLibrary, MutableLibrary
 from ..shapes import Polygon, Path, Circle
@@ -150,7 +150,7 @@ def build(
 
 def write(
         library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
-        stream: BinaryIO,
+        stream: IO[bytes],
         *args,
         **kwargs,
         ) -> None:
@@ -187,19 +187,19 @@ def writefile(
     """
     path = pathlib.Path(filename)
 
-    base_stream = open(path, mode='wb')
-    streams: Tuple[Any, ...] = (base_stream,)
-    if path.suffix == '.gz':
-        stream = cast(BinaryIO, gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
-        streams += (stream,)
-    else:
-        stream = base_stream
+    with tmpfile(path) as base_stream:
+        streams: Tuple[Any, ...] = (base_stream,)
+        if path.suffix == '.gz':
+            stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+            streams += (stream,)
+        else:
+            stream = base_stream
 
-    try:
-        write(library, stream, *args, **kwargs)
-    finally:
-        for ss in streams:
-            ss.close()
+        try:
+            write(library, stream, *args, **kwargs)
+        finally:
+            for ss in streams:
+                ss.close()
 
 
 def readfile(
@@ -229,7 +229,7 @@ def readfile(
 
 
 def read(
-        stream: BinaryIO,
+        stream: IO[bytes],
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
