@@ -13,9 +13,9 @@ from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
-from .shapes import Shape
+from .shapes import Shape, Polygon
 from .label import Label
-from .utils import rotation_matrix_2d, AutoSlots, annotations_t
+from .utils import rotation_matrix_2d, annotations_t
 from .error import PatternError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable
 from .ports import Port, PortList
@@ -24,7 +24,7 @@ from .ports import Port, PortList
 P = TypeVar('P', bound='Pattern')
 
 
-class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
+class Pattern(PortList, AnnotatableImpl, Mirrorable):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
      (via Ref). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
@@ -532,6 +532,21 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable, metaclass=AutoSlots):
             self
         """
         self.refs.append(Ref(*args, **kwargs))
+        return self
+
+    def rect(self: P, *args: Any, **kwargs: Any) -> P:
+        """
+        Convenience function which calls `Polygon.rect` to construct a
+         rectangle and adds it to this pattern.
+
+        Args:
+            *args: Passed to `Polygon.rect()`
+            **kwargs: Passed to `Polygon.rect()`
+
+        Returns:
+            self
+        """
+        self.shapes.append(Polygon.rect(*args, **kwargs))
         return self
 
     def flatten(

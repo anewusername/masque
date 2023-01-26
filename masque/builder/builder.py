@@ -13,6 +13,7 @@ from ..library import MutableLibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
+from ..utils import SupportsBool
 from .tools import Tool
 from .utils import ell
 
@@ -148,7 +149,7 @@ class Builder(PortList):
     @classmethod
     def interface(
             cls,
-            source: Union[PortList, Mapping[str, Port]],
+            source: Union[PortList, Mapping[str, Port], str],
             *,
             library: Optional[MutableLibrary] = None,
             tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
@@ -215,7 +216,9 @@ class Builder(PortList):
         if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
             tools = source.tools
 
-        if isinstance(source, PortList):
+        if isinstance(source, str):
+            orig_ports = library.abstract(source).ports
+        elif isinstance(source, PortList):
             orig_ports = source.ports
         elif isinstance(source, dict):
             orig_ports = source
@@ -250,7 +253,7 @@ class Builder(PortList):
 
     def plug(
             self: BB,
-            other: Abstract,
+            other: Union[Abstract, str],
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
@@ -280,7 +283,7 @@ class Builder(PortList):
             having to provide `map_out` each time `plug` is called.
 
         Args:
-            other: A `DeviceRef` describing the device to be instatiated.
+            other: An `Abstract` describing the device to be instatiated.
             map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
@@ -315,6 +318,9 @@ class Builder(PortList):
             logger.error('Skipping plug() since device is dead')
             return self
 
+        if isinstance(other, str):
+            other = self.library.abstract(other)
+
         if (inherit_name
                 and not map_out
                 and len(map_in) == 1
@@ -345,7 +351,7 @@ class Builder(PortList):
 
     def place(
             self: BB,
-            other: Abstract,
+            other: Union[Abstract, str],
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -369,7 +375,7 @@ class Builder(PortList):
             rather than the port name on the original `pad` device.
 
         Args:
-            other: A `DeviceRef` describing the device to be instatiated.
+            other: An `Abstract` describing the device to be instatiated.
             offset: Offset at which to place the instance. Default (0, 0).
             rotation: Rotation applied to the instance before placement. Default 0.
             pivot: Rotation is applied around this pivot point (default (0, 0)).
@@ -394,6 +400,9 @@ class Builder(PortList):
         if self._dead:
             logger.error('Skipping place() since device is dead')
             return self
+
+        if isinstance(other, str):
+            other = self.library.abstract(other)
 
         if port_map is None:
             port_map = {}
@@ -508,7 +517,7 @@ class Builder(PortList):
     def path(
             self: BB,
             portspec: str,
-            ccw: Optional[bool],
+            ccw: Optional[SupportsBool],
             length: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -529,7 +538,7 @@ class Builder(PortList):
     def path_to(
             self: BB,
             portspec: str,
-            ccw: Optional[bool],
+            ccw: Optional[SupportsBool],
             position: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -563,7 +572,7 @@ class Builder(PortList):
     def mpath(
             self: BB,
             portspec: Union[str, Sequence[str]],
-            ccw: Optional[bool],
+            ccw: Optional[SupportsBool],
             *,
             spacing: Optional[Union[float, ArrayLike]] = None,
             set_rotation: Optional[float] = None,
@@ -611,4 +620,13 @@ class Builder(PortList):
 
     # TODO def path_join() and def bus_join()?
 
+    def flatten(self: BB) -> BB:
+        """
+        Flatten the contained pattern, using the contained library to resolve references.
+
+        Returns:
+            self
+        """
+        self.pattern.flatten(self.library)
+        return self
 

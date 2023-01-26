@@ -11,7 +11,7 @@ from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
 from .traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
-from .utils import AutoSlots, rotate_offsets_around
+from .utils import rotate_offsets_around
 from .error import PortError
 
 
@@ -23,7 +23,7 @@ PL  = TypeVar('PL',  bound='PortList')
 PL2 = TypeVar('PL2', bound='PortList')
 
 
-class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, metaclass=AutoSlots):
+class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     """
     A point at which a `Device` can be snapped to another `Device`.
 
@@ -37,7 +37,11 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable, met
 
     The `ptype` is an arbitrary string, default of `unk` (unknown).
     """
-    __slots__ = ('ptype', '_rotation')
+    __slots__ = (
+        'ptype', '_rotation',
+        # inherited:
+        '_offset',
+        )
 
     _rotation: Optional[float]
     """ radians counterclockwise from +x, pointing into device body.

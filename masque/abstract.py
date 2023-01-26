@@ -3,11 +3,13 @@ from typing import Dict, TypeVar
 import copy
 import logging
 
+import numpy
 from numpy.typing import ArrayLike
 
 #from .pattern import Pattern
 from .ref import Ref
 from .ports import PortList, Port
+from .utils import rotation_matrix_2d, normalize_mirror
 
 #if TYPE_CHECKING:
 #    from .builder import Builder, Tool
@@ -203,7 +205,7 @@ class Abstract(PortList):
         Returns:
             self
         """
-        mirror_across_x, angle = normalize_mirror(ref.mirrored)
+        mirrored_across_x, angle = normalize_mirror(ref.mirrored)
         if mirrored_across_x:
             self.mirror(across_axis=0)
         self.rotate_ports(angle + ref.rotation)
@@ -224,7 +226,7 @@ class Abstract(PortList):
 
         # TODO test undo_ref_transform
         """
-        mirror_across_x, angle = normalize_mirror(ref.mirrored)
+        mirrored_across_x, angle = normalize_mirror(ref.mirrored)
         self.translate_ports(-ref.offset)
         self.rotate_port_offsets(-angle - ref.rotation)
         self.rotate_ports(-angle - ref.rotation)

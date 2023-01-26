@@ -3,6 +3,8 @@ Tools are objects which dynamically generate simple single-use devices (e.g. wir
 """
 from typing import TYPE_CHECKING, Optional, Sequence
 
+from ..utils import SupportsBool
+
 if TYPE_CHECKING:
     from ..pattern import Pattern
 
@@ -10,7 +12,7 @@ if TYPE_CHECKING:
 class Tool:
     def path(
             self,
-            ccw: Optional[bool],
+            ccw: Optional[SupportsBool],
             length: float,
             *,
             in_ptype: Optional[str] = None,

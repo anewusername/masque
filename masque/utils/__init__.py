@@ -1,7 +1,7 @@
 """
 Various helper functions, type definitions, etc.
 """
-from .types import layer_t, annotations_t
+from .types import layer_t, annotations_t, SupportsBool
 
 from .array import is_scalar
 from .autoslots import AutoSlots
