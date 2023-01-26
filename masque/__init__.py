@@ -38,6 +38,7 @@ from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLi
 from .ports import Port, PortList
 from .abstract import Abstract
 from .builder import Builder, Tool
+from .utils import ports2data
 
 
 __author__ = 'Jan Petykiewicz'
