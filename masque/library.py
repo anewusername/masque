@@ -5,7 +5,7 @@ Library classes for managing unique name->pattern mappings and
 # TODO documentn all library classes
 # TODO toplevel documentation of library, classes, and abstracts
 """
-from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING, cast
+from typing import List, Dict, Callable, TypeVar, Type, TYPE_CHECKING, cast
 from typing import Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
 import logging
 import base64
@@ -403,30 +403,27 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but no top-level name was provided in `hierarchy`')
 
-            cast(MutableLibrary, self).set_const(name, pattern)
+            cast(MutableLibrary, self)[name] = pattern
 
         return self
 
 
-VVV = TypeVar('VVV')
-
-
-class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
+class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
 
     @abstractmethod
-    def __setitem__(self, key: str, value: VVV) -> None:
+    def __setitem__(
+            self,
+            key: str,
+            value: Union['Pattern', Callable[[], 'Pattern']],
+            ) -> None:
         pass
 
     @abstractmethod
     def __delitem__(self, key: str) -> None:
-        pass
-
-    @abstractmethod
-    def set_const(self, key: str, value: 'Pattern') -> None:
         pass
 
     @abstractmethod
@@ -566,7 +563,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                 del pat.shapes[i]
 
         for ll, pp in shape_pats.items():
-            self.set_const(label2name(ll), pp)
+            self[label2name(ll)] = pp
 
         return self
 
@@ -601,7 +598,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                     continue
 
                 name = name_func(pat, shape)
-                self.set_const(name, Pattern(shapes=[shape]))
+                self[name] = Pattern(shapes=[shape])
                 pat.ref(name, repetition=shape.repetition)
                 shape.repetition = None
             pat.shapes = new_shapes
@@ -612,7 +609,7 @@ class MutableLibrary(Library, Generic[VVV], metaclass=ABCMeta):
                     new_labels.append(label)
                     continue
                 name = name_func(pat, label)
-                self.set_const(name, Pattern(labels=[label]))
+                self[name] = Pattern(labels=[label])
                 pat.ref(name, repetition=label.repetition)
                 label.repetition = None
             pat.labels = new_labels
@@ -688,14 +685,22 @@ class WrapLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.mapping)
 
-    def __setitem__(self, key: str, value: 'Pattern') -> None:
+    def __setitem__(
+            self,
+            key: str,
+            value: Union['Pattern', Callable[[], 'Pattern']],
+            ) -> None:
+        if key in self.mapping:
+            raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
+
+        if callable(value):
+            value = value()
+        else:
+            value = value
         self.mapping[key] = value
 
     def __delitem__(self, key: str) -> None:
         del self.mapping[key]
-
-    def set_const(self, key: str, value: 'Pattern') -> None:
-        self[key] = value
 
     def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
         self[key] = other[key]
@@ -721,8 +726,20 @@ class LazyLibrary(MutableLibrary):
         self.cache = {}
         self._lookups_in_progress = set()
 
-    def __setitem__(self, key: str, value: Callable[[], 'Pattern']) -> None:
-        self.dict[key] = value
+    def __setitem__(
+            self,
+            key: str,
+            value: Union['Pattern', Callable[[], 'Pattern']],
+            ) -> None:
+        if key in self.dict:
+            raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
+
+        if callable(value):
+            value_func = value
+        else:
+            value_func = lambda: cast('Pattern', value)      # noqa: E731
+
+        self.dict[key] = value_func
         if key in self.cache:
             del self.cache[key]
 

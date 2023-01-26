@@ -532,7 +532,7 @@ class Builder(PortList):
         in_ptype = self.pattern[portspec].ptype
         pat = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
         name = self.library.get_name(base_name)
-        self.library.set_const(name, pat)
+        self.library[name] = pat
         return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
@@ -615,7 +615,7 @@ class Builder(PortList):
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
-            self.library.set_const(name, bld.pattern)
+            self.library[name] = bld.pattern
             return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
     # TODO def path_join() and def bus_join()?
