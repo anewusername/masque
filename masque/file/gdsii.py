@@ -20,7 +20,7 @@ Notes:
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
 from typing import List, Dict, Tuple, Callable, Union, Iterable, Mapping
-from typing import BinaryIO, cast, Optional, Any
+from typing import IO, cast, Optional, Any
 import io
 import mmap
 import logging
@@ -34,7 +34,7 @@ from numpy.typing import ArrayLike, NDArray
 import klamath
 from klamath import records
 
-from .utils import is_gzipped
+from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
@@ -59,7 +59,7 @@ def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
 
 def write(
         library: Mapping[str, Pattern],
-        stream: BinaryIO,
+        stream: IO[bytes],
         meters_per_unit: float,
         logical_units_per_unit: float = 1,
         library_name: str = 'masque-klamath',
@@ -142,19 +142,19 @@ def writefile(
     """
     path = pathlib.Path(filename)
 
-    base_stream = open(path, mode='wb')
-    streams: Tuple[Any, ...] = (base_stream,)
-    if path.suffix == '.gz':
-        stream = cast(BinaryIO, gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
-        streams = (stream,) + streams
-    else:
-        stream = base_stream
+    with tmpfile(path) as base_stream:
+        streams: Tuple[Any, ...] = (base_stream,)
+        if path.suffix == '.gz':
+            stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+            streams = (stream,) + streams
+        else:
+            stream = base_stream
 
-    try:
-        write(library, stream, *args, **kwargs)
-    finally:
-        for ss in streams:
-            ss.close()
+        try:
+            write(library, stream, *args, **kwargs)
+        finally:
+            for ss in streams:
+                ss.close()
 
 
 def readfile(
@@ -184,7 +184,7 @@ def readfile(
 
 
 def read(
-        stream: BinaryIO,
+        stream: IO[bytes],
         raw_mode: bool = True,
         ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
     """
@@ -220,7 +220,7 @@ def read(
     return patterns_dict, library_info
 
 
-def _read_header(stream: BinaryIO) -> Dict[str, Any]:
+def _read_header(stream: IO[bytes]) -> Dict[str, Any]:
     """
     Read the file header and create the library_info dict.
     """
@@ -234,7 +234,7 @@ def _read_header(stream: BinaryIO) -> Dict[str, Any]:
 
 
 def read_elements(
-        stream: BinaryIO,
+        stream: IO[bytes],
         raw_mode: bool = True,
         ) -> Pattern:
     """
@@ -509,7 +509,7 @@ def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
 
 
 def load_library(
-        stream: BinaryIO,
+        stream: IO[bytes],
         *,
         full_load: bool = False,
         postprocess: Optional[Callable[[Library, str, Pattern], Pattern]] = None
@@ -595,7 +595,7 @@ def load_libraryfile(
         Additional library info (dict, same format as from `read`).
     """
     path = pathlib.Path(filename)
-    stream: BinaryIO
+    stream: IO[bytes]
     if is_gzipped(path):
         if mmap:
             logger.info('Asked to mmap a gzipped file, reading into memory instead...')

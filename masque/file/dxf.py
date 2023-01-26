@@ -6,7 +6,8 @@ Notes:
  * ezdxf sets creation time, write time, $VERSIONGUID, and $FINGERPRINTGUID
     to unique values, so byte-for-byte reproducibility is not achievable for now
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Mapping, TextIO
+from typing import List, Any, Dict, Tuple, Callable, Union, Mapping
+from typing import cast, TextIO, IO
 import io
 import logging
 import pathlib
@@ -15,12 +16,12 @@ import gzip
 import numpy
 import ezdxf
 
+from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, Label
 from ..library import Library, WrapROLibrary
 from ..shapes import Shape, Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
-from .utils import is_gzipped
 
 
 logger = logging.getLogger(__name__)
@@ -125,22 +126,22 @@ def writefile(
     """
     path = pathlib.Path(filename)
 
-    streams: Tuple[Any, ...]
-    stream: TextIO
-    if path.suffix == '.gz':
-        base_stream = open(path, mode='wb')
-        gz_stream = gzip.GzipFile(filename='', mtime=0, fileobj=base_stream)
+    gz_stream: IO[bytes]
+    with tmpfile(path) as base_stream:
+        streams: Tuple[Any, ...] = (base_stream,)
+        if path.suffix == '.gz':
+            gz_stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+            streams = (gz_stream,) + streams
+        else:
+            gz_stream = base_stream
         stream = io.TextIOWrapper(gz_stream)        # type: ignore
-        streams = (stream, gz_stream, base_stream)
-    else:
-        stream = open(path, mode='wt')
-        streams = (stream,)
+        streams = (stream,) + streams
 
-    try:
-        write(library, top_name, stream, *args, **kwargs)
-    finally:
-        for ss in streams:
-            ss.close()
+        try:
+            write(library, top_name, stream, *args, **kwargs)
+        finally:
+            for ss in streams:
+                ss.close()
 
 
 def readfile(
