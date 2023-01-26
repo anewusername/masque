@@ -571,7 +571,7 @@ def load_libraryfile(
         *,
         use_mmap: bool = True,
         full_load: bool = False,
-        postprocess: Optional[Callable[[Library, str], Pattern]] = None
+        postprocess: Optional[Callable[[Library, str, Pattern], Pattern]] = None
         ) -> Tuple[LazyLibrary, Dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.

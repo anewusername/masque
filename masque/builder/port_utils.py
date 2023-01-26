@@ -5,15 +5,14 @@ Functions for writing port data into a Pattern (`dev2pat`) and retrieving it (`p
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence, Optional, Mapping, Tuple, Dict
+from typing import Sequence, Optional, Mapping
 import logging
 
 import numpy
-from numpy.typing import NDArray
 
 from ..pattern import Pattern
 from ..label import Label
-from ..utils import rotation_matrix_2d, layer_t
+from ..utils import layer_t
 from ..ports import Port
 from ..error import PatternError
 from ..library import Library, WrapROLibrary
@@ -79,7 +78,6 @@ def pat2dev(
             to contain their own port info without interfering with supercells'
             port data.
             Default True.
-        blacklist: If a cell name appears in the blacklist, do not ea
 
     Returns:
         The updated `pattern`. Port labels are not removed.
@@ -99,6 +97,8 @@ def pat2dev(
     # Load ports for all subpatterns, and use any we find
     found_ports = False
     for target in set(rr.target for rr in pattern.refs):
+        if target is None:
+            continue
         pp = pat2dev(
             layers=layers,
             library=library,
@@ -106,7 +106,6 @@ def pat2dev(
             name=target,
             max_depth=max_depth - 1,
             skip_subcells=skip_subcells,
-            blacklist=blacklist + {name},
             )
         found_ports |= bool(pp.ports)
 
@@ -114,6 +113,8 @@ def pat2dev(
         return pattern
 
     for ref in pattern.refs:
+        if ref.target is None:
+            continue
         aa = library.abstract(ref.target)
         if not aa.ports:
             continue

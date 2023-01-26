@@ -6,7 +6,7 @@ import numpy
 from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
-from ..utils import rotation_matrix_2d
+from ..utils import rotation_matrix_2d, SupportsBool
 from ..error import BuildError
 
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def ell(
         ports: Mapping[str, 'Port'],
-        ccw: Optional[bool],
+        ccw: Optional[SupportsBool],
         bound_type: str,
         bound: Union[float, ArrayLike],
         *,

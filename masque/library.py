@@ -5,7 +5,7 @@ Library classes for managing unique name->pattern mappings and
 # TODO documentn all library classes
 # TODO toplevel documentation of library, classes, and abstracts
 """
-from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING
+from typing import List, Dict, Callable, TypeVar, Generic, Type, TYPE_CHECKING, cast
 from typing import Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
 import logging
 import base64
@@ -396,14 +396,14 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
         if pattern is not original_pattern:
             name = hierarchy[-1]
-            if not isintance(self, MutableLibrary):
+            if not isinstance(self, MutableLibrary):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but the library is immutable')
             if name is None:
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but no top-level name was provided in `hierarchy`')
 
-            self.set_const(name, pattern)
+            cast(MutableLibrary, self).set_const(name, pattern)
 
         return self
 
