@@ -10,16 +10,16 @@ from abc import ABCMeta, abstractmethod
 import numpy
 from numpy.typing import ArrayLike, NDArray
 
-from .error import PatternError
-from .utils import rotation_matrix_2d, AutoSlots
 from .traits import Copyable, Scalable, Rotatable, Mirrorable
+from .error import PatternError
+from .utils import rotation_matrix_2d
 
 
 class Repetition(Copyable, Rotatable, Mirrorable, Scalable, metaclass=ABCMeta):
     """
     Interface common to all objects which specify repetitions
     """
-    __slots__ = ()
+    __slots__ = ()      # Allow subclasses to use __slots__
 
     @property
     @abstractmethod
@@ -30,7 +30,7 @@ class Repetition(Copyable, Rotatable, Mirrorable, Scalable, metaclass=ABCMeta):
         pass
 
 
-class Grid(Repetition, metaclass=AutoSlots):
+class Grid(Repetition):
     """
     `Grid` describes a 2D grid formed by two basis vectors and two 'counts' (sizes).
 
@@ -279,7 +279,7 @@ class Grid(Repetition, metaclass=AutoSlots):
         return True
 
 
-class Arbitrary(Repetition, metaclass=AutoSlots):
+class Arbitrary(Repetition):
     """
     `Arbitrary` is a simple list of (absolute) displacements for instances.
 

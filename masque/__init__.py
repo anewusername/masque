@@ -27,12 +27,13 @@
 
 """
 
+from .utils import layer_t, annotations_t, SupportsBool
 from .error import MasqueError, PatternError, LibraryError, BuildError
 from .shapes import Shape, Polygon, Path, Circle, Arc, Ellipse
 from .label import Label
 from .ref import Ref
 from .pattern import Pattern
-from .utils import layer_t, annotations_t
+
 from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary, AbstractView
 from .ports import Port, PortList
 from .abstract import Abstract

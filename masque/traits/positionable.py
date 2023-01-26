@@ -35,7 +35,7 @@ class Positionable(metaclass=ABCMeta):
 
     @offset.setter
     @abstractmethod
-    def offset(self, val: ArrayLike):
+    def offset(self, val: ArrayLike) -> None:
         pass
 
     @abstractmethod

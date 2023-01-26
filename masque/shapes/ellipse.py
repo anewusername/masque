@@ -7,12 +7,12 @@ from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
-from .. import PatternError
+from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, rotation_matrix_2d, layer_t, annotations_t
 
 
-class Ellipse(Shape, metaclass=AutoSlots):
+class Ellipse(Shape):
     """
     An ellipse, which has a position, two radii, and a rotation.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.

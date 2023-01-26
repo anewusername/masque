@@ -6,12 +6,12 @@ from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
-from .. import PatternError
+from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, layer_t, AutoSlots, annotations_t
+from ..utils import is_scalar, layer_t, annotations_t
 
 
-class Circle(Shape, metaclass=AutoSlots):
+class Circle(Shape):
     """
     A circle, which has a position and radius.
     """

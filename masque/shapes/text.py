@@ -6,10 +6,10 @@ from numpy import pi, inf
 from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple
-from .. import PatternError
+from ..error import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, get_bit, normalize_mirror, layer_t, AutoSlots
+from ..utils import is_scalar, get_bit, normalize_mirror, layer_t
 from ..utils import annotations_t
 
 # Loaded on use:
@@ -17,7 +17,7 @@ from ..utils import annotations_t
 # from matplotlib.path import Path
 
 
-class Text(RotatableImpl, Shape, metaclass=AutoSlots):
+class Text(RotatableImpl, Shape):
     """
     Text (to be printed e.g. as a set of polygons).
     This is distinct from non-printed Label objects.

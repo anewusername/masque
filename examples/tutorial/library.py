@@ -10,7 +10,7 @@ from masque.file.gdsii import writefile, load_libraryfile
 import pcgen
 import basic_shapes
 import devices
-from devices import pat2dev, dev2pat
+from devices import ports_to_data, data_to_ports
 from basic_shapes import GDS_OPTS
 
 
@@ -24,7 +24,7 @@ def main() -> None:
     #
 
     # Scan circuit.gds and prepare to lazy-load its contents
-    gds_lib, _properties = load_libraryfile('circuit.gds', postprocess=pat2dev)
+    gds_lib, _properties = load_libraryfile('circuit.gds', postprocess=data_to_ports)
 
     # Add it into the device library by providing a way to read port info
     #   This maintains the lazy evaluation from above, so no patterns
@@ -59,13 +59,18 @@ def main() -> None:
     # Immediately start building from an instance of the L3 cavity
     circ2 = Builder(library=lib, ports='tri_l3cav')
 
-    print(lib['wg10'].ports)
+    #   First way to get abstracts is `lib.abstract(name)`
     circ2.plug(lib.abstract('wg10'), {'input': 'right'})
 
-    abstracts = lib.abstract_view()     # Alternate way to get abstracts
+    #   Second way to get abstracts is to use an AbstractView
+    abstracts = lib.abstract_view()
     circ2.plug(abstracts['wg10'], {'output': 'left'})
-    circ2.plug(abstracts['tri_wg10'], {'input': 'right'})
-    circ2.plug(abstracts['tri_wg10'], {'output': 'left'})
+
+    # Third way to specify an abstract works by automatically getting
+    # it from the library already within the Builder object:
+    # Just pass the pattern name!
+    circ2.plug('tri_wg10', {'input': 'right'})
+    circ2.plug('tri_wg10', {'output': 'left'})
 
     # Add the circuit to the device library.
     #  It has already been generated, so we can use `set_const` as a shorthand for
@@ -81,15 +86,15 @@ def main() -> None:
     circ3 = Builder.interface(source=circ2)
 
     # ... that lets us continue from where we left off.
-    circ3.plug(abstracts['tri_bend0'], {'input': 'right'})
-    circ3.plug(abstracts['tri_bend0'], {'input': 'left'}, mirrored=(True, False)) # mirror since no tri y-symmetry
-    circ3.plug(abstracts['tri_bend0'], {'input': 'right'})
-    circ3.plug(abstracts['bend0'], {'output': 'left'})
-    circ3.plug(abstracts['bend0'], {'output': 'left'})
-    circ3.plug(abstracts['bend0'], {'output': 'left'})
-    circ3.plug(abstracts['tri_wg10'], {'input': 'right'})
-    circ3.plug(abstracts['tri_wg28'], {'input': 'right'})
-    circ3.plug(abstracts['tri_wg10'], {'input': 'right', 'output': 'left'})
+    circ3.plug('tri_bend0', {'input': 'right'})
+    circ3.plug('tri_bend0', {'input': 'left'}, mirrored=(True, False)) # mirror since no tri y-symmetry
+    circ3.plug('tri_bend0', {'input': 'right'})
+    circ3.plug('bend0', {'output': 'left'})
+    circ3.plug('bend0', {'output': 'left'})
+    circ3.plug('bend0', {'output': 'left'})
+    circ3.plug('tri_wg10', {'input': 'right'})
+    circ3.plug('tri_wg28', {'input': 'right'})
+    circ3.plug('tri_wg10', {'input': 'right', 'output': 'left'})
 
     lib.set_const('loop_segment', circ3.pattern)
 

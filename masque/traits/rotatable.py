@@ -1,4 +1,4 @@
-from typing import TypeVar, cast
+from typing import TypeVar, cast, Any
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -113,6 +113,9 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
     Implementation of `Pivotable` for objects which are `Rotatable`
     """
     __slots__ = ()
+
+    offset: Any         # TODO see if we can get around defining `offset` in  PivotableImpl
+    """ `[x_offset, y_offset]` """
 
     def rotate_around(self: J, pivot: ArrayLike, rotation: float) -> J:
         pivot = numpy.array(pivot, dtype=float)
