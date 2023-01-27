@@ -7,7 +7,7 @@ import numpy
 from numpy import pi
 from numpy.typing import ArrayLike
 
-from ..pattern import Pattern
+from ..pattern import Pattern, NamedPattern
 from ..ref import Ref
 from ..library import MutableLibrary
 from ..error import PortError, BuildError
@@ -253,7 +253,7 @@ class Builder(PortList):
 
     def plug(
             self: BB,
-            other: Union[Abstract, str],
+            other: Union[Abstract, str, NamedPattern],
             map_in: Dict[str, str],
             map_out: Optional[Dict[str, Optional[str]]] = None,
             *,
@@ -352,7 +352,7 @@ class Builder(PortList):
 
     def place(
             self: BB,
-            other: Union[Abstract, str],
+            other: Union[Abstract, str, NamedPattern],
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
