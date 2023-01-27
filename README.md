@@ -47,5 +47,13 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
 * Better interface for polygon operations (e.g. with `pyclipper`)
     - de-embedding
     - boolean ops
-* Construct polygons from bitmap using `skimage.find_contours`
 * Deal with shape repetitions for dxf, svg
+* Maybe lib.create(bname) -> (name, pat)
+* Schematic:
+    - Simple cell:
+        + Assumes no internal hierarchy, or only other simple hierarchy
+        + Return pattern, refer to it by a well-known name
+    - Parametrized cell:
+        + Take in `lib`
+        + lib.create(), and return a string
+        + Can have pcell hierarchy inside
