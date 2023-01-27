@@ -321,6 +321,7 @@ class Builder(PortList):
         if isinstance(other, str):
             other = self.library.abstract(other)
 
+        # If asked to inherit a name, check that all conditions are met
         if (inherit_name
                 and not map_out
                 and len(map_in) == 1
@@ -495,11 +496,7 @@ class Builder(PortList):
         return self
 
     def __repr__(self) -> str:
-        s = f'<Builder {self.pattern} >'
-        # '['
-        # for name, port in self.ports.items():
-        #     s += f'\n\t{name}: {port}'
-        # s += ']>'
+        s = f'<Builder {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
         return s
 
     def retool(
