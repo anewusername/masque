@@ -181,7 +181,7 @@ class PortList(metaclass=ABCMeta):
 
     def add_port_pair(
             self: PL,
-            offset: ArrayLike,
+            offset: ArrayLike = (0, 0),
             rotation: float = 0.0,
             names: Tuple[str, str] = ('A', 'B'),
             ptype: str = 'unk',
