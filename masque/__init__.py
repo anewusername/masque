@@ -37,7 +37,7 @@ from .pattern import Pattern
 from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary, AbstractView
 from .ports import Port, PortList
 from .abstract import Abstract
-from .builder import Builder, Tool
+from .builder import Builder, Tool, FlatBuilder
 from .utils import ports2data
 
 
