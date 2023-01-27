@@ -161,7 +161,7 @@ def readfile(
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     Wrapper for `read()` that takes a filename or path instead of a stream.
 
@@ -186,7 +186,7 @@ def readfile(
 def read(
         stream: IO[bytes],
         raw_mode: bool = True,
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     # TODO check GDSII file for cycles!
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
@@ -209,15 +209,15 @@ def read(
     """
     library_info = _read_header(stream)
 
-    patterns_dict = {}
+    mlib = WrapLibrary()
     found_struct = records.BGNSTR.skip_past(stream)
     while found_struct:
         name = records.STRNAME.skip_and_read(stream)
         pat = read_elements(stream, raw_mode=raw_mode)
-        patterns_dict[name.decode('ASCII')] = pat
+        mlib[name.decode('ASCII')] = pat
         found_struct = records.BGNSTR.skip_past(stream)
 
-    return patterns_dict, library_info
+    return mlib, library_info
 
 
 def _read_header(stream: IO[bytes]) -> Dict[str, Any]:
