@@ -447,6 +447,22 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         del self[old_name]
         return self
 
+    def create(self, base_name: str) -> Tuple[str, 'Pattern']:
+        """
+        Convenience method to create an empty pattern, choose a name
+        for it, add it with that name, and return both the pattern and name.
+
+        Args:
+            base_name: Prefix used when naming the pattern
+
+        Returns:
+            (name, pattern) tuple
+        """
+        from .pattern import Pattern
+        name = self.get_name(base_name)
+        pat = Pattern()
+        self[name] = value
+
     def name_and_set(
             self,
             base_name: str,
