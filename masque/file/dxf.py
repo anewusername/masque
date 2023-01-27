@@ -18,7 +18,7 @@ import ezdxf
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, Label
-from ..library import Library, WrapROLibrary
+from ..library import Library, WrapROLibrary, WrapLibrary
 from ..shapes import Shape, Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
@@ -148,7 +148,7 @@ def readfile(
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
@@ -172,7 +172,7 @@ def readfile(
 
 def read(
         stream: TextIO,
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -189,16 +189,19 @@ def read(
     lib = ezdxf.read(stream)
     msp = lib.modelspace()
 
-    npat = _read_block(msp)
-    patterns_dict = dict(
-        [npat] + [_read_block(bb) for bb in lib.blocks if bb.name != '*Model_Space']
-        )
+    top_name, top_pat = _read_block(msp)
+    mlib = WrapLibrary({top_name: top_pat})
+    for bb in lib.blocks:
+        if bb.name == '*Model_Space':
+            continue
+        name, pat = _read_block(bb)
+        mlib[name] = pat
 
     library_info = dict(
         layers=[ll.dxfattribs() for ll in lib.layers],
         )
 
-    return patterns_dict, library_info
+    return mlib, library_info
 
 
 def _read_block(block) -> Tuple[str, Pattern]:

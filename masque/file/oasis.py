@@ -206,7 +206,7 @@ def readfile(
         filename: Union[str, pathlib.Path],
         *args,
         **kwargs,
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     Wrapper for `oasis.read()` that takes a filename or path instead of a stream.
 
@@ -230,7 +230,7 @@ def readfile(
 
 def read(
         stream: IO[bytes],
-        ) -> Tuple[Dict[str, Pattern], Dict[str, Any]]:
+        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
@@ -261,7 +261,7 @@ def read(
         layer_map[str(layer_name.nstring)] = layer_name
     library_info['layer_map'] = layer_map
 
-    patterns_dict = {}
+    mlib = WrapLibrary()
     for cell in lib.cells:
         if isinstance(cell.name, int):
             cell_name = lib.cellnames[cell.name].nstring.string
@@ -463,9 +463,9 @@ def read(
         for placement in cell.placements:
             pat.refs.append(_placement_to_ref(placement, lib))
 
-        patterns_dict[cell_name] = pat
+        mlib[cell_name] = pat
 
-    return patterns_dict, library_info
+    return mlib, library_info
 
 
 def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
