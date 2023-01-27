@@ -25,7 +25,7 @@ from .label import Label
 from .abstract import Abstract
 
 if TYPE_CHECKING:
-    from .pattern import Pattern
+    from .pattern import Pattern, NamedPattern
 
 
 logger = logging.getLogger(__name__)
@@ -447,7 +447,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         del self[old_name]
         return self
 
-    def create(self, base_name: str) -> Tuple[str, 'Pattern']:
+    def create(self, base_name: str) -> NamedPattern:
         """
         Convenience method to create an empty pattern, choose a name
         for it, add it with that name, and return both the pattern and name.
@@ -460,8 +460,9 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         """
         from .pattern import Pattern
         name = self.get_name(base_name)
-        pat = Pattern()
-        self[name] = value
+        npat = NamedPattern(name)
+        self[name] = npat
+        return npat
 
     def name_and_set(
             self,
@@ -748,6 +749,8 @@ class WrapLibrary(MutableLibrary):
 
         if callable(value):
             value = value()
+        elif hasattr(value, 'as_pattern'):
+            value = cast('NamedPattern', value).as_pattern()      # don't want to carry along NamedPattern instances
         else:
             value = value
         self.mapping[key] = value

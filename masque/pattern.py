@@ -665,3 +665,50 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             pyplot.ylabel('y')
             pyplot.show()
 
+
+class NamedPattern(Pattern):
+    """
+    TODO: Document NamedPattern
+    """
+    __slots__ = ('_name',)
+
+    _name: str
+    """ The pattern's name """
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def __init__(self, name: str) -> None:
+        """
+        Creates an empty NamedPattern
+
+        Args:
+            name: The pattern's name. Immutable.
+
+        """
+        Pattern.__init__(self)
+        self._name = name
+
+    def __repr__(self) -> str:
+        s = f'<NamedPattern "{self.name}":'
+        s += f' sh{len(self.shapes)} sp{len(self.refs)} la{len(self.labels)} ['
+        for name, port in self.ports.items():
+            s += f'\n\t{name}: {port}'
+        s += ']>'
+        return s
+
+    def __copy__(self) -> Pattern:
+        return Pattern.__copy__(self)
+
+    def __deepcopy__(self, memo: Optional[Dict] = None) -> Pattern:
+        return Pattern.__deepcopy__(self, memo)
+
+    def as_pattern(self) ->  Pattern:
+        return Pattern(
+            shapes=self.shapes,
+            labels=self.labels,
+            refs=self.refs,
+            annotations=self.annotations,
+            ports=self.ports,
+            )
