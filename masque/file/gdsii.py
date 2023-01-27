@@ -553,12 +553,10 @@ def load_library(
         name = name_bytes.decode('ASCII')
 
         def mkstruct(pos: int = pos, name: str = name) -> Pattern:
-            logger.error(f'mkstruct {name} @ {pos:x}')
             stream.seek(pos)
             pat = read_elements(stream, raw_mode=True)
             if postprocess is not None:
                 pat = postprocess(lib, name, pat)
-                logger.error(f'mkstruct post {name} @ {pos:x}')
             return pat
 
         lib[name] = mkstruct
