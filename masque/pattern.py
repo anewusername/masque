@@ -286,11 +286,15 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     def get_bounds(
             self,
             library: Optional[Mapping[str, 'Pattern']] = None,
+            recurse: bool = True,
             ) -> Optional[NDArray[numpy.float64]]:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the Pattern's contents in each dimension.
         Returns `None` if the Pattern is empty.
+
+        Args:
+            TODO docs for get_bounds
 
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
@@ -311,12 +315,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if self.refs and (library is None):
             raise PatternError('Must provide a library to get_bounds() to resolve refs')
 
-        for entry in self.refs:
-            bounds = entry.get_bounds(library=library)
-            if bounds is None:
-                continue
-            min_bounds = numpy.minimum(min_bounds, bounds[0, :])
-            max_bounds = numpy.maximum(max_bounds, bounds[1, :])
+        if recurse:
+            for entry in self.refs:
+                bounds = entry.get_bounds(library=library)
+                if bounds is None:
+                    continue
+                min_bounds = numpy.minimum(min_bounds, bounds[0, :])
+                max_bounds = numpy.maximum(max_bounds, bounds[1, :])
 
         if (max_bounds < min_bounds).any():
             return None
@@ -326,9 +331,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     def get_bounds_nonempty(
             self,
             library: Optional[Mapping[str, 'Pattern']] = None,
+            recurse: bool = True,
             ) -> NDArray[numpy.float64]:
         """
         Convenience wrapper for `get_bounds()` which asserts that the Pattern as non-None bounds.
+
+        Args:
+            TODO docs for get_bounds
 
         Returns:
             `[[x_min, y_min], [x_max, y_max]]`
