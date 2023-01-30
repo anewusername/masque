@@ -429,7 +429,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         pass
 
     @abstractmethod
-    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
+    def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         pass
 
     def rename(self: ML, old_name: str, new_name: str) -> ML:
@@ -487,32 +487,39 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def add(
             self: ML,
             other: Mapping[str, 'Pattern'],
-            use_ours: Callable[[str], bool] = lambda name: False,
-            use_theirs: Callable[[str], bool] = lambda name: False,
+            rename_theirs: Callable[['Library', str], str] = _rename_patterns,
             ) -> ML:
         """
         Add keys from another library into this one.
 
         Args:
             other: The library to insert keys from
-            use_ours: Decision function for name conflicts, called with pattern name.
-                Should return `True` if the value from `self` should be used.
-            use_theirs: Decision function for name conflicts. Same format as `use_ours`.
-                Should return `True` if the value from `other` should be used.
-                `use_ours` takes priority over `use_theirs`.
+            rename_theirs: Called as rename_theirs(self, name) for each duplicate name
+                encountered in `other`. Should return the new name for the pattern in
+                `other`.
+                Default is effectively
+                    `name.split('$')[0] if name.startswith('_') else name`
         Returns:
             self
         """
         duplicates = set(self.keys()) & set(other.keys())
-        keep_ours = set(name for name in duplicates if use_ours(name))
-        keep_theirs = set(name for name in duplicates - keep_ours if use_theirs(name))
-        conflicts = duplicates - keep_ours - keep_theirs
+        rename_map = {name: rename_theirs(self, name) for name in duplicates}
+        renamed = set(rename_map.keys())
 
+        if len(renamed) != len(rename_map):
+            raise LibraryError('Multiple `other` patterns have the same name after renaming!')
+
+        internal_conflicts = (set(other.keys()) - duplicates) & renamed
+        if internal_conflicts:
+            raise LibraryError('Renamed patterns conflict with un-renamed names in `other`' + pformat(internal_conflicts))
+
+        conflicts = set(self.keys()) & renamed
         if conflicts:
             raise LibraryError('Unresolved duplicate keys encountered in library merge: ' + pformat(conflicts))
 
-        for key in set(other.keys()) - keep_ours:
-            self._merge(other, key)
+        for key in other.keys():
+            new_key = rename_map.get(key, key)
+            self._merge(new_key, other, key)
 
         return self
 
@@ -692,7 +699,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
         new = type(self)()
         for key in keep:
-            new._merge(self, key)
+            new._merge(key, self, key)
         return new
 
 
@@ -758,8 +765,8 @@ class WrapLibrary(MutableLibrary):
     def __delitem__(self, key: str) -> None:
         del self.mapping[key]
 
-    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
-        self[key] = other[key]
+    def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
+        self[key_self] = other[key_other]
 
     def __repr__(self) -> str:
         return f'<WrapLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
@@ -830,16 +837,13 @@ class LazyLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.dict)
 
-    def set_const(self, key: str, value: 'Pattern') -> None:
-        self[key] = lambda: value
-
-    def _merge(self, other: Mapping[str, 'Pattern'], key: str) -> None:
+    def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         if isinstance(other, LazyLibrary):
-            self.dict[key] = other.dict[key]
-            if key in other.cache:
-                self.cache[key] = other.cache[key]
+            self.dict[key_self] = other.dict[key_other]
+            if key_other in other.cache:
+                self.cache[key_self] = other.cache[key_other]
         else:
-            self.set_const(key, other[key])
+            self[key_self] = other[key_other]
 
     def __repr__(self) -> str:
         return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'
@@ -902,3 +906,13 @@ class AbstractView(Mapping[str, Abstract]):
 
     def __len__(self) -> int:
         return self.library.__len__()
+
+
+
+def _rename_patterns(lib: Library, name: str) -> str:
+    # TODO document rename function
+    if not name.startswith('_'):
+        return name
+
+    stem = name.split('$')[0]
+    return  lib.get_name(stem)
