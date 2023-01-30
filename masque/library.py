@@ -447,6 +447,23 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         del self[old_name]
         return self
 
+    def move_references(self: ML, old_target: str, new_target: str) -> ML:
+        """
+        Change all references pointing at `old_target` into references pointing at `new_target`.
+
+        Args:
+            old_target: Current reference target
+            new_target: New target for the reference
+
+        Returns:
+            self
+        """
+        for pattern in self.values():
+            for ref in pattern.refs:
+                if ref.target == old_target:
+                    ref.target = new_target
+        return self
+
     def create(self, base_name: str) -> NamedPattern:
         """
         Convenience method to create an empty pattern, choose a name
@@ -492,6 +509,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         """
         Add keys from another library into this one.
 
+        # TODO explain reference renaming
+
         Args:
             other: The library to insert keys from
             rename_theirs: Called as rename_theirs(self, name) for each duplicate name
@@ -517,9 +536,16 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if conflicts:
             raise LibraryError('Unresolved duplicate keys encountered in library merge: ' + pformat(conflicts))
 
-        for key in other.keys():
-            new_key = rename_map.get(key, key)
-            self._merge(new_key, other, key)
+        if rename_map:
+            temp = WrapLibrary(copy.deepcopy(dict(other)))     # Copy and turn into a mutable library
+
+            for old_name, new_name in rename_map.items():
+                temp.rename(old_name, new_name)
+                temp.move_references(old_name, new_name)
+
+        else:
+            for key in other.keys():
+                self._merge(key, other, key)
 
         return self
 
@@ -776,13 +802,10 @@ class LazyLibrary(MutableLibrary):
     """
     This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
-
-    The cache can be disabled by setting the `enable_cache` attribute to `False`.
     """
     dict: Dict[str, Callable[[], 'Pattern']]
     cache: Dict[str, 'Pattern']
     _lookups_in_progress: Set[str]
-    enable_cache: bool = True
 
     def __init__(self) -> None:
         self.dict = {}
@@ -813,7 +836,7 @@ class LazyLibrary(MutableLibrary):
 
     def __getitem__(self, key: str) -> 'Pattern':
         logger.debug(f'loading {key}')
-        if self.enable_cache and key in self.cache:
+        if key in self.cache:
             logger.debug(f'found {key} in cache')
             return self.cache[key]
 
@@ -865,6 +888,24 @@ class LazyLibrary(MutableLibrary):
         del self[old_name]
         return self
 
+    def move_references(self: LL, old_target: str, new_target: str) -> LL:
+        """
+        Change all references pointing at `old_target` into references pointing at `new_target`.
+
+        Args:
+            old_target: Current reference target
+            new_target: New target for the reference
+
+        Returns:
+            self
+        """
+        self.precache()
+        for pattern in self.cache.values():
+            for ref in pattern.refs:
+                if ref.target == old_target:
+                    ref.target = new_target
+        return self
+
     def precache(self: LL) -> LL:
         """
         Force all patterns into the cache
@@ -874,18 +915,6 @@ class LazyLibrary(MutableLibrary):
         """
         for key in self.dict:
             _ = self.dict.__getitem__(key)
-        return self
-
-    def clear_cache(self: LL) -> LL:
-        """
-        Clear the cache of this library.
-        This is usually used before modifying or deleting patterns, e.g. when merging
-          with another library.
-
-        Returns:
-            self
-        """
-        self.cache.clear()
         return self
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'LazyLibrary':
