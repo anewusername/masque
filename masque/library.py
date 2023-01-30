@@ -557,7 +557,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
         if label2name is None:
             def label2name(label):
-                return self.get_name('_shape_')
+                return self.get_name('_shape')
             #label2name = lambda label: self.get_name('_shape')
 
         shape_counts: MutableMapping[Tuple, int] = defaultdict(int)
@@ -641,7 +641,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
         if name_func is None:
             def name_func(_pat, _shape):
-                return self.get_name('_rep_')
+                return self.get_name('_rep')
             #name_func = lambda _pat, _shape: self.get_name('_rep')
 
         for pat in tuple(self.values()):
