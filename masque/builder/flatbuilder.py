@@ -435,7 +435,7 @@ class FlatBuilder(PortList):
             length: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
-            base_name: str = '_path_',
+            base_name: str = '_path',
             **kwargs,
             ) -> BB:
         if self._dead:
@@ -454,7 +454,7 @@ class FlatBuilder(PortList):
             position: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
-            base_name: str = '_pathto_',
+            base_name: str = '_pathto',
             **kwargs,
             ) -> BB:
         if self._dead:
@@ -490,7 +490,7 @@ class FlatBuilder(PortList):
             set_rotation: Optional[float] = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
             force_container: bool = False,
-            base_name: str = '_mpath_',
+            base_name: str = '_mpath',
             **kwargs,
             ) -> BB:
         if self._dead:
