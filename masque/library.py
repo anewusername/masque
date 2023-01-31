@@ -11,6 +11,7 @@ import logging
 import base64
 import struct
 import re
+import copy
 from pprint import pformat
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
@@ -413,7 +414,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
-    #def __setitem__(self, key: str, value: 'Pattern') -> None:
+    #def __setitem__(self, key: str, value: Union['Pattern', Callable[[], 'Pattern']]) -> None:
     #def __delitem__(self, key: str) -> None:
 
     @abstractmethod
@@ -432,7 +433,12 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         pass
 
-    def rename(self: ML, old_name: str, new_name: str) -> ML:
+    def rename(
+            self: ML,
+            old_name: str,
+            new_name: str,
+            move_references: bool = False,
+            ) -> ML:
         """
         Rename a pattern.
 
@@ -445,6 +451,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         """
         self[new_name] = self[old_name]
         del self[old_name]
+        if move_references:
+            self.move_references(old_name, new_name)
         return self
 
     def move_references(self: ML, old_target: str, new_target: str) -> ML:
@@ -540,13 +548,35 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             temp = WrapLibrary(copy.deepcopy(dict(other)))     # Copy and turn into a mutable library
 
             for old_name, new_name in rename_map.items():
-                temp.rename(old_name, new_name)
-                temp.move_references(old_name, new_name)
+                temp.rename(old_name, new_name, move_references=True)
 
         else:
             for key in other.keys():
                 self._merge(key, other, key)
 
+        return self
+
+    def add_tree(
+            self: ML,
+            name: str,
+            tree: 'Tree',
+            rename_theirs: Callable[['Library', str], str] = _rename_patterns,
+            ) -> ML:
+        """
+        Add a `Tree` object into the current library.
+
+        Args:
+            name: New name for the top-level pattern.
+            tree: The `Tree` object (a `Library` with a specified `top` Pattern)
+                which will be added into the current library.
+            rename_theirs: Called as rename_theirs(self, name) for each duplicate name
+                encountered in `other`. Should return the new name for the pattern in
+                `other`.
+                Default is effectively
+                    `name.split('$')[0] if name.startswith('_') else name`
+        """
+        tree.library.rename(tree.top, name, move_references=True)
+        self.add(tree.library, rename_theirs=rename_theirs)
         return self
 
     def dedup(
@@ -871,13 +901,21 @@ class LazyLibrary(MutableLibrary):
     def __repr__(self) -> str:
         return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'
 
-    def rename(self: LL, old_name: str, new_name: str) -> LL:
+    def rename(
+            self: LL,
+            old_name: str,
+            new_name: str,
+            move_references: bool = False,
+            ) -> LL:
         """
         Rename a pattern.
 
         Args:
             old_name: Current name for the pattern
             new_name: New name for the pattern
+            move_references: Whether to scan all refs in the pattern and
+                move them to point to `new_name` as necessary.
+                Default `False`.
 
         Returns:
             self
@@ -886,6 +924,10 @@ class LazyLibrary(MutableLibrary):
         if old_name in self.cache:
             self.cache[new_name] = self.cache[old_name]
         del self[old_name]
+
+        if move_references:
+            self.move_references(old_name, new_name)
+
         return self
 
     def move_references(self: LL, old_target: str, new_target: str) -> LL:
@@ -936,6 +978,33 @@ class AbstractView(Mapping[str, Abstract]):
     def __len__(self) -> int:
         return self.library.__len__()
 
+
+class Tree(MutableLibrary):
+    top: str
+    library: MutableLibrary
+
+    @property
+    def pattern(self) -> Pattern:
+        return self.library[self.top]
+
+    def __init__(self, top: Union[str, NamedPattern], library: MutableLibrary) -> None:
+        self.top = top if isinstance(top, str) else top.name
+        self.library = library
+
+    def __getitem__(self, key: str) -> 'Pattern':
+        return self.library[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.library)
+
+    def __len__(self) -> int:
+        return len(self.library)
+
+    def __setitem__(self, key: str, value:  Union['Pattern', Callable[[], 'Pattern']]) -> None:
+        self.library[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self.library[key]
 
 
 def _rename_patterns(lib: Library, name: str) -> str:
