@@ -1031,8 +1031,8 @@ class Tree(MutableLibrary):
     def __delitem__(self, key: str) -> None:
         del self.library[key]
 
-    def __lshift__(self, other: 'Tree') -> None:
-        self.add_tree(other)
+    def __lshift__(self, other: 'Tree') -> str:
+        return self.add_tree(other)
 
 
 def _rename_patterns(lib: Library, name: str) -> str:
