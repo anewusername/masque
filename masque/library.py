@@ -445,6 +445,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         Args:
             old_name: Current name for the pattern
             new_name: New name for the pattern
+            #TODO move_Reference
 
         Returns:
             self
@@ -557,27 +558,34 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return self
 
     def add_tree(
-            self: ML,
-            name: str,
+            self,
             tree: 'Tree',
+            name: Optional[str] = None,
             rename_theirs: Callable[['Library', str], str] = _rename_patterns,
-            ) -> ML:
+            ) -> str:
         """
         Add a `Tree` object into the current library.
 
         Args:
-            name: New name for the top-level pattern.
             tree: The `Tree` object (a `Library` with a specified `top` Pattern)
                 which will be added into the current library.
+            name: New name for the top-level pattern. If not given, `tree.top` is used.
             rename_theirs: Called as rename_theirs(self, name) for each duplicate name
                 encountered in `other`. Should return the new name for the pattern in
                 `other`.
                 Default is effectively
                     `name.split('$')[0] if name.startswith('_') else name`
+
+        Returns:
+            The new name for the top-level pattern (either `name` or `tree.top`).
         """
-        tree.library.rename(tree.top, name, move_references=True)
+        if name is None:
+            name = tree.top
+        else:
+            tree.library.rename(tree.top, name, move_references=True)
+
         self.add(tree.library, rename_theirs=rename_theirs)
-        return self
+        return name
 
     def dedup(
             self: ML,
@@ -987,9 +995,20 @@ class Tree(MutableLibrary):
     def pattern(self) -> Pattern:
         return self.library[self.top]
 
-    def __init__(self, top: Union[str, NamedPattern], library: MutableLibrary) -> None:
+    def __init__(
+            self,
+            top: Union[str, NamedPattern],
+            library: Optional[MutableLibrary] = None
+            ) -> None:
         self.top = top if isinstance(top, str) else top.name
-        self.library = library
+        self.library = library if library is not None else WrapLibrary()
+
+    @classmethod
+    def mk(cls, top: str) -> Tuple['Tree', 'Pattern']:
+        tree = cls(top=top)
+        pat = Pattern()
+        tree[top] = pat
+        return tree, pat
 
     def __getitem__(self, key: str) -> 'Pattern':
         return self.library[key]
@@ -1005,6 +1024,9 @@ class Tree(MutableLibrary):
 
     def __delitem__(self, key: str) -> None:
         del self.library[key]
+
+    def __iadd__(self, other: 'Tree') -> None:
+        self.add_tree(other)
 
 
 def _rename_patterns(lib: Library, name: str) -> str:

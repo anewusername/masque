@@ -32,9 +32,14 @@ from .error import MasqueError, PatternError, LibraryError, BuildError
 from .shapes import Shape, Polygon, Path, Circle, Arc, Ellipse
 from .label import Label
 from .ref import Ref
-from .pattern import Pattern
+from .pattern import Pattern, NamedPattern
 
-from .library import Library, MutableLibrary, WrapROLibrary, WrapLibrary, LazyLibrary, AbstractView
+from .library import (
+    Library, MutableLibrary,
+    WrapROLibrary, WrapLibrary, LazyLibrary,
+    AbstractView,
+    Tree,
+    )
 from .ports import Port, PortList
 from .abstract import Abstract
 from .builder import Builder, Tool, FlatBuilder

@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Dict, Optional, Sequence, Mapping, TYPE_CHECKING, Any, TypeVar
+from typing import Dict, Optional, Sequence, Mapping, Union, TYPE_CHECKING, Any, TypeVar, cast
 import copy
 
 import numpy
@@ -21,7 +21,7 @@ from .traits import (
 
 
 if TYPE_CHECKING:
-    from . import Pattern
+    from . import Pattern, NamedPattern
 
 
 R = TypeVar('R', bound='Ref')
@@ -49,7 +49,7 @@ class Ref(
 
     def __init__(
             self,
-            target: Optional[str],
+            target: Union[None, str, NamedPattern],
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
@@ -67,6 +67,8 @@ class Ref(
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
         """
+        if hasattr(target, 'name'):
+            target = cast('NamedPattern', target).name
         self.target = target
         self.offset = offset
         self.rotation = rotation
