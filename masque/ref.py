@@ -49,7 +49,7 @@ class Ref(
 
     def __init__(
             self,
-            target: Union[None, str, NamedPattern],
+            target: Union[None, str, 'NamedPattern'],
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
