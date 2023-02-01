@@ -103,7 +103,7 @@ class Builder(PortList):
 
     def __init__(
             self,
-            library: Optional[MutableLibrary],
+            library: Optional[MutableLibrary] = None,
             *,
             pattern: Optional[Pattern] = None,
             ports: Union[None, str, Mapping[str, Port]] = None,
