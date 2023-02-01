@@ -587,6 +587,9 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         self.add(tree.library, rename_theirs=rename_theirs)
         return name
 
+    def __lshift__(self, other: 'Tree') -> str:
+        return self.add_tree(other)
+
     def dedup(
             self: ML,
             norm_value: int = int(1e6),
@@ -1030,9 +1033,6 @@ class Tree(MutableLibrary):
 
     def __delitem__(self, key: str) -> None:
         del self.library[key]
-
-    def __lshift__(self, other: 'Tree') -> str:
-        return self.add_tree(other)
 
 
 def _rename_patterns(lib: Library, name: str) -> str:
