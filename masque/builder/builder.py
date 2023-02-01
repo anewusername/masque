@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 BB  = TypeVar('BB',  bound='Builder')
+PP  = TypeVar('PP',  bound='Pather')
 
 
 class Builder(PortList):
@@ -78,21 +79,15 @@ class Builder(PortList):
         renamed to 'gnd' so that further routing can use this signal or net name
         rather than the port name on the original `pad` device.
     """
-    __slots__ = ('pattern', 'library', 'tools', '_dead')
+    __slots__ = ('pattern', 'library', '_dead')
 
     pattern: Pattern
     """ Layout of this device """
 
-    library: MutableLibrary
+    library: Optional[MutableLibrary]
     """
     Library from which existing patterns should be referenced, and to which
     new ones should be added
-    """
-
-    tools: Dict[Optional[str], Tool]
-    """
-    Tool objects are used to dynamically generate new single-use Devices
-    (e.g wires or waveguides) to be plugged into this device.
     """
 
     _dead: bool
@@ -108,11 +103,10 @@ class Builder(PortList):
 
     def __init__(
             self,
-            library: MutableLibrary,
+            library: Optional[MutableLibrary],
             *,
             pattern: Optional[Pattern] = None,
             ports: Union[None, str, Mapping[str, Port]] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             ) -> None:
         """
         # TODO documentation for Builder() constructor
@@ -133,16 +127,11 @@ class Builder(PortList):
             if self.pattern.ports:
                 raise BuildError('Ports supplied for pattern with pre-existing ports!')
             if isinstance(ports, str):
+                if library is None:
+                    raise BuildError('Ports given as a string, but `library` was `None`!')
                 ports = library.abstract(ports).ports
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
-
-        if tools is None:
-            self.tools = {}
-        elif isinstance(tools, Tool):
-            self.tools = {None: tools}
-        else:
-            self.tools = dict(tools)
 
         self._dead = False
 
@@ -152,7 +141,6 @@ class Builder(PortList):
             source: Union[PortList, Mapping[str, Port], str],
             *,
             library: Optional[MutableLibrary] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
@@ -184,9 +172,6 @@ class Builder(PortList):
             library: Library from which existing patterns should be referenced,
                 and to which new ones should be added. If not provided,
                 the source's library will be used (if available).
-            tools: Tool objects are used to dynamically generate new single-use
-                patterns (e.g wires or waveguides) while building. If not provided,
-                the source's tools will be reused (if available).
             in_prefix: Prepended to port names for newly-created ports with
                 reversed directions compared to the current device.
             out_prefix: Prepended to port names for ports which are directly
@@ -210,13 +195,10 @@ class Builder(PortList):
         if library is None:
             if hasattr(source, 'library') and isinstance(source.library, MutableLibrary):
                 library = source.library
-            else:
-                raise BuildError('No library provided (and not present in `source.library`')
-
-        if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
-            tools = source.tools
 
         if isinstance(source, str):
+            if library is None:
+                raise BuildError('Source given as a string, but `library` was `None`!')
             orig_ports = library.abstract(source).ports
         elif isinstance(source, PortList):
             orig_ports = source.ports
@@ -248,7 +230,7 @@ class Builder(PortList):
         if duplicates:
             raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
 
-        new = Builder(library=library, ports={**ports_in, **ports_out}, tools=tools)
+        new = Builder(library=library, ports={**ports_in, **ports_out})
         return new
 
     def plug(
@@ -319,6 +301,8 @@ class Builder(PortList):
             return self
 
         if isinstance(other, str):
+            if self.library is None:
+                raise BuildError('No library available, but `other` was a string!')
             other = self.library.abstract(other)
 
         # If asked to inherit a name, check that all conditions are met
@@ -403,6 +387,8 @@ class Builder(PortList):
             return self
 
         if isinstance(other, str):
+            if self.library is None:
+                raise BuildError('No library available, but `other` was a string!')
             other = self.library.abstract(other)
 
         if port_map is None:
@@ -499,11 +485,172 @@ class Builder(PortList):
         s = f'<Builder {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
         return s
 
+
+
+class Pather(Builder):
+    """
+    TODO DOCUMENT Builder
+    A `Device` is a combination of a `Pattern` with a set of named `Port`s
+      which can be used to "snap" devices together to make complex layouts.
+
+    `Device`s can be as simple as one or two ports (e.g. an electrical pad
+    or wire), but can also be used to build and represent a large routed
+    layout (e.g. a logical block with multiple I/O connections or even a
+    full chip).
+
+    For convenience, ports can be read out using square brackets:
+    - `device['A'] == Port((0, 0), 0)`
+    - `device[['A', 'B']] == {'A': Port((0, 0), 0), 'B': Port((0, 0), pi)}`
+
+    Examples: Creating a Device
+    ===========================
+    - `Device(pattern, ports={'A': port_a, 'C': port_c})` uses an existing
+        pattern and defines some ports.
+
+    - `Device(ports=None)` makes a new empty pattern with
+        default ports ('A' and 'B', in opposite directions, at (0, 0)).
+
+    - `my_device.build('my_layout')` makes a new pattern and instantiates
+        `my_device` in it with offset (0, 0) as a base for further building.
+
+    - `my_device.as_interface('my_component', port_map=['A', 'B'])` makes a new
+        (empty) pattern, copies over ports 'A' and 'B' from `my_device`, and
+        creates additional ports 'in_A' and 'in_B' facing in the opposite
+        directions. This can be used to build a device which can plug into
+        `my_device` (using the 'in_*' ports) but which does not itself include
+        `my_device` as a subcomponent.
+
+    Examples: Adding to a Device
+    ============================
+    - `my_device.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
+        instantiates `subdevice` into `my_device`, plugging ports 'A' and 'B'
+        of `my_device` into ports 'C' and 'B' of `subdevice`. The connected ports
+        are removed and any unconnected ports from `subdevice` are added to
+        `my_device`. Port 'D' of `subdevice` (unconnected) is renamed to 'myport'.
+
+    - `my_device.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
+        of `my_device`. If `wire` has only two ports (e.g. 'A' and 'B'), no `map_out`,
+        argument is provided, and the `inherit_name` argument is not explicitly
+        set to `False`, the unconnected port of `wire` is automatically renamed to
+        'myport'. This allows easy extension of existing ports without changing
+        their names or having to provide `map_out` each time `plug` is called.
+
+    - `my_device.place(pad, offset=(10, 10), rotation=pi / 2, port_map={'A': 'gnd'})`
+        instantiates `pad` at the specified (x, y) offset and with the specified
+        rotation, adding its ports to those of `my_device`. Port 'A' of `pad` is
+        renamed to 'gnd' so that further routing can use this signal or net name
+        rather than the port name on the original `pad` device.
+    """
+    __slots__ = ('tools',)
+
+    library: MutableLibrary
+    """
+    Library from which existing patterns should be referenced, and to which
+    new ones should be added
+    """
+
+    tools: Dict[Optional[str], Tool]
+    """
+    Tool objects are used to dynamically generate new single-use Devices
+    (e.g wires or waveguides) to be plugged into this device.
+    """
+
+    def __init__(
+            self,
+            library: MutableLibrary,
+            *,
+            pattern: Optional[Pattern] = None,
+            ports: Union[None, str, Mapping[str, Port]] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            ) -> None:
+        """
+        # TODO documentation for Builder() constructor
+
+        # TODO MOVE THE BELOW DOCS to PortList
+        # If `ports` is `None`, two default ports ('A' and 'B') are created.
+        # Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
+        #   (attached devices will be placed to the left) and 'B' has rotation
+        #   pi (attached devices will be placed to the right).
+        """
+        self.library = library
+        if pattern is not None:
+            self.pattern = pattern
+        else:
+            self.pattern = Pattern()
+
+        if ports is not None:
+            if self.pattern.ports:
+                raise BuildError('Ports supplied for pattern with pre-existing ports!')
+            if isinstance(ports, str):
+                ports = library.abstract(ports).ports
+
+            self.pattern.ports.update(copy.deepcopy(dict(ports)))
+
+        if tools is None:
+            self.tools = {}
+        elif isinstance(tools, Tool):
+            self.tools = {None: tools}
+        else:
+            self.tools = dict(tools)
+
+        self._dead = False
+
+    @classmethod
+    def from_builder(
+            cls,
+            builder: Builder,
+            *,
+            library: Optional[MutableLibrary] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            ) -> 'Pather':
+        """TODO from_builder docs"""
+        library = library if library is not None else builder.library
+        if library is None:
+            raise BuildError('No library available for Pather!')
+        new = Pather(library=library, tools=tools, pattern=builder.pattern)
+        return new
+
+    @classmethod
+    def interface(
+            cls,
+            source: Union[PortList, Mapping[str, Port], str],
+            *,
+            library: Optional[MutableLibrary] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            in_prefix: str = 'in_',
+            out_prefix: str = '',
+            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
+            ) -> 'Pather':
+        """
+        TODO doc pather.interface
+        """
+        if library is None:
+            if hasattr(source, 'library') and isinstance(source.library, MutableLibrary):
+                library = source.library
+            else:
+                raise BuildError('No library provided (and not present in `source.library`')
+
+        if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
+            tools = source.tools
+
+        new = Pather.from_builder(Builder.interface(
+            source=source,
+            library=library,
+            in_prefix=in_prefix,
+            out_prefix=out_prefix,
+            port_map=port_map,
+            ))
+        return new
+
+    def __repr__(self) -> str:
+        s = f'<Builder {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
+        return s
+
     def retool(
-            self: BB,
+            self: PP,
             tool: Tool,
             keys: Union[Optional[str], Sequence[Optional[str]]] = None,
-            ) -> BB:
+            ) -> PP:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
         else:
@@ -512,7 +659,7 @@ class Builder(PortList):
         return self
 
     def path(
-            self: BB,
+            self: PP,
             portspec: str,
             ccw: Optional[SupportsBool],
             length: float,
@@ -520,7 +667,7 @@ class Builder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_path',
             **kwargs,
-            ) -> BB:
+            ) -> PP:
         if self._dead:
             logger.error('Skipping path() since device is dead')
             return self
@@ -533,7 +680,7 @@ class Builder(PortList):
         return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
-            self: BB,
+            self: PP,
             portspec: str,
             ccw: Optional[SupportsBool],
             position: float,
@@ -541,7 +688,7 @@ class Builder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
-            ) -> BB:
+            ) -> PP:
         if self._dead:
             logger.error('Skipping path_to() since device is dead')
             return self
@@ -567,7 +714,7 @@ class Builder(PortList):
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
     def mpath(
-            self: BB,
+            self: PP,
             portspec: Union[str, Sequence[str]],
             ccw: Optional[SupportsBool],
             *,
@@ -577,7 +724,7 @@ class Builder(PortList):
             force_container: bool = False,
             base_name: str = '_mpath',
             **kwargs,
-            ) -> BB:
+            ) -> PP:
         if self._dead:
             logger.error('Skipping mpath() since device is dead')
             return self
@@ -608,7 +755,7 @@ class Builder(PortList):
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
         else:
-            bld = Builder.interface(source=ports, library=self.library, tools=self.tools)
+            bld = Pather.interface(source=ports, library=self.library, tools=self.tools)
             for port_name, length in extensions.items():
                 bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
             name = self.library.get_name(base_name)
@@ -617,7 +764,7 @@ class Builder(PortList):
 
     # TODO def path_join() and def bus_join()?
 
-    def flatten(self: BB) -> BB:
+    def flatten(self: PP) -> PP:
         """
         Flatten the contained pattern, using the contained library to resolve references.
 

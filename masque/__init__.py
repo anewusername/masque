@@ -42,7 +42,7 @@ from .library import (
     )
 from .ports import Port, PortList
 from .abstract import Abstract
-from .builder import Builder, Tool, FlatBuilder
+from .builder import Builder, Tool, FlatBuilder, Pather
 from .utils import ports2data
 
 
