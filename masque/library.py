@@ -1034,6 +1034,12 @@ class Tree(MutableLibrary):
     def __delitem__(self, key: str) -> None:
         del self.library[key]
 
+    def __repr__(self) -> str:
+        return f'<Tree "{self.top}": {self.library} >'
+
+    def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
+        self.library._merge(key_self, other, key_other)
+
 
 def _rename_patterns(lib: Library, name: str) -> str:
     # TODO document rename function
