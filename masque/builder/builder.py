@@ -117,6 +117,7 @@ class Builder(PortList):
         #   (attached devices will be placed to the left) and 'B' has rotation
         #   pi (attached devices will be placed to the right).
         """
+        self._dead = False
         self.library = library
         if pattern is not None:
             self.pattern = pattern
@@ -133,7 +134,6 @@ class Builder(PortList):
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
-        self._dead = False
 
     @classmethod
     def interface(
@@ -572,6 +572,7 @@ class Pather(Builder):
         #   (attached devices will be placed to the left) and 'B' has rotation
         #   pi (attached devices will be placed to the right).
         """
+        self._dead = False
         self.library = library
         if pattern is not None:
             self.pattern = pattern
@@ -593,7 +594,6 @@ class Pather(Builder):
         else:
             self.tools = dict(tools)
 
-        self._dead = False
 
     @classmethod
     def from_builder(
@@ -643,7 +643,7 @@ class Pather(Builder):
         return new
 
     def __repr__(self) -> str:
-        s = f'<Builder {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
+        s = f'<Pather {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
         return s
 
     def retool(
