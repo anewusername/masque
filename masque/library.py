@@ -587,12 +587,15 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         self.add(tree.library, rename_theirs=rename_theirs)
         return name
 
-    def __lshift__(self, other: Mapping[str, 'Pattern']) -> Optional[str]:
+    def __lshift__(self, other: Mapping[str, 'Pattern']) -> str:
         if isinstance(other, Tree):
             return self.add_tree(other)     # Add library and return topcell name
 
-        name = next(other.keys()) if len(other) == 1 else None  # If only one name, return it
-        lib.add(other)
+        if len(other) != 1:
+            raise LibraryError('Received a non-Tree library containing multiple cells')
+
+        name = next(iter(other))
+        self.add(other)
         return name
 
     def dedup(
