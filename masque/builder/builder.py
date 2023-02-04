@@ -604,6 +604,19 @@ class Pather(Builder):
         if name is not None:
             library[name] = self.pattern
 
+    @classmethod
+    def mk(
+            cls,
+            library: MutableLibrary,
+            base_name: str,
+            *,
+            ports: Union[None, str, Mapping[str, Port]] = None,
+            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            ) -> Tuple['Pather', str]:
+        """ Name-and-make combination """
+        pat = library.create(base_name)
+        pather = Pather(library, pattern=pat, ports=ports, tools=tools)
+        return pather, pat.name
 
     @classmethod
     def from_builder(
