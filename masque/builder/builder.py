@@ -107,6 +107,7 @@ class Builder(PortList):
             *,
             pattern: Optional[Pattern] = None,
             ports: Union[None, str, Mapping[str, Port]] = None,
+            name: Optional[str] = None,
             ) -> None:
         """
         # TODO documentation for Builder() constructor
@@ -134,6 +135,10 @@ class Builder(PortList):
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
+        if name is not None:
+            if library is None:
+                raise BuildError('Name was supplied, but no library was given!')
+            library[name] = self.pattern
 
     @classmethod
     def interface(
@@ -144,6 +149,7 @@ class Builder(PortList):
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
+            name: Optional[str] = None,
             ) -> 'Builder':
         """
         Begin building a new device based on all or some of the ports in the
@@ -230,7 +236,7 @@ class Builder(PortList):
         if duplicates:
             raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
 
-        new = Builder(library=library, ports={**ports_in, **ports_out})
+        new = Builder(library=library, ports={**ports_in, **ports_out}, name=name)
         return new
 
     def plug(
@@ -562,6 +568,7 @@ class Pather(Builder):
             pattern: Optional[Pattern] = None,
             ports: Union[None, str, Mapping[str, Port]] = None,
             tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            name: Optional[str] = None,
             ) -> None:
         """
         # TODO documentation for Builder() constructor
@@ -594,6 +601,9 @@ class Pather(Builder):
         else:
             self.tools = dict(tools)
 
+        if name is not None:
+            library[name] = self.pattern
+
 
     @classmethod
     def from_builder(
@@ -620,6 +630,7 @@ class Pather(Builder):
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
+            name: Optional[str] = None,
             ) -> 'Pather':
         """
         TODO doc pather.interface
@@ -639,6 +650,7 @@ class Pather(Builder):
             in_prefix=in_prefix,
             out_prefix=out_prefix,
             port_map=port_map,
+            name=name,
             ))
         return new
 
