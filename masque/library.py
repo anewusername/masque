@@ -38,6 +38,15 @@ ML = TypeVar('ML', bound='MutableLibrary')
 LL = TypeVar('LL', bound='LazyLibrary')
 
 
+def _rename_patterns(lib: 'Library', name: str) -> str:
+    # TODO document rename function
+    if not name.startswith('_'):
+        return name
+
+    stem = name.split('$')[0]
+    return  lib.get_name(stem)
+
+
 class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
@@ -473,7 +482,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
                     ref.target = new_target
         return self
 
-    def create(self, base_name: str) -> NamedPattern:
+    def create(self, name: str) -> 'NamedPattern':
         """
         Convenience method to create an empty pattern, choose a name
         for it, add it with that name, and return both the pattern and name.
@@ -485,14 +494,14 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             (name, pattern) tuple
         """
         from .pattern import Pattern
-        name = self.get_name(base_name)
+        #name = self.get_name(base_name)
         npat = NamedPattern(name)
         self[name] = npat
         return npat
 
-    def name_and_set(
+    def set(
             self,
-            base_name: str,
+            name: str,
             value: Union['Pattern', Callable[[], 'Pattern']],
             ) -> str:
         """
@@ -506,7 +515,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         Returns:
             The name of the pattern.
         """
-        name = self.get_name(base_name)
+        #name = self.get_name(base_name)
         self[name] = value
         return name
 
@@ -796,6 +805,9 @@ class WrapROLibrary(Library):
     def __len__(self) -> int:
         return len(self.mapping)
 
+    def __contains__(self, key: str) -> bool:
+        return key in self.mapping
+
     def __repr__(self) -> str:
         return f'<WrapROLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
@@ -820,6 +832,9 @@ class WrapLibrary(MutableLibrary):
 
     def __len__(self) -> int:
         return len(self.mapping)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.mapping
 
     def __setitem__(
             self,
@@ -905,6 +920,8 @@ class LazyLibrary(MutableLibrary):
             pat = tree[tree.top]
             del tree[tree.top]
             self.add(tree)
+        else:
+            pat = pat_or_tree
 
         self.cache[key] = pat
         return pat
@@ -914,6 +931,9 @@ class LazyLibrary(MutableLibrary):
 
     def __len__(self) -> int:
         return len(self.dict)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.dict
 
     def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         if isinstance(other, LazyLibrary):
@@ -1009,12 +1029,12 @@ class Tree(MutableLibrary):
     library: MutableLibrary
 
     @property
-    def pattern(self) -> Pattern:
+    def pattern(self) -> 'Pattern':
         return self.library[self.top]
 
     def __init__(
             self,
-            top: Union[str, NamedPattern],
+            top: Union[str, 'NamedPattern'],
             library: Optional[MutableLibrary] = None
             ) -> None:
         self.top = top if isinstance(top, str) else top.name
@@ -1047,12 +1067,3 @@ class Tree(MutableLibrary):
 
     def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         self.library._merge(key_self, other, key_other)
-
-
-def _rename_patterns(lib: Library, name: str) -> str:
-    # TODO document rename function
-    if not name.startswith('_'):
-        return name
-
-    stem = name.split('$')[0]
-    return  lib.get_name(stem)
