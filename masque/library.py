@@ -867,7 +867,7 @@ class LazyLibrary(MutableLibrary):
     This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
     """
-    dict: Dict[str, Union[Callable[[], 'Pattern'], Callable[[], 'Tree']]]
+    dict: Dict[str, Callable[[], 'Pattern']]
     cache: Dict[str, 'Pattern']
     _lookups_in_progress: Set[str]
 
@@ -879,7 +879,7 @@ class LazyLibrary(MutableLibrary):
     def __setitem__(
             self,
             key: str,
-            value: Union['Pattern', Callable[[], 'Pattern'], Callable[[], 'Tree']],
+            value: Union['Pattern', Callable[[], 'Pattern']],
             ) -> None:
         if key in self.dict:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
@@ -913,16 +913,8 @@ class LazyLibrary(MutableLibrary):
 
         self._lookups_in_progress.add(key)
         func = self.dict[key]
-        pat_or_tree = func()
+        pat = func()
         self._lookups_in_progress.remove(key)
-        if isinstance(pat_or_tree, Tree):
-            tree = pat_or_tree
-            pat = tree[tree.top]
-            del tree[tree.top]
-            self.add(tree)
-        else:
-            pat = pat_or_tree
-
         self.cache[key] = pat
         return pat
 
