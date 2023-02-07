@@ -805,7 +805,7 @@ class WrapROLibrary(Library):
     def __len__(self) -> int:
         return len(self.mapping)
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self.mapping
 
     def __repr__(self) -> str:
@@ -833,7 +833,7 @@ class WrapLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.mapping)
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self.mapping
 
     def __setitem__(
@@ -932,7 +932,7 @@ class LazyLibrary(MutableLibrary):
     def __len__(self) -> int:
         return len(self.dict)
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self.dict
 
     def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
