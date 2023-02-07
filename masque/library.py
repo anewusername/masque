@@ -44,7 +44,7 @@ def _rename_patterns(lib: 'Library', name: str) -> str:
         return name
 
     stem = name.split('$')[0]
-    return  lib.get_name(stem)
+    return lib.get_name(stem)
 
 
 class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
@@ -493,7 +493,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         Returns:
             (name, pattern) tuple
         """
-        from .pattern import Pattern
+        from .pattern import NamedPattern
         #name = self.get_name(base_name)
         npat = NamedPattern(name)
         self[name] = npat
@@ -550,7 +550,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if internal_conflicts:
             raise LibraryError('Renamed patterns conflict with un-renamed names in `other`' + pformat(internal_conflicts))
 
-        conflicts = set(self.keys()) & renamed
+        conflicts = set(self.keys()) & set(rename_map.values())
         if conflicts:
             raise LibraryError('Unresolved duplicate keys encountered in library merge: ' + pformat(conflicts))
 
@@ -559,6 +559,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
             for old_name, new_name in rename_map.items():
                 temp.rename(old_name, new_name, move_references=True)
+            for key in temp.keys():
+                self._merge(key, temp, key)
 
         else:
             for key in other.keys():
@@ -592,6 +594,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             name = tree.top
         else:
             tree.library.rename(tree.top, name, move_references=True)
+            tree.top = name
 
         self.add(tree.library, rename_theirs=rename_theirs)
         return name

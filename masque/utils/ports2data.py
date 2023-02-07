@@ -83,7 +83,6 @@ def data_to_ports(
     Returns:
         The updated `pattern`. Port labels are not removed.
     """
-    print(f'TODO pat2dev {name}')
     if pattern.ports:
         logger.warning(f'Pattern {name if name else pattern} already had ports, skipping data_to_ports')
         return pattern
