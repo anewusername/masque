@@ -1042,6 +1042,7 @@ class Tree(MutableLibrary):
 
     @classmethod
     def mk(cls, top: str) -> Tuple['Tree', 'Pattern']:
+        from .pattern import Pattern
         tree = cls(top=top)
         pat = Pattern()
         tree[top] = pat
