@@ -345,6 +345,7 @@ class FlatBuilder(PortList):
         other_copy.mirror2d(mirrored)
         other_copy.rotate_around(pivot, rotation)
         other_copy.translate_elements(offset)
+        other_copy.ports.clear()
         self.pattern.append(other_copy)
         return self
 
