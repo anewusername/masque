@@ -254,7 +254,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             name: str = '__',
             sanitize: bool = True,
             max_length: int = 32,
-            quiet: bool = False,
+            quiet: Optional[bool] = None,
             ) -> str:
         """
         Find a unique name for the pattern.
@@ -265,11 +265,15 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             name: Preferred name for the pattern. Default '__'.
             sanitize: Allows only alphanumeric charaters and _?$. Replaces invalid characters with underscores.
             max_length: Names longer than this will be truncated.
-            quiet: If `True`, suppress log messages.
+            quiet: If `True`, suppress log messages. Default `None` suppresses messages only if
+                the name starts with an underscore.
 
         Returns:
             Name, unique within this library.
         """
+        if quiet is None:
+            quiet = name.startswith('_')
+
         if sanitize:
             # Remove invalid characters
             sanitized_name = re.compile(r'[^A-Za-z0-9_\?\$]').sub('_', name)
