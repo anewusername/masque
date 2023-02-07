@@ -542,7 +542,10 @@ def load_library(
         # Full load approach (immediately load everything)
         patterns, library_info = read(stream)
         for name, pattern in patterns.items():
-            lib[name] = lambda: pattern
+            if postprocess is not None:
+                lib[name] = postprocess(lib, name, pattern)
+            else:
+                lib[name] = pattern
         return lib, library_info
 
     # Normal approach (scan and defer load)
