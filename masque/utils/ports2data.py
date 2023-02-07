@@ -6,7 +6,7 @@ and retrieving it (`data_to_ports`).
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence, Optional, Mapping, Union
+from typing import Sequence, Optional, Mapping
 import logging
 
 import numpy
@@ -16,13 +16,13 @@ from ..label import Label
 from ..utils import layer_t
 from ..ports import Port
 from ..error import PatternError
-from ..library import Library, WrapROLibrary, Tree
+from ..library import Library, WrapROLibrary
 
 
 logger = logging.getLogger(__name__)
 
 
-def ports_to_data(pattern_or_tree: Union[Pattern, Tree], layer: layer_t) -> Union[Pattern, Tree]:
+def ports_to_data(pattern: Pattern, layer: layer_t) -> Pattern:
     """
     Place a text label at each port location, specifying the port data in the format
         'name:ptype angle_deg'
@@ -39,11 +39,6 @@ def ports_to_data(pattern_or_tree: Union[Pattern, Tree], layer: layer_t) -> Unio
     Returns:
         `pattern`
     """
-    pattern: Pattern
-    if isinstance(pattern_or_tree, Tree):
-        pattern = pattern_or_tree[pattern_or_tree.top]
-    else:
-        pattern = pattern_or_tree
     for name, port in pattern.ports.items():
         if port.rotation is None:
             angle_deg = numpy.inf
@@ -52,7 +47,7 @@ def ports_to_data(pattern_or_tree: Union[Pattern, Tree], layer: layer_t) -> Unio
         pattern.labels += [
             Label(string=f'{name}:{port.ptype} {angle_deg:g}', layer=layer, offset=port.offset)
             ]
-    return pattern_or_tree
+    return pattern
 
 
 def data_to_ports(
