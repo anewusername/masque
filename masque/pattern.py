@@ -561,6 +561,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     def flatten(
             self: P,
             library: Mapping[str, P],
+            flatten_ports: bool = False,       # TODO document
             ) -> 'Pattern':
         """
         Removes all refs (recursively) and adds equivalent shapes.
@@ -592,6 +593,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                     raise PatternError(f'Circular reference in {name} to {target}')
 
                 p = ref.as_pattern(pattern=flattened[target])
+                if not flatten_ports:
+                    p.ports.clear()
                 pat.append(p)
 
             pat.refs.clear()
