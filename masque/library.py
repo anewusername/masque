@@ -207,6 +207,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def flatten(
             self,
             tops: Union[str, Sequence[str]],
+            flatten_ports: bool = False,       # TODO document
             ) -> Dict[str, 'Pattern']:
         """
         Removes all refs and adds equivalent shapes.
@@ -238,6 +239,8 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                     raise PatternError(f'Circular reference in {name} to {target}')
 
                 p = ref.as_pattern(pattern=flattened[target])
+                if not flatten_ports:
+                    p.ports.clear()
                 pat.append(p)
 
             pat.refs.clear()
