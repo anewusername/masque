@@ -658,13 +658,15 @@ class Pather(Builder):
             tools = source.tools
 
         new = Pather.from_builder(Builder.interface(
-            source=source,
-            library=library,
-            in_prefix=in_prefix,
-            out_prefix=out_prefix,
-            port_map=port_map,
-            name=name,
-            ))
+                source=source,
+                library=library,
+                in_prefix=in_prefix,
+                out_prefix=out_prefix,
+                port_map=port_map,
+                name=name,
+                ),
+            tools=tools,
+            )
         return new
 
     def __repr__(self) -> str:
