@@ -524,14 +524,14 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return name
 
     def add(
-            self: ML,
+            self,
             other: Mapping[str, 'Pattern'],
             rename_theirs: Callable[['Library', str], str] = _rename_patterns,
-            ) -> ML:
+            ) -> Dict[str, str]:
         """
         Add keys from another library into this one.
 
-        # TODO explain reference renaming
+        # TODO explain reference renaming and return
 
         Args:
             other: The library to insert keys from
@@ -544,33 +544,32 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             self
         """
         duplicates = set(self.keys()) & set(other.keys())
-        rename_map = {name: rename_theirs(self, name) for name in duplicates}
-        renamed = set(rename_map.keys())
 
-        if len(renamed) != len(rename_map):
-            raise LibraryError('Multiple `other` patterns have the same name after renaming!')
-
-        internal_conflicts = (set(other.keys()) - duplicates) & renamed
-        if internal_conflicts:
-            raise LibraryError('Renamed patterns conflict with un-renamed names in `other`' + pformat(internal_conflicts))
-
-        conflicts = set(self.keys()) & set(rename_map.values())
-        if conflicts:
-            raise LibraryError('Unresolved duplicate keys encountered in library merge: ' + pformat(conflicts))
-
-        if rename_map:
-            temp = WrapLibrary(copy.deepcopy(dict(other)))     # Copy and turn into a mutable library
-
-            for old_name, new_name in rename_map.items():
-                temp.rename(old_name, new_name, move_references=True)
-            for key in temp.keys():
-                self._merge(key, temp, key)
-
-        else:
+        if not duplicates:
             for key in other.keys():
                 self._merge(key, other, key)
+            return {}
 
-        return self
+        temp = WrapLibrary(copy.deepcopy(dict(other)))      # TODO maybe add a `mutate` arg? Might want to keep the same patterns
+        rename_map = {}
+        for old_name in temp:
+            if old_name in duplicates:
+                new_name = rename_theirs(self, old_name)
+                if new_name in self:
+                    raise LibraryError(f'Unresolved duplicate key encountered in library merge: {old_name} -> {new_name}')
+                rename_map[old_name] = new_name
+            else:
+                new_name = old_name
+
+            self._merge(new_name, temp, old_name)
+
+        # Update references in the newly-added cells
+        for old_name in temp:
+            new_name = rename_map.get(old_name, old_name)
+            for ref in self[new_name].refs:
+                ref.target = rename_map.get(ref.target, ref.target)
+
+        return rename_map
 
     def add_tree(
             self,
@@ -600,8 +599,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             tree.library.rename(tree.top, name, move_references=True)
             tree.top = name
 
-        self.add(tree.library, rename_theirs=rename_theirs)
-        return name
+        rename_map = self.add(tree.library, rename_theirs=rename_theirs)
+        return rename_map.get(name, name)
 
     def __lshift__(self, other: Mapping[str, 'Pattern']) -> str:
         if isinstance(other, Tree):
