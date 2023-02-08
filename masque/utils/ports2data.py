@@ -57,8 +57,9 @@ def data_to_ports(
                                         # LazyLibrary protects against library[ref.target] causing a circular lookup.
                                         # For others, maybe check for cycles up front? TODO
         name: Optional[str] = None,     # Note: name optional, but arg order different from read(postprocess=)
-        max_depth: int = 999_999,
+        max_depth: int = 0,
         skip_subcells: bool = True,
+        # TODO missing ok?
         ) -> Pattern:
     """
     # TODO fixup documentation in port_utils
