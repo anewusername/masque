@@ -145,7 +145,7 @@ def writefile(
     with tmpfile(path) as base_stream:
         streams: Tuple[Any, ...] = (base_stream,)
         if path.suffix == '.gz':
-            stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream))
+            stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
             streams = (stream,) + streams
         else:
             stream = base_stream
