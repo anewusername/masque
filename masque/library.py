@@ -999,7 +999,7 @@ class LazyLibrary(MutableLibrary):
             self
         """
         for key in self.dict:
-            _ = self.dict.__getitem__(key)
+            _ = self[key]       # want to trigger our own __getitem__
         return self
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'LazyLibrary':
