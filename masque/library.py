@@ -235,8 +235,12 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
                 if target not in flattened:
                     flatten_single(target)
-                if flattened[target] is None:
+
+                target_pat = flattened[target]
+                if target_pat is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
+                if target_pat.is_empty()        # avoid some extra allocations
+                    continue
 
                 p = ref.as_pattern(pattern=flattened[target])
                 if not flatten_ports:
@@ -613,8 +617,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             raise LibraryError('Received a non-Tree library containing multiple cells')
 
         name = next(iter(other))
-        self.add(other)
-        return name
+        rename_map = self.add(other)
+        return rename_map.get(name, name)
 
     def dedup(
             self: ML,

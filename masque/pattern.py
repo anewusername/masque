@@ -521,6 +521,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def is_empty(self) -> bool:
         """
+        # TODO is_empty doesn't include ports... maybe there should be an equivalent?
         Returns:
             True if the pattern is contains no shapes, labels, or refs.
         """
@@ -575,6 +576,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         flattened: Dict[Optional[str], Optional[P]] = {}
 
+        # TODO both Library and Pattern have flatten()... pattern is in-place?
         def flatten_single(name: Optional[str]) -> None:
             if name is None:
                 pat = self
@@ -589,8 +591,12 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
                 if target not in flattened:
                     flatten_single(target)
-                if flattened[target] is None:
+
+                target_pat = flattened[target]
+                if target_pat is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
+                if target_pat.is_empty()        # avoid some extra allocations
+                    continue
 
                 p = ref.as_pattern(pattern=flattened[target])
                 if not flatten_ports:
