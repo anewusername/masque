@@ -239,7 +239,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 target_pat = flattened[target]
                 if target_pat is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
-                if target_pat.is_empty()        # avoid some extra allocations
+                if target_pat.is_empty():        # avoid some extra allocations
                     continue
 
                 p = ref.as_pattern(pattern=flattened[target])
@@ -574,7 +574,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         for old_name in temp:
             new_name = rename_map.get(old_name, old_name)
             for ref in self[new_name].refs:
-                ref.target = rename_map.get(ref.target, ref.target)
+                ref.target = rename_map.get(cast(str, ref.target), ref.target)
 
         return rename_map
 
@@ -805,10 +805,10 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             ) -> Set[str]:
         # TODO doc prune_empty
         trimmed = set()
-        while empty := set(name for name, pat in lib.items() if pat.is_empty()):
+        while empty := set(name for name, pat in self.items() if pat.is_empty()):
             for name in empty:
-                del lib[name]
-            for pat in lib.values():
+                del self[name]
+            for pat in self.values():
                 pat.refs = [ref for ref in pat.refs if ref.target not in empty]
 
             trimmed |= empty
@@ -824,7 +824,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         # TODO doc delete()
         del self[key]
         if delete_refs:
-            for pat in lib.values():
+            for pat in self.values():
                 pat.refs = [ref for ref in pat.refs if ref.target != key]
         return self
 

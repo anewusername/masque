@@ -595,7 +595,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                 target_pat = flattened[target]
                 if target_pat is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
-                if target_pat.is_empty()        # avoid some extra allocations
+                if target_pat.is_empty():        # avoid some extra allocations
                     continue
 
                 p = ref.as_pattern(pattern=flattened[target])
