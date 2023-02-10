@@ -200,6 +200,9 @@ class Ref(
             return None
         if library is not None and self.target not in library:
             raise PatternError(f'get_bounds() called on dangling reference to "{self.target}"')
+        if pattern is not None and pattern.is_empty():
+            # no need to run as_pattern()
+            return None
         return self.as_pattern(pattern=pattern, library=library).get_bounds(library)
 
     def __repr__(self) -> str:
