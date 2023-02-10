@@ -799,6 +799,35 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             new._merge(key, self, key)
         return new
 
+    def prune_empty(
+            self,
+            repeat: bool = True,
+            ) -> Set[str]:
+        # TODO doc prune_empty
+        trimmed = set()
+        while empty := set(name for name, pat in lib.items() if pat.is_empty()):
+            for name in empty:
+                del lib[name]
+            for pat in lib.values():
+                pat.refs = [ref for ref in pat.refs if ref.target not in empty]
+
+            trimmed |= empty
+            if not repeat:
+                break
+        return trimmed
+
+    def delete(
+            self: ML,
+            key: str,
+            delete_refs: bool = True,
+            ) -> ML:
+        # TODO doc delete()
+        del self[key]
+        if delete_refs:
+            for pat in lib.values():
+                pat.refs = [ref for ref in pat.refs if ref.target != key]
+        return self
+
 
 class WrapROLibrary(Library):
     mapping: Mapping[str, 'Pattern']
