@@ -243,8 +243,8 @@ class Path(Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_vertices: Optional[int] = None,
+            max_arclen: Optional[float] = None,
             ) -> List['Polygon']:
         extensions = self._calculate_cap_extensions()
 
@@ -311,7 +311,7 @@ class Path(Shape):
             #for vert in v:         # not sure if every vertex, or just ends?
             for vert in [v[0], v[-1]]:
                 circ = Circle(offset=vert, radius=self.width / 2, layer=self.layer)
-                polys += circ.to_polygons(poly_num_points=poly_num_points, poly_max_arclen=poly_max_arclen)
+                polys += circ.to_polygons(num_vertices=num_vertices, max_arclen=max_arclen)
 
         return polys
 
@@ -372,8 +372,12 @@ class Path(Shape):
 
         return ((type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer),
                 (offset, scale / norm_value, rotation, False),
-                lambda: Path(reordered_vertices * norm_value, width=self.width * norm_value,
-                             cap=self.cap, layer=self.layer))
+                lambda: Path(
+                    reordered_vertices * norm_value,
+                    width=self.width * norm_value,
+                    cap=self.cap,
+                    layer=self.layer,
+                    ))
 
     def clean_vertices(self) -> 'Path':
         """

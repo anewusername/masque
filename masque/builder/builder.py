@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 
 from ..pattern import Pattern, NamedPattern
 from ..ref import Ref
-from ..library import MutableLibrary
+from ..library import MutableLibrary, Tree
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -492,7 +492,6 @@ class Builder(PortList):
         return s
 
 
-
 class Pather(Builder):
     """
     TODO DOCUMENT Builder
@@ -657,7 +656,8 @@ class Pather(Builder):
         if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
             tools = source.tools
 
-        new = Pather.from_builder(Builder.interface(
+        new = Pather.from_builder(
+            Builder.interface(
                 source=source,
                 library=library,
                 in_prefix=in_prefix,

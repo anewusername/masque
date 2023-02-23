@@ -6,7 +6,7 @@ import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
+from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, layer_t, annotations_t
@@ -23,7 +23,6 @@ class Arc(Shape):
     """
     __slots__ = (
         '_radii', '_angles', '_width', '_rotation',
-        'poly_num_points', 'poly_max_arclen',
         # Inherited
         '_offset', '_layer', '_repetition', '_annotations',
         )
@@ -39,12 +38,6 @@ class Arc(Shape):
 
     _width: float
     """ Width of the arc """
-
-    poly_num_points: Optional[int]
-    """ Sets the default number of points for `.polygonize()` """
-
-    poly_max_arclen: Optional[float]
-    """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
     @property
@@ -160,8 +153,6 @@ class Arc(Shape):
             angles: ArrayLike,
             width: float,
             *,
-            poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
-            poly_max_arclen: Optional[float] = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
@@ -191,8 +182,6 @@ class Arc(Shape):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-        self.poly_num_points = poly_num_points
-        self.poly_max_arclen = poly_max_arclen
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Arc':
@@ -206,15 +195,10 @@ class Arc(Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_vertices: Optional[int] = DEFAULT_POLY_NUM_VERTICES,
+            max_arclen: Optional[float] = None,
             ) -> List[Polygon]:
-        if poly_num_points is None:
-            poly_num_points = self.poly_num_points
-        if poly_max_arclen is None:
-            poly_max_arclen = self.poly_max_arclen
-
-        if (poly_num_points is None) and (poly_max_arclen is None):
+        if (num_vertices is None) and (max_arclen is None):
             raise PatternError('Max number of points and arclength left unspecified'
                                + ' (default was also overridden)')
 
@@ -232,18 +216,18 @@ class Arc(Shape):
         perimeter = abs(a0 - a1) / (2 * pi) * ellipse_perimeter         # TODO: make this more accurate
 
         n = []
-        if poly_num_points is not None:
-            n += [poly_num_points]
-        if poly_max_arclen is not None:
-            n += [perimeter / poly_max_arclen]
-        num_points = int(round(max(n)))
+        if num_vertices is not None:
+            n += [num_vertices]
+        if max_arclen is not None:
+            n += [perimeter / max_arclen]
+        num_vertices = int(round(max(n)))
 
         wh = self.width / 2.0
         if wh == r0 or wh == r1:
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
-            thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_points, endpoint=True)
-        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_points, endpoint=True)
+            thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_vertices, endpoint=True)
+        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_vertices, endpoint=True)
 
         sin_th_i, cos_th_i = (numpy.sin(thetas_inner), numpy.cos(thetas_inner))
         sin_th_o, cos_th_o = (numpy.sin(thetas_outer), numpy.cos(thetas_outer))
@@ -370,7 +354,12 @@ class Arc(Shape):
 
         return ((type(self), radii, angles, width / norm_value, self.layer),
                 (self.offset, scale / norm_value, rotation, False),
-                lambda: Arc(radii=radii * norm_value, angles=angles, width=width * norm_value, layer=self.layer))
+                lambda: Arc(
+                    radii=radii * norm_value,
+                    angles=angles,
+                    width=width * norm_value,
+                    layer=self.layer,
+                    ))
 
     def get_cap_edges(self) -> NDArray[numpy.float64]:
         '''

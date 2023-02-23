@@ -110,8 +110,8 @@ class Text(RotatableImpl, Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,        # unused
-            poly_max_arclen: Optional[float] = None,      # unused
+            num_vertices: Optional[int] = None,      # unused
+            max_arclen: Optional[float] = None,      # unused
             ) -> List[Polygon]:
         all_polygons = []
         total_advance = 0.0
@@ -146,12 +146,14 @@ class Text(RotatableImpl, Shape):
         rotation %= 2 * pi
         return ((type(self), self.string, self.font_path, self.layer),
                 (self.offset, self.height / norm_value, rotation, mirror_x),
-                lambda: Text(string=self.string,
-                             height=self.height * norm_value,
-                             font_path=self.font_path,
-                             rotation=rotation,
-                             mirrored=(mirror_x, False),
-                             layer=self.layer))
+                lambda: Text(
+                    string=self.string,
+                    height=self.height * norm_value,
+                    font_path=self.font_path,
+                    rotation=rotation,
+                    mirrored=(mirror_x, False),
+                    layer=self.layer,
+                    ))
 
     def get_bounds(self) -> NDArray[numpy.float64]:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so

@@ -333,8 +333,8 @@ class Polygon(Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,        # unused
-            poly_max_arclen: Optional[float] = None,      # unused
+            num_vertices: Optional[int] = None,      # unused
+            max_arclen: Optional[float] = None,      # unused
             ) -> List['Polygon']:
         return [copy.deepcopy(self)]
 

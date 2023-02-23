@@ -6,7 +6,7 @@ import numpy
 from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
-from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
+from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, layer_t, annotations_t
@@ -19,7 +19,6 @@ class Ellipse(Shape):
     """
     __slots__ = (
         '_radii', '_rotation',
-        'poly_num_points', 'poly_max_arclen',
         # Inherited
         '_offset', '_layer', '_repetition', '_annotations',
         )
@@ -29,12 +28,6 @@ class Ellipse(Shape):
 
     _rotation: float
     """ Angle from x-axis to first radius (ccw, radians) """
-
-    poly_num_points: Optional[int]
-    """ Sets the default number of points for `.polygonize()` """
-
-    poly_max_arclen: Optional[float]
-    """ Sets the default max segement length for `.polygonize()` """
 
     # radius properties
     @property
@@ -95,8 +88,6 @@ class Ellipse(Shape):
             self,
             radii: ArrayLike,
             *,
-            poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
-            poly_max_arclen: Optional[float] = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
@@ -122,8 +113,6 @@ class Ellipse(Shape):
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
-        self.poly_num_points = poly_num_points
-        self.poly_max_arclen = poly_max_arclen
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Ellipse':
         memo = {} if memo is None else memo
@@ -135,15 +124,10 @@ class Ellipse(Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_vertices: Optional[int] = DEFAULT_POLY_NUM_VERTICES,
+            max_arclen: Optional[float] = None,
             ) -> List[Polygon]:
-        if poly_num_points is None:
-            poly_num_points = self.poly_num_points
-        if poly_max_arclen is None:
-            poly_max_arclen = self.poly_max_arclen
-
-        if (poly_num_points is None) and (poly_max_arclen is None):
+        if (num_vertices is None) and (max_arclen is None):
             raise PatternError('Number of points and arclength left unspecified'
                                ' (default was also overridden)')
 
@@ -156,12 +140,12 @@ class Ellipse(Shape):
         perimeter = pi * (r1 + r0) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
 
         n = []
-        if poly_num_points is not None:
-            n += [poly_num_points]
-        if poly_max_arclen is not None:
-            n += [perimeter / poly_max_arclen]
-        num_points = int(round(max(n)))
-        thetas = numpy.linspace(2 * pi, 0, num_points, endpoint=False)
+        if num_vertices is not None:
+            n += [num_vertices]
+        if max_arclen is not None:
+            n += [perimeter / max_arclen]
+        num_vertices = int(round(max(n)))
+        thetas = numpy.linspace(2 * pi, 0, num_vertices, endpoint=False)
 
         sin_th, cos_th = (numpy.sin(thetas), numpy.cos(thetas))
         xs = r0 * cos_th
