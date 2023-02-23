@@ -5,7 +5,7 @@ import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_POINTS
+from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, layer_t, annotations_t
@@ -16,19 +16,13 @@ class Circle(Shape):
     A circle, which has a position and radius.
     """
     __slots__ = (
-        '_radius', 'poly_num_points', 'poly_max_arclen',
+        '_radius',
         # Inherited
         '_offset', '_layer', '_repetition', '_annotations',
         )
 
     _radius: float
     """ Circle radius """
-
-    poly_num_points: Optional[int]
-    """ Sets the default number of points for `.polygonize()` """
-
-    poly_max_arclen: Optional[float]
-    """ Sets the default max segement length for `.polygonize()` """
 
     # radius property
     @property
@@ -50,8 +44,6 @@ class Circle(Shape):
             self,
             radius: float,
             *,
-            poly_num_points: Optional[int] = DEFAULT_POLY_NUM_POINTS,
-            poly_max_arclen: Optional[float] = None,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
             repetition: Optional[Repetition] = None,
@@ -71,8 +63,6 @@ class Circle(Shape):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
-        self.poly_num_points = poly_num_points
-        self.poly_max_arclen = poly_max_arclen
 
     def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Circle':
         memo = {} if memo is None else memo
@@ -83,25 +73,20 @@ class Circle(Shape):
 
     def to_polygons(
             self,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_vertices: Optional[int] = DEFAULT_POLY_NUM_VERTICES,
+            max_arclen: Optional[float] = None,
             ) -> List[Polygon]:
-        if poly_num_points is None:
-            poly_num_points = self.poly_num_points
-        if poly_max_arclen is None:
-            poly_max_arclen = self.poly_max_arclen
-
-        if (poly_num_points is None) and (poly_max_arclen is None):
+        if (num_vertices is None) and (max_arclen is None):
             raise PatternError('Number of points and arclength left '
                                'unspecified (default was also overridden)')
 
         n: List[float] = []
-        if poly_num_points is not None:
-            n += [poly_num_points]
-        if poly_max_arclen is not None:
-            n += [2 * pi * self.radius / poly_max_arclen]
-        num_points = int(round(max(n)))
-        thetas = numpy.linspace(2 * pi, 0, num_points, endpoint=False)
+        if num_vertices is not None:
+            n += [num_vertices]
+        if max_arclen is not None:
+            n += [2 * pi * self.radius / max_arclen]
+        num_vertices = int(round(max(n)))
+        thetas = numpy.linspace(2 * pi, 0, num_vertices, endpoint=False)
         xs = numpy.cos(thetas) * self.radius
         ys = numpy.sin(thetas) * self.radius
         xys = numpy.vstack((xs, ys)).T

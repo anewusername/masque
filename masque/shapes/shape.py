@@ -23,7 +23,7 @@ normalized_shape_tuple = Tuple[
 
 # ## Module-wide defaults
 # Default number of points per polygon for shapes
-DEFAULT_POLY_NUM_POINTS = 24
+DEFAULT_POLY_NUM_VERTICES = 24
 
 
 T = TypeVar('T', bound='Shape')

@@ -214,18 +214,18 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def polygonize(
             self: P,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_points: Optional[int] = None,
+            max_arclen: Optional[float] = None,
             ) -> P:
         """
         Calls `.to_polygons(...)` on all the shapes in this Pattern, replacing them with the returned polygons.
         Arguments are passed directly to `shape.to_polygons(...)`.
 
         Args:
-            poly_num_points: Number of points to use for each polygon. Can be overridden by
-                `poly_max_arclen` if that results in more points. Optional, defaults to shapes'
+            num_points: Number of points to use for each polygon. Can be overridden by
+                `max_arclen` if that results in more points. Optional, defaults to shapes'
                 internal defaults.
-            poly_max_arclen: Maximum arclength which can be approximated by a single line
+            max_arclen: Maximum arclength which can be approximated by a single line
              segment. Optional, defaults to shapes' internal defaults.
 
         Returns:
@@ -233,7 +233,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         old_shapes = self.shapes
         self.shapes = list(chain.from_iterable((
-            shape.to_polygons(poly_num_points, poly_max_arclen)
+            shape.to_polygons(num_points, max_arclen)
             for shape in old_shapes)))
         return self
 
@@ -713,7 +713,7 @@ class NamedPattern(Pattern):
     def __deepcopy__(self, memo: Optional[Dict] = None) -> Pattern:
         return Pattern.__deepcopy__(self, memo)
 
-    def as_pattern(self) ->  Pattern:
+    def as_pattern(self) -> Pattern:
         return Pattern(
             shapes=self.shapes,
             labels=self.labels,
