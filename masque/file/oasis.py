@@ -480,7 +480,7 @@ def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
         else:
             data_type = 0
     else:
-        raise PatternError(f'Invalid layer for OASIS: {layer}. Note that OASIS layers cannot be '
+        raise PatternError(f'Invalid layer for OASIS: {mlayer}. Note that OASIS layers cannot be '
                            f'strings unless a layer map is provided.')
     return layer, data_type
 
