@@ -2,8 +2,7 @@
  Base object representing a lithography mask.
 """
 
-from typing import List, Callable, Dict, Union, Set, Sequence, Optional, cast
-from typing import Mapping, TypeVar, Any
+from typing import Callable, Sequence, cast, Mapping, TypeVar, Any
 import copy
 from itertools import chain
 
@@ -35,29 +34,29 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         '_offset', '_annotations',
         )
 
-    shapes: List[Shape]
+    shapes: list[Shape]
     """ List of all shapes in this Pattern.
     Elements in this list are assumed to inherit from Shape or provide equivalent functions.
     """
 
-    labels: List[Label]
+    labels: list[Label]
     """ List of all labels in this Pattern. """
 
-    refs: List[Ref]
+    refs: list[Ref]
     """ List of all references to other patterns (`Ref`s) in this `Pattern`.
     Multiple objects in this list may reference the same Pattern object
       (i.e. multiple instances of the same object).
     """
 
-    _ports: Dict[str, Port]
+    _ports: dict[str, Port]
     """ Uniquely-named ports which can be used to snap to other Pattern instances"""
 
     @property
-    def ports(self) -> Dict[str, Port]:
+    def ports(self) -> dict[str, Port]:
         return self._ports
 
     @ports.setter
-    def ports(self, value: Dict[str, Port]) -> None:
+    def ports(self, value: dict[str, Port]) -> None:
         self._ports = value
 
     def __init__(
@@ -66,8 +65,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             shapes: Sequence[Shape] = (),
             labels: Sequence[Label] = (),
             refs: Sequence[Ref] = (),
-            annotations: Optional[annotations_t] = None,
-            ports: Optional[Mapping[str, 'Port']] = None
+            annotations: annotations_t | None = None,
+            ports: Mapping[str, 'Port'] | None = None
             ) -> None:
         """
         Basic init; arguments get assigned to member variables.
@@ -118,7 +117,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             ports=copy.deepcopy(self.ports),
             )
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Pattern':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Pattern':
         memo = {} if memo is None else memo
         new = Pattern(
             shapes=copy.deepcopy(self.shapes, memo),
@@ -158,11 +157,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def subset(
             self,
-            shapes: Optional[Callable[[Shape], bool]] = None,
-            labels: Optional[Callable[[Label], bool]] = None,
-            refs: Optional[Callable[[Ref], bool]] = None,
-            annotations: Optional[Callable[[str, List[Union[int, float, str]]], bool]] = None,
-            ports: Optional[Callable[[str, Port], bool]] = None,
+            shapes: Callable[[Shape], bool] | None = None,
+            labels: Callable[[Label], bool] | None = None,
+            refs: Callable[[Ref], bool] | None = None,
+            annotations: Callable[[str, list[int | float | str]], bool] | None = None,
+            ports: Callable[[str, Port], bool] | None = None,
             default_keep: bool = False
             ) -> 'Pattern':
         """
@@ -214,8 +213,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def polygonize(
             self: P,
-            num_points: Optional[int] = None,
-            max_arclen: Optional[float] = None,
+            num_points: int | None = None,
+            max_arclen: float | None = None,
             ) -> P:
         """
         Calls `.to_polygons(...)` on all the shapes in this Pattern, replacing them with the returned polygons.
@@ -260,7 +259,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
         return self
 
-    def as_polygons(self, library: Mapping[str, 'Pattern']) -> List[NDArray[numpy.float64]]:
+    def as_polygons(self, library: Mapping[str, 'Pattern']) -> list[NDArray[numpy.float64]]:
         """
         Represents the pattern as a list of polygons.
 
@@ -274,7 +273,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         pat = self.deepcopy().polygonize().flatten(library=library)
         return [shape.vertices + shape.offset for shape in pat.shapes]      # type: ignore      # mypy can't figure out that shapes are all Polygons now
 
-    def referenced_patterns(self) -> Set[Optional[str]]:
+    def referenced_patterns(self) -> set[str | None]:
         """
         Get all pattern namers referenced by this pattern. Non-recursive.
 
@@ -285,9 +284,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def get_bounds(
             self,
-            library: Optional[Mapping[str, 'Pattern']] = None,
+            library: Mapping[str, 'Pattern'] | None = None,
             recurse: bool = True,
-            ) -> Optional[NDArray[numpy.float64]]:
+            ) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the Pattern's contents in each dimension.
@@ -330,7 +329,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def get_bounds_nonempty(
             self,
-            library: Optional[Mapping[str, 'Pattern']] = None,
+            library: Mapping[str, 'Pattern'] | None = None,
             recurse: bool = True,
             ) -> NDArray[numpy.float64]:
         """
@@ -574,10 +573,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        flattened: Dict[Optional[str], Optional[P]] = {}
+        flattened: dict[str | None, P | None] = {}
 
         # TODO both Library and Pattern have flatten()... pattern is in-place?
-        def flatten_single(name: Optional[str]) -> None:
+        def flatten_single(name: str | None) -> None:
             if name is None:
                 pat = self
             else:
@@ -611,7 +610,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def visualize(
             self: P,
-            library: Optional[Mapping[str, P]] = None,
+            library: Mapping[str, P] | None = None,
             offset: ArrayLike = (0., 0.),
             line_color: str = 'k',
             fill_color: str = 'none',
@@ -710,7 +709,7 @@ class NamedPattern(Pattern):
     def __copy__(self) -> Pattern:
         return Pattern.__copy__(self)
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> Pattern:
+    def __deepcopy__(self, memo: dict | None = None) -> Pattern:
         return Pattern.__deepcopy__(self, memo)
 
     def as_pattern(self) -> Pattern:

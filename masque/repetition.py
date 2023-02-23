@@ -3,7 +3,7 @@
      instances of an object .
 """
 
-from typing import Union, Dict, Optional, Any, Type
+from typing import Any, Type
 import copy
 from abc import ABCMeta, abstractmethod
 
@@ -52,7 +52,7 @@ class Grid(Repetition):
     _a_count: int
     """ Number of instances along the direction specified by the `a_vector` """
 
-    _b_vector: Optional[NDArray[numpy.float64]]
+    _b_vector: NDArray[numpy.float64] | None
     """ Vector `[x, y]` specifying a second lattice vector for the grid.
         Specifies center-to-center spacing between adjacent elements.
         Can be `None` for a 1D array.
@@ -65,8 +65,8 @@ class Grid(Repetition):
             self,
             a_vector: ArrayLike,
             a_count: int,
-            b_vector: Optional[ArrayLike] = None,
-            b_count: Optional[int] = 1,
+            b_vector: ArrayLike | None = None,
+            b_count: int | None = 1,
             ) -> None:
         """
         Args:
@@ -133,7 +133,7 @@ class Grid(Repetition):
             )
         return new
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Grid':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Grid':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         return new
@@ -154,7 +154,7 @@ class Grid(Repetition):
 
     # b_vector property
     @property
-    def b_vector(self) -> Optional[NDArray[numpy.float64]]:
+    def b_vector(self) -> NDArray[numpy.float64] | None:
         return self._b_vector
 
     @b_vector.setter
@@ -228,7 +228,7 @@ class Grid(Repetition):
             self.b_vector[1 - axis] *= -1
         return self
 
-    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
+    def get_bounds(self) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `Grid` in each dimension.
@@ -237,7 +237,7 @@ class Grid(Repetition):
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
         a_extent = self.a_vector * self.a_count
-        b_extent = self.b_vector * self.b_count if (self.b_vector is not None) else 0       # type: Union[NDArray[numpy.float64], float]
+        b_extent = self.b_vector * self.b_count if (self.b_vector is not None) else 0       # type: NDArray[numpy.float64] | float
 
         corners = numpy.stack(((0, 0), a_extent, b_extent, a_extent + b_extent))
         xy_min = numpy.min(corners, axis=0)
@@ -350,7 +350,7 @@ class Arbitrary(Repetition):
         self.displacements[1 - axis] *= -1
         return self
 
-    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
+    def get_bounds(self) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `displacements` in each dimension.

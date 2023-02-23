@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional, Sequence, Any, cast
+from typing import Sequence, Any, cast
 import copy
 from enum import Enum
 
@@ -36,7 +36,7 @@ class Path(Shape):
     _vertices: NDArray[numpy.float64]
     _width: float
     _cap: PathCap
-    _cap_extensions: Optional[NDArray[numpy.float64]]
+    _cap_extensions: NDArray[numpy.float64] | None
 
     Cap = PathCap
 
@@ -76,7 +76,7 @@ class Path(Shape):
 
     # cap_extensions property
     @property
-    def cap_extensions(self) -> Optional[Any]:  # TODO mypy#3004  NDArray[numpy.float64]]:
+    def cap_extensions(self) -> Any | None:  # TODO mypy#3004  NDArray[numpy.float64]]:
         """
         Path end-cap extension
 
@@ -86,7 +86,7 @@ class Path(Shape):
         return self._cap_extensions
 
     @cap_extensions.setter
-    def cap_extensions(self, vals: Optional[ArrayLike]) -> None:
+    def cap_extensions(self, vals: ArrayLike | None) -> None:
         custom_caps = (PathCap.SquareCustom,)
         if self.cap in custom_caps:
             if vals is None:
@@ -150,13 +150,13 @@ class Path(Shape):
             width: float = 0.0,
             *,
             cap: PathCap = PathCap.Flush,
-            cap_extensions: Optional[ArrayLike] = None,
+            cap_extensions: ArrayLike | None = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         self._cap_extensions = None     # Since .cap setter might access it
@@ -185,7 +185,7 @@ class Path(Shape):
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Path':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Path':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -197,10 +197,10 @@ class Path(Shape):
 
     @staticmethod
     def travel(
-            travel_pairs: Sequence[Tuple[float, float]],
+            travel_pairs: Sequence[tuple[float, float]],
             width: float = 0.0,
             cap: PathCap = PathCap.Flush,
-            cap_extensions: Optional[Tuple[float, float]] = None,
+            cap_extensions: tuple[float, float] | None = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
@@ -243,9 +243,9 @@ class Path(Shape):
 
     def to_polygons(
             self,
-            num_vertices: Optional[int] = None,
-            max_arclen: Optional[float] = None,
-            ) -> List['Polygon']:
+            num_vertices: int | None = None,
+            max_arclen: float | None = None,
+            ) -> list['Polygon']:
         extensions = self._calculate_cap_extensions()
 
         v = remove_colinear_vertices(self.vertices, closed_path=False)

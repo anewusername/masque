@@ -1,6 +1,6 @@
 # TODO top-level comment about how traits should set __slots__ = (), and how to use AutoSlots
 
-from typing import TypeVar, Any, Optional
+from typing import TypeVar, Any
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -65,7 +65,7 @@ class Positionable(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_bounds(self) -> Optional[NDArray[numpy.float64]]:
+    def get_bounds(self) -> NDArray[numpy.float64] | None:
         """
         Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
         Returns `None` for an empty entity.

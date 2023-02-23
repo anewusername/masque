@@ -113,5 +113,3 @@ def poly_contains_points(
     inside = nontrivial.copy()
     inside[nontrivial] = nontrivial_inside
     return inside
-
-

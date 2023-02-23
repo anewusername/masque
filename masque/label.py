@@ -1,4 +1,4 @@
-from typing import Dict, Optional, TypeVar
+from typing import TypeVar
 import copy
 
 import numpy
@@ -44,8 +44,8 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             *,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             ) -> None:
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
@@ -61,7 +61,7 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             repetition=self.repetition,
             )
 
-    def __deepcopy__(self: L, memo: Optional[Dict] = None) -> L:
+    def __deepcopy__(self: L, memo: dict | None = None) -> L:
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()

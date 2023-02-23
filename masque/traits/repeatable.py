@@ -1,4 +1,4 @@
-from typing import TypeVar, Optional, TYPE_CHECKING
+from typing import TypeVar, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 from ..error import MasqueError
@@ -26,7 +26,7 @@ class Repeatable(metaclass=ABCMeta):
     '''
     @property
     @abstractmethod
-    def repetition(self) -> Optional['Repetition']:
+    def repetition(self) -> 'Repetition' | None:
         """
         Repetition object, or None (single instance only)
         """
@@ -34,14 +34,14 @@ class Repeatable(metaclass=ABCMeta):
 
 #    @repetition.setter
 #    @abstractmethod
-#    def repetition(self, repetition: Optional['Repetition']):
+#    def repetition(self, repetition: 'Repetition' | None):
 #        pass
 
     '''
     ---- Methods
     '''
     @abstractmethod
-    def set_repetition(self: T, repetition: Optional['Repetition']) -> T:
+    def set_repetition(self: T, repetition: 'Repetition' | None) -> T:
         """
         Set the repetition
 
@@ -60,18 +60,18 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     """
     __slots__ = _empty_slots
 
-    _repetition: Optional['Repetition']
+    _repetition: 'Repetition' | None
     """ Repetition object, or None (single instance only) """
 
     '''
     ---- Non-abstract properties
     '''
     @property
-    def repetition(self) -> Optional['Repetition']:
+    def repetition(self) -> 'Repetition' | None:
         return self._repetition
 
     @repetition.setter
-    def repetition(self, repetition: Optional['Repetition']):
+    def repetition(self, repetition: 'Repetition' | None):
         from ..repetition import Repetition
         if repetition is not None and not isinstance(repetition, Repetition):
             raise MasqueError(f'{repetition} is not a valid Repetition object!')
@@ -80,6 +80,6 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def set_repetition(self: I, repetition: Optional['Repetition']) -> I:
+    def set_repetition(self: I, repetition: 'Repetition' | None) -> I:
         self.repetition = repetition
         return self

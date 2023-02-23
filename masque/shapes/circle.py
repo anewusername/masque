@@ -1,4 +1,3 @@
-from typing import List, Dict, Optional
 import copy
 
 import numpy
@@ -46,8 +45,8 @@ class Circle(Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -64,7 +63,7 @@ class Circle(Shape):
             self.annotations = annotations if annotations is not None else {}
             self.layer = layer
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Circle':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Circle':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -73,14 +72,14 @@ class Circle(Shape):
 
     def to_polygons(
             self,
-            num_vertices: Optional[int] = DEFAULT_POLY_NUM_VERTICES,
-            max_arclen: Optional[float] = None,
-            ) -> List[Polygon]:
+            num_vertices: int | None = DEFAULT_POLY_NUM_VERTICES,
+            max_arclen: float | None = None,
+            ) -> list[Polygon]:
         if (num_vertices is None) and (max_arclen is None):
             raise PatternError('Number of points and arclength left '
                                'unspecified (default was also overridden)')
 
-        n: List[float] = []
+        n: list[float] = []
         if num_vertices is not None:
             n += [num_vertices]
         if max_arclen is not None:

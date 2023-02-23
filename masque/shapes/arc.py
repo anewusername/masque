@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Sequence, Any
+from typing import Sequence, Any
 import copy
 import math
 
@@ -157,8 +157,8 @@ class Arc(Shape):
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -184,7 +184,7 @@ class Arc(Shape):
             self.layer = layer
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Arc':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Arc':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -195,9 +195,9 @@ class Arc(Shape):
 
     def to_polygons(
             self,
-            num_vertices: Optional[int] = DEFAULT_POLY_NUM_VERTICES,
-            max_arclen: Optional[float] = None,
-            ) -> List[Polygon]:
+            num_vertices: int | None = DEFAULT_POLY_NUM_VERTICES,
+            max_arclen: float | None = None,
+            ) -> list[Polygon]:
         if (num_vertices is None) and (max_arclen is None):
             raise PatternError('Max number of points and arclength left unspecified'
                                + ' (default was also overridden)')

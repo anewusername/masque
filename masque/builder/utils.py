@@ -1,5 +1,4 @@
-from typing import Dict, Mapping, Sequence, SupportsFloat
-from typing import Optional, Union, cast, TYPE_CHECKING
+from typing import Mapping, Sequence, SupportsFloat, cast, TYPE_CHECKING
 from pprint import pformat
 
 import numpy
@@ -15,13 +14,13 @@ if TYPE_CHECKING:
 
 def ell(
         ports: Mapping[str, 'Port'],
-        ccw: Optional[SupportsBool],
+        ccw: SupportsBool | None,
         bound_type: str,
-        bound: Union[float, ArrayLike],
+        bound: float | ArrayLike,
         *,
-        spacing: Optional[Union[float, ArrayLike]] = None,
-        set_rotation: Optional[float] = None,
-        ) -> Dict[str, float]:
+        spacing: float | ArrayLike | None = None,
+        set_rotation: float | None = None,
+        ) -> dict[str, float]:
     """
     Calculate extension for each port in order to build a 90-degree bend with the provided
     channel spacing:

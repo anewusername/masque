@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Dict, Optional, Sequence, Mapping, Union, TYPE_CHECKING, Any, TypeVar, cast
+from typing import Sequence, Mapping, TYPE_CHECKING, Any, TypeVar, cast
 import copy
 
 import numpy
@@ -41,7 +41,7 @@ class Ref(
         '_offset', '_rotation', 'scale', '_repetition', '_annotations',
         )
 
-    _target: Optional[str]
+    _target: str | None
     """ The name of the `Pattern` being instanced """
 
     _mirrored: NDArray[numpy.bool_]
@@ -49,14 +49,14 @@ class Ref(
 
     def __init__(
             self,
-            target: Union[None, str, 'NamedPattern'],
+            target: str | 'NamedPattern' | None,
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            mirrored: Optional[Sequence[bool]] = None,
+            mirrored: Sequence[bool] | None = None,
             scale: float = 1.0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             ) -> None:
         """
         Args:
@@ -91,7 +91,7 @@ class Ref(
             )
         return new
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Ref':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Ref':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new.repetition = copy.deepcopy(self.repetition, memo)
@@ -100,11 +100,11 @@ class Ref(
 
     # target property
     @property
-    def target(self) -> Optional[str]:
+    def target(self) -> str | None:
         return self._target
 
     @target.setter
-    def target(self, val: Optional[str]) -> None:
+    def target(self, val: str | None) -> None:
         if val is not None and not isinstance(val, str):
             raise PatternError(f'Provided target {val} is not a str or None!')
         self._target = val
@@ -123,8 +123,8 @@ class Ref(
     def as_pattern(
             self,
             *,
-            pattern: Optional['Pattern'] = None,
-            library: Optional[Mapping[str, 'Pattern']] = None,
+            pattern: 'Pattern' | None = None,
+            library: Mapping[str, 'Pattern'] | None = None,
             ) -> 'Pattern':
         """
         Args:
@@ -180,9 +180,9 @@ class Ref(
     def get_bounds(
             self,
             *,
-            pattern: Optional['Pattern'] = None,
-            library: Optional[Mapping[str, 'Pattern']] = None,
-            ) -> Optional[NDArray[numpy.float64]]:
+            pattern: 'Pattern' | None = None,
+            library: Mapping[str, 'Pattern'] | None = None,
+            ) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
          extent of the `Ref` in each dimension.
