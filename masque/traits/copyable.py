@@ -1,9 +1,6 @@
-from typing import TypeVar
+from typing import Self
 from abc import ABCMeta
 import copy
-
-
-T = TypeVar('T', bound='Copyable')
 
 
 class Copyable(metaclass=ABCMeta):
@@ -15,7 +12,7 @@ class Copyable(metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def copy(self: T) -> T:
+    def copy(self) -> Self:
         """
         Return a shallow copy of the object.
 
@@ -24,7 +21,7 @@ class Copyable(metaclass=ABCMeta):
         """
         return copy.copy(self)
 
-    def deepcopy(self: T) -> T:
+    def deepcopy(self) -> Self:
         """
         Return a deep copy of the object.
 

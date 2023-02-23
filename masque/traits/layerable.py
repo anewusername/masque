@@ -1,14 +1,10 @@
-from typing import TypeVar
+from typing import Self
 from abc import ABCMeta, abstractmethod
 
 from ..utils import layer_t
 
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
-
-
-T = TypeVar('T', bound='Layerable')
-I = TypeVar('I', bound='LayerableImpl')
 
 
 class Layerable(metaclass=ABCMeta):
@@ -36,7 +32,7 @@ class Layerable(metaclass=ABCMeta):
     ---- Methods
     '''
     @abstractmethod
-    def set_layer(self: T, layer: layer_t) -> T:
+    def set_layer(self, layer: layer_t) -> Self:
         """
         Set the layer
 
@@ -72,6 +68,6 @@ class LayerableImpl(Layerable, metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def set_layer(self: I, layer: layer_t) -> I:
+    def set_layer(self, layer: layer_t) -> Self:
         self.layer = layer
         return self

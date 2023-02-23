@@ -1,4 +1,4 @@
-from typing import TypeVar, cast, Any
+from typing import Self, cast, Any
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -13,12 +13,6 @@ from ..utils import rotation_matrix_2d
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
 
 
-T = TypeVar('T', bound='Rotatable')
-I = TypeVar('I', bound='RotatableImpl')
-P = TypeVar('P', bound='Pivotable')
-J = TypeVar('J', bound='PivotableImpl')
-
-
 class Rotatable(metaclass=ABCMeta):
     """
     Abstract class for all rotatable entities
@@ -29,7 +23,7 @@ class Rotatable(metaclass=ABCMeta):
     ---- Abstract methods
     '''
     @abstractmethod
-    def rotate(self: T, val: float) -> T:
+    def rotate(self, val: float) -> Self:
         """
         Rotate the shape around its origin (0, 0), ignoring its offset.
 
@@ -68,11 +62,11 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
     '''
     ---- Methods
     '''
-    def rotate(self: I, rotation: float) -> I:
+    def rotate(self, rotation: float) -> Self:
         self.rotation += rotation
         return self
 
-    def set_rotation(self: I, rotation: float) -> I:
+    def set_rotation(self, rotation: float) -> Self:
         """
         Set the rotation to a value
 
@@ -94,7 +88,7 @@ class Pivotable(metaclass=ABCMeta):
     __slots__ = ()
 
     @abstractmethod
-    def rotate_around(self: P, pivot: ArrayLike, rotation: float) -> P:
+    def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
         Rotate the object around a point.
 
@@ -117,7 +111,7 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
     offset: Any         # TODO see if we can get around defining `offset` in  PivotableImpl
     """ `[x_offset, y_offset]` """
 
-    def rotate_around(self: J, pivot: ArrayLike, rotation: float) -> J:
+    def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         pivot = numpy.array(pivot, dtype=float)
         cast(Positionable, self).translate(-pivot)
         cast(Rotatable, self).rotate(rotation)

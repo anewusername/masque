@@ -1,4 +1,4 @@
-from typing import TypeVar, Sequence, MutableMapping, Mapping
+from typing import Self, Sequence, MutableMapping, Mapping
 import copy
 import logging
 
@@ -18,10 +18,6 @@ from .utils import ell
 
 
 logger = logging.getLogger(__name__)
-
-
-BB  = TypeVar('BB',  bound='Builder')
-PP  = TypeVar('PP',  bound='Pather')
 
 
 class Builder(PortList):
@@ -239,7 +235,7 @@ class Builder(PortList):
         return new
 
     def plug(
-            self: BB,
+            self,
             other: Abstract | str | NamedPattern,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
@@ -247,7 +243,7 @@ class Builder(PortList):
             mirrored: tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
             set_rotation: bool | None = None,
-            ) -> BB:
+            ) -> Self:
         """
         Instantiate a device `library[name]` into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
@@ -340,7 +336,7 @@ class Builder(PortList):
         return self
 
     def place(
-            self: BB,
+            self,
             other: Abstract | str | NamedPattern,
             *,
             offset: ArrayLike = (0, 0),
@@ -349,7 +345,7 @@ class Builder(PortList):
             mirrored: tuple[bool, bool] = (False, False),
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
-            ) -> BB:
+            ) -> Self:
         """
         Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
@@ -422,7 +418,7 @@ class Builder(PortList):
         self.pattern.refs.append(sp)
         return self
 
-    def translate(self: BB, offset: ArrayLike) -> BB:
+    def translate(self, offset: ArrayLike) -> Self:
         """
         Translate the pattern and all ports.
 
@@ -437,7 +433,7 @@ class Builder(PortList):
             port.translate(offset)
         return self
 
-    def rotate_around(self: BB, pivot: ArrayLike, angle: float) -> BB:
+    def rotate_around(self, pivot: ArrayLike, angle: float) -> Self:
         """
         Rotate the pattern and all ports.
 
@@ -453,7 +449,7 @@ class Builder(PortList):
             port.rotate_around(pivot, angle)
         return self
 
-    def mirror(self: BB, axis: int) -> BB:
+    def mirror(self, axis: int) -> Self:
         """
         Mirror the pattern and all ports across the specified axis.
 
@@ -468,7 +464,7 @@ class Builder(PortList):
             p.mirror(axis)
         return self
 
-    def set_dead(self: BB) -> BB:
+    def set_dead(self) -> Self:
         """
         Disallows further changes through `plug()` or `place()`.
         This is meant for debugging:
@@ -673,10 +669,10 @@ class Pather(Builder):
         return s
 
     def retool(
-            self: PP,
+            self,
             tool: Tool,
             keys: str | Sequence[str | None] | None = None,
-            ) -> PP:
+            ) -> Self:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
         else:
@@ -685,7 +681,7 @@ class Pather(Builder):
         return self
 
     def path(
-            self: PP,
+            self,
             portspec: str,
             ccw: SupportsBool | None,
             length: float,
@@ -693,7 +689,7 @@ class Pather(Builder):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_path',
             **kwargs,
-            ) -> PP:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping path() since device is dead')
             return self
@@ -706,7 +702,7 @@ class Pather(Builder):
         return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
 
     def path_to(
-            self: PP,
+            self,
             portspec: str,
             ccw: SupportsBool | None,
             position: float,
@@ -714,7 +710,7 @@ class Pather(Builder):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
-            ) -> PP:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping path_to() since device is dead')
             return self
@@ -740,7 +736,7 @@ class Pather(Builder):
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
     def mpath(
-            self: PP,
+            self,
             portspec: str | Sequence[str],
             ccw: SupportsBool | None,
             *,
@@ -750,7 +746,7 @@ class Pather(Builder):
             force_container: bool = False,
             base_name: str = '_mpath',
             **kwargs,
-            ) -> PP:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping mpath() since device is dead')
             return self
@@ -790,7 +786,7 @@ class Pather(Builder):
 
     # TODO def path_join() and def bus_join()?
 
-    def flatten(self: PP) -> PP:
+    def flatten(self) -> Self:
         """
         Flatten the contained pattern, using the contained library to resolve references.
 

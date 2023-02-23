@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Sequence, Mapping, TYPE_CHECKING, Any, TypeVar, cast
+from typing import Sequence, Mapping, TYPE_CHECKING, Any, Self, cast
 import copy
 
 import numpy
@@ -22,9 +22,6 @@ from .traits import (
 
 if TYPE_CHECKING:
     from . import Pattern, NamedPattern
-
-
-R = TypeVar('R', bound='Ref')
 
 
 class Ref(
@@ -164,13 +161,13 @@ class Ref(
 
         return pattern
 
-    def rotate(self: R, rotation: float) -> R:
+    def rotate(self, rotation: float) -> Self:
         self.rotation += rotation
         if self.repetition is not None:
             self.repetition.rotate(rotation)
         return self
 
-    def mirror(self: R, axis: int) -> R:
+    def mirror(self, axis: int) -> Self:
         self.mirrored[axis] = not self.mirrored[axis]
         self.rotation *= -1
         if self.repetition is not None:
