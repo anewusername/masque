@@ -2,7 +2,7 @@
  Base object representing a lithography mask.
 """
 
-from typing import Callable, Sequence, cast, Mapping, TypeVar, Any
+from typing import Callable, Sequence, cast, Mapping, Self, Any
 import copy
 from itertools import chain
 
@@ -18,9 +18,6 @@ from .utils import rotation_matrix_2d, annotations_t
 from .error import PatternError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable
 from .ports import Port, PortList
-
-
-P = TypeVar('P', bound='Pattern')
 
 
 class Pattern(PortList, AnnotatableImpl, Mirrorable):
@@ -128,7 +125,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             )
         return new
 
-    def append(self: P, other_pattern: 'Pattern') -> P:
+    def append(self, other_pattern: 'Pattern') -> Self:
         """
         Appends all shapes, labels and refs from other_pattern to self's shapes,
           labels, and supbatterns.
@@ -212,10 +209,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return pat
 
     def polygonize(
-            self: P,
+            self,
             num_points: int | None = None,
             max_arclen: float | None = None,
-            ) -> P:
+            ) -> Self:
         """
         Calls `.to_polygons(...)` on all the shapes in this Pattern, replacing them with the returned polygons.
         Arguments are passed directly to `shape.to_polygons(...)`.
@@ -237,10 +234,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return self
 
     def manhattanize(
-            self: P,
+            self,
             grid_x: ArrayLike,
             grid_y: ArrayLike,
-            ) -> P:
+            ) -> Self:
         """
         Calls `.polygonize()` on the pattern, then calls `.manhattanize()` on all the
          resulting shapes, replacing them with the returned Manhattan polygons.
@@ -345,7 +342,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         assert bounds is not None
         return bounds
 
-    def translate_elements(self: P, offset: ArrayLike) -> P:
+    def translate_elements(self, offset: ArrayLike) -> Self:
         """
         Translates all shapes, label, refs, and ports by the given offset.
 
@@ -359,7 +356,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Positionable, entry).translate(offset)
         return self
 
-    def scale_elements(self: P, c: float) -> P:
+    def scale_elements(self, c: float) -> Self:
         """"
         Scales all shapes and refs by the given value.
 
@@ -373,7 +370,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Scalable, entry).scale_by(c)
         return self
 
-    def scale_by(self: P, c: float) -> P:
+    def scale_by(self, c: float) -> Self:
         """
         Scale this Pattern by the given value
          (all shapes and refs and their offsets are scaled,
@@ -404,7 +401,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             port.offset *= c
         return self
 
-    def rotate_around(self: P, pivot: ArrayLike, rotation: float) -> P:
+    def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
         Rotate the Pattern around the a location.
 
@@ -422,7 +419,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.translate_elements(+pivot)
         return self
 
-    def rotate_element_centers(self: P, rotation: float) -> P:
+    def rotate_element_centers(self, rotation: float) -> Self:
         """
         Rotate the offsets of all shapes, labels, refs, and ports around (0, 0)
 
@@ -437,7 +434,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Positionable, entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
         return self
 
-    def rotate_elements(self: P, rotation: float) -> P:
+    def rotate_elements(self, rotation: float) -> Self:
         """
         Rotate each shape, ref, and port around its origin (offset)
 
@@ -451,7 +448,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Rotatable, entry).rotate(rotation)
         return self
 
-    def mirror_element_centers(self: P, across_axis: int) -> P:
+    def mirror_element_centers(self, across_axis: int) -> Self:
         """
         Mirror the offsets of all shapes, labels, and refs across an axis
 
@@ -466,7 +463,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Positionable, entry).offset[across_axis - 1] *= -1
         return self
 
-    def mirror_elements(self: P, across_axis: int) -> P:
+    def mirror_elements(self, across_axis: int) -> Self:
         """
         Mirror each shape, ref, and pattern across an axis, relative
           to its offset
@@ -482,7 +479,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Mirrorable, entry).mirror(across_axis)
         return self
 
-    def mirror(self: P, across_axis: int) -> P:
+    def mirror(self, across_axis: int) -> Self:
         """
         Mirror the Pattern across an axis
 
@@ -497,7 +494,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.mirror_element_centers(across_axis)
         return self
 
-    def copy(self: P) -> P:
+    def copy(self) -> Self:
         """
         Return a copy of the Pattern, deep-copying shapes and copying refs
          entries, but not deep-copying any referenced patterns.
@@ -509,7 +506,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         return copy.copy(self)
 
-    def deepcopy(self: P) -> P:
+    def deepcopy(self) -> Self:
         """
         Convenience method for `copy.deepcopy(pattern)`
 
@@ -528,7 +525,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                 and len(self.shapes) == 0
                 and len(self.labels) == 0)
 
-    def ref(self: P, *args: Any, **kwargs: Any) -> P:
+    def ref(self, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which constructs a `Ref` object and adds it
          to this pattern.
@@ -543,7 +540,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.refs.append(Ref(*args, **kwargs))
         return self
 
-    def rect(self: P, *args: Any, **kwargs: Any) -> P:
+    def rect(self, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which calls `Polygon.rect` to construct a
          rectangle and adds it to this pattern.
@@ -559,8 +556,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return self
 
     def flatten(
-            self: P,
-            library: Mapping[str, P],
+            self,
+            library: Mapping[str, 'Pattern'],
             flatten_ports: bool = False,       # TODO document
             ) -> 'Pattern':
         """
@@ -573,7 +570,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        flattened: dict[str | None, P | None] = {}
+        flattened: dict[str | None, 'Pattern' | None] = {}
 
         # TODO both Library and Pattern have flatten()... pattern is in-place?
         def flatten_single(name: str | None) -> None:
@@ -609,8 +606,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return self
 
     def visualize(
-            self: P,
-            library: Mapping[str, P] | None = None,
+            self,
+            library: Mapping[str, 'Pattern'] | None = None,
             offset: ArrayLike = (0., 0.),
             line_color: str = 'k',
             fill_color: str = 'none',

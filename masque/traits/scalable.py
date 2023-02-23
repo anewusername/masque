@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 from abc import ABCMeta, abstractmethod
 
 from ..error import MasqueError
@@ -6,10 +6,6 @@ from ..utils import is_scalar
 
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
-
-
-T = TypeVar('T', bound='Scalable')
-I = TypeVar('I', bound='ScalableImpl')
 
 
 class Scalable(metaclass=ABCMeta):
@@ -22,7 +18,7 @@ class Scalable(metaclass=ABCMeta):
     ---- Abstract methods
     '''
     @abstractmethod
-    def scale_by(self: T, c: float) -> T:
+    def scale_by(self, c: float) -> Self:
         """
         Scale the entity by a factor
 
@@ -62,11 +58,11 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
     '''
     ---- Methods
     '''
-    def scale_by(self: I, c: float) -> I:
+    def scale_by(self, c: float) -> Self:
         self.scale *= c
         return self
 
-    def set_scale(self: I, scale: float) -> I:
+    def set_scale(self, scale: float) -> Self:
         """
         Set the sclae to a value
 

@@ -1,4 +1,4 @@
-from typing import TypeVar, Sequence, MutableMapping, Mapping
+from typing import Self, Sequence, MutableMapping, Mapping
 import copy
 import logging
 
@@ -15,9 +15,6 @@ from .utils import ell
 
 
 logger = logging.getLogger(__name__)
-
-
-BB  = TypeVar('BB',  bound='FlatBuilder')
 
 
 class FlatBuilder(PortList):
@@ -173,7 +170,7 @@ class FlatBuilder(PortList):
         return new
 
     def plug(
-            self: BB,
+            self,
             other: Pattern,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
@@ -181,7 +178,7 @@ class FlatBuilder(PortList):
             mirrored: tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
             set_rotation: bool | None = None,
-            ) -> BB:
+            ) -> Self:
         """
         Instantiate another pattern into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
@@ -269,7 +266,7 @@ class FlatBuilder(PortList):
         return self
 
     def place(
-            self: BB,
+            self,
             other: Pattern,
             *,
             offset: ArrayLike = (0, 0),
@@ -278,7 +275,7 @@ class FlatBuilder(PortList):
             mirrored: tuple[bool, bool] = (False, False),
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
-            ) -> BB:
+            ) -> Self:
         """
         Instantiate the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
@@ -348,7 +345,7 @@ class FlatBuilder(PortList):
         self.pattern.append(other_copy)
         return self
 
-    def translate(self: BB, offset: ArrayLike) -> BB:
+    def translate(self, offset: ArrayLike) -> Self:
         """
         Translate the pattern and all ports.
 
@@ -363,7 +360,7 @@ class FlatBuilder(PortList):
             port.translate(offset)
         return self
 
-    def rotate_around(self: BB, pivot: ArrayLike, angle: float) -> BB:
+    def rotate_around(self, pivot: ArrayLike, angle: float) -> Self:
         """
         Rotate the pattern and all ports.
 
@@ -379,7 +376,7 @@ class FlatBuilder(PortList):
             port.rotate_around(pivot, angle)
         return self
 
-    def mirror(self: BB, axis: int) -> BB:
+    def mirror(self, axis: int) -> Self:
         """
         Mirror the pattern and all ports across the specified axis.
 
@@ -394,7 +391,7 @@ class FlatBuilder(PortList):
             p.mirror(axis)
         return self
 
-    def set_dead(self: BB) -> BB:
+    def set_dead(self) -> Self:
         """
         Disallows further changes through `plug()` or `place()`.
         This is meant for debugging:
@@ -417,10 +414,10 @@ class FlatBuilder(PortList):
         return s
 
     def retool(
-            self: BB,
+            self,
             tool: Tool,
             keys: str | Sequence[str | None] | None = None,
-            ) -> BB:
+            ) -> Self:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
         else:
@@ -429,7 +426,7 @@ class FlatBuilder(PortList):
         return self
 
     def path(
-            self: BB,
+            self,
             portspec: str,
             ccw: SupportsBool | None,
             length: float,
@@ -437,7 +434,7 @@ class FlatBuilder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_path',
             **kwargs,
-            ) -> BB:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping path() since device is dead')
             return self
@@ -448,7 +445,7 @@ class FlatBuilder(PortList):
         return self.plug(pat, {portspec: tool_port_names[0]})
 
     def path_to(
-            self: BB,
+            self,
             portspec: str,
             ccw: SupportsBool | None,
             position: float,
@@ -456,7 +453,7 @@ class FlatBuilder(PortList):
             tool_port_names: Sequence[str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
-            ) -> BB:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping path_to() since device is dead')
             return self
@@ -482,7 +479,7 @@ class FlatBuilder(PortList):
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
     def mpath(
-            self: BB,
+            self,
             portspec: str | Sequence[str],
             ccw: SupportsBool | None,
             *,
@@ -492,7 +489,7 @@ class FlatBuilder(PortList):
             force_container: bool = False,
             base_name: str = '_mpath',
             **kwargs,
-            ) -> BB:
+            ) -> Self:
         if self._dead:
             logger.error('Skipping mpath() since device is dead')
             return self

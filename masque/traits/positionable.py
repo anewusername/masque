@@ -1,6 +1,6 @@
 # TODO top-level comment about how traits should set __slots__ = (), and how to use AutoSlots
 
-from typing import TypeVar, Any
+from typing import Self, Any
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -10,10 +10,6 @@ from ..error import MasqueError
 
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
-
-
-T = TypeVar('T', bound='Positionable')
-I = TypeVar('I', bound='PositionableImpl')
 
 
 class Positionable(metaclass=ABCMeta):
@@ -39,7 +35,7 @@ class Positionable(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def set_offset(self: T, offset: ArrayLike) -> T:
+    def set_offset(self, offset: ArrayLike) -> Self:
         """
         Set the offset
 
@@ -52,7 +48,7 @@ class Positionable(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def translate(self: T, offset: ArrayLike) -> T:
+    def translate(self, offset: ArrayLike) -> Self:
         """
         Translate the entity by the given offset
 
@@ -116,10 +112,10 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     '''
     ---- Methods
     '''
-    def set_offset(self: I, offset: ArrayLike) -> I:
+    def set_offset(self, offset: ArrayLike) -> Self:
         self.offset = offset
         return self
 
-    def translate(self: I, offset: ArrayLike) -> I:
+    def translate(self, offset: ArrayLike) -> Self:
         self._offset += offset   # type: ignore         # NDArray += ArrayLike should be fine??
         return self

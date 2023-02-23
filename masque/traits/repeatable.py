@@ -1,4 +1,4 @@
-from typing import TypeVar, TYPE_CHECKING
+from typing import Self, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 from ..error import MasqueError
@@ -9,10 +9,6 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 if TYPE_CHECKING:
     from ..repetition import Repetition
-
-
-T = TypeVar('T', bound='Repeatable')
-I = TypeVar('I', bound='RepeatableImpl')
 
 
 class Repeatable(metaclass=ABCMeta):
@@ -41,7 +37,7 @@ class Repeatable(metaclass=ABCMeta):
     ---- Methods
     '''
     @abstractmethod
-    def set_repetition(self: T, repetition: 'Repetition' | None) -> T:
+    def set_repetition(self, repetition: 'Repetition' | None) -> Self:
         """
         Set the repetition
 
@@ -80,6 +76,6 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def set_repetition(self: I, repetition: 'Repetition' | None) -> I:
+    def set_repetition(self, repetition: 'Repetition' | None) -> Self:
         self.repetition = repetition
         return self

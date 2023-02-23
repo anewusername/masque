@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 #from types import MappingProxyType
 from abc import ABCMeta, abstractmethod
 
@@ -7,10 +7,6 @@ from ..error import MasqueError
 
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
-
-
-T = TypeVar('T', bound='Annotatable')
-I = TypeVar('I', bound='AnnotatableImpl')
 
 
 class Annotatable(metaclass=ABCMeta):

@@ -1,9 +1,5 @@
-from typing import TypeVar
+from typing import Self
 from abc import ABCMeta, abstractmethod
-
-
-T = TypeVar('T', bound='Mirrorable')
-#I = TypeVar('I', bound='MirrorableImpl')
 
 
 class Mirrorable(metaclass=ABCMeta):
@@ -16,7 +12,7 @@ class Mirrorable(metaclass=ABCMeta):
     ---- Abstract methods
     '''
     @abstractmethod
-    def mirror(self: T, axis: int) -> T:
+    def mirror(self, axis: int) -> Self:
         """
         Mirror the entity across an axis.
 
@@ -28,7 +24,7 @@ class Mirrorable(metaclass=ABCMeta):
         """
         pass
 
-    def mirror2d(self: T, axes: tuple[bool, bool]) -> T:
+    def mirror2d(self, axes: tuple[bool, bool]) -> Self:
         """
         Optionally mirror the entity across both axes
 

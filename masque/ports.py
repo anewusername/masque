@@ -1,4 +1,4 @@
-from typing import Iterable, KeysView, ValuesView, overload, TypeVar
+from typing import Iterable, KeysView, ValuesView, overload, Self
 import warnings
 import traceback
 import logging
@@ -15,11 +15,6 @@ from .error import PortError
 
 
 logger = logging.getLogger(__name__)
-
-
-P = TypeVar('P', bound='Port')
-PL  = TypeVar('PL',  bound='PortList')
-PL2 = TypeVar('PL2', bound='PortList')
 
 
 class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
@@ -76,24 +71,24 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     def get_bounds(self):
         return numpy.vstack((self.offset, self.offset))
 
-    def set_ptype(self: P, ptype: str) -> P:
+    def set_ptype(self, ptype: str) -> Self:
         """ Chainable setter for `ptype` """
         self.ptype = ptype
         return self
 
-    def mirror(self: P, axis: int) -> P:
+    def mirror(self, axis: int) -> Self:
         self.offset[1 - axis] *= -1
         if self.rotation is not None:
             self.rotation *= -1
             self.rotation += axis * pi
         return self
 
-    def rotate(self: P, rotation: float) -> P:
+    def rotate(self, rotation: float) -> Self:
         if self.rotation is not None:
             self.rotation += rotation
         return self
 
-    def set_rotation(self: P, rotation: float | None) -> P:
+    def set_rotation(self, rotation: float | None) -> Self:
         self.rotation = rotation
         return self
 
@@ -148,10 +143,10 @@ class PortList(metaclass=ABCMeta):
     # and because you can just grab .ports and use that instead
 
     def rename_ports(
-            self: PL,
+            self,
             mapping: dict[str, str | None],
             overwrite: bool = False,
-            ) -> PL:
+            ) -> Self:
         """
         Renames ports as specified by `mapping`.
         Ports can be explicitly deleted by mapping them to `None`.
@@ -179,12 +174,12 @@ class PortList(metaclass=ABCMeta):
         return self
 
     def add_port_pair(
-            self: PL,
+            self,
             offset: ArrayLike = (0, 0),
             rotation: float = 0.0,
             names: tuple[str, str] = ('A', 'B'),
             ptype: str = 'unk',
-            ) -> PL:
+            ) -> Self:
         """
         Add a pair of ports with opposing directions at the specified location.
 
@@ -207,11 +202,11 @@ class PortList(metaclass=ABCMeta):
         return self
 
     def check_ports(
-            self: PL,
+            self,
             other_names: Iterable[str],
             map_in: dict[str, str] | None = None,
             map_out: dict[str, str | None] | None = None,
-            ) -> PL:
+            ) -> Self:
         """
         Given the provided port mappings, check that:
             - All of the ports specified in the mappings exist
@@ -276,8 +271,8 @@ class PortList(metaclass=ABCMeta):
         return self
 
     def find_transform(
-            self: PL,
-            other: PL2,
+            self,
+            other: 'PortList',
             map_in: dict[str, str],
             *,
             mirrored: tuple[bool, bool] = (False, False),

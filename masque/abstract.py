@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 import copy
 import logging
 
@@ -15,9 +15,6 @@ from .utils import rotation_matrix_2d, normalize_mirror
 
 
 logger = logging.getLogger(__name__)
-
-
-AA  = TypeVar('AA',  bound='Abstract')
 
 
 class Abstract(PortList):
@@ -71,7 +68,7 @@ class Abstract(PortList):
         s += ']>'
         return s
 
-    def translate_ports(self: AA, offset: ArrayLike) -> AA:
+    def translate_ports(self, offset: ArrayLike) -> Self:
         """
         Translates all ports by the given offset.
 
@@ -85,7 +82,7 @@ class Abstract(PortList):
             port.translate(offset)
         return self
 
-    def scale_by(self: AA, c: float) -> AA:
+    def scale_by(self, c: float) -> Self:
         """
         Scale this Abstract by the given value
          (all port offsets are scaled)
@@ -100,7 +97,7 @@ class Abstract(PortList):
             port.offset *= c
         return self
 
-    def rotate_around(self: AA, pivot: ArrayLike, rotation: float) -> AA:
+    def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
         Rotate the Abstract around the a location.
 
@@ -118,7 +115,7 @@ class Abstract(PortList):
         self.translate_ports(+pivot)
         return self
 
-    def rotate_port_offsets(self: AA, rotation: float) -> AA:
+    def rotate_port_offsets(self, rotation: float) -> Self:
         """
         Rotate the offsets of all ports around (0, 0)
 
@@ -132,7 +129,7 @@ class Abstract(PortList):
             port.offset = rotation_matrix_2d(rotation) @ port.offset
         return self
 
-    def rotate_ports(self: AA, rotation: float) -> AA:
+    def rotate_ports(self, rotation: float) -> Self:
         """
         Rotate each port around its offset (i.e. in place)
 
@@ -146,7 +143,7 @@ class Abstract(PortList):
             port.rotate(rotation)
         return self
 
-    def mirror_port_offsets(self: AA, across_axis: int) -> AA:
+    def mirror_port_offsets(self, across_axis: int) -> Self:
         """
         Mirror the offsets of all shapes, labels, and refs across an axis
 
@@ -161,7 +158,7 @@ class Abstract(PortList):
             port.offset[across_axis - 1] *= -1
         return self
 
-    def mirror_ports(self: AA, across_axis: int) -> AA:
+    def mirror_ports(self, across_axis: int) -> Self:
         """
         Mirror each port's rotation across an axis, relative to its
           offset
@@ -177,7 +174,7 @@ class Abstract(PortList):
             port.mirror(across_axis)
         return self
 
-    def mirror(self: AA, across_axis: int) -> AA:
+    def mirror(self, across_axis: int) -> Self:
         """
         Mirror the Pattern across an axis
 
@@ -192,7 +189,7 @@ class Abstract(PortList):
         self.mirror_port_offsets(across_axis)
         return self
 
-    def apply_ref_transform(self: AA, ref: Ref) -> AA:
+    def apply_ref_transform(self, ref: Ref) -> Self:
         """
         Apply the transform from a `Ref` to the ports of this `Abstract`.
         This changes the port locations to where they would be in the Ref's parent pattern.
@@ -211,7 +208,7 @@ class Abstract(PortList):
         self.translate_ports(ref.offset)
         return self
 
-    def undo_ref_transform(self: AA, ref: Ref) -> AA:
+    def undo_ref_transform(self, ref: Ref) -> Self:
         """
         Apply the inverse transform from a `Ref` to the ports of this `Abstract`.
         This changes the port locations to where they would be in the Ref's target (from the parent).

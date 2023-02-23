@@ -1,4 +1,4 @@
-from typing import Callable, TypeVar, TYPE_CHECKING
+from typing import Callable, Self, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -24,9 +24,6 @@ normalized_shape_tuple = tuple[
 # ## Module-wide defaults
 # Default number of points per polygon for shapes
 DEFAULT_POLY_NUM_VERTICES = 24
-
-
-T = TypeVar('T', bound='Shape')
 
 
 class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Scalable,
@@ -68,7 +65,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
         pass
 
     @abstractmethod
-    def normalized_form(self: T, norm_value: int) -> normalized_shape_tuple:
+    def normalized_form(self, norm_value: int) -> normalized_shape_tuple:
         """
         Writes the shape in a standardized notation, with offset, scale, and rotation
          information separated out from the remaining values.

@@ -5,7 +5,7 @@ Library classes for managing unique name->pattern mappings and
 # TODO documentn all library classes
 # TODO toplevel documentation of library, classes, and abstracts
 """
-from typing import Callable, TypeVar, Type, TYPE_CHECKING, cast
+from typing import Callable, Self, Type, TYPE_CHECKING, cast
 from typing import Iterator, Mapping, MutableMapping, Sequence
 import logging
 import base64
@@ -33,9 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 visitor_function_t = Callable[..., 'Pattern']
-L = TypeVar('L', bound='Library')
-ML = TypeVar('ML', bound='MutableLibrary')
-LL = TypeVar('LL', bound='LazyLibrary')
 
 
 def _rename_patterns(lib: 'Library', name: str) -> str:
@@ -163,10 +160,10 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         return new
 
     def polygonize(
-            self: L,
+            self,
             num_vertices: int | None = None,
             max_arclen: float | None = None,
-            ) -> L:
+            ) -> Self:
         """
         Calls `.polygonize(...)` on each pattern in this library.
         Arguments are passed on to `shape.to_polygons(...)`.
@@ -186,10 +183,10 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         return self
 
     def manhattanize(
-            self: L,
+            self,
             grid_x: ArrayLike,
             grid_y: ArrayLike,
-            ) -> L:
+            ) -> Self:
         """
         Calls `.manhattanize(grid_x, grid_y)` on each pattern in this library.
 
@@ -324,7 +321,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         return toplevel
 
     def dfs(
-            self: L,
+            self,
             pattern: 'Pattern',
             visit_before: visitor_function_t | None = None,
             visit_after: visitor_function_t | None = None,
@@ -332,7 +329,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             hierarchy: tuple[str | None, ...] = (None,),
             transform: ArrayLike | bool | None = False,
             memo: dict | None = None,
-            ) -> L:
+            ) -> Self:
         """
         Convenience function.
         Performs a depth-first traversal of a pattern and its referenced patterns.
@@ -454,11 +451,11 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         pass
 
     def rename(
-            self: ML,
+            self,
             old_name: str,
             new_name: str,
             move_references: bool = False,
-            ) -> ML:
+            ) -> Self:
         """
         Rename a pattern.
 
@@ -476,7 +473,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             self.move_references(old_name, new_name)
         return self
 
-    def move_references(self: ML, old_target: str, new_target: str) -> ML:
+    def move_references(self, old_target: str, new_target: str) -> Self:
         """
         Change all references pointing at `old_target` into references pointing at `new_target`.
 
@@ -601,12 +598,12 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return rename_map.get(name, name)
 
     def dedup(
-            self: ML,
+            self,
             norm_value: int = int(1e6),
             exclude_types: tuple[Type] = (Polygon,),
             label2name: Callable[[tuple], str] | None = None,
             threshold: int = 2,
-            ) -> ML:
+            ) -> Self:
         """
         Iterates through all `Pattern`s. Within each `Pattern`, it iterates
          over all shapes, calling `.normalized_form(norm_value)` on them to retrieve a scale-,
@@ -706,9 +703,9 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return self
 
     def wrap_repeated_shapes(
-            self: ML,
+            self,
             name_func: Callable[['Pattern', Shape | Label], str] | None = None,
-            ) -> ML:
+            ) -> Self:
         """
         Wraps all shapes and labels with a non-`None` `repetition` attribute
           into a `Ref`/`Pattern` combination, and applies the `repetition`
@@ -755,9 +752,9 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return self
 
     def subtree(
-            self: ML,
+            self,
             tops: str | Sequence[str],
-            ) -> ML:
+            ) -> Self:
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
@@ -797,10 +794,10 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return trimmed
 
     def delete(
-            self: ML,
+            self,
             key: str,
             delete_refs: bool = True,
-            ) -> ML:
+            ) -> Self:
         # TODO doc delete()
         del self[key]
         if delete_refs:
@@ -961,11 +958,11 @@ class LazyLibrary(MutableLibrary):
         return '<LazyLibrary with keys\n' + pformat(list(self.keys())) + '>'
 
     def rename(
-            self: LL,
+            self,
             old_name: str,
             new_name: str,
             move_references: bool = False,
-            ) -> LL:
+            ) -> Self:
         """
         Rename a pattern.
 
@@ -989,7 +986,7 @@ class LazyLibrary(MutableLibrary):
 
         return self
 
-    def move_references(self: LL, old_target: str, new_target: str) -> LL:
+    def move_references(self, old_target: str, new_target: str) -> Self:
         """
         Change all references pointing at `old_target` into references pointing at `new_target`.
 
@@ -1007,7 +1004,7 @@ class LazyLibrary(MutableLibrary):
                     ref.target = new_target
         return self
 
-    def precache(self: LL) -> LL:
+    def precache(self) -> Self:
         """
         Force all patterns into the cache
 

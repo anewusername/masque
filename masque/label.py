@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Self
 import copy
 
 import numpy
@@ -8,9 +8,6 @@ from .repetition import Repetition
 from .utils import rotation_matrix_2d, layer_t, AutoSlots, annotations_t
 from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, RepeatableImpl
 from .traits import AnnotatableImpl
-
-
-L = TypeVar('L', bound='Label')
 
 
 class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
@@ -53,7 +50,7 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
 
-    def __copy__(self: L) -> L:
+    def __copy__(self) -> Self:
         return type(self)(
             string=self.string,
             offset=self.offset.copy(),
@@ -61,13 +58,13 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             repetition=self.repetition,
             )
 
-    def __deepcopy__(self: L, memo: dict | None = None) -> L:
+    def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
         return new
 
-    def rotate_around(self: L, pivot: ArrayLike, rotation: float) -> L:
+    def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
         Rotate the label around a point.
 
