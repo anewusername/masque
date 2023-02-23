@@ -540,6 +540,21 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.refs.append(Ref(*args, **kwargs))
         return self
 
+    def polygon(self, *args: Any, **kwargs: Any) -> Self:
+        """
+        Convenience function which constructs a `Polygon` object and adds it
+         to this pattern.
+
+        Args:
+            *args: Passed to `Polygon()`
+            **kwargs: Passed to `Polygon()`
+
+        Returns:
+            self
+        """
+        self.shapes.append(Polygon(*args, **kwargs))
+        return self
+
     def rect(self, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which calls `Polygon.rect` to construct a
@@ -554,6 +569,22 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         self.shapes.append(Polygon.rect(*args, **kwargs))
         return self
+
+    def label(self, *args: Any, **kwargs: Any) -> Self:
+        """
+        Convenience function which constructs a `Label` object
+         and adds it to this pattern.
+
+        Args:
+            *args: Passed to `Label()`
+            **kwargs: Passed to `Label()`
+
+        Returns:
+            self
+        """
+        self.labels.append(Label(*args, **kwargs))
+        return self
+
 
     def flatten(
             self,
