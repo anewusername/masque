@@ -1,12 +1,10 @@
-from typing import Dict, TypeVar
-#from typing import Union, Optional, MutableMapping, TYPE_CHECKING
+from typing import TypeVar
 import copy
 import logging
 
 import numpy
 from numpy.typing import ArrayLike
 
-#from .pattern import Pattern
 from .ref import Ref
 from .ports import PortList, Port
 from .utils import rotation_matrix_2d, normalize_mirror
@@ -28,21 +26,21 @@ class Abstract(PortList):
     name: str
     """ Name of the pattern this device references """
 
-    _ports: Dict[str, Port]
+    _ports: dict[str, Port]
     """ Uniquely-named ports which can be used to instances together"""
 
     @property
-    def ports(self) -> Dict[str, Port]:
+    def ports(self) -> dict[str, Port]:
         return self._ports
 
     @ports.setter
-    def ports(self, value: Dict[str, Port]) -> None:
+    def ports(self, value: dict[str, Port]) -> None:
         self._ports = value
 
     def __init__(
             self,
             name: str,
-            ports: Dict[str, Port],
+            ports: dict[str, Port],
             ) -> None:
         self.name = name
         self.ports = copy.deepcopy(ports)
@@ -50,7 +48,7 @@ class Abstract(PortList):
 #    def build(
 #            self,
 #            library: 'MutableLibrary',
-#            tools: Union[None, 'Tool', MutableMapping[Optional[str], 'Tool']] = None,
+#            tools: None | 'Tool' | MutableMapping[str | None, 'Tool'] = None,
 #            ) -> 'Builder':
 #        """
 #        Begin building a new device around an instance of the current device

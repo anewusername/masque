@@ -1,5 +1,4 @@
-from typing import Dict, Tuple, Union, TypeVar, Optional, Sequence
-from typing import MutableMapping, Mapping
+from typing import TypeVar, Sequence, MutableMapping, Mapping
 import copy
 import logging
 
@@ -84,7 +83,7 @@ class Builder(PortList):
     pattern: Pattern
     """ Layout of this device """
 
-    library: Optional[MutableLibrary]
+    library: MutableLibrary | None
     """
     Library from which existing patterns should be referenced, and to which
     new ones should be added
@@ -94,20 +93,20 @@ class Builder(PortList):
     """ If True, plug()/place() are skipped (for debugging)"""
 
     @property
-    def ports(self) -> Dict[str, Port]:
+    def ports(self) -> dict[str, Port]:
         return self.pattern.ports
 
     @ports.setter
-    def ports(self, value: Dict[str, Port]) -> None:
+    def ports(self, value: dict[str, Port]) -> None:
         self.pattern.ports = value
 
     def __init__(
             self,
-            library: Optional[MutableLibrary] = None,
+            library: MutableLibrary | None = None,
             *,
-            pattern: Optional[Pattern] = None,
-            ports: Union[None, str, Mapping[str, Port]] = None,
-            name: Optional[str] = None,
+            pattern: Pattern | None = None,
+            ports: str | Mapping[str, Port] | None = None,
+            name: str | None = None,
             ) -> None:
         """
         # TODO documentation for Builder() constructor
@@ -143,13 +142,13 @@ class Builder(PortList):
     @classmethod
     def interface(
             cls,
-            source: Union[PortList, Mapping[str, Port], str],
+            source: PortList | Mapping[str, Port] | str,
             *,
-            library: Optional[MutableLibrary] = None,
+            library: MutableLibrary | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
-            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
-            name: Optional[str] = None,
+            port_map: dict[str, str] | Sequence[str] | None = None,
+            name: str | None = None,
             ) -> 'Builder':
         """
         Begin building a new device based on all or some of the ports in the
@@ -241,13 +240,13 @@ class Builder(PortList):
 
     def plug(
             self: BB,
-            other: Union[Abstract, str, NamedPattern],
-            map_in: Dict[str, str],
-            map_out: Optional[Dict[str, Optional[str]]] = None,
+            other: Abstract | str | NamedPattern,
+            map_in: dict[str, str],
+            map_out: dict[str, str | None] | None = None,
             *,
-            mirrored: Tuple[bool, bool] = (False, False),
+            mirrored: tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
-            set_rotation: Optional[bool] = None,
+            set_rotation: bool | None = None,
             ) -> BB:
         """
         Instantiate a device `library[name]` into the current device, connecting
@@ -272,9 +271,9 @@ class Builder(PortList):
 
         Args:
             other: An `Abstract` describing the device to be instatiated.
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+            map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
-            map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
+            map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in `other`.
             mirrored: Enables mirroring `other` across the x or y axes prior
                 to connecting any ports.
@@ -342,13 +341,13 @@ class Builder(PortList):
 
     def place(
             self: BB,
-            other: Union[Abstract, str, NamedPattern],
+            other: Abstract | str | NamedPattern,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
             pivot: ArrayLike = (0, 0),
-            mirrored: Tuple[bool, bool] = (False, False),
-            port_map: Optional[Dict[str, Optional[str]]] = None,
+            mirrored: tuple[bool, bool] = (False, False),
+            port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
             ) -> BB:
         """
@@ -373,7 +372,7 @@ class Builder(PortList):
                 Rotation is applied prior to translation (`offset`).
             mirrored: Whether theinstance should be mirrored across the x and y axes.
                 Mirroring is applied before translation and rotation.
-            port_map: Dict of `{'old_name': 'new_name'}` mappings, specifying
+            port_map: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in the instantiated device. New names can be
                 `None`, which will delete those ports.
             skip_port_check: Can be used to skip the internal call to `check_ports`,
@@ -554,7 +553,7 @@ class Pather(Builder):
     new ones should be added
     """
 
-    tools: Dict[Optional[str], Tool]
+    tools: dict[str | None, Tool]
     """
     Tool objects are used to dynamically generate new single-use Devices
     (e.g wires or waveguides) to be plugged into this device.
@@ -564,10 +563,10 @@ class Pather(Builder):
             self,
             library: MutableLibrary,
             *,
-            pattern: Optional[Pattern] = None,
-            ports: Union[None, str, Mapping[str, Port]] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
-            name: Optional[str] = None,
+            pattern: Pattern | None = None,
+            ports: str | Mapping[str, Port] | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
+            name: str | None = None,
             ) -> None:
         """
         # TODO documentation for Builder() constructor
@@ -609,9 +608,9 @@ class Pather(Builder):
             library: MutableLibrary,
             base_name: str,
             *,
-            ports: Union[None, str, Mapping[str, Port]] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
-            ) -> Tuple['Pather', str]:
+            ports: str | Mapping[str, Port] | None= None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
+            ) -> tuple['Pather', str]:
         """ Name-and-make combination """
         pat = library.create(base_name)
         pather = Pather(library, pattern=pat, ports=ports, tools=tools)
@@ -622,8 +621,8 @@ class Pather(Builder):
             cls,
             builder: Builder,
             *,
-            library: Optional[MutableLibrary] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            library: MutableLibrary | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             ) -> 'Pather':
         """TODO from_builder docs"""
         library = library if library is not None else builder.library
@@ -635,14 +634,14 @@ class Pather(Builder):
     @classmethod
     def interface(
             cls,
-            source: Union[PortList, Mapping[str, Port], str],
+            source: PortList | Mapping[str, Port] | str,
             *,
-            library: Optional[MutableLibrary] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            library: MutableLibrary | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
-            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
-            name: Optional[str] = None,
+            port_map: dict[str, str] | Sequence[str] | None = None,
+            name: str | None = None,
             ) -> 'Pather':
         """
         TODO doc pather.interface
@@ -676,7 +675,7 @@ class Pather(Builder):
     def retool(
             self: PP,
             tool: Tool,
-            keys: Union[Optional[str], Sequence[Optional[str]]] = None,
+            keys: str | Sequence[str | None] | None = None,
             ) -> PP:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
@@ -688,7 +687,7 @@ class Pather(Builder):
     def path(
             self: PP,
             portspec: str,
-            ccw: Optional[SupportsBool],
+            ccw: SupportsBool | None,
             length: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -709,7 +708,7 @@ class Pather(Builder):
     def path_to(
             self: PP,
             portspec: str,
-            ccw: Optional[SupportsBool],
+            ccw: SupportsBool | None,
             position: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -742,11 +741,11 @@ class Pather(Builder):
 
     def mpath(
             self: PP,
-            portspec: Union[str, Sequence[str]],
-            ccw: Optional[SupportsBool],
+            portspec: str | Sequence[str],
+            ccw: SupportsBool | None,
             *,
-            spacing: Optional[Union[float, ArrayLike]] = None,
-            set_rotation: Optional[float] = None,
+            spacing: float | ArrayLike | None = None,
+            set_rotation: float | None = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
             force_container: bool = False,
             base_name: str = '_mpath',

@@ -1,5 +1,4 @@
-from typing import Dict, Tuple, Union, TypeVar, Optional, Sequence
-from typing import MutableMapping, Mapping
+from typing import TypeVar, Sequence, MutableMapping, Mapping
 import copy
 import logging
 
@@ -30,7 +29,7 @@ class FlatBuilder(PortList):
     pattern: Pattern
     """ Layout of this device """
 
-    tools: Dict[Optional[str], Tool]
+    tools: dict[str | None, Tool]
     """
     Tool objects are used to dynamically generate new single-use Devices
     (e.g wires or waveguides) to be plugged into this device.
@@ -40,19 +39,19 @@ class FlatBuilder(PortList):
     """ If True, plug()/place() are skipped (for debugging)"""
 
     @property
-    def ports(self) -> Dict[str, Port]:
+    def ports(self) -> dict[str, Port]:
         return self.pattern.ports
 
     @ports.setter
-    def ports(self, value: Dict[str, Port]) -> None:
+    def ports(self, value: dict[str, Port]) -> None:
         self.pattern.ports = value
 
     def __init__(
             self,
             *,
-            pattern: Optional[Pattern] = None,
-            ports: Union[None, Mapping[str, Port]] = None,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            pattern: Pattern | None = None,
+            ports: Mapping[str, Port] | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             ) -> None:
         """
         # TODO documentation for FlatBuilder() constructor
@@ -79,12 +78,12 @@ class FlatBuilder(PortList):
     @classmethod
     def interface(
             cls,
-            source: Union[PortList, Mapping[str, Port]],
+            source: PortList | Mapping[str, Port],
             *,
-            tools: Union[None, Tool, MutableMapping[Optional[str], Tool]] = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
-            port_map: Optional[Union[Dict[str, str], Sequence[str]]] = None,
+            port_map: dict[str, str] | Sequence[str] | None = None,
             ) -> 'FlatBuilder':
         """
         Begin building a new device based on all or some of the ports in the
@@ -176,12 +175,12 @@ class FlatBuilder(PortList):
     def plug(
             self: BB,
             other: Pattern,
-            map_in: Dict[str, str],
-            map_out: Optional[Dict[str, Optional[str]]] = None,
+            map_in: dict[str, str],
+            map_out: dict[str, str | None] | None = None,
             *,
-            mirrored: Tuple[bool, bool] = (False, False),
+            mirrored: tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
-            set_rotation: Optional[bool] = None,
+            set_rotation: bool | None = None,
             ) -> BB:
         """
         Instantiate another pattern into the current device, connecting
@@ -206,9 +205,9 @@ class FlatBuilder(PortList):
 
         Args:
             other: An `Abstract` describing the device to be instatiated.
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+            map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
-            map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
+            map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in `other`.
             mirrored: Enables mirroring `other` across the x or y axes prior
                 to connecting any ports.
@@ -276,8 +275,8 @@ class FlatBuilder(PortList):
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
             pivot: ArrayLike = (0, 0),
-            mirrored: Tuple[bool, bool] = (False, False),
-            port_map: Optional[Dict[str, Optional[str]]] = None,
+            mirrored: tuple[bool, bool] = (False, False),
+            port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
             ) -> BB:
         """
@@ -302,7 +301,7 @@ class FlatBuilder(PortList):
                 Rotation is applied prior to translation (`offset`).
             mirrored: Whether theinstance should be mirrored across the x and y axes.
                 Mirroring is applied before translation and rotation.
-            port_map: Dict of `{'old_name': 'new_name'}` mappings, specifying
+            port_map: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in the instantiated device. New names can be
                 `None`, which will delete those ports.
             skip_port_check: Can be used to skip the internal call to `check_ports`,
@@ -420,7 +419,7 @@ class FlatBuilder(PortList):
     def retool(
             self: BB,
             tool: Tool,
-            keys: Union[Optional[str], Sequence[Optional[str]]] = None,
+            keys: str | Sequence[str | None] | None = None,
             ) -> BB:
         if keys is None or isinstance(keys, str):
             self.tools[keys] = tool
@@ -432,7 +431,7 @@ class FlatBuilder(PortList):
     def path(
             self: BB,
             portspec: str,
-            ccw: Optional[SupportsBool],
+            ccw: SupportsBool | None,
             length: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -451,7 +450,7 @@ class FlatBuilder(PortList):
     def path_to(
             self: BB,
             portspec: str,
-            ccw: Optional[SupportsBool],
+            ccw: SupportsBool | None,
             position: float,
             *,
             tool_port_names: Sequence[str] = ('A', 'B'),
@@ -484,11 +483,11 @@ class FlatBuilder(PortList):
 
     def mpath(
             self: BB,
-            portspec: Union[str, Sequence[str]],
-            ccw: Optional[SupportsBool],
+            portspec: str | Sequence[str],
+            ccw: SupportsBool | None,
             *,
-            spacing: Optional[Union[float, ArrayLike]] = None,
-            set_rotation: Optional[float] = None,
+            spacing: float | ArrayLike | None = None,
+            set_rotation: float | None = None,
             tool_port_names: Sequence[str] = ('A', 'B'),
             force_container: bool = False,
             base_name: str = '_mpath',

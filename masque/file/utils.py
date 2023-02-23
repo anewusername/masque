@@ -1,7 +1,7 @@
 """
 Helper functions for file reading and writing
 """
-from typing import Union, IO, Iterator
+from typing import IO, Iterator
 import re
 import pathlib
 import logging
@@ -62,7 +62,7 @@ def is_gzipped(path: pathlib.Path) -> bool:
 
 
 @contextmanager
-def tmpfile(path: Union[str, pathlib.Path]) -> Iterator[IO[bytes]]:
+def tmpfile(path: str | pathlib.Path) -> Iterator[IO[bytes]]:
     """
     Context manager which allows you to write to a temporary file,
     and move that file into its final location only after the write
@@ -77,5 +77,3 @@ def tmpfile(path: Union[str, pathlib.Path]) -> Iterator[IO[bytes]]:
         shutil.move(tmp_stream.name, path)
     finally:
         pathlib.Path(tmp_stream.name).unlink(missing_ok=True)
-
-

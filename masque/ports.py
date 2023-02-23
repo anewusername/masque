@@ -1,5 +1,4 @@
-from typing import Dict, Iterable, List, Tuple, KeysView, ValuesView
-from typing import overload, Union, Optional, TypeVar
+from typing import Iterable, KeysView, ValuesView, overload, TypeVar
 import warnings
 import traceback
 import logging
@@ -43,7 +42,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         '_offset',
         )
 
-    _rotation: Optional[float]
+    _rotation: float | None
     """ radians counterclockwise from +x, pointing into device body.
         Can be `None` to signify undirected port """
 
@@ -53,7 +52,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     def __init__(
             self,
             offset: ArrayLike,
-            rotation: Optional[float],
+            rotation: float | None,
             ptype: str = 'unk',
             ) -> None:
         self.offset = offset
@@ -61,7 +60,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         self.ptype = ptype
 
     @property
-    def rotation(self) -> Optional[float]:
+    def rotation(self) -> float | None:
         """ Rotation, radians counterclockwise, pointing into device body. Can be None. """
         return self._rotation
 
@@ -94,7 +93,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
             self.rotation += rotation
         return self
 
-    def set_rotation(self: P, rotation: Optional[float]) -> P:
+    def set_rotation(self: P, rotation: float | None) -> P:
         self.rotation = rotation
         return self
 
@@ -111,13 +110,13 @@ class PortList(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def ports(self) -> Dict[str, Port]:
+    def ports(self) -> dict[str, Port]:
         """ Uniquely-named ports which can be used to snap to other Device instances"""
         pass
 
     @ports.setter
     @abstractmethod
-    def ports(self, value: Dict[str, Port]) -> None:
+    def ports(self, value: dict[str, Port]) -> None:
         pass
 
     @overload
@@ -125,10 +124,10 @@ class PortList(metaclass=ABCMeta):
         pass
 
     @overload
-    def __getitem__(self, key: Union[List[str], Tuple[str, ...], KeysView[str], ValuesView[str]]) -> Dict[str, Port]:
+    def __getitem__(self, key: list[str] | tuple[str, ...] | KeysView[str] | ValuesView[str]) -> dict[str, Port]:
         pass
 
-    def __getitem__(self, key: Union[str, Iterable[str]]) -> Union[Port, Dict[str, Port]]:
+    def __getitem__(self, key: str | Iterable[str]) -> Port | dict[str, Port]:
         """
         For convenience, ports can be read out using square brackets:
         - `pattern['A'] == Port((0, 0), 0)`
@@ -150,7 +149,7 @@ class PortList(metaclass=ABCMeta):
 
     def rename_ports(
             self: PL,
-            mapping: Dict[str, Optional[str]],
+            mapping: dict[str, str | None],
             overwrite: bool = False,
             ) -> PL:
         """
@@ -158,7 +157,7 @@ class PortList(metaclass=ABCMeta):
         Ports can be explicitly deleted by mapping them to `None`.
 
         Args:
-            mapping: Dict of `{'old_name': 'new_name'}` pairs. Names can be mapped
+            mapping: dict of `{'old_name': 'new_name'}` pairs. Names can be mapped
                 to `None` to perform an explicit deletion. `'new_name'` can also
                 overwrite an existing non-renamed port to implicitly delete it if
                 `overwrite` is set to `True`.
@@ -183,7 +182,7 @@ class PortList(metaclass=ABCMeta):
             self: PL,
             offset: ArrayLike = (0, 0),
             rotation: float = 0.0,
-            names: Tuple[str, str] = ('A', 'B'),
+            names: tuple[str, str] = ('A', 'B'),
             ptype: str = 'unk',
             ) -> PL:
         """
@@ -210,8 +209,8 @@ class PortList(metaclass=ABCMeta):
     def check_ports(
             self: PL,
             other_names: Iterable[str],
-            map_in: Optional[Dict[str, str]] = None,
-            map_out: Optional[Dict[str, Optional[str]]] = None,
+            map_in: dict[str, str] | None = None,
+            map_out: dict[str, str | None] | None = None,
             ) -> PL:
         """
         Given the provided port mappings, check that:
@@ -221,9 +220,9 @@ class PortList(metaclass=ABCMeta):
         Args:
             other_names: List of port names being considered for inclusion into
                 `self.ports` (before mapping)
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+            map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
-            map_out: Dict of `{'old_name': 'new_name'}` mappings, specifying
+            map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for unconnected `other_names` ports.
 
         Returns:
@@ -279,18 +278,18 @@ class PortList(metaclass=ABCMeta):
     def find_transform(
             self: PL,
             other: PL2,
-            map_in: Dict[str, str],
+            map_in: dict[str, str],
             *,
-            mirrored: Tuple[bool, bool] = (False, False),
-            set_rotation: Optional[bool] = None,
-            ) -> Tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
+            mirrored: tuple[bool, bool] = (False, False),
+            set_rotation: bool | None = None,
+            ) -> tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
         """
         Given a device `other` and a mapping `map_in` specifying port connections,
           find the transform which will correctly align the specified ports.
 
         Args:
             other: a device
-            map_in: Dict of `{'self_port': 'other_port'}` mappings, specifying
+            map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             mirrored: Mirrors `other` across the x or y axes prior to
                 connecting any ports.

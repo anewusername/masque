@@ -1,4 +1,4 @@
-from typing import Tuple, Sequence, Callable
+from typing import Sequence, Callable
 from pprint import pformat
 
 import numpy
@@ -116,12 +116,12 @@ if __name__ == '__main__':
 #            other: Pattern,
 #            label_layer: layer_t = 'WATLAYER',
 #            *,
-#            port_map: Optional[Dict[str, Optional[str]]] = None,
+#            port_map: Dict[str, str | None] | None = None,
 #            **kwargs,
 #            ) -> 'prout':
 #
 #        Pattern.place(self, other, port_map=port_map, **kwargs)
-#        name: Optional[str]
+#        name: str | None
 #        for name in other.ports:
 #            if port_map:
 #                assert(name is not None)

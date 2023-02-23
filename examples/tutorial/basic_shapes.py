@@ -1,4 +1,4 @@
-from typing import Tuple, Sequence
+from typing import Sequence
 
 import numpy
 from numpy import pi

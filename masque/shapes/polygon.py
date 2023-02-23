@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Sequence, Any, cast
+from typing import Sequence, Any, cast
 import copy
 
 import numpy
@@ -83,8 +83,8 @@ class Polygon(Shape):
             rotation: float = 0.0,
             mirrored: Sequence[bool] = (False, False),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -104,7 +104,7 @@ class Polygon(Shape):
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Polygon':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Polygon':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -119,7 +119,7 @@ class Polygon(Shape):
             rotation: float = 0.0,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
+            repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
         Draw a square given side_length, centered on the origin.
@@ -151,7 +151,7 @@ class Polygon(Shape):
             rotation: float = 0,
             offset: ArrayLike = (0.0, 0.0),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
+            repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
         Draw a rectangle with side lengths lx and ly, centered on the origin.
@@ -178,16 +178,16 @@ class Polygon(Shape):
     @staticmethod
     def rect(
             *,
-            xmin: Optional[float] = None,
-            xctr: Optional[float] = None,
-            xmax: Optional[float] = None,
-            lx: Optional[float] = None,
-            ymin: Optional[float] = None,
-            yctr: Optional[float] = None,
-            ymax: Optional[float] = None,
-            ly: Optional[float] = None,
+            xmin: float | None = None,
+            xctr: float | None = None,
+            xmax: float | None = None,
+            lx: float | None = None,
+            ymin: float | None = None,
+            yctr: float | None = None,
+            ymax: float | None = None,
+            ly: float | None = None,
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
+            repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
         Draw a rectangle by specifying side/center positions.
@@ -276,13 +276,13 @@ class Polygon(Shape):
     @staticmethod
     def octagon(
             *,
-            side_length: Optional[float] = None,
-            inner_radius: Optional[float] = None,
+            side_length: float | None = None,
+            inner_radius: float | None = None,
             regular: bool = True,
             center: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
+            repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
         Draw an octagon given one of (side length, inradius, circumradius).
@@ -333,9 +333,9 @@ class Polygon(Shape):
 
     def to_polygons(
             self,
-            num_vertices: Optional[int] = None,      # unused
-            max_arclen: Optional[float] = None,      # unused
-            ) -> List['Polygon']:
+            num_vertices: int | None = None,      # unused
+            max_arclen: float | None = None,      # unused
+            ) -> list['Polygon']:
         return [copy.deepcopy(self)]
 
     def get_bounds(self) -> NDArray[numpy.float64]:

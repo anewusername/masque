@@ -1,4 +1,4 @@
-from typing import List, Tuple, Callable, TypeVar, Optional, TYPE_CHECKING
+from typing import Callable, TypeVar, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -15,9 +15,9 @@ if TYPE_CHECKING:
 
 
 # Type definitions
-normalized_shape_tuple = Tuple[
-    Tuple,
-    Tuple[NDArray[numpy.float64], float, float, bool],
+normalized_shape_tuple = tuple[
+    tuple,
+    tuple[NDArray[numpy.float64], float, float, bool],
     Callable[[], 'Shape'],
     ]
 
@@ -49,9 +49,9 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
     @abstractmethod
     def to_polygons(
             self,
-            num_vertices: Optional[int] = None,
-            max_arclen: Optional[float] = None,
-            ) -> List['Polygon']:
+            num_vertices: int | None = None,
+            max_arclen: float | None = None,
+            ) -> list['Polygon']:
         """
         Returns a list of polygons which approximate the shape.
 
@@ -98,7 +98,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
             self,
             grid_x: ArrayLike,
             grid_y: ArrayLike,
-            ) -> List['Polygon']:
+            ) -> list['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 
@@ -208,7 +208,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
             self,
             grid_x: ArrayLike,
             grid_y: ArrayLike,
-            ) -> List['Polygon']:
+            ) -> list['Polygon']:
         """
         Returns a list of polygons with grid-aligned ("Manhattan") edges approximating the shape.
 

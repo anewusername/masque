@@ -6,8 +6,7 @@ Notes:
  * ezdxf sets creation time, write time, $VERSIONGUID, and $FINGERPRINTGUID
     to unique values, so byte-for-byte reproducibility is not achievable for now
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Mapping
-from typing import cast, TextIO, IO
+from typing import Any, Callable, Mapping, cast, TextIO, IO
 import io
 import logging
 import pathlib
@@ -107,7 +106,7 @@ def write(
 def writefile(
         library: Mapping[str, Pattern],
         top_name: str,
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
         ) -> None:
@@ -128,7 +127,7 @@ def writefile(
 
     gz_stream: IO[bytes]
     with tmpfile(path) as base_stream:
-        streams: Tuple[Any, ...] = (base_stream,)
+        streams: tuple[Any, ...] = (base_stream,)
         if path.suffix == '.gz':
             gz_stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
             streams = (gz_stream,) + streams
@@ -145,10 +144,10 @@ def writefile(
 
 
 def readfile(
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
@@ -172,7 +171,7 @@ def readfile(
 
 def read(
         stream: TextIO,
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -204,7 +203,7 @@ def read(
     return mlib, library_info
 
 
-def _read_block(block) -> Tuple[str, Pattern]:
+def _read_block(block) -> tuple[str, Pattern]:
     name = block.name
     pat = Pattern()
     for element in block:
@@ -230,7 +229,7 @@ def _read_block(block) -> Tuple[str, Pattern]:
                 if width == 0:
                     width = attr.get('const_width', 0)
 
-                shape: Union[Path, Polygon]
+                shape: Path | Polygon
                 if width == 0 and len(points) > 2 and numpy.array_equal(points[0], points[-1]):
                     shape = Polygon(layer=layer, vertices=points[:-1, :2])
                 else:
@@ -285,8 +284,8 @@ def _read_block(block) -> Tuple[str, Pattern]:
 
 
 def _mrefs_to_drefs(
-        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-        refs: List[Ref],
+        block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
+        refs: list[Ref],
         ) -> None:
     for ref in refs:
         if ref.target is None:
@@ -332,8 +331,8 @@ def _mrefs_to_drefs(
 
 
 def _shapes_to_elements(
-        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-        shapes: List[Shape],
+        block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
+        shapes: list[Shape],
         polygonize_paths: bool = False,
         ) -> None:
     # Add `LWPolyline`s for each shape.
@@ -353,8 +352,8 @@ def _shapes_to_elements(
 
 
 def _labels_to_texts(
-        block: Union[ezdxf.layouts.BlockLayout, ezdxf.layouts.Modelspace],
-        labels: List[Label],
+        block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
+        labels: list[Label],
         ) -> None:
     for label in labels:
         attribs = dict(layer=_mlayer2dxf(label.layer))

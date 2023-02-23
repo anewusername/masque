@@ -14,8 +14,7 @@ Note that OASIS references follow the same convention as `masque`,
 Notes:
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import List, Any, Dict, Tuple, Callable, Union, Iterable
-from typing import IO, Mapping, Optional, cast, Sequence
+from typing import Any, Callable, Iterable, IO, Mapping, cast, Sequence
 import logging
 import pathlib
 import gzip
@@ -57,9 +56,9 @@ def rint_cast(val: ArrayLike) -> NDArray[numpy.int64]:
 def build(
         library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
         units_per_micron: int,
-        layer_map: Optional[Dict[str, Union[int, Tuple[int, int]]]] = None,
+        layer_map: dict[str, int | tuple[int, int]] | None = None,
         *,
-        annotations: Optional[annotations_t] = None,
+        annotations: annotations_t | None = None,
         ) -> fatamorgana.OasisLayout:
     """
     Convert a collection of {name: Pattern} pairs to an OASIS stream, writing patterns
@@ -86,7 +85,7 @@ def build(
         library: A {name: Pattern} mapping of patterns to write.
         units_per_micron: Written into the OASIS file, number of grid steps per micrometer.
             All distances are assumed to be an integer multiple of the grid step, and are stored as such.
-        layer_map: Dictionary which translates layer names into layer numbers. If this argument is
+        layer_map: dictionary which translates layer names into layer numbers. If this argument is
             provided, input shapes and labels are allowed to have layer names instead of numbers.
             It is assumed that geometry and text share the same layer names, and each name is
             assigned only to a single layer (not a range).
@@ -127,7 +126,7 @@ def build(
                     )
                 for tt in (True, False)]
 
-        def layer2oas(mlayer: layer_t) -> Tuple[int, int]:
+        def layer2oas(mlayer: layer_t) -> tuple[int, int]:
             assert layer_map is not None
             layer_num = layer_map[mlayer] if isinstance(mlayer, str) else mlayer
             return _mlayer2oas(layer_num)
@@ -170,7 +169,7 @@ def write(
 
 def writefile(
         library: Mapping[str, Pattern],           # NOTE: Pattern here should be treated as immutable!
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
         ) -> None:
@@ -188,7 +187,7 @@ def writefile(
     path = pathlib.Path(filename)
 
     with tmpfile(path) as base_stream:
-        streams: Tuple[Any, ...] = (base_stream,)
+        streams: tuple[Any, ...] = (base_stream,)
         if path.suffix == '.gz':
             stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
             streams += (stream,)
@@ -203,10 +202,10 @@ def writefile(
 
 
 def readfile(
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     Wrapper for `oasis.read()` that takes a filename or path instead of a stream.
 
@@ -230,7 +229,7 @@ def readfile(
 
 def read(
         stream: IO[bytes],
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
@@ -245,13 +244,13 @@ def read(
         stream: Stream to read from.
 
     Returns:
-        - Dict of `pattern_name`:`Pattern`s generated from OASIS cells
-        - Dict of OASIS library info
+        - dict of `pattern_name`:`Pattern`s generated from OASIS cells
+        - dict of OASIS library info
     """
 
     lib = fatamorgana.OasisLayout.read(stream)
 
-    library_info: Dict[str, Any] = {
+    library_info: dict[str, Any] = {
         'units_per_micrometer': lib.unit,
         'annotations': properties_to_annotations(lib.properties, lib.propnames, lib.propstrings),
         }
@@ -304,7 +303,7 @@ def read(
                     raise Exception('masque does not support multiple cap types on a single path.')      # TODO handle multiple cap types
                 cap = cap_start
 
-                path_args: Dict[str, Any] = {}
+                path_args: dict[str, Any] = {}
                 if cap == Path.Cap.SquareCustom:
                     path_args['cap_extensions'] = numpy.array((
                         element.get_extension_start()[1],
@@ -468,7 +467,7 @@ def read(
     return mlib, library_info
 
 
-def _mlayer2oas(mlayer: layer_t) -> Tuple[int, int]:
+def _mlayer2oas(mlayer: layer_t) -> tuple[int, int]:
     """ Helper to turn a layer tuple-or-int into a layer and datatype"""
     if isinstance(mlayer, int):
         layer = mlayer
@@ -494,7 +493,7 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
     mag = placement.magnification if placement.magnification is not None else 1
 
     pname = placement.get_name()
-    name: Union[int, str] = pname if isinstance(pname, int) else pname.string       # TODO deal with referenced names
+    name: int | str = pname if isinstance(pname, int) else pname.string       # TODO deal with referenced names
 
     annotations = properties_to_annotations(placement.properties, lib.propnames, lib.propstrings)
     if placement.angle is None:
@@ -514,8 +513,8 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
 
 
 def _refs_to_placements(
-        refs: List[Ref],
-        ) -> List[fatrec.Placement]:
+        refs: list[Ref],
+        ) -> list[fatrec.Placement]:
     placements = []
     for ref in refs:
         if ref.target is None:
@@ -543,11 +542,11 @@ def _refs_to_placements(
 
 
 def _shapes_to_elements(
-        shapes: List[Shape],
-        layer2oas: Callable[[layer_t], Tuple[int, int]],
-        ) -> List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]]:
+        shapes: list[Shape],
+        layer2oas: Callable[[layer_t], tuple[int, int]],
+        ) -> list[fatrec.Polygon | fatrec.Path | fatrec.Circle]:
     # Add a Polygon record for each shape, and Path elements if necessary
-    elements: List[Union[fatrec.Polygon, fatrec.Path, fatrec.Circle]] = []
+    elements: list[fatrec.Polygon | fatrec.Path | fatrec.Circle] = []
     for shape in shapes:
         layer, datatype = layer2oas(shape.layer)
         repetition, rep_offset = repetition_masq2fata(shape.repetition)
@@ -594,7 +593,7 @@ def _shapes_to_elements(
                     datatype=datatype,
                     x=xy[0],
                     y=xy[1],
-                    point_list=cast(List[List[int]], points),
+                    point_list=cast(list[list[int]], points),
                     properties=properties,
                     repetition=repetition,
                     ))
@@ -602,9 +601,9 @@ def _shapes_to_elements(
 
 
 def _labels_to_texts(
-        labels: List[Label],
-        layer2oas: Callable[[layer_t], Tuple[int, int]],
-        ) -> List[fatrec.Text]:
+        labels: list[Label],
+        layer2oas: Callable[[layer_t], tuple[int, int]],
+        ) -> list[fatrec.Text]:
     texts = []
     for label in labels:
         layer, datatype = layer2oas(label.layer)
@@ -624,9 +623,9 @@ def _labels_to_texts(
 
 
 def repetition_fata2masq(
-        rep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None],
-        ) -> Optional[Repetition]:
-    mrep: Optional[Repetition]
+        rep: fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None,
+        ) -> Repetition | None:
+    mrep: Repetition | None
     if isinstance(rep, fatamorgana.GridRepetition):
         mrep = Grid(a_vector=rep.a_vector,
                     b_vector=rep.b_vector,
@@ -645,22 +644,22 @@ def repetition_fata2masq(
 
 
 def repetition_masq2fata(
-        rep: Optional[Repetition],
-        ) -> Tuple[Union[fatamorgana.GridRepetition,
-                         fatamorgana.ArbitraryRepetition,
-                         None],
-                   Tuple[int, int]]:
-    frep: Union[fatamorgana.GridRepetition, fatamorgana.ArbitraryRepetition, None]
+        rep: Repetition | None,
+        ) -> tuple[
+                fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None,
+                tuple[int, int]
+                ]:
+    frep: fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None
     if isinstance(rep, Grid):
         a_vector = rint_cast(rep.a_vector)
         b_vector = rint_cast(rep.b_vector) if rep.b_vector is not None else None
         a_count = rint_cast(rep.a_count)
         b_count = rint_cast(rep.b_count) if rep.b_count is not None else None
         frep = fatamorgana.GridRepetition(
-            a_vector=cast(List[int], a_vector),
-            b_vector=cast(Optional[List[int]], b_vector),
+            a_vector=cast(list[int], a_vector),
+            b_vector=cast(list[int] | None, b_vector),
             a_count=cast(int, a_count),
-            b_count=cast(Optional[int], b_count),
+            b_count=cast(int | None, b_count),
             )
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):
@@ -675,7 +674,7 @@ def repetition_masq2fata(
     return frep, offset
 
 
-def annotations_to_properties(annotations: annotations_t) -> List[fatrec.Property]:
+def annotations_to_properties(annotations: annotations_t) -> list[fatrec.Property]:
     #TODO determine is_standard based on key?
     properties = []
     for key, values in annotations.items():
@@ -686,9 +685,9 @@ def annotations_to_properties(annotations: annotations_t) -> List[fatrec.Propert
 
 
 def properties_to_annotations(
-        properties: List[fatrec.Property],
-        propnames: Dict[int, NString],
-        propstrings: Dict[int, AString],
+        properties: list[fatrec.Property],
+        propnames: dict[int, NString],
+        propstrings: dict[int, AString],
         ) -> annotations_t:
     annotations = {}
     for proprec in properties:
@@ -697,7 +696,7 @@ def properties_to_annotations(
             key = propnames[proprec.name].string
         else:
             key = proprec.name.string
-        values: List[Union[str, float, int]] = []
+        values: list[str | float | int] = []
 
         assert proprec.values is not None
         for value in proprec.values:

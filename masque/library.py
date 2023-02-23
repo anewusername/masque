@@ -5,8 +5,8 @@ Library classes for managing unique name->pattern mappings and
 # TODO documentn all library classes
 # TODO toplevel documentation of library, classes, and abstracts
 """
-from typing import List, Dict, Callable, TypeVar, Type, TYPE_CHECKING, cast
-from typing import Tuple, Union, Iterator, Mapping, MutableMapping, Set, Optional, Sequence
+from typing import Callable, TypeVar, Type, TYPE_CHECKING, cast
+from typing import Iterator, Mapping, MutableMapping, Sequence
 import logging
 import base64
 import struct
@@ -75,8 +75,8 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def dangling_refs(
             self,
-            tops: Union[None, str, Sequence[str]] = None,
-            ) -> Set[Optional[str]]:
+            tops: str | Sequence[str] | None = None,
+            ) -> set[str | None]:
         """
         Get the set of all pattern names not present in the library but referenced
         by `tops`, recursively traversing any refs.
@@ -99,9 +99,9 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def referenced_patterns(
             self,
-            tops: Union[None, str, Sequence[str]] = None,
-            skip: Optional[Set[Optional[str]]] = None,
-            ) -> Set[Optional[str]]:
+            tops: str | Sequence[str] | None = None,
+            skip: set[str | None] | None = None,
+            ) -> set[str | None]:
         """
         Get the set of all pattern names referenced by `tops`. Recursively traverses into any refs.
 
@@ -140,7 +140,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def subtree(
             self,
-            tops: Union[str, Sequence[str]],
+            tops: str | Sequence[str],
             ) -> 'Library':
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
@@ -155,7 +155,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep: Set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep: set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
         keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
@@ -164,25 +164,25 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def polygonize(
             self: L,
-            poly_num_points: Optional[int] = None,
-            poly_max_arclen: Optional[float] = None,
+            num_vertices: int | None = None,
+            max_arclen: float | None = None,
             ) -> L:
         """
         Calls `.polygonize(...)` on each pattern in this library.
         Arguments are passed on to `shape.to_polygons(...)`.
 
         Args:
-            poly_num_points: Number of points to use for each polygon. Can be overridden by
-                `poly_max_arclen` if that results in more points. Optional, defaults to shapes'
+            num_vertices: Number of points to use for each polygon. Can be overridden by
+                `max_arclen` if that results in more points. Optional, defaults to shapes'
                 internal defaults.
-            poly_max_arclen: Maximum arclength which can be approximated by a single line
+            max_arclen: Maximum arclength which can be approximated by a single line
              segment. Optional, defaults to shapes' internal defaults.
 
         Returns:
             self
         """
         for pat in self.values():
-            pat.polygonize(poly_num_points, poly_max_arclen)
+            pat.polygonize(num_vertices, max_arclen)
         return self
 
     def manhattanize(
@@ -206,9 +206,9 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def flatten(
             self,
-            tops: Union[str, Sequence[str]],
+            tops: str | Sequence[str],
             flatten_ports: bool = False,       # TODO document
-            ) -> Dict[str, 'Pattern']:
+            ) -> dict[str, 'Pattern']:
         """
         Removes all refs and adds equivalent shapes.
         Also flattens all referenced patterns.
@@ -222,7 +222,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        flattened: Dict[str, Optional['Pattern']] = {}
+        flattened: dict[str, 'Pattern' | None] = {}
 
         def flatten_single(name) -> None:
             flattened[name] = None
@@ -261,7 +261,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             name: str = '__',
             sanitize: bool = True,
             max_length: int = 32,
-            quiet: Optional[bool] = None,
+            quiet: bool | None = None,
             ) -> str:
         """
         Find a unique name for the pattern.
@@ -308,7 +308,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
         return cropped_name
 
-    def find_toplevel(self) -> List[str]:
+    def find_toplevel(self) -> list[str]:
         """
         Return the list of all patterns that are not referenced by any other pattern in the library.
 
@@ -316,7 +316,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             A list of pattern names in which no pattern is referenced by any other pattern.
         """
         names = set(self.keys())
-        not_toplevel: Set[Optional[str]] = set()
+        not_toplevel: set[str | None] = set()
         for name in names:
             not_toplevel |= set(sp.target for sp in self[name].refs)
 
@@ -326,12 +326,12 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def dfs(
             self: L,
             pattern: 'Pattern',
-            visit_before: Optional[visitor_function_t] = None,
-            visit_after: Optional[visitor_function_t] = None,
+            visit_before: visitor_function_t | None = None,
+            visit_after: visitor_function_t | None = None,
             *,
-            hierarchy: Tuple[Optional[str], ...] = (None,),
-            transform: Union[ArrayLike, bool, None] = False,
-            memo: Optional[Dict] = None,
+            hierarchy: tuple[str | None, ...] = (None,),
+            transform: ArrayLike | bool | None = False,
+            memo: dict | None = None,
             ) -> L:
         """
         Convenience function.
@@ -434,14 +434,14 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
-    #def __setitem__(self, key: str, value: Union['Pattern', Callable[[], 'Pattern']]) -> None:
+    #def __setitem__(self, key: str, value: 'Pattern' | Callable[[], 'Pattern']) -> None:
     #def __delitem__(self, key: str) -> None:
 
     @abstractmethod
     def __setitem__(
             self,
             key: str,
-            value: Union['Pattern', Callable[[], 'Pattern']],
+            value: 'Pattern' | Callable[[], 'Pattern'],
             ) -> None:
         pass
 
@@ -510,31 +510,11 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         self[name] = npat
         return npat
 
-    def set(
-            self,
-            name: str,
-            value: Union['Pattern', Callable[[], 'Pattern']],
-            ) -> str:
-        """
-        Convenience method which finds a suitable name for the provided
-        pattern, adds it with that name, and returns the name.
-
-        Args:
-            base_name: Prefix used when naming the pattern
-            value: The pattern (or callable used to generate it)
-
-        Returns:
-            The name of the pattern.
-        """
-        #name = self.get_name(base_name)
-        self[name] = value
-        return name
-
     def add(
             self,
             other: Mapping[str, 'Pattern'],
             rename_theirs: Callable[['Library', str], str] = _rename_patterns,
-            ) -> Dict[str, str]:
+            ) -> dict[str, str]:
         """
         Add keys from another library into this one.
 
@@ -581,7 +561,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def add_tree(
             self,
             tree: 'Tree',
-            name: Optional[str] = None,
+            name: str | None = None,
             rename_theirs: Callable[['Library', str], str] = _rename_patterns,
             ) -> str:
         """
@@ -623,8 +603,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def dedup(
             self: ML,
             norm_value: int = int(1e6),
-            exclude_types: Tuple[Type] = (Polygon,),
-            label2name: Optional[Callable[[Tuple], str]] = None,
+            exclude_types: tuple[Type] = (Polygon,),
+            label2name: Callable[[tuple], str] | None = None,
             threshold: int = 2,
             ) -> ML:
         """
@@ -664,7 +644,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
                 return self.get_name('_shape')
             #label2name = lambda label: self.get_name('_shape')
 
-        shape_counts: MutableMapping[Tuple, int] = defaultdict(int)
+        shape_counts: MutableMapping[tuple, int] = defaultdict(int)
         shape_funcs = {}
 
         # ## First pass ##
@@ -692,7 +672,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             # are to be replaced.
             # The `values` are `(offset, scale, rotation)`.
 
-            shape_table: MutableMapping[Tuple, List] = defaultdict(list)
+            shape_table: MutableMapping[tuple, list] = defaultdict(list)
             for i, shape in enumerate(pat.shapes):
                 if any(isinstance(shape, t) for t in exclude_types):
                     continue
@@ -727,7 +707,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
     def wrap_repeated_shapes(
             self: ML,
-            name_func: Optional[Callable[['Pattern', Union[Shape, Label]], str]] = None,
+            name_func: Callable[['Pattern', Shape | Label], str] | None = None,
             ) -> ML:
         """
         Wraps all shapes and labels with a non-`None` `repetition` attribute
@@ -776,7 +756,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
 
     def subtree(
             self: ML,
-            tops: Union[str, Sequence[str]],
+            tops: str | Sequence[str],
             ) -> ML:
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
@@ -791,7 +771,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep: Set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep: set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
         keep |= set(tops)
 
         new = type(self)()
@@ -802,7 +782,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def prune_empty(
             self,
             repeat: bool = True,
-            ) -> Set[str]:
+            ) -> set[str]:
         # TODO doc prune_empty
         trimmed = set()
         while empty := set(name for name, pat in self.items() if pat.is_empty()):
@@ -859,7 +839,7 @@ class WrapLibrary(MutableLibrary):
 
     def __init__(
             self,
-            mapping: Optional[MutableMapping[str, 'Pattern']] = None,
+            mapping: MutableMapping[str, 'Pattern'] | None = None,
             ) -> None:
         if mapping is None:
             self.mapping = {}
@@ -881,7 +861,7 @@ class WrapLibrary(MutableLibrary):
     def __setitem__(
             self,
             key: str,
-            value: Union['Pattern', Callable[[], 'Pattern']],
+            value: 'Pattern' | Callable[[], 'Pattern'],
             ) -> None:
         if key in self.mapping:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
@@ -909,21 +889,21 @@ class LazyLibrary(MutableLibrary):
     This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
     """
-    dict: Dict[str, Callable[[], 'Pattern']]
-    cache: Dict[str, 'Pattern']
-    _lookups_in_progress: Set[str]
+    mapping: dict[str, Callable[[], 'Pattern']]
+    cache: dict[str, 'Pattern']
+    _lookups_in_progress: set[str]
 
     def __init__(self) -> None:
-        self.dict = {}
+        self.mapping = {}
         self.cache = {}
         self._lookups_in_progress = set()
 
     def __setitem__(
             self,
             key: str,
-            value: Union['Pattern', Callable[[], 'Pattern']],
+            value: 'Pattern' | Callable[[], 'Pattern'],
             ) -> None:
-        if key in self.dict:
+        if key in self.mapping:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
 
         if callable(value):
@@ -931,12 +911,12 @@ class LazyLibrary(MutableLibrary):
         else:
             value_func = lambda: cast('Pattern', value)      # noqa: E731
 
-        self.dict[key] = value_func
+        self.mapping[key] = value_func
         if key in self.cache:
             del self.cache[key]
 
     def __delitem__(self, key: str) -> None:
-        del self.dict[key]
+        del self.mapping[key]
         if key in self.cache:
             del self.cache[key]
 
@@ -954,24 +934,24 @@ class LazyLibrary(MutableLibrary):
                 )
 
         self._lookups_in_progress.add(key)
-        func = self.dict[key]
+        func = self.mapping[key]
         pat = func()
         self._lookups_in_progress.remove(key)
         self.cache[key] = pat
         return pat
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self.dict)
+        return iter(self.mapping)
 
     def __len__(self) -> int:
-        return len(self.dict)
+        return len(self.mapping)
 
     def __contains__(self, key: object) -> bool:
-        return key in self.dict
+        return key in self.mapping
 
     def _merge(self, key_self: str, other: Mapping[str, 'Pattern'], key_other: str) -> None:
         if isinstance(other, LazyLibrary):
-            self.dict[key_self] = other.dict[key_other]
+            self.mapping[key_self] = other.mapping[key_other]
             if key_other in other.cache:
                 self.cache[key_self] = other.cache[key_other]
         else:
@@ -999,7 +979,7 @@ class LazyLibrary(MutableLibrary):
         Returns:
             self
         """
-        self[new_name] = self.dict[old_name]        # copy over function
+        self[new_name] = self.mapping[old_name]        # copy over function
         if old_name in self.cache:
             self.cache[new_name] = self.cache[old_name]
         del self[old_name]
@@ -1034,11 +1014,11 @@ class LazyLibrary(MutableLibrary):
         Returns:
             self
         """
-        for key in self.dict:
+        for key in self.mapping:
             _ = self[key]       # want to trigger our own __getitem__
         return self
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'LazyLibrary':
+    def __deepcopy__(self, memo: dict | None = None) -> 'LazyLibrary':
         raise LibraryError('LazyLibrary cannot be deepcopied (deepcopy doesn\'t descend into closures)')
 
 
@@ -1068,14 +1048,14 @@ class Tree(MutableLibrary):
 
     def __init__(
             self,
-            top: Union[str, 'NamedPattern'],
-            library: Optional[MutableLibrary] = None
+            top: str | 'NamedPattern',
+            library: MutableLibrary | None = None
             ) -> None:
         self.top = top if isinstance(top, str) else top.name
         self.library = library if library is not None else WrapLibrary()
 
     @classmethod
-    def mk(cls, top: str) -> Tuple['Tree', 'Pattern']:
+    def mk(cls, top: str) -> tuple['Tree', 'Pattern']:
         from .pattern import Pattern
         tree = cls(top=top)
         pat = Pattern()
@@ -1091,7 +1071,7 @@ class Tree(MutableLibrary):
     def __len__(self) -> int:
         return len(self.library)
 
-    def __setitem__(self, key: str, value:  Union['Pattern', Callable[[], 'Pattern']]) -> None:
+    def __setitem__(self, key: str, value: 'Pattern' | Callable[[], 'Pattern']) -> None:
         self.library[key] = value
 
     def __delitem__(self, key: str) -> None:

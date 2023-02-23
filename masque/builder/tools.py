@@ -1,7 +1,7 @@
 """
 Tools are objects which dynamically generate simple single-use devices (e.g. wires or waveguides)
 """
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from ..utils import SupportsBool
 
@@ -12,11 +12,11 @@ if TYPE_CHECKING:
 class Tool:
     def path(
             self,
-            ccw: Optional[SupportsBool],
+            ccw: SupportsBool | None,
             length: float,
             *,
-            in_ptype: Optional[str] = None,
-            out_ptype: Optional[str] = None,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
             port_names: Sequence[str] = ('A', 'B'),
             **kwargs,
             ) -> 'Pattern':

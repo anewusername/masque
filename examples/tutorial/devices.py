@@ -1,5 +1,5 @@
 # TODO update tutorials
-from typing import Tuple, Sequence, Dict, Mapping
+from typing import Sequence, Mapping
 
 import numpy
 from numpy import pi
@@ -43,7 +43,7 @@ def perturbed_l3(
         trench_layer: layer_t = (1, 0),
         shifts_a: Sequence[float] = (0.15, 0, 0.075),
         shifts_r: Sequence[float] = (1.0, 1.0, 1.0),
-        xy_size: Tuple[int, int] = (10, 10),
+        xy_size: tuple[int, int] = (10, 10),
         perturbed_radius: float = 1.1,
         trench_width: float = 1200,
         ) -> Pattern:

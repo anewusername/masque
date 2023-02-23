@@ -1,4 +1,4 @@
-from typing import TypeVar, Tuple
+from typing import TypeVar
 from abc import ABCMeta, abstractmethod
 
 
@@ -28,7 +28,7 @@ class Mirrorable(metaclass=ABCMeta):
         """
         pass
 
-    def mirror2d(self: T, axes: Tuple[bool, bool]) -> T:
+    def mirror2d(self: T, axes: tuple[bool, bool]) -> T:
         """
         Optionally mirror the entity across both axes
 

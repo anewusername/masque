@@ -1,7 +1,7 @@
 """
 2D bin-packing
 """
-from typing import Tuple, List, Set, Sequence, Callable, Mapping
+from typing import Sequence, Callable, Mapping
 
 import numpy
 from numpy.typing import NDArray, ArrayLike
@@ -16,7 +16,7 @@ def maxrects_bssf(
         containers: ArrayLike,
         presort: bool = True,
         allow_rejects: bool = True,
-        ) -> Tuple[NDArray[numpy.float64], Set[int]]:
+        ) -> tuple[NDArray[numpy.float64], set[int]]:
     """
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
@@ -88,7 +88,7 @@ def guillotine_bssf_sas(rect_sizes: numpy.ndarray,
                         regions: numpy.ndarray,
                         presort: bool = True,
                         allow_rejects: bool = True,
-                        ) -> Tuple[numpy.ndarray, Set[int]]:
+                        ) -> tuple[numpy.ndarray, set[int]]:
     """
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
@@ -146,11 +146,11 @@ def pack_patterns(
         library: Mapping[str, Pattern],
         patterns: Sequence[str],
         regions: numpy.ndarray,
-        spacing: Tuple[float, float],
+        spacing: tuple[float, float],
         presort: bool = True,
         allow_rejects: bool = True,
         packer: Callable = maxrects_bssf,
-        ) -> Tuple[Pattern, List[str]]:
+        ) -> tuple[Pattern, list[str]]:
     half_spacing = numpy.array(spacing) / 2
 
     bounds = [library[pp].get_bounds() for pp in patterns]

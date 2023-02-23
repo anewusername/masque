@@ -6,7 +6,7 @@ and retrieving it (`data_to_ports`).
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence, Optional, Mapping
+from typing import Sequence, Mapping
 import logging
 
 import numpy
@@ -56,7 +56,7 @@ def data_to_ports(
         pattern: Pattern,               # Pattern is good since we don't want to do library[name] to avoid infinite recursion.
                                         # LazyLibrary protects against library[ref.target] causing a circular lookup.
                                         # For others, maybe check for cycles up front? TODO
-        name: Optional[str] = None,     # Note: name optional, but arg order different from read(postprocess=)
+        name: str | None = None,     # Note: name optional, but arg order different from read(postprocess=)
         max_depth: int = 0,
         skip_subcells: bool = True,
         # TODO missing ok?
@@ -130,7 +130,7 @@ def data_to_ports(
 def data_to_ports_flat(
         layers: Sequence[layer_t],
         pattern: Pattern,
-        cell_name: Optional[str] = None,
+        cell_name: str | None = None,
         ) -> Pattern:
     """
     Examine `pattern` for labels specifying port info, and use that info

@@ -19,8 +19,7 @@ Notes:
  * GDS creation/modification/access times are set to 1900-01-01 for reproducibility.
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import List, Dict, Tuple, Callable, Union, Iterable, Mapping
-from typing import IO, cast, Optional, Any
+from typing import Callable, Iterable, Mapping, IO, cast, Any
 import io
 import mmap
 import logging
@@ -114,7 +113,7 @@ def write(
 
     # Now create a structure for each pattern, and add in any Boundary and SREF elements
     for name, pat in library.items():
-        elements: List[klamath.elements.Element] = []
+        elements: list[klamath.elements.Element] = []
         elements += _shapes_to_elements(pat.shapes)
         elements += _labels_to_texts(pat.labels)
         elements += _mrefs_to_grefs(pat.refs)
@@ -125,7 +124,7 @@ def write(
 
 def writefile(
         library: Mapping[str, Pattern],
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
         ) -> None:
@@ -143,7 +142,7 @@ def writefile(
     path = pathlib.Path(filename)
 
     with tmpfile(path) as base_stream:
-        streams: Tuple[Any, ...] = (base_stream,)
+        streams: tuple[Any, ...] = (base_stream,)
         if path.suffix == '.gz':
             stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
             streams = (stream,) + streams
@@ -158,10 +157,10 @@ def writefile(
 
 
 def readfile(
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     Wrapper for `read()` that takes a filename or path instead of a stream.
 
@@ -186,7 +185,7 @@ def readfile(
 def read(
         stream: IO[bytes],
         raw_mode: bool = True,
-        ) -> Tuple[WrapLibrary, Dict[str, Any]]:
+        ) -> tuple[WrapLibrary, dict[str, Any]]:
     """
     # TODO check GDSII file for cycles!
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
@@ -204,8 +203,8 @@ def read(
         raw_mode: If True, constructs shapes in raw mode, bypassing most data validation, Default True.
 
     Returns:
-        - Dict of pattern_name:Patterns generated from GDSII structures
-        - Dict of GDSII library info
+        - dict of pattern_name:Patterns generated from GDSII structures
+        - dict of GDSII library info
     """
     library_info = _read_header(stream)
 
@@ -220,7 +219,7 @@ def read(
     return mlib, library_info
 
 
-def _read_header(stream: IO[bytes]) -> Dict[str, Any]:
+def _read_header(stream: IO[bytes]) -> dict[str, Any]:
     """
     Read the file header and create the library_info dict.
     """
@@ -272,7 +271,7 @@ def read_elements(
     return pat
 
 
-def _mlayer2gds(mlayer: layer_t) -> Tuple[int, int]:
+def _mlayer2gds(mlayer: layer_t) -> tuple[int, int]:
     """ Helper to turn a layer tuple-or-int into a layer and datatype"""
     if isinstance(mlayer, int):
         layer = mlayer
@@ -344,7 +343,7 @@ def _boundary_to_polygon(boundary: klamath.library.Boundary, raw_mode: bool) -> 
         )
 
 
-def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
+def _mrefs_to_grefs(refs: list[Ref]) -> list[klamath.library.Reference]:
     grefs = []
     for ref in refs:
         if ref.target is None:
@@ -402,11 +401,11 @@ def _mrefs_to_grefs(refs: List[Ref]) -> List[klamath.library.Reference]:
     return grefs
 
 
-def _properties_to_annotations(properties: Dict[int, bytes]) -> annotations_t:
+def _properties_to_annotations(properties: dict[int, bytes]) -> annotations_t:
     return {str(k): [v.decode()] for k, v in properties.items()}
 
 
-def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> Dict[int, bytes]:
+def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> dict[int, bytes]:
     cum_len = 0
     props = {}
     for key, vals in annotations.items():
@@ -429,10 +428,10 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
 
 
 def _shapes_to_elements(
-        shapes: List[Shape],
+        shapes: list[Shape],
         polygonize_paths: bool = False,
-        ) -> List[klamath.elements.Element]:
-    elements: List[klamath.elements.Element] = []
+        ) -> list[klamath.elements.Element]:
+    elements: list[klamath.elements.Element] = []
     # Add a Boundary element for each shape, and Path elements if necessary
     for shape in shapes:
         if shape.repetition is not None:
@@ -446,7 +445,7 @@ def _shapes_to_elements(
             width = rint_cast(shape.width)
             path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
 
-            extension: Tuple[int, int]
+            extension: tuple[int, int]
             if shape.cap == Path.Cap.SquareCustom and shape.cap_extensions is not None:
                 extension = tuple(shape.cap_extensions)     # type: ignore
             else:
@@ -486,7 +485,7 @@ def _shapes_to_elements(
     return elements
 
 
-def _labels_to_texts(labels: List[Label]) -> List[klamath.elements.Text]:
+def _labels_to_texts(labels: list[Label]) -> list[klamath.elements.Text]:
     texts = []
     for label in labels:
         properties = _annotations_to_properties(label.annotations, 128)
@@ -512,8 +511,8 @@ def load_library(
         stream: IO[bytes],
         *,
         full_load: bool = False,
-        postprocess: Optional[Callable[[Library, str, Pattern], Pattern]] = None
-        ) -> Tuple[LazyLibrary, Dict[str, Any]]:
+        postprocess: Callable[[Library, str, Pattern], Pattern] | None = None
+        ) -> tuple[LazyLibrary, dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
         a library from them. This enables deferred reading of structures
@@ -568,12 +567,12 @@ def load_library(
 
 
 def load_libraryfile(
-        filename: Union[str, pathlib.Path],
+        filename: str | pathlib.Path,
         *,
         use_mmap: bool = True,
         full_load: bool = False,
-        postprocess: Optional[Callable[[Library, str, Pattern], Pattern]] = None
-        ) -> Tuple[LazyLibrary, Dict[str, Any]]:
+        postprocess: Callable[[Library, str, Pattern], Pattern] | None = None
+        ) -> tuple[LazyLibrary, dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.
 

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Sequence, Optional, Any
+from typing import Sequence, Any
 import copy
 
 import numpy
@@ -74,8 +74,8 @@ class Text(RotatableImpl, Shape):
             rotation: float = 0.0,
             mirrored: ArrayLike = (False, False),
             layer: layer_t = 0,
-            repetition: Optional[Repetition] = None,
-            annotations: Optional[annotations_t] = None,
+            repetition: Repetition | None = None,
+            annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -100,7 +100,7 @@ class Text(RotatableImpl, Shape):
             self.annotations = annotations if annotations is not None else {}
         self.font_path = font_path
 
-    def __deepcopy__(self, memo: Optional[Dict] = None) -> 'Text':
+    def __deepcopy__(self, memo: dict | None = None) -> 'Text':
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -110,9 +110,9 @@ class Text(RotatableImpl, Shape):
 
     def to_polygons(
             self,
-            num_vertices: Optional[int] = None,      # unused
-            max_arclen: Optional[float] = None,      # unused
-            ) -> List[Polygon]:
+            num_vertices: int | None = None,      # unused
+            max_arclen: float | None = None,      # unused
+            ) -> list[Polygon]:
         all_polygons = []
         total_advance = 0.0
         for char in self.string:
@@ -172,7 +172,7 @@ def get_char_as_polygons(
         font_path: str,
         char: str,
         resolution: float = 48 * 64,
-        ) -> Tuple[List[List[List[float]]], float]:
+        ) -> tuple[list[list[list[float]]], float]:
     from freetype import Face           # type: ignore
     from matplotlib.path import Path    # type: ignore
 
@@ -209,7 +209,7 @@ def get_char_as_polygons(
         tags = outline.tags[start:end + 1]
         tags.append(tags[0])
 
-        segments: List[List[List[float]]] = []
+        segments: list[list[list[float]]] = []
         for j, point in enumerate(points):
             # If we already have a segment, add this point to it
             if j > 0:
