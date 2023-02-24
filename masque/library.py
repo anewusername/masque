@@ -219,7 +219,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        flattened: dict[str, 'Pattern' | None] = {}
+        flattened: dict[str, 'Pattern | None'] = {}
 
         def flatten_single(name) -> None:
             flattened[name] = None
@@ -342,7 +342,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             current_pattern = visit_after(current_pattern, **visit_args)
             ```
           where `visit_args` are
-            `hierarchy`:  (top_pattern_or_None, L1_pattern, L2_pattern, ..., parent_pattern)
+            `hierarchy`:  (top_pattern_or_None, L1_pattern, L2_pattern, ..., parent_pattern, target_pattern)
                           tuple of all parent-and-higher pattern names. Top pattern name may be
                           `None` if not provided in first call to .dfs()
             `transform`:  numpy.ndarray containing cumulative
@@ -413,7 +413,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             pattern = visit_after(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
 
         if pattern is not original_pattern:
-            name = hierarchy[-1]
+            name = hierarchy[-1]            # TODO what is name=None?
             if not isinstance(self, MutableLibrary):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but the library is immutable')
@@ -431,14 +431,14 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
     #def __len__(self) -> int:
-    #def __setitem__(self, key: str, value: 'Pattern' | Callable[[], 'Pattern']) -> None:
+    #def __setitem__(self, key: str, value: 'Pattern | Callable[[], Pattern]') -> None:
     #def __delitem__(self, key: str) -> None:
 
     @abstractmethod
     def __setitem__(
             self,
             key: str,
-            value: 'Pattern' | Callable[[], 'Pattern'],
+            value: 'Pattern | Callable[[], Pattern]',
             ) -> None:
         pass
 
@@ -858,7 +858,7 @@ class WrapLibrary(MutableLibrary):
     def __setitem__(
             self,
             key: str,
-            value: 'Pattern' | Callable[[], 'Pattern'],
+            value: 'Pattern | Callable[[], Pattern]',
             ) -> None:
         if key in self.mapping:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
@@ -898,7 +898,7 @@ class LazyLibrary(MutableLibrary):
     def __setitem__(
             self,
             key: str,
-            value: 'Pattern' | Callable[[], 'Pattern'],
+            value: 'Pattern | Callable[[], Pattern]',
             ) -> None:
         if key in self.mapping:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
@@ -1045,7 +1045,7 @@ class Tree(MutableLibrary):
 
     def __init__(
             self,
-            top: str | 'NamedPattern',
+            top: 'str | NamedPattern',
             library: MutableLibrary | None = None
             ) -> None:
         self.top = top if isinstance(top, str) else top.name
@@ -1068,7 +1068,7 @@ class Tree(MutableLibrary):
     def __len__(self) -> int:
         return len(self.library)
 
-    def __setitem__(self, key: str, value: 'Pattern' | Callable[[], 'Pattern']) -> None:
+    def __setitem__(self, key: str, value: 'Pattern | Callable[[], Pattern]') -> None:
         self.library[key] = value
 
     def __delitem__(self, key: str) -> None:

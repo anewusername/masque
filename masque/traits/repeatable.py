@@ -22,7 +22,7 @@ class Repeatable(metaclass=ABCMeta):
     '''
     @property
     @abstractmethod
-    def repetition(self) -> 'Repetition' | None:
+    def repetition(self) -> 'Repetition | None':
         """
         Repetition object, or None (single instance only)
         """
@@ -30,14 +30,14 @@ class Repeatable(metaclass=ABCMeta):
 
 #    @repetition.setter
 #    @abstractmethod
-#    def repetition(self, repetition: 'Repetition' | None):
+#    def repetition(self, repetition: 'Repetition | None'):
 #        pass
 
     '''
     ---- Methods
     '''
     @abstractmethod
-    def set_repetition(self, repetition: 'Repetition' | None) -> Self:
+    def set_repetition(self, repetition: 'Repetition | None') -> Self:
         """
         Set the repetition
 
@@ -56,18 +56,18 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     """
     __slots__ = _empty_slots
 
-    _repetition: 'Repetition' | None
+    _repetition: 'Repetition | None'
     """ Repetition object, or None (single instance only) """
 
     '''
     ---- Non-abstract properties
     '''
     @property
-    def repetition(self) -> 'Repetition' | None:
+    def repetition(self) -> 'Repetition | None':
         return self._repetition
 
     @repetition.setter
-    def repetition(self, repetition: 'Repetition' | None):
+    def repetition(self, repetition: 'Repetition | None'):
         from ..repetition import Repetition
         if repetition is not None and not isinstance(repetition, Repetition):
             raise MasqueError(f'{repetition} is not a valid Repetition object!')
@@ -76,6 +76,6 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     '''
     ---- Non-abstract methods
     '''
-    def set_repetition(self, repetition: 'Repetition' | None) -> Self:
+    def set_repetition(self, repetition: 'Repetition | None') -> Self:
         self.repetition = repetition
         return self

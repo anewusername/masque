@@ -601,7 +601,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        flattened: dict[str | None, 'Pattern' | None] = {}
+        flattened: dict[str | None, 'Pattern | None'] = {}
 
         # TODO both Library and Pattern have flatten()... pattern is in-place?
         def flatten_single(name: str | None) -> None:

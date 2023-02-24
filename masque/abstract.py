@@ -45,7 +45,7 @@ class Abstract(PortList):
 #    def build(
 #            self,
 #            library: 'MutableLibrary',
-#            tools: None | 'Tool' | MutableMapping[str | None, 'Tool'] = None,
+#            tools: 'None | Tool | MutableMapping[str | None, Tool]' = None,
 #            ) -> 'Builder':
 #        """
 #        Begin building a new device around an instance of the current device
