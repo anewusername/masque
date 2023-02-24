@@ -46,7 +46,7 @@ class Ref(
 
     def __init__(
             self,
-            target: str | 'NamedPattern' | None,
+            target: 'str | NamedPattern | None',
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
@@ -120,7 +120,7 @@ class Ref(
     def as_pattern(
             self,
             *,
-            pattern: 'Pattern' | None = None,
+            pattern: 'Pattern | None' = None,
             library: Mapping[str, 'Pattern'] | None = None,
             ) -> 'Pattern':
         """
@@ -177,7 +177,7 @@ class Ref(
     def get_bounds(
             self,
             *,
-            pattern: 'Pattern' | None = None,
+            pattern: 'Pattern | None' = None,
             library: Mapping[str, 'Pattern'] | None = None,
             ) -> NDArray[numpy.float64] | None:
         """
