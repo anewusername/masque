@@ -537,7 +537,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         temp = WrapLibrary(copy.deepcopy(dict(other)))      # TODO maybe add a `mutate` arg? Might want to keep the same patterns
         rename_map = {}
         for old_name in temp:
-            if old_name in duplicates:
+            if old_name in self:
                 new_name = rename_theirs(self, old_name)
                 if new_name in self:
                     raise LibraryError(f'Unresolved duplicate key encountered in library merge: {old_name} -> {new_name}')
