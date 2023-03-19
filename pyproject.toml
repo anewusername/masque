@@ -56,5 +56,4 @@ dxf = ["ezdxf~=1.0.2"]
 svg = ["svgwrite"]
 visualize = ["matplotlib"]
 text = ["matplotlib", "freetype-py"]
-python-gdsii = ["python-gdsii"]
 
