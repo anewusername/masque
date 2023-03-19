@@ -52,7 +52,7 @@ path = "masque/__init__.py"
 
 [project.optional-dependencies]
 oasis = ["fatamorgana~=0.11"]
-dxf = ["ezdxf"]
+dxf = ["ezdxf~=1.0.2"]
 svg = ["svgwrite"]
 visualize = ["matplotlib"]
 text = ["matplotlib", "freetype-py"]
