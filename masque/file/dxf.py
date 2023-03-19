@@ -14,6 +14,7 @@ import gzip
 
 import numpy
 import ezdxf
+from ezdxf.enums import TextEntityAlignment
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, Label
@@ -358,7 +359,7 @@ def _labels_to_texts(
     for label in labels:
         attribs = dict(layer=_mlayer2dxf(label.layer))
         xy = label.offset
-        block.add_text(label.string, dxfattribs=attribs).set_pos(xy, align='BOTTOM_LEFT')
+        block.add_text(label.string, dxfattribs=attribs).set_placement(xy, align=TextEntityAlignment.BOTTOM_LEFT)
 
 
 def _mlayer2dxf(layer: layer_t) -> str:
