@@ -734,6 +734,9 @@ class NamedPattern(Pattern):
         s += ']>'
         return s
 
+    def __str__(self) -> str:
+        return self.name
+
     def __copy__(self) -> Pattern:
         return Pattern.__copy__(self)
 
