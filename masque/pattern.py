@@ -12,7 +12,7 @@ from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
-from .shapes import Shape, Polygon
+from .shapes import Shape, Polygon, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
 from .utils import rotation_matrix_2d, annotations_t
 from .error import PatternError
@@ -210,7 +210,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def polygonize(
             self,
-            num_points: int | None = None,
+            num_vertices: int | None = DEFAULT_POLY_NUM_VERTICES,
             max_arclen: float | None = None,
             ) -> Self:
         """
@@ -218,7 +218,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Arguments are passed directly to `shape.to_polygons(...)`.
 
         Args:
-            num_points: Number of points to use for each polygon. Can be overridden by
+            num_vertices: Number of points to use for each polygon. Can be overridden by
                 `max_arclen` if that results in more points. Optional, defaults to shapes'
                 internal defaults.
             max_arclen: Maximum arclength which can be approximated by a single line
@@ -229,7 +229,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         old_shapes = self.shapes
         self.shapes = list(chain.from_iterable((
-            shape.to_polygons(num_points, max_arclen)
+            shape.to_polygons(num_vertices, max_arclen)
             for shape in old_shapes)))
         return self
 
