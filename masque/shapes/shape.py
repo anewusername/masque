@@ -179,7 +179,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
                 xs2 = (xs[:-1] + xs[1:]) / 2
                 inds2 = get_grid_inds(xs2)
 
-                xinds = numpy.rint(numpy.arange(gxi_min, gxi_max - 0.99, 1 / 3), dtype=numpy.int64, casting='unsafe')
+                xinds = numpy.rint(numpy.arange(gxi_min, gxi_max - 0.99, 1 / 3)).astype(numpy.int64)
 
                 # interleave the results
                 yinds = xinds.copy()
@@ -288,7 +288,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
             for contour in contours:
                 # /2 deals with supersampling
                 # +.5 deals with the fact that our 0-edge becomes -.5 in the super-sampled contour output
-                snapped_contour = numpy.rint((contour + .5) / 2, dtype=numpy.int64, casting='unsafe')
+                snapped_contour = numpy.rint((contour + .5) / 2).astype(numpy.int64)
                 vertices = numpy.hstack((grx[snapped_contour[:, None, 0] + offset_i[0]],
                                          gry[snapped_contour[:, None, 1] + offset_i[1]]))
 
