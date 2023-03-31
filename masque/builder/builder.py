@@ -429,8 +429,6 @@ class Builder(PortList):
             self
         """
         self.pattern.translate_elements(offset)
-        for port in self.ports.values():
-            port.translate(offset)
         return self
 
     def rotate_around(self, pivot: ArrayLike, angle: float) -> Self:
