@@ -155,6 +155,7 @@ class Ref(
             combined = type(pattern)()
             for dd in self.repetition.displacements:
                 temp_pat = pattern.deepcopy()
+                temp_pat.ports = {}
                 temp_pat.translate_elements(dd)
                 combined.append(temp_pat)
             pattern = combined
