@@ -338,10 +338,10 @@ class FlatBuilder(PortList):
             self.ports[name] = p
 
         other_copy = other.deepcopy()
+        other_copy.ports.clear()
         other_copy.mirror2d(mirrored)
         other_copy.rotate_around(pivot, rotation)
         other_copy.translate_elements(offset)
-        other_copy.ports.clear()
         self.pattern.append(other_copy)
         return self
 
@@ -356,8 +356,6 @@ class FlatBuilder(PortList):
             self
         """
         self.pattern.translate_elements(offset)
-        for port in self.ports.values():
-            port.translate(offset)
         return self
 
     def rotate_around(self, pivot: ArrayLike, angle: float) -> Self:
