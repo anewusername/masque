@@ -26,7 +26,7 @@ from .label import Label
 from .abstract import Abstract
 
 if TYPE_CHECKING:
-    from .pattern import Pattern, NamedPattern
+    from .pattern import Pattern
 
 
 logger = logging.getLogger(__name__)
@@ -490,22 +490,21 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
                     ref.target = new_target
         return self
 
-    def create(self, name: str) -> 'NamedPattern':
+    def mkpat(self, name: str) -> tuple[str, 'Pattern']:
         """
-        Convenience method to create an empty pattern, choose a name
-        for it, add it with that name, and return both the pattern and name.
+        Convenience method to create an empty pattern, add it to the library,
+        and return both the pattern and name.
 
         Args:
-            base_name: Prefix used when naming the pattern
+            name: Name for the pattern
 
         Returns:
             (name, pattern) tuple
         """
-        from .pattern import NamedPattern
-        #name = self.get_name(base_name)
-        npat = NamedPattern(name)
-        self[name] = npat
-        return npat
+        from .pattern import Pattern
+        pat = Pattern()
+        self[name] = pat
+        return pat
 
     def add(
             self,
@@ -865,8 +864,6 @@ class WrapLibrary(MutableLibrary):
 
         if callable(value):
             value = value()
-        elif hasattr(value, 'as_pattern'):
-            value = cast('NamedPattern', value).as_pattern()      # don't want to carry along NamedPattern instances
         else:
             value = value
         self.mapping[key] = value
@@ -1045,7 +1042,7 @@ class Tree(MutableLibrary):
 
     def __init__(
             self,
-            top: 'str | NamedPattern',
+            top: str,
             library: MutableLibrary | None = None
             ) -> None:
         self.top = top if isinstance(top, str) else top.name
