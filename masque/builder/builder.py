@@ -6,7 +6,7 @@ import numpy
 from numpy import pi
 from numpy.typing import ArrayLike
 
-from ..pattern import Pattern, NamedPattern
+from ..pattern import Pattern
 from ..ref import Ref
 from ..library import MutableLibrary, Tree
 from ..error import PortError, BuildError
@@ -236,7 +236,7 @@ class Builder(PortList):
 
     def plug(
             self,
-            other: Abstract | str | NamedPattern,
+            other: Abstract | str,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
@@ -337,7 +337,7 @@ class Builder(PortList):
 
     def place(
             self,
-            other: Abstract | str | NamedPattern,
+            other: Abstract | str,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,

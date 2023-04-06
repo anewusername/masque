@@ -21,7 +21,7 @@ from .traits import (
 
 
 if TYPE_CHECKING:
-    from . import Pattern, NamedPattern
+    from . import Pattern
 
 
 class Ref(
@@ -46,7 +46,7 @@ class Ref(
 
     def __init__(
             self,
-            target: 'str | NamedPattern | None',
+            target: str | None,
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
@@ -64,8 +64,6 @@ class Ref(
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
         """
-        if hasattr(target, 'name'):
-            target = cast('NamedPattern', target).name
         self.target = target
         self.offset = offset
         self.rotation = rotation
