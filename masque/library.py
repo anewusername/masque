@@ -305,7 +305,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
         return cropped_name
 
-    def find_toplevel(self) -> list[str]:
+    def tops(self) -> list[str]:
         """
         Return the list of all patterns that are not referenced by any other pattern in the library.
 
