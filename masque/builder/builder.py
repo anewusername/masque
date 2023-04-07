@@ -600,15 +600,14 @@ class Pather(Builder):
     def mk(
             cls,
             library: MutableLibrary,
-            base_name: str,
+            name: str,
             *,
             ports: str | Mapping[str, Port] | None = None,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
-            ) -> tuple['Pather', str]:
-        """ Name-and-make combination """
-        pat = library.create(base_name)
-        pather = Pather(library, pattern=pat, ports=ports, tools=tools)
-        return pather, pat.name
+            ) -> tuple[str, 'Pather']:
+        """ Name-and-make combination """           # TODO document
+        pather = Pather(library, name=name, ports=ports, tools=tools)
+        return name, pather
 
     @classmethod
     def from_builder(
