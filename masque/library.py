@@ -781,7 +781,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         keep |= set(tops)
 
         new = type(self)()
-        for key in keep - set(self.keys()):
+        for key in keep & set(self.keys()):
             new._merge(key, self, key)
         return new
 
