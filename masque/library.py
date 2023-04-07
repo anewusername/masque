@@ -1045,7 +1045,7 @@ class Tree(MutableLibrary):
             top: str,
             library: MutableLibrary | None = None
             ) -> None:
-        self.top = top if isinstance(top, str) else top.name
+        self.top = top
         self.library = library if library is not None else WrapLibrary()
 
     @classmethod
