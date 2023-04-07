@@ -504,7 +504,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         from .pattern import Pattern
         pat = Pattern()
         self[name] = pat
-        return pat
+        return name, pat
 
     def add(
             self,
