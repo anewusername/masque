@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
 from ..ref import Ref
-from ..library import MutableLibrary, Tree
+from ..library import MutableLibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -602,7 +602,7 @@ class Pather(Builder):
             library: MutableLibrary,
             base_name: str,
             *,
-            ports: str | Mapping[str, Port] | None= None,
+            ports: str | Mapping[str, Port] | None = None,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
             ) -> tuple['Pather', str]:
         """ Name-and-make combination """

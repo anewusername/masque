@@ -4,7 +4,7 @@
 """
 #TODO more top-level documentation
 
-from typing import Sequence, Mapping, TYPE_CHECKING, Any, Self, cast
+from typing import Sequence, Mapping, TYPE_CHECKING, Any, Self
 import copy
 
 import numpy
