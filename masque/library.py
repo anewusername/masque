@@ -142,6 +142,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
+        Dangling references do not cause an error.
 
         Args:
             tops: Name(s) of patterns to keep
@@ -152,7 +153,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep: set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep = cast(set[str], self.referenced_patterns(tops) - set((None,)))
         keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
@@ -251,7 +252,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             flatten_single(top)
 
         assert None not in flattened.values()
-        return flattened    # type: ignore
+        return cast(dict[str, 'Pattern'], flattened)
 
     def get_name(
             self,
@@ -592,8 +593,11 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if len(other) == 1:
             name = next(iter(other))
         else:
+            if not isinstance(other, Library):
+                other = WrapROLibrary(other)
+
             tops = other.tops()
-            if len(other.tops()) > 1:
+            if len(tops) > 1:
                 raise LibraryError('Received a library containing multiple topcells!')
 
             name = tops[0]
@@ -762,6 +766,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         """
          Return a new `Library`, containing only the specified patterns and the patterns they
         reference (recursively).
+        Dangling references do not cause an error.
 
         Args:
             tops: Name(s) of patterns to keep
@@ -772,11 +777,11 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep: set[str] = self.referenced_patterns(tops) - set((None,))      # type: ignore
+        keep = cast(set[str], self.referenced_patterns(tops) - set((None,)))
         keep |= set(tops)
 
         new = type(self)()
-        for key in keep:
+        for key in keep - set(self.keys()):
             new._merge(key, self, key)
         return new
 
