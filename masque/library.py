@@ -586,13 +586,18 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return rename_map.get(name, name)
 
     def __lshift__(self, other: Mapping[str, 'Pattern']) -> str:
-        if isinstance(other, Tree):
-            return self.add_tree(other)     # Add library and return topcell name
+#        if isinstance(other, Tree):
+#            return self.add_tree(other)     # Add library and return topcell name
 
-        if len(other) != 1:
-            raise LibraryError('Received a non-Tree library containing multiple cells')
+        if len(other) == 1:
+            name = next(iter(other))
+        else:
+            tops = other.tops()
+            if len(other.tops()) > 1:
+                raise LibraryError('Received a library containing multiple topcells!')
 
-        name = next(iter(other))
+            name = tops[0]
+
         rename_map = self.add(other)
         return rename_map.get(name, name)
 
