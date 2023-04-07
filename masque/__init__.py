@@ -43,7 +43,7 @@ from .library import (
 from .ports import Port, PortList
 from .abstract import Abstract
 from .builder import Builder, Tool, FlatBuilder, Pather
-from .utils import ports2data
+from .utils import ports2data, oneshot
 
 
 __author__ = 'Jan Petykiewicz'
