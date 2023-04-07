@@ -646,9 +646,9 @@ def repetition_fata2masq(
 def repetition_masq2fata(
         rep: Repetition | None,
         ) -> tuple[
-                fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None,
-                tuple[int, int]
-                ]:
+            fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None,
+            tuple[int, int]
+            ]:
     frep: fatamorgana.GridRepetition | fatamorgana.ArbitraryRepetition | None
     if isinstance(rep, Grid):
         a_vector = rint_cast(rep.a_vector)

@@ -33,7 +33,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
     """
     __slots__ = ()      # Children should use AutoSlots
 
-    def __copy__(self) -> 'Shape':
+    def __copy__(self) -> Self:
         cls = self.__class__
         new = cls.__new__(cls)
         for name in self.__slots__:     # type: str
