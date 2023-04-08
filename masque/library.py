@@ -336,14 +336,6 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         """
         return self[self.top()]
 
-    def rename_top(self, name: str) -> Self:
-        """
-        Rename the (single) top pattern
-        """
-        self.rename(self.top(), name, move_references=True)
-        return self
-
-
     def dfs(
             self,
             pattern: 'Pattern',
@@ -496,6 +488,14 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         if move_references:
             self.move_references(old_name, new_name)
         return self
+
+    def rename_top(self, name: str) -> Self:
+        """
+        Rename the (single) top pattern
+        """
+        self.rename(self.top(), name, move_references=True)
+        return self
+
 
     def move_references(self, old_target: str, new_target: str) -> Self:
         """
