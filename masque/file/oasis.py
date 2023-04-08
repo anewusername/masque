@@ -29,7 +29,7 @@ from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringR
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
-from ..library import WrapLibrary, MutableLibrary
+from ..library import Library, ILibrary
 from ..shapes import Polygon, Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
 from ..utils import layer_t, normalize_mirror, annotations_t
@@ -98,11 +98,11 @@ def build(
     Returns:
         `fatamorgana.OasisLayout`
     """
-    if not isinstance(library, MutableLibrary):
+    if not isinstance(library, ILibrary):
         if isinstance(library, dict):
-            library = WrapLibrary(library)
+            library = Library(library)
         else:
-            library = WrapLibrary(dict(library))
+            library = Library(dict(library))
 
     if layer_map is None:
         layer_map = {}
@@ -205,7 +205,7 @@ def readfile(
         filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     Wrapper for `oasis.read()` that takes a filename or path instead of a stream.
 
@@ -229,7 +229,7 @@ def readfile(
 
 def read(
         stream: IO[bytes],
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     Read a OASIS file and translate it into a dict of Pattern objects. OASIS cells are
      translated into Pattern objects; Polygons are translated into polygons, and Placements
@@ -260,7 +260,7 @@ def read(
         layer_map[str(layer_name.nstring)] = layer_name
     library_info['layer_map'] = layer_map
 
-    mlib = WrapLibrary()
+    mlib = Library()
     for cell in lib.cells:
         if isinstance(cell.name, int):
             cell_name = lib.cellnames[cell.name].nstring.string

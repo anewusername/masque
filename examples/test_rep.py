@@ -5,14 +5,14 @@ import numpy
 from numpy import pi
 
 import masque
-from masque import Pattern, Ref, Arc, WrapLibrary
+from masque import Pattern, Ref, Arc, Library
 from masque.repetition import Grid
 from masque.file import gdsii, dxf, oasis
 
 
 
 def main():
-    lib = WrapLibrary()
+    lib = Library()
 
     cell_name = 'ellip_grating'
     pat = masque.Pattern()
@@ -115,7 +115,7 @@ def main():
 
     print(f'Read back and rewrite to {dxf2}')
     dxf_lib, _info = dxf.readfile(dxf1)
-    print(WrapLibrary(dxf_lib))
+    print(Library(dxf_lib))
     dxf.writefile(dxf_lib, 'Model', dxf2)
 
     layer_map = {'base': (0,0), 'mylabel': (1,2)}

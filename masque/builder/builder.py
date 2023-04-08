@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
 from ..ref import Ref
-from ..library import MutableLibrary
+from ..library import ILibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -79,7 +79,7 @@ class Builder(PortList):
     pattern: Pattern
     """ Layout of this device """
 
-    library: MutableLibrary | None
+    library: ILibrary | None
     """
     Library from which existing patterns should be referenced, and to which
     new ones should be added
@@ -98,7 +98,7 @@ class Builder(PortList):
 
     def __init__(
             self,
-            library: MutableLibrary | None = None,
+            library: ILibrary | None = None,
             *,
             pattern: Pattern | None = None,
             ports: str | Mapping[str, Port] | None = None,
@@ -140,7 +140,7 @@ class Builder(PortList):
             cls,
             source: PortList | Mapping[str, Port] | str,
             *,
-            library: MutableLibrary | None = None,
+            library: ILibrary | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: dict[str, str] | Sequence[str] | None = None,
@@ -194,7 +194,7 @@ class Builder(PortList):
                 names.
         """
         if library is None:
-            if hasattr(source, 'library') and isinstance(source.library, MutableLibrary):
+            if hasattr(source, 'library') and isinstance(source.library, ILibrary):
                 library = source.library
 
         if isinstance(source, str):
@@ -541,7 +541,7 @@ class Pather(Builder):
     """
     __slots__ = ('tools',)
 
-    library: MutableLibrary
+    library: ILibrary
     """
     Library from which existing patterns should be referenced, and to which
     new ones should be added
@@ -555,7 +555,7 @@ class Pather(Builder):
 
     def __init__(
             self,
-            library: MutableLibrary,
+            library: ILibrary,
             *,
             pattern: Pattern | None = None,
             ports: str | Mapping[str, Port] | None = None,
@@ -599,7 +599,7 @@ class Pather(Builder):
     @classmethod
     def mk(
             cls,
-            library: MutableLibrary,
+            library: ILibrary,
             name: str,
             *,
             ports: str | Mapping[str, Port] | None = None,
@@ -614,7 +614,7 @@ class Pather(Builder):
             cls,
             builder: Builder,
             *,
-            library: MutableLibrary | None = None,
+            library: ILibrary | None = None,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
             ) -> 'Pather':
         """TODO from_builder docs"""
@@ -629,7 +629,7 @@ class Pather(Builder):
             cls,
             source: PortList | Mapping[str, Port] | str,
             *,
-            library: MutableLibrary | None = None,
+            library: ILibrary | None = None,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
@@ -640,7 +640,7 @@ class Pather(Builder):
         TODO doc pather.interface
         """
         if library is None:
-            if hasattr(source, 'library') and isinstance(source.library, MutableLibrary):
+            if hasattr(source, 'library') and isinstance(source.library, ILibrary):
                 library = source.library
             else:
                 raise BuildError('No library provided (and not present in `source.library`')

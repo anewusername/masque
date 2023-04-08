@@ -4,7 +4,7 @@ from pprint import pformat
 import numpy
 from numpy import pi
 
-from masque import Pattern, Builder, WrapLibrary, LazyLibrary, Library
+from masque import Pattern, Builder, LazyLibrary
 from masque.file.gdsii import writefile, load_libraryfile
 
 import pcgen
