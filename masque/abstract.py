@@ -11,7 +11,7 @@ from .utils import rotation_matrix_2d, normalize_mirror
 
 #if TYPE_CHECKING:
 #    from .builder import Builder, Tool
-#    from .library import MutableLibrary
+#    from .library import ILibrary
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class Abstract(PortList):
 
 #    def build(
 #            self,
-#            library: 'MutableLibrary',
+#            library: 'ILibrary',
 #            tools: 'None | Tool | MutableMapping[str | None, Tool]' = None,
 #            ) -> 'Builder':
 #        """

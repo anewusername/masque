@@ -38,7 +38,7 @@ from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
 from ..utils import layer_t, normalize_mirror, annotations_t
-from ..library import LazyLibrary, WrapLibrary, MutableLibrary, Library
+from ..library import LazyLibrary, Library, ILibrary, ILibraryView
 
 
 logger = logging.getLogger(__name__)
@@ -97,11 +97,11 @@ def write(
         library_name: Library name written into the GDSII file.
             Default 'masque-klamath'.
     """
-    if not isinstance(library, MutableLibrary):
+    if not isinstance(library, ILibrary):
         if isinstance(library, dict):
-            library = WrapLibrary(library)
+            library = Library(library)
         else:
-            library = WrapLibrary(dict(library))
+            library = Library(dict(library))
 
     # Create library
     header = klamath.library.FileHeader(
@@ -160,7 +160,7 @@ def readfile(
         filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     Wrapper for `read()` that takes a filename or path instead of a stream.
 
@@ -185,7 +185,7 @@ def readfile(
 def read(
         stream: IO[bytes],
         raw_mode: bool = True,
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     # TODO check GDSII file for cycles!
     Read a gdsii file and translate it into a dict of Pattern objects. GDSII structures are
@@ -208,7 +208,7 @@ def read(
     """
     library_info = _read_header(stream)
 
-    mlib = WrapLibrary()
+    mlib = Library()
     found_struct = records.BGNSTR.skip_past(stream)
     while found_struct:
         name = records.STRNAME.skip_and_read(stream)
@@ -511,7 +511,7 @@ def load_library(
         stream: IO[bytes],
         *,
         full_load: bool = False,
-        postprocess: Callable[[Library, str, Pattern], Pattern] | None = None
+        postprocess: Callable[[ILibraryView, str, Pattern], Pattern] | None = None
         ) -> tuple[LazyLibrary, dict[str, Any]]:
     """
     Scan a GDSII stream to determine what structures are present, and create
@@ -571,7 +571,7 @@ def load_libraryfile(
         *,
         use_mmap: bool = True,
         full_load: bool = False,
-        postprocess: Callable[[Library, str, Pattern], Pattern] | None = None
+        postprocess: Callable[[ILibraryView, str, Pattern], Pattern] | None = None
         ) -> tuple[LazyLibrary, dict[str, Any]]:
     """
     Wrapper for `load_library()` that takes a filename or path instead of a stream.

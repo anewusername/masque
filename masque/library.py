@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 visitor_function_t = Callable[..., 'Pattern']
 
 
-def _rename_patterns(lib: 'Library', name: str) -> str:
+def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
     # TODO document rename function
     if not name.startswith('_'):
         return name
@@ -44,7 +44,7 @@ def _rename_patterns(lib: 'Library', name: str) -> str:
     return lib.get_name(stem)
 
 
-class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
+class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -68,7 +68,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         return Abstract(name=name, ports=self[name].ports)
 
     def __repr__(self) -> str:
-        return '<Library with keys\n' + pformat(list(self.keys())) + '>'
+        return '<ILibraryView with keys\n' + pformat(list(self.keys())) + '>'
 
     def dangling_refs(
             self,
@@ -138,9 +138,9 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def subtree(
             self,
             tops: str | Sequence[str],
-            ) -> 'Library':
+            ) -> 'ILibraryView':
         """
-         Return a new `Library`, containing only the specified patterns and the patterns they
+         Return a new `ILibraryView`, containing only the specified patterns and the patterns they
         reference (recursively).
         Dangling references do not cause an error.
 
@@ -148,7 +148,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             tops: Name(s) of patterns to keep
 
         Returns:
-            A `WrapROLibrary` containing only `tops` and the patterns they reference.
+            A `LibraryView` containing only `tops` and the patterns they reference.
         """
         if isinstance(tops, str):
             tops = (tops,)
@@ -157,7 +157,7 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
-        new = WrapROLibrary(filtered)
+        new = LibraryView(filtered)
         return new
 
     def polygonize(
@@ -415,19 +415,19 @@ class Library(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
         if pattern is not original_pattern:
             name = hierarchy[-1]            # TODO what is name=None?
-            if not isinstance(self, MutableLibrary):
+            if not isinstance(self, ILibrary):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but the library is immutable')
             if name is None:
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but no top-level name was provided in `hierarchy`')
 
-            cast(MutableLibrary, self)[name] = pattern
+            cast(ILibrary, self)[name] = pattern
 
         return self
 
 
-class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
+class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -510,7 +510,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
     def add(
             self,
             other: Mapping[str, 'Pattern'],
-            rename_theirs: Callable[['Library', str], str] = _rename_patterns,
+            rename_theirs: Callable[['ILibraryView', str], str] = _rename_patterns,
             ) -> dict[str, str]:
         """
         Add keys from another library into this one.
@@ -534,7 +534,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
                 self._merge(key, other, key)
             return {}
 
-        temp = WrapLibrary(copy.deepcopy(dict(other)))      # TODO maybe add a `mutate` arg? Might want to keep the same patterns
+        temp = Library(copy.deepcopy(dict(other)))      # TODO maybe add a `mutate` arg? Might want to keep the same patterns
         rename_map = {}
         for old_name in temp:
             if old_name in self:
@@ -559,13 +559,13 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             self,
             tree: 'Tree',
             name: str | None = None,
-            rename_theirs: Callable[['Library', str], str] = _rename_patterns,
+            rename_theirs: Callable[['ILibraryView', str], str] = _rename_patterns,
             ) -> str:
         """
         Add a `Tree` object into the current library.
 
         Args:
-            tree: The `Tree` object (a `Library` with a specified `top` Pattern)
+            tree: The `Tree` object (an `ILibraryView` with a specified `top` Pattern)
                 which will be added into the current library.
             name: New name for the top-level pattern. If not given, `tree.top` is used.
             rename_theirs: Called as rename_theirs(self, name) for each duplicate name
@@ -593,8 +593,8 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         if len(other) == 1:
             name = next(iter(other))
         else:
-            if not isinstance(other, Library):
-                other = WrapROLibrary(other)
+            if not isinstance(other, ILibraryView):
+                other = LibraryView(other)
 
             tops = other.tops()
             if len(tops) > 1:
@@ -764,7 +764,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             tops: str | Sequence[str],
             ) -> Self:
         """
-         Return a new `Library`, containing only the specified patterns and the patterns they
+         Return a new `ILibraryView`, containing only the specified patterns and the patterns they
         reference (recursively).
         Dangling references do not cause an error.
 
@@ -772,7 +772,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
             tops: Name(s) of patterns to keep
 
         Returns:
-            A `Library` containing only `tops` and the patterns they reference.
+            An object of the same type as `self` containing only `tops` and the patterns they reference.
         """
         if isinstance(tops, str):
             tops = (tops,)
@@ -815,7 +815,7 @@ class MutableLibrary(Library, MutableMapping[str, 'Pattern'], metaclass=ABCMeta)
         return self
 
 
-class WrapROLibrary(Library):
+class LibraryView(ILibraryView):
     mapping: Mapping[str, 'Pattern']
 
     def __init__(
@@ -837,10 +837,10 @@ class WrapROLibrary(Library):
         return key in self.mapping
 
     def __repr__(self) -> str:
-        return f'<WrapROLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
+        return f'<LibraryView ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
 
-class WrapLibrary(MutableLibrary):
+class Library(ILibrary):
     mapping: MutableMapping[str, 'Pattern']
 
     def __init__(
@@ -885,10 +885,10 @@ class WrapLibrary(MutableLibrary):
         self[key_self] = other[key_other]
 
     def __repr__(self) -> str:
-        return f'<WrapLibrary ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
+        return f'<Library ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
 
-class LazyLibrary(MutableLibrary):
+class LazyLibrary(ILibrary):
     """
     This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
@@ -1027,9 +1027,9 @@ class LazyLibrary(MutableLibrary):
 
 
 class AbstractView(Mapping[str, Abstract]):
-    library: Library
+    library: ILibraryView
 
-    def __init__(self, library: Library) -> None:
+    def __init__(self, library: ILibraryView) -> None:
         self.library = library
 
     def __getitem__(self, key: str) -> Abstract:
@@ -1042,9 +1042,9 @@ class AbstractView(Mapping[str, Abstract]):
         return self.library.__len__()
 
 
-class Tree(MutableLibrary):
+class Tree(ILibrary):
     top: str
-    library: MutableLibrary
+    library: ILibrary
 
     @property
     def pattern(self) -> 'Pattern':
@@ -1053,10 +1053,10 @@ class Tree(MutableLibrary):
     def __init__(
             self,
             top: str,
-            library: MutableLibrary | None = None
+            library: ILibrary | None = None
             ) -> None:
         self.top = top
-        self.library = library if library is not None else WrapLibrary()
+        self.library = library if library is not None else Library()
 
     @classmethod
     def mk(cls, top: str) -> tuple['Tree', 'Pattern']:

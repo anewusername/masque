@@ -6,7 +6,7 @@ from numpy import pi
 
 from masque import (
     layer_t, Pattern, Ref, Label, Builder, Port, Polygon,
-    WrapLibrary, Library,
+    Library, ILibraryView,
     )
 from masque.utils import ports2data
 from masque.file.gdsii import writefile, check_valid_names
@@ -247,7 +247,7 @@ def main(interactive: bool = True) -> None:
     devices['l3cav'] = perturbed_l3(lattice_constant=a, hole='smile', hole_lib=shape_lib, xy_size=(4, 10))   # uses smile :)
 
     # Turn our dict of devices into a Library -- useful for getting abstracts
-    lib = WrapLibrary(devices)
+    lib = Library(devices)
     abv = lib.abstract_view()     # lets us use abv[cell] instead of lib.abstract(cell)
 
     #

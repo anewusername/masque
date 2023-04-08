@@ -18,7 +18,7 @@ from ezdxf.enums import TextEntityAlignment
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, Label
-from ..library import Library, WrapROLibrary, WrapLibrary
+from ..library import ILibraryView, LibraryView, Library
 from ..shapes import Shape, Polygon, Path
 from ..repetition import Grid
 from ..utils import rotation_matrix_2d, layer_t
@@ -75,9 +75,9 @@ def write(
     #TODO consider supporting DXF arcs?
     if not isinstance(library, Library):
         if isinstance(library, dict):
-            library = WrapROLibrary(library)
+            library = LibraryView(library)
         else:
-            library = WrapROLibrary(dict(library))
+            library = LibraryView(dict(library))
 
     pattern = library[top_name]
     subtree = library.subtree(top_name)
@@ -148,7 +148,7 @@ def readfile(
         filename: str | pathlib.Path,
         *args,
         **kwargs,
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     Wrapper for `dxf.read()` that takes a filename or path instead of a stream.
 
@@ -172,7 +172,7 @@ def readfile(
 
 def read(
         stream: TextIO,
-        ) -> tuple[WrapLibrary, dict[str, Any]]:
+        ) -> tuple[Library, dict[str, Any]]:
     """
     Read a dxf file and translate it into a dict of `Pattern` objects. DXF `Block`s are
      translated into `Pattern` objects; `LWPolyline`s are translated into polygons, and `Insert`s
@@ -190,7 +190,7 @@ def read(
     msp = lib.modelspace()
 
     top_name, top_pat = _read_block(msp)
-    mlib = WrapLibrary({top_name: top_pat})
+    mlib = Library({top_name: top_pat})
     for bb in lib.blocks:
         if bb.name == '*Model_Space':
             continue

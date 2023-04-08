@@ -7,7 +7,7 @@ from skimage.measure import find_contours
 from matplotlib import pyplot
 import numpy
 
-from masque import Pattern, Library, Polygon
+from masque import Pattern, Polygon
 from masque.file.gdsii import writefile
 
 #

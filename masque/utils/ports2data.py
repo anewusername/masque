@@ -16,7 +16,7 @@ from ..label import Label
 from ..utils import layer_t
 from ..ports import Port
 from ..error import PatternError
-from ..library import Library, WrapROLibrary
+from ..library import ILibraryView, LibraryView
 
 
 logger = logging.getLogger(__name__)
@@ -88,8 +88,8 @@ def data_to_ports(
         logger.warning(f'Pattern {name if name else pattern} already had ports, skipping data_to_ports')
         return pattern
 
-    if not isinstance(library, Library):
-        library = WrapROLibrary(library)
+    if not isinstance(library, ILibraryView):
+        library = LibraryView(library)
 
     data_to_ports_flat(layers, pattern, name)
     if (skip_subcells and pattern.ports) or max_depth == 0:

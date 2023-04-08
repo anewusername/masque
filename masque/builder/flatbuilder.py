@@ -105,8 +105,8 @@ class FlatBuilder(PortList):
         Args:
             source: A collection of ports (e.g. Pattern, Builder, or dict)
                 from which to create the interface.
-            library: Used for buildin functions; if not passed and the source
-            library: Library from which existing patterns should be referenced,
+            library: Used for buildin functions; if not passed and the source       TODO
+            library: Library from which existing patterns should be referenced,     TODO
                 and to which new ones should be added. If not provided,
                 the source's library will be used (if available).
             tools: Tool objects are used to dynamically generate new single-use

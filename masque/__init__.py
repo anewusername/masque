@@ -35,8 +35,8 @@ from .ref import Ref
 from .pattern import Pattern
 
 from .library import (
-    Library, MutableLibrary,
-    WrapROLibrary, WrapLibrary, LazyLibrary,
+    ILibraryView, ILibrary,
+    LibraryView, Library, LazyLibrary,
     AbstractView,
     Tree,
     )
