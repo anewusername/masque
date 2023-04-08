@@ -37,7 +37,7 @@ visitor_function_t = Callable[..., 'Pattern']
 
 def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
     # TODO document rename function
-    if not name.startswith('_'):
+    if not name.startswith('_'):            # TODO what are the consequences of making '_' special?  maybe we can make this decision everywhere?
         return name
 
     stem = name.split('$')[0]
