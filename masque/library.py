@@ -321,6 +321,29 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         toplevel = list(names - not_toplevel)
         return toplevel
 
+    def top(self) -> str:
+        """
+        Return the name of the topcell, or raise an exception if there isn't a single topcell
+        """
+        tops = self.tops()
+        if len(tops) != 1:
+            raise LibraryError(f'Asked for the single topcell, but found the following: {pformat(tops)}')
+        return tops[0]
+
+    def top_pattern(self) -> 'Pattern':
+        """
+        Shorthand for self[self.top()]
+        """
+        return self[self.top()]
+
+    def rename_top(self, name: str) -> Self:
+        """
+        Rename the (single) top pattern
+        """
+        self.rename(self.top(), name, move_references=True)
+        return self
+
+
     def dfs(
             self,
             pattern: 'Pattern',
@@ -555,36 +578,6 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         return rename_map
 
-    def add_tree(
-            self,
-            tree: 'ILibrary',
-            name: str | None = None,
-            rename_theirs: Callable[['ILibraryView', str], str] = _rename_patterns,
-            ) -> str:
-        """
-        Add a `Tree` object into the current library.
-
-        Args:
-            tree: The `Tree` object (an `ILibraryView` with a specified `top` Pattern)
-                which will be added into the current library.
-            name: New name for the top-level pattern. If not given, `tree.top` is used.
-            rename_theirs: Called as rename_theirs(self, name) for each duplicate name
-                encountered in `other`. Should return the new name for the pattern in
-                `other`.
-                Default is effectively
-                    `name.split('$')[0] if name.startswith('_') else name`
-
-        Returns:
-            The new name for the top-level pattern (either `name` or `tree.top`).
-        """
-        if name is None:
-            name = tree.top()
-        else:
-            tree.rename(tree.top(), name, move_references=True)
-
-        rename_map = self.add(tree, rename_theirs=rename_theirs)
-        return rename_map.get(name, name)
-
     def __lshift__(self, other: Mapping[str, 'Pattern']) -> str:
         if len(other) == 1:
             name = next(iter(other))
@@ -600,28 +593,6 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         rename_map = self.add(other)
         return rename_map.get(name, name)
-
-    def top(self) -> str:
-        """
-        Return the name of the topcell, or raise an exception if there isn't a single topcell
-        """
-        tops = self.tops()
-        if len(tops) != 1:
-            raise LibraryError(f'Asked for the single topcell, but found the following: {pformat(tops)}')
-        return tops[0]
-
-    def top_pattern(self) -> 'Pattern':
-        """
-        Shorthand for self[self.top()]
-        """
-        return self[self.top()]
-
-    def rename_top(self, name: str) -> Self:
-        """
-        Rename the (single) top pattern
-        """
-        self.rename(self.top(), name, move_references=True)
-        return self
 
     def dedup(
             self,
@@ -906,7 +877,7 @@ class Library(ILibrary):
         return f'<Library ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
     @classmethod
-    def mktree(cls, name: str) -> tuple['Library', 'Pattern']:
+    def mktree(cls, name: str) -> tuple[Self, 'Pattern']:
         """
         Create a new Library and immediately add a pattern
         """

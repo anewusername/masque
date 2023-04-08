@@ -38,7 +38,6 @@ from .library import (
     ILibraryView, ILibrary,
     LibraryView, Library, LazyLibrary,
     AbstractView,
-    Tree,
     )
 from .ports import Port, PortList
 from .abstract import Abstract
