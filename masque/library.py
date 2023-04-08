@@ -496,7 +496,6 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         self.rename(self.top(), name, move_references=True)
         return self
 
-
     def move_references(self, old_target: str, new_target: str) -> Self:
         """
         Change all references pointing at `old_target` into references pointing at `new_target`.

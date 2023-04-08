@@ -1,8 +1,7 @@
-from typing import Self, Sequence, MutableMapping, Mapping
+from typing import Self, Sequence, Mapping
 import copy
 import logging
 
-import numpy
 from numpy import pi
 from numpy.typing import ArrayLike
 

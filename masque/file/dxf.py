@@ -73,7 +73,7 @@ def write(
         stream: Stream object to write to.
     """
     #TODO consider supporting DXF arcs?
-    if not isinstance(library, Library):
+    if not isinstance(library, ILibraryView):
         if isinstance(library, dict):
             library = LibraryView(library)
         else:

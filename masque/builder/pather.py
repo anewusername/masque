@@ -7,7 +7,6 @@ from numpy import pi
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..ref import Ref
 from ..library import ILibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
