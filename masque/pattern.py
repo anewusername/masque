@@ -99,7 +99,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.annotations = annotations if annotations is not None else {}
 
     def __repr__(self) -> str:
-        s = f'<Pattern: sh{len(self.shapes)} sp{len(self.refs)} la{len(self.labels)} ['
+        s = f'<Pattern: s{len(self.shapes)} r{len(self.refs)} l{len(self.labels)} ['
         for name, port in self.ports.items():
             s += f'\n\t{name}: {port}'
         s += ']>'
