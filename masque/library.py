@@ -887,6 +887,17 @@ class Library(ILibrary):
     def __repr__(self) -> str:
         return f'<Library ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
+    @classmethod
+    def mktree(cls, name: str) -> tuple['Tree', 'Pattern']:
+        """
+        Create a new Library and immediately add a pattern
+        """
+        from .pattern import Pattern
+        tree = cls()
+        pat = Pattern()
+        tree[name] = pat
+        return tree, pat
+
 
 class LazyLibrary(ILibrary):
     """
