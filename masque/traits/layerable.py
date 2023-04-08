@@ -9,12 +9,12 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 class Layerable(metaclass=ABCMeta):
     """
-    Abstract class for all layerable entities
+    Trait class for all layerable entities
     """
     __slots__ = ()
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     @property
     @abstractmethod
     def layer(self) -> layer_t:
@@ -28,9 +28,9 @@ class Layerable(metaclass=ABCMeta):
 #    def layer(self, val: layer_t):
 #        pass
 
-    '''
-    ---- Methods
-    '''
+    #
+    # Methods
+    #
     @abstractmethod
     def set_layer(self, layer: layer_t) -> Self:
         """
@@ -54,9 +54,9 @@ class LayerableImpl(Layerable, metaclass=ABCMeta):
     _layer: layer_t
     """ Layer number, pair, or name """
 
-    '''
-    ---- Non-abstract properties
-    '''
+    #
+    # Non-abstract properties
+    #
     @property
     def layer(self) -> layer_t:
         return self._layer
@@ -65,9 +65,9 @@ class LayerableImpl(Layerable, metaclass=ABCMeta):
     def layer(self, val: layer_t):
         self._layer = val
 
-    '''
-    ---- Non-abstract methods
-    '''
+    #
+    # Non-abstract methods
+    #
     def set_layer(self, layer: layer_t) -> Self:
         self.layer = layer
         return self

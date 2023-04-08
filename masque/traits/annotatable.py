@@ -10,14 +10,14 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 class Annotatable(metaclass=ABCMeta):
     """
-    Abstract class for all annotatable entities
+    Trait class for all annotatable entities
     Annotations correspond to GDS/OASIS "properties"
     """
     __slots__ = ()
 
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     @property
     @abstractmethod
     def annotations(self) -> annotations_t:
@@ -36,9 +36,9 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
     _annotations: annotations_t
     """ Dictionary storing annotation name/value pairs """
 
-    '''
-    ---- Non-abstract properties
-    '''
+    #
+    # Non-abstract properties
+    #
     @property
     def annotations(self) -> annotations_t:
         return self._annotations

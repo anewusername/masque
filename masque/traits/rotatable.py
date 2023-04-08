@@ -15,13 +15,13 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 class Rotatable(metaclass=ABCMeta):
     """
-    Abstract class for all rotatable entities
+    Trait class for all rotatable entities
     """
     __slots__ = ()
 
-    '''
-    ---- Abstract methods
-    '''
+    #
+    # Methods
+    #
     @abstractmethod
     def rotate(self, val: float) -> Self:
         """
@@ -45,9 +45,9 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
     _rotation: float
     """ rotation for the object, radians counterclockwise """
 
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     @property
     def rotation(self) -> float:
         """ Rotation, radians counterclockwise """
@@ -59,9 +59,9 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
             raise MasqueError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)
 
-    '''
-    ---- Methods
-    '''
+    #
+    # Methods
+    #
     def rotate(self, rotation: float) -> Self:
         self.rotation += rotation
         return self
@@ -82,7 +82,7 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
 
 class Pivotable(metaclass=ABCMeta):
     """
-    Abstract class for entites which can be rotated around a point.
+    Trait class for entites which can be rotated around a point.
     This requires that they are `Positionable` but not necessarily `Rotatable` themselves.
     """
     __slots__ = ()

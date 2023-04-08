@@ -14,13 +14,13 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 class Positionable(metaclass=ABCMeta):
     """
-    Abstract class for all positionable entities
+    Trait class for all positionable entities
     """
     __slots__ = ()
 
-    '''
-    ---- Abstract properties
-    '''
+    #
+    # Properties
+    #
     @property
     @abstractmethod
     def offset(self) -> NDArray[numpy.float64]:
@@ -89,9 +89,9 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     _offset: NDArray[numpy.float64]
     """ `[x_offset, y_offset]` """
 
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     # offset property
     @property
     def offset(self) -> Any:  # TODO mypy#3003  NDArray[numpy.float64]:
@@ -109,9 +109,9 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
             raise MasqueError('Offset must be convertible to size-2 ndarray')
         self._offset = val.flatten()        # type: ignore
 
-    '''
-    ---- Methods
-    '''
+    #
+    # Methods
+    #
     def set_offset(self, offset: ArrayLike) -> Self:
         self.offset = offset
         return self

@@ -5,13 +5,13 @@ import copy
 
 class Copyable(metaclass=ABCMeta):
     """
-    Abstract class which adds .copy() and .deepcopy()
+    Trait class which adds .copy() and .deepcopy()
     """
     __slots__ = ()
 
-    '''
-    ---- Non-abstract methods
-    '''
+    #
+    # Non-abstract methods
+    #
     def copy(self) -> Self:
         """
         Return a shallow copy of the object.

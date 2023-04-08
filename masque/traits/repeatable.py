@@ -13,13 +13,13 @@ if TYPE_CHECKING:
 
 class Repeatable(metaclass=ABCMeta):
     """
-    Abstract class for all repeatable entities
+    Trait class for all repeatable entities
     """
     __slots__ = ()
 
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     @property
     @abstractmethod
     def repetition(self) -> 'Repetition | None':
@@ -33,9 +33,9 @@ class Repeatable(metaclass=ABCMeta):
 #    def repetition(self, repetition: 'Repetition | None'):
 #        pass
 
-    '''
-    ---- Methods
-    '''
+    #
+    # Methods
+    #
     @abstractmethod
     def set_repetition(self, repetition: 'Repetition | None') -> Self:
         """
@@ -59,9 +59,9 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
     _repetition: 'Repetition | None'
     """ Repetition object, or None (single instance only) """
 
-    '''
-    ---- Non-abstract properties
-    '''
+    #
+    # Non-abstract properties
+    #
     @property
     def repetition(self) -> 'Repetition | None':
         return self._repetition
@@ -73,9 +73,9 @@ class RepeatableImpl(Repeatable, metaclass=ABCMeta):
             raise MasqueError(f'{repetition} is not a valid Repetition object!')
         self._repetition = repetition
 
-    '''
-    ---- Non-abstract methods
-    '''
+    #
+    # Non-abstract methods
+    #
     def set_repetition(self, repetition: 'Repetition | None') -> Self:
         self.repetition = repetition
         return self
