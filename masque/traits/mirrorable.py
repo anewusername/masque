@@ -4,13 +4,10 @@ from abc import ABCMeta, abstractmethod
 
 class Mirrorable(metaclass=ABCMeta):
     """
-    Abstract class for all mirrorable entities
+    Trait class for all mirrorable entities
     """
     __slots__ = ()
 
-    '''
-    ---- Abstract methods
-    '''
     @abstractmethod
     def mirror(self, axis: int) -> Self:
         """
@@ -50,9 +47,9 @@ class Mirrorable(metaclass=ABCMeta):
 #    _mirrored: numpy.ndarray        # ndarray[bool]
 #    """ Whether to mirror the instance across the x and/or y axes. """
 #
-#    '''
-#    ---- Properties
-#    '''
+#    #
+#    # Properties
+#    #
 #    # Mirrored property
 #    @property
 #    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
@@ -65,6 +62,6 @@ class Mirrorable(metaclass=ABCMeta):
 #            raise MasqueError('Mirrored must be a 2-element list of booleans')
 #        self._mirrored = numpy.array(val, dtype=bool, copy=True)
 #
-#    '''
-#    ---- Methods
-#    '''
+#    #
+#    # Methods
+#    #

@@ -29,7 +29,7 @@ DEFAULT_POLY_NUM_VERTICES = 24
 class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
-    Abstract class specifying functions common to all shapes.
+    Class specifying functions common to all shapes.
     """
     __slots__ = ()      # Children should use AutoSlots
 
@@ -40,9 +40,9 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
             object.__setattr__(new, name, getattr(self, name))
         return new
 
-    '''
-    --- Abstract methods
-    '''
+    #
+    # Methods (abstract)
+    #
     @abstractmethod
     def to_polygons(
             self,
@@ -88,9 +88,9 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
         """
         pass
 
-    '''
-    ---- Non-abstract methods
-    '''
+    #
+    # Non-abstract methods
+    #
     def manhattanize_fast(
             self,
             grid_x: ArrayLike,

@@ -10,13 +10,13 @@ _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slo
 
 class Scalable(metaclass=ABCMeta):
     """
-    Abstract class for all scalable entities
+    Trait class for all scalable entities
     """
     __slots__ = ()
 
-    '''
-    ---- Abstract methods
-    '''
+    #
+    # Methods
+    #
     @abstractmethod
     def scale_by(self, c: float) -> Self:
         """
@@ -40,9 +40,9 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
     _scale: float
     """ scale factor for the entity """
 
-    '''
-    ---- Properties
-    '''
+    #
+    # Properties
+    #
     @property
     def scale(self) -> float:
         return self._scale
@@ -55,9 +55,9 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
             raise MasqueError('Scale must be positive')
         self._scale = val
 
-    '''
-    ---- Methods
-    '''
+    #
+    # Methods
+    #
     def scale_by(self, c: float) -> Self:
         self.scale *= c
         return self
