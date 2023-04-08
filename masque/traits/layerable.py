@@ -12,6 +12,7 @@ class Layerable(metaclass=ABCMeta):
     Trait class for all layerable entities
     """
     __slots__ = ()
+
     #
     # Properties
     #

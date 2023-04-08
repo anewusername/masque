@@ -585,7 +585,6 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.labels.append(Label(*args, **kwargs))
         return self
 
-
     def flatten(
             self,
             library: Mapping[str, 'Pattern'],
