@@ -891,6 +891,8 @@ class LazyLibrary(ILibrary):
     """
     This class is usually used to create a library of Patterns by mapping names to
      functions which generate or load the relevant `Pattern` object as-needed.
+
+    TODO: lots of stuff causes recursive loads (e.g. data_to_ports?). What should you avoid?
     """
     mapping: dict[str, Callable[[], 'Pattern']]
     cache: dict[str, 'Pattern']
