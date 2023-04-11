@@ -41,7 +41,7 @@ from .library import (
     )
 from .ports import Port, PortList
 from .abstract import Abstract
-from .builder import Builder, Tool, FlatBuilder, Pather
+from .builder import Builder, Tool, FlatBuilder, Pather, RenderPather, render_step_t
 from .utils import ports2data, oneshot
 
 
