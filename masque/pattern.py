@@ -779,21 +779,21 @@ def chain_elements(*args: Mapping[Any, Iterable[TT]]) -> Iterable[TT]:
 
 def map_layers(
         elements: Mapping[layer_t, Sequence[TT]],
-        layer_map: Mapping[layer_t, layer_t],
+        map_layer: Callable[[layer_t], layer_t],
         ) -> defaultdict[layer_t, list[TT]]:
     new_elements: defaultdict[layer_t, list[TT]] = defaultdict(list)
     for old_layer, seq in elements.items():
-        new_layer = layer_map.get(old_layer, old_layer)
+        new_layer = map_layer(old_layer)
         new_elements[new_layer].extend(seq)
     return new_elements
 
 
 def map_targets(
         refs: Mapping[str | None, Sequence[Ref]],
-        target_map: Mapping[str | None, str | None] | Mapping[str, str | None],
+        map_target: Callable[[str | None], str | None],
         ) -> defaultdict[str | None, list[Ref]]:
     new_refs: defaultdict[str | None, list[Ref]] = defaultdict(list)
     for old_target, seq in refs.items():
-        new_target = target_map.get(old_target, old_target)     # type: ignore  # OK to .get() wrong type
+        new_target = map_target(old_target)
         new_refs[new_target].extend(seq)
     return new_refs

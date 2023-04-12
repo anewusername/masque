@@ -32,7 +32,7 @@ from .error import MasqueError, PatternError, LibraryError, BuildError
 from .shapes import Shape, Polygon, Path, Circle, Arc, Ellipse
 from .label import Label
 from .ref import Ref
-from .pattern import Pattern
+from .pattern import Pattern, map_layers, map_targets, chain_elements
 
 from .library import (
     ILibraryView, ILibrary,
