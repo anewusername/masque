@@ -1,5 +1,4 @@
 from .builder import Builder
-from .flatbuilder import FlatBuilder
 from .pather import Pather
 from .renderpather import RenderPather
 from .utils import ell
