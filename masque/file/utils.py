@@ -42,16 +42,17 @@ def clean_pattern_vertices(pat: Pattern) -> Pattern:
     Returns:
         pat
     """
-    remove_inds = []
-    for ii, shape in enumerate(pat.shapes):
-        if not isinstance(shape, (Polygon, Path)):
-            continue
-        try:
-            shape.clean_vertices()
-        except PatternError:
-            remove_inds.append(ii)
-    for ii in sorted(remove_inds, reverse=True):
-        del pat.shapes[ii]
+    for shapes in pat.shapes.values():
+        remove_inds = []
+        for ii, shape in enumerate(shapes):
+            if not isinstance(shape, (Polygon, Path)):
+                continue
+            try:
+                shape.clean_vertices()
+            except PatternError:
+                remove_inds.append(ii)
+        for ii in sorted(remove_inds, reverse=True):
+            del shapes[ii]
     return pat
 
 

@@ -9,7 +9,7 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, layer_t
+from ..utils import is_scalar, rotation_matrix_2d
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 
 
@@ -31,7 +31,7 @@ class Path(Shape):
     __slots__ = (
         '_vertices', '_width', '_cap', '_cap_extensions',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations',
+        '_offset', '_repetition', '_annotations',
         )
     _vertices: NDArray[numpy.float64]
     _width: float
@@ -154,7 +154,6 @@ class Path(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -169,7 +168,6 @@ class Path(Shape):
             self._offset = offset
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
-            self._layer = layer
             self._width = width
             self._cap = cap
             self._cap_extensions = cap_extensions
@@ -178,7 +176,6 @@ class Path(Shape):
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-            self.layer = layer
             self.width = width
             self.cap = cap
             self.cap_extensions = cap_extensions
@@ -204,7 +201,6 @@ class Path(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
-            layer: layer_t = 0,
             ) -> 'Path':
         """
         Build a path by specifying the turn angles and travel distances
@@ -224,7 +220,6 @@ class Path(Shape):
             mirrored: Whether to mirror across the x or y axes. For example,
                 `mirrored=(True, False)` results in a reflection across the x-axis,
                 multiplying the path's y-coordinates by -1. Default `(False, False)`
-            layer: Layer, default `0`
 
         Returns:
             The resulting Path object
@@ -238,8 +233,7 @@ class Path(Shape):
             verts.append(verts[-1] + direction * distance)
 
         return Path(vertices=verts, width=width, cap=cap, cap_extensions=cap_extensions,
-                    offset=offset, rotation=rotation, mirrored=mirrored,
-                    layer=layer)
+                    offset=offset, rotation=rotation, mirrored=mirrored)
 
     def to_polygons(
             self,
@@ -254,7 +248,7 @@ class Path(Shape):
 
         if self.width == 0:
             verts = numpy.vstack((v, v[::-1]))
-            return [Polygon(offset=self.offset, vertices=verts, layer=self.layer)]
+            return [Polygon(offset=self.offset, vertices=verts)]
 
         perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
 
@@ -305,12 +299,12 @@ class Path(Shape):
         o1.append(v[-1] - perp[-1])
         verts = numpy.vstack((o0, o1[::-1]))
 
-        polys = [Polygon(offset=self.offset, vertices=verts, layer=self.layer)]
+        polys = [Polygon(offset=self.offset, vertices=verts)]
 
         if self.cap == PathCap.Circle:
             #for vert in v:         # not sure if every vertex, or just ends?
             for vert in [v[0], v[-1]]:
-                circ = Circle(offset=vert, radius=self.width / 2, layer=self.layer)
+                circ = Circle(offset=vert, radius=self.width / 2)
                 polys += circ.to_polygons(num_vertices=num_vertices, max_arclen=max_arclen)
 
         return polys
@@ -370,13 +364,12 @@ class Path(Shape):
 
         width0 = self.width / norm_value
 
-        return ((type(self), reordered_vertices.data.tobytes(), width0, self.cap, self.layer),
+        return ((type(self), reordered_vertices.data.tobytes(), width0, self.cap),
                 (offset, scale / norm_value, rotation, False),
                 lambda: Path(
                     reordered_vertices * norm_value,
                     width=self.width * norm_value,
                     cap=self.cap,
-                    layer=self.layer,
                     ))
 
     def clean_vertices(self) -> 'Path':
@@ -422,4 +415,4 @@ class Path(Shape):
 
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
-        return f'<Path l{self.layer} centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}>'
+        return f'<Path centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}>'

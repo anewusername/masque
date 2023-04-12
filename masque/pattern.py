@@ -1,10 +1,11 @@
 """
  Base object representing a lithography mask.
 """
-
-from typing import Callable, Sequence, cast, Mapping, Self, Any
+from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar
 import copy
+import logging
 from itertools import chain
+from collections import defaultdict
 
 import numpy
 from numpy import inf
@@ -12,12 +13,15 @@ from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
-from .shapes import Shape, Polygon, DEFAULT_POLY_NUM_VERTICES
+from .shapes import Shape, Polygon, Path, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
-from .utils import rotation_matrix_2d, annotations_t
+from .utils import rotation_matrix_2d, annotations_t, layer_t
 from .error import PatternError
-from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable
+from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable, Bounded
 from .ports import Port, PortList
+
+
+logger = logging.getLogger(__name__)
 
 
 class Pattern(PortList, AnnotatableImpl, Mirrorable):
@@ -31,15 +35,15 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         '_offset', '_annotations',
         )
 
-    shapes: list[Shape]
-    """ List of all shapes in this Pattern.
+    shapes: defaultdict[layer_t, list[Shape]]
+    """ Stores of all shapes in this Pattern, indexed by layer.
     Elements in this list are assumed to inherit from Shape or provide equivalent functions.
     """
 
-    labels: list[Label]
+    labels: defaultdict[layer_t, list[Label]]
     """ List of all labels in this Pattern. """
 
-    refs: list[Ref]
+    refs: defaultdict[str | None, list[Ref]]
     """ List of all references to other patterns (`Ref`s) in this `Pattern`.
     Multiple objects in this list may reference the same Pattern object
       (i.e. multiple instances of the same object).
@@ -59,9 +63,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     def __init__(
             self,
             *,
-            shapes: Sequence[Shape] = (),
-            labels: Sequence[Label] = (),
-            refs: Sequence[Ref] = (),
+            shapes: Mapping[layer_t, Sequence[Shape]] | None = None,
+            labels: Mapping[layer_t, Sequence[Label]] | None = None,
+            refs: Mapping[str | None, Sequence[Ref]] | None = None,
             annotations: annotations_t | None = None,
             ports: Mapping[str, 'Port'] | None = None
             ) -> None:
@@ -76,20 +80,18 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             annotations: Initial annotations for the pattern
             ports: Any ports in the pattern
         """
-        if isinstance(shapes, list):
-            self.shapes = shapes
-        else:
-            self.shapes = list(shapes)
-
-        if isinstance(labels, list):
-            self.labels = labels
-        else:
-            self.labels = list(labels)
-
-        if isinstance(refs, list):
-            self.refs = refs
-        else:
-            self.refs = list(refs)
+        self.shapes = defaultdict(list)
+        self.labels = defaultdict(list)
+        self.refs = defaultdict(list)
+        if shapes:
+            for layer, sseq in shapes.items():
+                self.shapes[layer].extend(sseq)
+        if labels:
+            for layer, lseq in labels.items():
+                self.labels[layer].extend(lseq)
+        if refs:
+            for target, rseq in refs.items():
+                self.refs[target].extend(rseq)
 
         if ports is not None:
             self.ports = dict(copy.deepcopy(ports))
@@ -99,31 +101,41 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.annotations = annotations if annotations is not None else {}
 
     def __repr__(self) -> str:
-        s = f'<Pattern: s{len(self.shapes)} r{len(self.refs)} l{len(self.labels)} ['
+        nshapes = sum(len(seq) for seq in self.shapes.values())
+        nrefs = sum(len(seq) for seq in self.refs.values())
+        nlabels = sum(len(seq) for seq in self.labels.values())
+
+        s = f'<Pattern: s{nshapes} r{nrefs} l{nlabels} ['
         for name, port in self.ports.items():
             s += f'\n\t{name}: {port}'
         s += ']>'
         return s
 
     def __copy__(self) -> 'Pattern':
-        return Pattern(
-            shapes=copy.deepcopy(self.shapes),
-            labels=copy.deepcopy(self.labels),
-            refs=[copy.copy(sp) for sp in self.refs],
+        logger.warning('Making a shallow copy of a Pattern... old shapes are re-referenced!')
+        new = Pattern(
             annotations=copy.deepcopy(self.annotations),
             ports=copy.deepcopy(self.ports),
             )
+        for target, rseq in self.refs.items():
+            new.refs[target].extend(rseq)
+        for layer, sseq in self.shapes.items():
+            new.shapes[layer].extend(sseq)
+        for layer, lseq in self.labels.items():
+            new.labels[layer].extend(lseq)
 
-    def __deepcopy__(self, memo: dict | None = None) -> 'Pattern':
-        memo = {} if memo is None else memo
-        new = Pattern(
-            shapes=copy.deepcopy(self.shapes, memo),
-            labels=copy.deepcopy(self.labels, memo),
-            refs=copy.deepcopy(self.refs, memo),
-            annotations=copy.deepcopy(self.annotations, memo),
-            ports=copy.deepcopy(self.ports),
-            )
         return new
+
+#    def __deepcopy__(self, memo: dict | None = None) -> 'Pattern':
+#        memo = {} if memo is None else memo
+#        new = Pattern(
+#            shapes=copy.deepcopy(self.shapes, memo),
+#            labels=copy.deepcopy(self.labels, memo),
+#            refs=copy.deepcopy(self.refs, memo),
+#            annotations=copy.deepcopy(self.annotations, memo),
+#            ports=copy.deepcopy(self.ports),
+#            )
+#        return new
 
     def append(self, other_pattern: 'Pattern') -> Self:
         """
@@ -136,9 +148,12 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        self.refs += other_pattern.refs
-        self.shapes += other_pattern.shapes
-        self.labels += other_pattern.labels
+        for target, rseq in other_pattern.refs.items():
+            self.refs[target].extend(rseq)
+        for layer, sseq in other_pattern.shapes.items():
+            self.shapes[layer].extend(sseq)
+        for layer, lseq in other_pattern.labels.items():
+            self.labels[layer].extend(lseq)
 
         annotation_conflicts = set(self.annotations.keys()) & set(other_pattern.annotations.keys())
         if annotation_conflicts:
@@ -154,9 +169,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def subset(
             self,
-            shapes: Callable[[Shape], bool] | None = None,
-            labels: Callable[[Label], bool] | None = None,
-            refs: Callable[[Ref], bool] | None = None,
+            shapes: Callable[[layer_t, Shape], bool] | None = None,
+            labels: Callable[[layer_t, Label], bool] | None = None,
+            refs: Callable[[str | None, Ref], bool] | None = None,
             annotations: Callable[[str, list[int | float | str]], bool] | None = None,
             ports: Callable[[str, Port], bool] | None = None,
             default_keep: bool = False
@@ -167,9 +182,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Self is _not_ altered, but shapes, labels, and refs are _not_ copied, just referenced.
 
         Args:
-            shapes: Given a shape, returns a boolean denoting whether the shape is a member of the subset.
-            labels: Given a label, returns a boolean denoting whether the label is a member of the subset.
-            refs: Given a ref, returns a boolean denoting if it is a member of the subset.
+            shapes: Given a layer and shape, returns a boolean denoting whether the shape is a
+                member of the subset.
+            labels: Given a layer and label, returns a boolean denoting whether the label is a
+                member of the subset.
+            refs: Given a target and ref, returns a boolean denoting if it is a member of the subset.
             annotations: Given an annotation, returns a boolean denoting if it is a member of the subset.
             ports: Given a port, returns a boolean denoting if it is a member of the subset.
             default_keep: If `True`, keeps all elements of a given type if no function is supplied.
@@ -182,17 +199,20 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         pat = Pattern()
 
         if shapes is not None:
-            pat.shapes = [s for s in self.shapes if shapes(s)]
+            for layer in self.shapes:
+                pat.shapes[layer] = [ss for ss in self.shapes[layer] if shapes(layer, ss)]
         elif default_keep:
             pat.shapes = copy.copy(self.shapes)
 
         if labels is not None:
-            pat.labels = [s for s in self.labels if labels(s)]
+            for layer in self.labels:
+                pat.labels[layer] = [ll for ll in self.labels[layer] if labels(layer, ll)]
         elif default_keep:
             pat.labels = copy.copy(self.labels)
 
         if refs is not None:
-            pat.refs = [s for s in self.refs if refs(s)]
+            for target in self.refs:
+                pat.refs[target] = [rr for rr in self.refs[target] if refs(target, rr)]
         elif default_keep:
             pat.refs = copy.copy(self.refs)
 
@@ -227,10 +247,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        old_shapes = self.shapes
-        self.shapes = list(chain.from_iterable((
-            shape.to_polygons(num_vertices, max_arclen)
-            for shape in old_shapes)))
+        for layer in self.shapes:
+            self.shapes[layer] = list(chain.from_iterable(
+                ss.to_polygons(num_vertices, max_arclen)
+                for ss in self.shapes[layer]
+                ))
         return self
 
     def manhattanize(
@@ -251,9 +272,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
 
         self.polygonize()
-        old_shapes = self.shapes
-        self.shapes = list(chain.from_iterable(
-            (shape.manhattanize(grid_x, grid_y) for shape in old_shapes)))
+        for layer in self.shapes:
+            self.shapes[layer] = list(chain.from_iterable((
+                ss.manhattanize(grid_x, grid_y)
+                for ss in self.shapes[layer]
+                )))
         return self
 
     def as_polygons(self, library: Mapping[str, 'Pattern']) -> list[NDArray[numpy.float64]]:
@@ -268,7 +291,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
              is of the form `[[x0, y0], [x1, y1],...]`.
         """
         pat = self.deepcopy().polygonize().flatten(library=library)
-        return [shape.vertices + shape.offset for shape in pat.shapes]      # type: ignore      # mypy can't figure out that shapes are all Polygons now
+        polys = [
+            cast(Polygon, shape).vertices + cast(Polygon, shape).offset
+            for shape in chain_elements(pat.shapes)
+            ]
+        return polys
 
     def referenced_patterns(self) -> set[str | None]:
         """
@@ -277,7 +304,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             A set of all pattern names referenced by this pattern.
         """
-        return set(sp.target for sp in self.refs)
+        return set(self.refs.keys())
 
     def get_bounds(
             self,
@@ -301,23 +328,29 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         min_bounds = numpy.array((+inf, +inf))
         max_bounds = numpy.array((-inf, -inf))
 
-        for entry in chain(self.shapes, self.labels):
-            bounds = entry.get_bounds()
+        for entry in chain_elements(self.shapes, self.labels):
+            bounds = cast(Bounded, entry).get_bounds()
             if bounds is None:
                 continue
             min_bounds = numpy.minimum(min_bounds, bounds[0, :])
             max_bounds = numpy.maximum(max_bounds, bounds[1, :])
 
-        if self.refs and (library is None):
-            raise PatternError('Must provide a library to get_bounds() to resolve refs')
+        if recurse and self.has_refs():
+            if library is None:
+                raise PatternError('Must provide a library to get_bounds() to resolve refs')
 
-        if recurse:
-            for entry in self.refs:
-                bounds = entry.get_bounds(library=library)
-                if bounds is None:
+            for target, refs in self.refs.items():
+                if target is None:
                     continue
-                min_bounds = numpy.minimum(min_bounds, bounds[0, :])
-                max_bounds = numpy.maximum(max_bounds, bounds[1, :])
+                if not refs:
+                    continue
+                target_pat = library[target]
+                for ref in refs:
+                    bounds = ref.get_bounds(target_pat, library=library)
+                    if bounds is None:
+                        continue
+                    min_bounds = numpy.minimum(min_bounds, bounds[0, :])
+                    max_bounds = numpy.maximum(max_bounds, bounds[1, :])
 
         if (max_bounds < min_bounds).any():
             return None
@@ -352,7 +385,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
+        for entry in chain(chain_elements(self.shapes, self.labels, self.refs), self.ports.values()):
             cast(Positionable, entry).translate(offset)
         return self
 
@@ -366,7 +399,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs):
+        for entry in chain_elements(self.shapes, self.refs):
             cast(Scalable, entry).scale_by(c)
         return self
 
@@ -382,7 +415,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs):
+        for entry in chain_elements(self.shapes, self.refs):
             cast(Positionable, entry).offset *= c
             cast(Scalable, entry).scale_by(c)
 
@@ -390,7 +423,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             if rep:
                 rep.scale_by(c)
 
-        for label in self.labels:
+        for label in chain_elements(self.labels):
             cast(Positionable, label).offset *= c
 
             rep = cast(Repeatable, label).repetition
@@ -429,7 +462,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
+        for entry in chain(chain_elements(self.shapes, self.refs, self.labels), self.ports.values()):
             old_offset = cast(Positionable, entry).offset
             cast(Positionable, entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
         return self
@@ -444,7 +477,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.ports.values()):
+        for entry in chain(chain_elements(self.shapes, self.refs), self.ports.values()):
             cast(Rotatable, entry).rotate(rotation)
         return self
 
@@ -459,7 +492,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.labels, self.ports.values()):
+        for entry in chain(chain_elements(self.shapes, self.refs, self.labels), self.ports.values()):
             cast(Positionable, entry).offset[across_axis - 1] *= -1
         return self
 
@@ -475,7 +508,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        for entry in chain(self.shapes, self.refs, self.ports.values()):
+        for entry in chain(chain_elements(self.shapes, self.refs), self.ports.values()):
             cast(Mirrorable, entry).mirror(across_axis)
         return self
 
@@ -521,68 +554,95 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             True if the pattern is contains no shapes, labels, or refs.
         """
-        return (len(self.refs) == 0
-                and len(self.shapes) == 0
-                and len(self.labels) == 0)
+        return not (self.has_refs() or self.has_shapes() or self.has_labels())
 
-    def ref(self, *args: Any, **kwargs: Any) -> Self:
+    def has_refs(self) -> bool:
+        return any(True for _ in chain.from_iterable(self.refs.values()))
+
+    def has_shapes(self) -> bool:
+        return any(True for _ in chain.from_iterable(self.shapes.values()))
+
+    def has_labels(self) -> bool:
+        return any(True for _ in chain.from_iterable(self.labels.values()))
+
+    def ref(self, target: str | None, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which constructs a `Ref` object and adds it
          to this pattern.
 
         Args:
+            target: Target for the ref
             *args: Passed to `Ref()`
             **kwargs: Passed to `Ref()`
 
         Returns:
             self
         """
-        self.refs.append(Ref(*args, **kwargs))
+        self.refs[target].append(Ref(*args, **kwargs))
         return self
 
-    def polygon(self, *args: Any, **kwargs: Any) -> Self:
+    def polygon(self, layer: layer_t, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which constructs a `Polygon` object and adds it
          to this pattern.
 
         Args:
+            layer: Layer for the polygon
             *args: Passed to `Polygon()`
             **kwargs: Passed to `Polygon()`
 
         Returns:
             self
         """
-        self.shapes.append(Polygon(*args, **kwargs))
+        self.shapes[layer].append(Polygon(*args, **kwargs))
         return self
 
-    def rect(self, *args: Any, **kwargs: Any) -> Self:
+    def rect(self, layer: layer_t, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which calls `Polygon.rect` to construct a
          rectangle and adds it to this pattern.
 
         Args:
+            layer: Layer for the rectangle
             *args: Passed to `Polygon.rect()`
             **kwargs: Passed to `Polygon.rect()`
 
         Returns:
             self
         """
-        self.shapes.append(Polygon.rect(*args, **kwargs))
+        self.shapes[layer].append(Polygon.rect(*args, **kwargs))
         return self
 
-    def label(self, *args: Any, **kwargs: Any) -> Self:
+    def path(self, layer: layer_t, *args: Any, **kwargs: Any) -> Self:
+        """
+        Convenience function which constructs a `Path` object and adds it
+         to this pattern.
+
+        Args:
+            layer: Layer for the path
+            *args: Passed to `Path()`
+            **kwargs: Passed to `Path()`
+
+        Returns:
+            self
+        """
+        self.shapes[layer].append(Path(*args, **kwargs))
+        return self
+
+    def label(self, layer: layer_t, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which constructs a `Label` object
          and adds it to this pattern.
 
         Args:
+            layer: Layer for the label
             *args: Passed to `Label()`
             **kwargs: Passed to `Label()`
 
         Returns:
             self
         """
-        self.labels.append(Label(*args, **kwargs))
+        self.labels[layer].append(Label(*args, **kwargs))
         return self
 
     def flatten(
@@ -610,24 +670,26 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                 pat = library[name].deepcopy()
                 flattened[name] = None
 
-            for ref in pat.refs:
-                target = ref.target
+            for target, refs in pat.refs.items():
                 if target is None:
+                    continue
+                if not refs:
                     continue
 
                 if target not in flattened:
                     flatten_single(target)
-
                 target_pat = flattened[target]
+
                 if target_pat is None:
                     raise PatternError(f'Circular reference in {name} to {target}')
                 if target_pat.is_empty():        # avoid some extra allocations
                     continue
 
-                p = ref.as_pattern(pattern=flattened[target])
-                if not flatten_ports:
-                    p.ports.clear()
-                pat.append(p)
+                for ref in refs:
+                    p = ref.as_pattern(pattern=target_pat)
+                    if not flatten_ports:
+                        p.ports.clear()
+                    pat.append(p)
 
             pat.refs.clear()
             flattened[name] = pat
@@ -661,7 +723,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         from matplotlib import pyplot       # type: ignore
         import matplotlib.collections       # type: ignore
 
-        if self.refs and library is None:
+        if self.has_refs() and library is None:
             raise PatternError('Must provide a library when visualizing a pattern with refs')
 
         offset = numpy.array(offset, dtype=float)
@@ -675,7 +737,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         axes = figure.gca()
 
         polygons = []
-        for shape in self.shapes:
+        for shape in chain.from_iterable(self.shapes.values()):
             polygons += [offset + s.offset + s.vertices for s in shape.to_polygons()]
 
         mpl_poly_collection = matplotlib.collections.PolyCollection(
@@ -686,16 +748,52 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         axes.add_collection(mpl_poly_collection)
         pyplot.axis('equal')
 
-        for ref in self.refs:
-            ref.as_pattern(library=library).visualize(
-                library=library,
-                offset=offset,
-                overdraw=True,
-                line_color=line_color,
-                fill_color=fill_color,
-                )
+        for target, refs in self.refs.items():
+            if target is None:
+                continue
+            if not refs:
+                continue
+            assert library is not None
+            target_pat = library[target]
+            for ref in refs:
+                ref.as_pattern(target_pat).visualize(
+                    library=library,
+                    offset=offset,
+                    overdraw=True,
+                    line_color=line_color,
+                    fill_color=fill_color,
+                    )
 
         if not overdraw:
             pyplot.xlabel('x')
             pyplot.ylabel('y')
             pyplot.show()
+
+
+TT = TypeVar('TT')
+
+
+def chain_elements(*args: Mapping[Any, Iterable[TT]]) -> Iterable[TT]:
+    return chain(*(chain.from_iterable(aa.values()) for aa in args))
+
+
+def map_layers(
+        elements: Mapping[layer_t, Sequence[TT]],
+        layer_map: Mapping[layer_t, layer_t],
+        ) -> defaultdict[layer_t, list[TT]]:
+    new_elements: defaultdict[layer_t, list[TT]] = defaultdict(list)
+    for old_layer, seq in elements.items():
+        new_layer = layer_map.get(old_layer, old_layer)
+        new_elements[new_layer].extend(seq)
+    return new_elements
+
+
+def map_targets(
+        refs: Mapping[str | None, Sequence[Ref]],
+        target_map: Mapping[str | None, str | None] | Mapping[str, str | None],
+        ) -> defaultdict[str | None, list[Ref]]:
+    new_refs: defaultdict[str | None, list[Ref]] = defaultdict(list)
+    for old_target, seq in refs.items():
+        new_target = target_map.get(old_target, old_target)     # type: ignore  # OK to .get() wrong type
+        new_refs[new_target].extend(seq)
+    return new_refs

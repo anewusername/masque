@@ -1,4 +1,4 @@
-from typing import Self, Sequence, Mapping, Literal, overload, Final, cast
+from typing import Self, Sequence, Mapping, Literal, overload
 import copy
 import logging
 
@@ -482,10 +482,10 @@ class Builder(PortList):
             self.pattern.append(other_copy)
         else:
             assert not isinstance(other, Pattern)
-            ref = Ref(other.name, mirrored=mirrored)
+            ref = Ref(mirrored=mirrored)
             ref.rotate_around(pivot, rotation)
             ref.translate(offset)
-            self.pattern.refs.append(ref)
+            self.pattern.refs[other.name].append(ref)
         return self
 
     def translate(self, offset: ArrayLike) -> Self:

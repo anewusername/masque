@@ -5,9 +5,8 @@ import numpy
 from numpy.typing import NDArray, ArrayLike
 
 from ..traits import (
-    Rotatable, Mirrorable, Copyable, Scalable,
-    PositionableImpl, LayerableImpl,
-    PivotableImpl, RepeatableImpl, AnnotatableImpl,
+    Rotatable, Mirrorable, Copyable, Scalable, Bounded,
+    PositionableImpl, PivotableImpl, RepeatableImpl, AnnotatableImpl,
     )
 
 if TYPE_CHECKING:
@@ -26,7 +25,7 @@ normalized_shape_tuple = tuple[
 DEFAULT_POLY_NUM_VERTICES = 24
 
 
-class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Scalable,
+class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable, Bounded,
             PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Class specifying functions common to all shapes.
@@ -194,10 +193,7 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
                 vertex_lists.append(vlist)
             polygon_contours.append(numpy.vstack(vertex_lists))
 
-        manhattan_polygons = [
-            Polygon(vertices=contour, layer=self.layer)
-            for contour in polygon_contours
-            ]
+        manhattan_polygons = [Polygon(vertices=contour) for contour in polygon_contours]
 
         return manhattan_polygons
 
@@ -292,9 +288,6 @@ class Shape(PositionableImpl, LayerableImpl, Rotatable, Mirrorable, Copyable, Sc
                 vertices = numpy.hstack((grx[snapped_contour[:, None, 0] + offset_i[0]],
                                          gry[snapped_contour[:, None, 1] + offset_i[1]]))
 
-                manhattan_polygons.append(Polygon(
-                    vertices=vertices,
-                    layer=self.layer,
-                    ))
+                manhattan_polygons.append(Polygon(vertices=vertices))
 
         return manhattan_polygons

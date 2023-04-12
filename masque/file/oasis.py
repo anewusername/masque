@@ -30,7 +30,7 @@ from fatamorgana.basic import PathExtensionScheme, AString, NString, PropStringR
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..library import Library, ILibrary
-from ..shapes import Polygon, Path, Circle
+from ..shapes import Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
 from ..utils import layer_t, normalize_mirror, annotations_t
 
@@ -284,16 +284,13 @@ def read(
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list()[:-1])), axis=0)
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                poly = Polygon(
+                pat.polygon(
                     vertices=vertices,
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     annotations=annotations,
                     repetition=repetition,
                     )
-
-                pat.shapes.append(poly)
-
             elif isinstance(element, fatrec.Path):
                 vertices = numpy.cumsum(numpy.vstack(((0, 0), element.get_point_list())), axis=0)
 
@@ -311,7 +308,7 @@ def read(
                         ))
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                path = Path(
+                pat.path(
                     vertices=vertices,
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
@@ -322,20 +319,17 @@ def read(
                     **path_args,
                     )
 
-                pat.shapes.append(path)
-
             elif isinstance(element, fatrec.Rectangle):
                 width = element.get_width()
                 height = element.get_height()
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                rect = Polygon(
+                pat.polygon(
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     repetition=repetition,
                     vertices=numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (width, height),
                     annotations=annotations,
                     )
-                pat.shapes.append(rect)
 
             elif isinstance(element, fatrec.Trapezoid):
                 vertices = numpy.array(((0, 0), (1, 0), (1, 1), (0, 1))) * (element.get_width(), element.get_height())
@@ -363,14 +357,13 @@ def read(
                         vertices[2, 0] -= b
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                trapz = Polygon(
+                pat.polygon(
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     repetition=repetition,
                     vertices=vertices,
                     annotations=annotations,
                     )
-                pat.shapes.append(trapz)
 
             elif isinstance(element, fatrec.CTrapezoid):
                 cttype = element.get_ctrapezoid_type()
@@ -419,25 +412,24 @@ def read(
                     vertices[0, 1] += width
 
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
-                ctrapz = Polygon(
+                pat.polygon(
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     repetition=repetition,
                     vertices=vertices,
                     annotations=annotations,
                     )
-                pat.shapes.append(ctrapz)
 
             elif isinstance(element, fatrec.Circle):
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
+                layer = element.get_layer_tuple()
                 circle = Circle(
-                    layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     repetition=repetition,
                     annotations=annotations,
                     radius=float(element.get_radius()),
                     )
-                pat.shapes.append(circle)
+                pat.shapes[layer].append(circle)
 
             elif isinstance(element, fatrec.Text):
                 annotations = properties_to_annotations(element.properties, lib.propnames, lib.propstrings)
@@ -446,21 +438,21 @@ def read(
                     string = lib.textstrings[str_or_ref].string
                 else:
                     string = str_or_ref.string
-                label = Label(
+                pat.label(
                     layer=element.get_layer_tuple(),
                     offset=element.get_xy(),
                     repetition=repetition,
                     annotations=annotations,
                     string=string,
                     )
-                pat.labels.append(label)
 
             else:
                 logger.warning(f'Skipping record {element} (unimplemented)')
                 continue
 
         for placement in cell.placements:
-            pat.refs.append(_placement_to_ref(placement, lib))
+            target, ref = _placement_to_ref(placement, lib)
+            pat.refs[target].append(ref)
 
         mlib[cell_name] = pat
 
@@ -484,9 +476,9 @@ def _mlayer2oas(mlayer: layer_t) -> tuple[int, int]:
     return layer, data_type
 
 
-def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> Ref:
+def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout) -> tuple[int | str, Ref]:
     """
-    Helper function to create a Ref from a placment. Sets ref.target to the placement name.
+    Helper function to create a Ref from a placment. Also returns the placement name (or id).
     """
     assert not isinstance(placement.repetition, fatamorgana.ReuseRepetition)
     xy = numpy.array((placement.x, placement.y))
@@ -501,7 +493,6 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
     else:
         rotation = numpy.deg2rad(float(placement.angle))
     ref = Ref(
-        target=name,
         offset=xy,
         mirrored=(placement.flip, False),
         rotation=rotation,
@@ -509,116 +500,118 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
         repetition=repetition_fata2masq(placement.repetition),
         annotations=annotations,
         )
-    return ref
+    return name, ref
 
 
 def _refs_to_placements(
-        refs: list[Ref],
+        refs: dict[str | None, list[Ref]],
         ) -> list[fatrec.Placement]:
     placements = []
-    for ref in refs:
-        if ref.target is None:
+    for target, rseq in refs.items():
+        if target is None:
             continue
+        for ref in rseq:
+            # Note: OASIS mirrors first and rotates second
+            mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
+            frep, rep_offset = repetition_masq2fata(ref.repetition)
 
-        # Note: OASIS mirrors first and rotates second
-        mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
-        frep, rep_offset = repetition_masq2fata(ref.repetition)
+            offset = rint_cast(ref.offset + rep_offset)
+            angle = numpy.rad2deg(ref.rotation + extra_angle) % 360
+            placement = fatrec.Placement(
+                name=target,
+                flip=mirror_across_x,
+                angle=angle,
+                magnification=ref.scale,
+                properties=annotations_to_properties(ref.annotations),
+                x=offset[0],
+                y=offset[1],
+                repetition=frep,
+                )
 
-        offset = rint_cast(ref.offset + rep_offset)
-        angle = numpy.rad2deg(ref.rotation + extra_angle) % 360
-        placement = fatrec.Placement(
-            name=ref.target,
-            flip=mirror_across_x,
-            angle=angle,
-            magnification=ref.scale,
-            properties=annotations_to_properties(ref.annotations),
-            x=offset[0],
-            y=offset[1],
-            repetition=frep,
-            )
-
-        placements.append(placement)
+            placements.append(placement)
     return placements
 
 
 def _shapes_to_elements(
-        shapes: list[Shape],
+        shapes: dict[layer_t, list[Shape]],
         layer2oas: Callable[[layer_t], tuple[int, int]],
         ) -> list[fatrec.Polygon | fatrec.Path | fatrec.Circle]:
     # Add a Polygon record for each shape, and Path elements if necessary
     elements: list[fatrec.Polygon | fatrec.Path | fatrec.Circle] = []
-    for shape in shapes:
-        layer, datatype = layer2oas(shape.layer)
-        repetition, rep_offset = repetition_masq2fata(shape.repetition)
-        properties = annotations_to_properties(shape.annotations)
-        if isinstance(shape, Circle):
-            offset = rint_cast(shape.offset + rep_offset)
-            radius = rint_cast(shape.radius)
-            circle = fatrec.Circle(
-                layer=layer,
-                datatype=datatype,
-                radius=cast(int, radius),
-                x=offset[0],
-                y=offset[1],
-                properties=properties,
-                repetition=repetition,
-                )
-            elements.append(circle)
-        elif isinstance(shape, Path):
-            xy = rint_cast(shape.offset + shape.vertices[0] + rep_offset)
-            deltas = rint_cast(numpy.diff(shape.vertices, axis=0))
-            half_width = rint_cast(shape.width / 2)
-            path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
-            extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
-            extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
-            path = fatrec.Path(
-                layer=layer,
-                datatype=datatype,
-                point_list=cast(Sequence[Sequence[int]], deltas),
-                half_width=cast(int, half_width),
-                x=xy[0],
-                y=xy[1],
-                extension_start=extension_start,       # TODO implement multiple cap types?
-                extension_end=extension_end,
-                properties=properties,
-                repetition=repetition,
-                )
-            elements.append(path)
-        else:
-            for polygon in shape.to_polygons():
-                xy = rint_cast(polygon.offset + polygon.vertices[0] + rep_offset)
-                points = rint_cast(numpy.diff(polygon.vertices, axis=0))
-                elements.append(fatrec.Polygon(
+    for mlayer, sseq in shapes.items():
+        layer, datatype = layer2oas(mlayer)
+        for shape in sseq:
+            repetition, rep_offset = repetition_masq2fata(shape.repetition)
+            properties = annotations_to_properties(shape.annotations)
+            if isinstance(shape, Circle):
+                offset = rint_cast(shape.offset + rep_offset)
+                radius = rint_cast(shape.radius)
+                circle = fatrec.Circle(
                     layer=layer,
                     datatype=datatype,
-                    x=xy[0],
-                    y=xy[1],
-                    point_list=cast(list[list[int]], points),
+                    radius=cast(int, radius),
+                    x=offset[0],
+                    y=offset[1],
                     properties=properties,
                     repetition=repetition,
-                    ))
+                    )
+                elements.append(circle)
+            elif isinstance(shape, Path):
+                xy = rint_cast(shape.offset + shape.vertices[0] + rep_offset)
+                deltas = rint_cast(numpy.diff(shape.vertices, axis=0))
+                half_width = rint_cast(shape.width / 2)
+                path_type = next(k for k, v in path_cap_map.items() if v == shape.cap)    # reverse lookup
+                extension_start = (path_type, shape.cap_extensions[0] if shape.cap_extensions is not None else None)
+                extension_end = (path_type, shape.cap_extensions[1] if shape.cap_extensions is not None else None)
+                path = fatrec.Path(
+                    layer=layer,
+                    datatype=datatype,
+                    point_list=cast(Sequence[Sequence[int]], deltas),
+                    half_width=cast(int, half_width),
+                    x=xy[0],
+                    y=xy[1],
+                    extension_start=extension_start,       # TODO implement multiple cap types?
+                    extension_end=extension_end,
+                    properties=properties,
+                    repetition=repetition,
+                    )
+                elements.append(path)
+            else:
+                for polygon in shape.to_polygons():
+                    xy = rint_cast(polygon.offset + polygon.vertices[0] + rep_offset)
+                    points = rint_cast(numpy.diff(polygon.vertices, axis=0))
+                    elements.append(fatrec.Polygon(
+                        layer=layer,
+                        datatype=datatype,
+                        x=xy[0],
+                        y=xy[1],
+                        point_list=cast(list[list[int]], points),
+                        properties=properties,
+                        repetition=repetition,
+                        ))
     return elements
 
 
 def _labels_to_texts(
-        labels: list[Label],
+        labels: dict[layer_t, list[Label]],
         layer2oas: Callable[[layer_t], tuple[int, int]],
         ) -> list[fatrec.Text]:
     texts = []
-    for label in labels:
-        layer, datatype = layer2oas(label.layer)
-        repetition, rep_offset = repetition_masq2fata(label.repetition)
-        xy = rint_cast(label.offset + rep_offset)
-        properties = annotations_to_properties(label.annotations)
-        texts.append(fatrec.Text(
-            layer=layer,
-            datatype=datatype,
-            x=xy[0],
-            y=xy[1],
-            string=label.string,
-            properties=properties,
-            repetition=repetition,
-            ))
+    for mlayer, lseq in labels.items():
+        layer, datatype = layer2oas(mlayer)
+        for label in lseq:
+            repetition, rep_offset = repetition_masq2fata(label.repetition)
+            xy = rint_cast(label.offset + rep_offset)
+            properties = annotations_to_properties(label.annotations)
+            texts.append(fatrec.Text(
+                layer=layer,
+                datatype=datatype,
+                x=xy[0],
+                y=xy[1],
+                string=label.string,
+                properties=properties,
+                repetition=repetition,
+                ))
     return texts
 
 

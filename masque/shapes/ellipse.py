@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike, NDArray
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, layer_t, annotations_t
+from ..utils import is_scalar, rotation_matrix_2d, annotations_t
 
 
 class Ellipse(Shape):
@@ -20,7 +20,7 @@ class Ellipse(Shape):
     __slots__ = (
         '_radii', '_rotation',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations',
+        '_offset', '_repetition', '_annotations',
         )
 
     _radii: NDArray[numpy.float64]
@@ -91,7 +91,6 @@ class Ellipse(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -104,14 +103,12 @@ class Ellipse(Shape):
             self._rotation = rotation
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
-            self._layer = layer
         else:
             self.radii = radii
             self.offset = offset
             self.rotation = rotation
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-            self.layer = layer
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Ellipse':
@@ -152,7 +149,7 @@ class Ellipse(Shape):
         ys = r1 * sin_th
         xys = numpy.vstack((xs, ys)).T
 
-        poly = Polygon(xys, layer=self.layer, offset=self.offset, rotation=self.rotation)
+        poly = Polygon(xys, offset=self.offset, rotation=self.rotation)
         return [poly]
 
     def get_bounds(self) -> NDArray[numpy.float64]:
@@ -183,10 +180,10 @@ class Ellipse(Shape):
             radii = self.radii[::-1] / self.radius_y
             scale = self.radius_y
             angle = (self.rotation + pi / 2) % pi
-        return ((type(self), radii, self.layer),
+        return ((type(self), radii),
                 (self.offset, scale / norm_value, angle, False),
-                lambda: Ellipse(radii=radii * norm_value, layer=self.layer))
+                lambda: Ellipse(radii=radii * norm_value))
 
     def __repr__(self) -> str:
-        rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
-        return f'<Ellipse l{self.layer} o{self.offset} r{self.radii}{rotation}>'
+        rotation = f' r{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
+        return f'<Ellipse o{self.offset} r{self.radii}{rotation}>'

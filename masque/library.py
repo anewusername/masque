@@ -226,11 +226,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             flattened[name] = None
             pat = self[name].deepcopy()
 
-            for ref in pat.refs:
-                target = ref.target
+            for target in pat.refs:
                 if target is None:
                     continue
-
                 if target not in flattened:
                     flatten_single(target)
 
@@ -240,10 +238,11 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 if target_pat.is_empty():        # avoid some extra allocations
                     continue
 
-                p = ref.as_pattern(pattern=flattened[target])
-                if not flatten_ports:
-                    p.ports.clear()
-                pat.append(p)
+                for ref in pat.refs[target]:
+                    p = ref.as_pattern(pattern=target_pat)
+                    if not flatten_ports:
+                        p.ports.clear()
+                    pat.append(p)
 
             pat.refs.clear()
             flattened[name] = pat
@@ -316,7 +315,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         names = set(self.keys())
         not_toplevel: set[str | None] = set()
         for name in names:
-            not_toplevel |= set(sp.target for sp in self[name].refs)
+            not_toplevel |= set(self[name].refs.keys())
 
         toplevel = list(names - not_toplevel)
         return toplevel
@@ -352,9 +351,10 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         At each pattern in the tree, the following sequence is called:
             ```
             current_pattern = visit_before(current_pattern, **vist_args)
-            for sp in current_pattern.refs]
-                self.dfs(sp.target, visit_before, visit_after,
-                         hierarchy + (sp.target,), updated_transform, memo)
+            for target in current_pattern.refs:
+                for ref in pattern.refs[target]:
+                    self.dfs(target, visit_before, visit_after,
+                             hierarchy + (sp.target,), updated_transform, memo)
             current_pattern = visit_after(current_pattern, **visit_args)
             ```
           where `visit_args` are
@@ -398,32 +398,33 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if visit_before is not None:
             pattern = visit_before(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
 
-        for ref in pattern.refs:
-            if transform is not False:
-                sign = numpy.ones(2)
-                if transform[3]:
-                    sign[1] = -1
-                xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
-                mirror_x, angle = normalize_mirror(ref.mirrored)
-                angle += ref.rotation
-                ref_transform = transform + (xy[0], xy[1], angle, mirror_x)
-                ref_transform[3] %= 2
-            else:
-                ref_transform = False
-
-            if ref.target is None:
+        for target in pattern.refs:
+            if target is None:
                 continue
-            if ref.target in hierarchy:
-                raise LibraryError(f'.dfs() called on pattern with circular reference to "{ref.target}"')
+            if target in hierarchy:
+                raise LibraryError(f'.dfs() called on pattern with circular reference to "{target}"')
 
-            self.dfs(
-                pattern=self[ref.target],
-                visit_before=visit_before,
-                visit_after=visit_after,
-                hierarchy=hierarchy + (ref.target,),
-                transform=ref_transform,
-                memo=memo,
-                )
+            for ref in pattern.refs[target]:
+                if transform is not False:
+                    sign = numpy.ones(2)
+                    if transform[3]:
+                        sign[1] = -1
+                    xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
+                    mirror_x, angle = normalize_mirror(ref.mirrored)
+                    angle += ref.rotation
+                    ref_transform = transform + (xy[0], xy[1], angle, mirror_x)
+                    ref_transform[3] %= 2
+                else:
+                    ref_transform = False
+
+                self.dfs(
+                    pattern=self[target],
+                    visit_before=visit_before,
+                    visit_after=visit_after,
+                    hierarchy=hierarchy + (target,),
+                    transform=ref_transform,
+                    memo=memo,
+                    )
 
         if visit_after is not None:
             pattern = visit_after(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
@@ -508,9 +509,9 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             self
         """
         for pattern in self.values():
-            for ref in pattern.refs:
-                if ref.target == old_target:
-                    ref.target = new_target
+            if old_target in pattern.refs:
+                pattern.refs[new_target].extend(pattern.refs[old_target])
+                del pattern.refs[old_target]
         return self
 
     def mkpat(self, name: str) -> tuple[str, 'Pattern']:
@@ -549,6 +550,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         Returns:
             self
         """
+        from .pattern import map_targets
         duplicates = set(self.keys()) & set(other.keys())
 
         if not duplicates:
@@ -572,8 +574,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         # Update references in the newly-added cells
         for old_name in temp:
             new_name = rename_map.get(old_name, old_name)
-            for ref in self[new_name].refs:
-                ref.target = rename_map.get(cast(str, ref.target), ref.target)
+            pat = self[new_name]
+            pat.refs = map_targets(pat.refs, rename_map)
 
         return rename_map
 
@@ -644,11 +646,13 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         #  Using the label tuple from `.normalized_form()` as a key, check how many of each shape
         # are present and store the shape function for each one
         for pat in tuple(self.values()):
-            for i, shape in enumerate(pat.shapes):
-                if not any(isinstance(shape, t) for t in exclude_types):
-                    label, _values, func = shape.normalized_form(norm_value)
-                    shape_funcs[label] = func
-                    shape_counts[label] += 1
+            for layer, sseq in pat.shapes.items():
+                for shape in sseq:
+                    if not any(isinstance(shape, t) for t in exclude_types):
+                        base_label, _values, func = shape.normalized_form(norm_value)
+                        label = (*base_label, layer)
+                        shape_funcs[label] = func
+                        shape_counts[label] += 1
 
         shape_pats = {}
         for label, count in shape_counts.items():
@@ -656,7 +660,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
                 continue
 
             shape_func = shape_funcs[label]
-            shape_pat = Pattern(shapes=[shape_func()])
+            shape_pat = Pattern()
+            shape_pat.shapes[label[-1]] += [shape_func()]
             shape_pats[label] = shape_pat
 
         # ## Second pass ##
@@ -665,33 +670,36 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             # are to be replaced.
             # The `values` are `(offset, scale, rotation)`.
 
-            shape_table: MutableMapping[tuple, list] = defaultdict(list)
-            for i, shape in enumerate(pat.shapes):
-                if any(isinstance(shape, t) for t in exclude_types):
-                    continue
+            shape_table: dict[tuple, list] = defaultdict(list)
+            for layer, sseq in pat.shapes.items():
+                for i, shape in enumerate(sseq):
+                    if any(isinstance(shape, t) for t in exclude_types):
+                        continue
 
-                label, values, _func = shape.normalized_form(norm_value)
+                    base_label, values, _func = shape.normalized_form(norm_value)
+                    label = (*base_label, layer)
 
-                if label not in shape_pats:
-                    continue
+                    if label not in shape_pats:
+                        continue
 
-                shape_table[label].append((i, values))
+                    shape_table[label].append((i, values))
 
             #  For repeated shapes, create a `Pattern` holding a normalized shape object,
             # and add `pat.refs` entries for each occurrence in pat. Also, note down that
             # we should delete the `pat.shapes` entries for which we made `Ref`s.
             shapes_to_remove = []
             for label in shape_table:
+                layer = label[-1]
                 target = label2name(label)
-                for i, values in shape_table[label]:
+                for ii, values in shape_table[label]:
                     offset, scale, rotation, mirror_x = values
                     pat.ref(target=target, offset=offset, scale=scale,
                             rotation=rotation, mirrored=(mirror_x, False))
-                    shapes_to_remove.append(i)
+                    shapes_to_remove.append(ii)
 
-            # Remove any shapes for which we have created refs.
-            for i in sorted(shapes_to_remove, reverse=True):
-                del pat.shapes[i]
+                # Remove any shapes for which we have created refs.
+                for ii in sorted(shapes_to_remove, reverse=True):
+                    del pat.shapes[layer][ii]
 
         for ll, pp in shape_pats.items():
             self[label2name(ll)] = pp
@@ -722,28 +730,30 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             #name_func = lambda _pat, _shape: self.get_name('_rep')
 
         for pat in tuple(self.values()):
-            new_shapes = []
-            for shape in pat.shapes:
-                if shape.repetition is None:
-                    new_shapes.append(shape)
-                    continue
+            for layer in pat.shapes:
+                new_shapes = []
+                for shape in pat.shapes[layer]:
+                    if shape.repetition is None:
+                        new_shapes.append(shape)
+                        continue
 
-                name = name_func(pat, shape)
-                self[name] = Pattern(shapes=[shape])
-                pat.ref(name, repetition=shape.repetition)
-                shape.repetition = None
-            pat.shapes = new_shapes
+                    name = name_func(pat, shape)
+                    self[name] = Pattern(shapes={layer: [shape]})
+                    pat.ref(name, repetition=shape.repetition)
+                    shape.repetition = None
+                pat.shapes[layer] = new_shapes
 
-            new_labels = []
-            for label in pat.labels:
-                if label.repetition is None:
-                    new_labels.append(label)
-                    continue
-                name = name_func(pat, label)
-                self[name] = Pattern(labels=[label])
-                pat.ref(name, repetition=label.repetition)
-                label.repetition = None
-            pat.labels = new_labels
+            for layer in pat.labels:
+                new_labels = []
+                for label in pat.labels[layer]:
+                    if label.repetition is None:
+                        new_labels.append(label)
+                        continue
+                    name = name_func(pat, label)
+                    self[name] = Pattern(labels={layer: [label]})
+                    pat.ref(name, repetition=label.repetition)
+                    label.repetition = None
+                pat.labels[layer] = new_labels
 
         return self
 
@@ -782,8 +792,12 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         while empty := set(name for name, pat in self.items() if pat.is_empty()):
             for name in empty:
                 del self[name]
+
             for pat in self.values():
-                pat.refs = [ref for ref in pat.refs if ref.target not in empty]
+                for name in empty:
+                    # Second pass to skip looking at refs in empty patterns
+                    if name in pat.refs:
+                        del pat.refs[name]
 
             trimmed |= empty
             if not repeat:
@@ -799,7 +813,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         del self[key]
         if delete_refs:
             for pat in self.values():
-                pat.refs = [ref for ref in pat.refs if ref.target != key]
+                if key in pat.refs:
+                    del pat.refs[key]
         return self
 
 
@@ -1007,9 +1022,9 @@ class LazyLibrary(ILibrary):
         """
         self.precache()
         for pattern in self.cache.values():
-            for ref in pattern.refs:
-                if ref.target == old_target:
-                    ref.target = new_target
+            if old_target in pattern.refs:
+                pattern.refs[new_target].extend(pattern.refs[old_target])
+                del pattern.refs[old_target]
         return self
 
     def precache(self) -> Self:

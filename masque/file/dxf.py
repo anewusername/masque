@@ -219,7 +219,7 @@ def _read_block(block) -> tuple[str, Pattern]:
 
             if points.shape[1] == 2:
                 raise PatternError('Invalid or unimplemented polygon?')
-                #shape = Polygon(layer=layer)
+                #shape = Polygon()
             elif points.shape[1] > 2:
                 if (points[0, 2] != points[:, 2]).any():
                     raise PatternError('PolyLine has non-constant width (not yet representable in masque!)')
@@ -232,11 +232,11 @@ def _read_block(block) -> tuple[str, Pattern]:
 
                 shape: Path | Polygon
                 if width == 0 and len(points) > 2 and numpy.array_equal(points[0], points[-1]):
-                    shape = Polygon(layer=layer, vertices=points[:-1, :2])
+                    shape = Polygon(vertices=points[:-1, :2])
                 else:
-                    shape = Path(layer=layer, width=width, vertices=points[:, :2])
+                    shape = Path(width=width, vertices=points[:, :2])
 
-            pat.shapes.append(shape)
+            pat.shapes[layer].append(shape)
 
         elif eltype in ('TEXT',):
             args = dict(
@@ -248,9 +248,9 @@ def _read_block(block) -> tuple[str, Pattern]:
 #            if height != 0:
 #                logger.warning('Interpreting DXF TEXT as a label despite nonzero height. '
 #                               'This could be changed in the future by setting a font path in the masque DXF code.')
-            pat.labels.append(Label(string=string, **args))
+            pat.label(string=string, **args)
 #            else:
-#                pat.shapes.append(Text(string=string, height=height, font_path=????))
+#                pat.shapes[args['layer']].append(Text(string=string, height=height, font_path=????))
         elif eltype in ('INSERT',):
             attr = element.dxfattribs()
             xscale = attr.get('xscale', 1)
@@ -286,13 +286,9 @@ def _read_block(block) -> tuple[str, Pattern]:
 
 def _mrefs_to_drefs(
         block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
-        refs: list[Ref],
+        refs: dict[str | None, list[Ref]],
         ) -> None:
-    for ref in refs:
-        if ref.target is None:
-            continue
-        encoded_name = ref.target
-
+    def mk_blockref(encoded_name: str, ref: Ref) -> None:
         rotation = numpy.rad2deg(ref.rotation) % 360
         attribs = dict(
             xscale=ref.scale * (-1 if ref.mirrored[1] else 1),
@@ -330,36 +326,47 @@ def _mrefs_to_drefs(
             for dd in rep.displacements:
                 block.add_blockref(encoded_name, ref.offset + dd, dxfattribs=attribs)
 
+    for target, rseq in refs.items():
+        if target is None:
+            continue
+        for ref in rseq:
+            mk_blockref(target, ref)
+
 
 def _shapes_to_elements(
         block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
-        shapes: list[Shape],
+        shapes: dict[layer_t, list[Shape]],
         polygonize_paths: bool = False,
         ) -> None:
     # Add `LWPolyline`s for each shape.
     #   Could set do paths with width setting, but need to consider endcaps.
-    for shape in shapes:
-        if shape.repetition is not None:
-            raise PatternError(
-                'Shape repetitions are not supported by DXF.'
-                ' Please call library.wrap_repeated_shapes() before writing to file.'
-                )
+    for layer, sseq in shapes.items():
+        attribs = dict(layer=_mlayer2dxf(layer))
+        for shape in sseq:
+            if shape.repetition is not None:
+                raise PatternError(
+                    'Shape repetitions are not supported by DXF.'
+                    ' Please call library.wrap_repeated_shapes() before writing to file.'
+                    )
 
-        attribs = dict(layer=_mlayer2dxf(shape.layer))
-        for polygon in shape.to_polygons():
-            xy_open = polygon.vertices + polygon.offset
-            xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
-            block.add_lwpolyline(xy_closed, dxfattribs=attribs)
+            for polygon in shape.to_polygons():
+                xy_open = polygon.vertices + polygon.offset
+                xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
+                block.add_lwpolyline(xy_closed, dxfattribs=attribs)
 
 
 def _labels_to_texts(
         block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
-        labels: list[Label],
+        labels: dict[layer_t, list[Label]],
         ) -> None:
-    for label in labels:
-        attribs = dict(layer=_mlayer2dxf(label.layer))
-        xy = label.offset
-        block.add_text(label.string, dxfattribs=attribs).set_placement(xy, align=TextEntityAlignment.BOTTOM_LEFT)
+    for layer, lseq in labels.items():
+        attribs = dict(layer=_mlayer2dxf(layer))
+        for label in lseq:
+            xy = label.offset
+            block.add_text(
+                label.string,
+                dxfattribs=attribs
+                ).set_placement(xy, align=TextEntityAlignment.BOTTOM_LEFT)
 
 
 def _mlayer2dxf(layer: layer_t) -> str:

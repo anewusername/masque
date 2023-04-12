@@ -9,7 +9,7 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, layer_t, annotations_t
+from ..utils import is_scalar, annotations_t
 
 
 class Arc(Shape):
@@ -24,7 +24,7 @@ class Arc(Shape):
     __slots__ = (
         '_radii', '_angles', '_width', '_rotation',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations',
+        '_offset', '_repetition', '_annotations',
         )
 
     _radii: NDArray[numpy.float64]
@@ -156,7 +156,6 @@ class Arc(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             mirrored: Sequence[bool] = (False, False),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -172,7 +171,6 @@ class Arc(Shape):
             self._rotation = rotation
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
-            self._layer = layer
         else:
             self.radii = radii
             self.angles = angles
@@ -181,7 +179,6 @@ class Arc(Shape):
             self.rotation = rotation
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-            self.layer = layer
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Arc':
@@ -241,7 +238,7 @@ class Arc(Shape):
         ys = numpy.hstack((ys1, ys2))
         xys = numpy.vstack((xs, ys)).T
 
-        poly = Polygon(xys, layer=self.layer, offset=self.offset, rotation=self.rotation)
+        poly = Polygon(xys, offset=self.offset, rotation=self.rotation)
         return [poly]
 
     def get_bounds(self) -> NDArray[numpy.float64]:
@@ -352,13 +349,12 @@ class Arc(Shape):
         rotation %= 2 * pi
         width = self.width
 
-        return ((type(self), radii, angles, width / norm_value, self.layer),
+        return ((type(self), radii, angles, width / norm_value),
                 (self.offset, scale / norm_value, rotation, False),
                 lambda: Arc(
                     radii=radii * norm_value,
                     angles=angles,
                     width=width * norm_value,
-                    layer=self.layer,
                     ))
 
     def get_cap_edges(self) -> NDArray[numpy.float64]:
@@ -415,4 +411,4 @@ class Arc(Shape):
     def __repr__(self) -> str:
         angles = f' a°{numpy.rad2deg(self.angles)}'
         rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
-        return f'<Arc l{self.layer} o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}>'
+        return f'<Arc o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}>'

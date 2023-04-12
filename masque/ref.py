@@ -33,20 +33,16 @@ class Ref(
      offset, rotation, scaling, and associated methods.
     """
     __slots__ = (
-        '_target', '_mirrored',
+        '_mirrored',
         # inherited
         '_offset', '_rotation', 'scale', '_repetition', '_annotations',
         )
-
-    _target: str | None
-    """ The name of the `Pattern` being instanced """
 
     _mirrored: NDArray[numpy.bool_]
     """ Whether to mirror the instance across the x and/or y axes. """
 
     def __init__(
             self,
-            target: str | None,
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
@@ -57,14 +53,12 @@ class Ref(
             ) -> None:
         """
         Args:
-            target: Name of the Pattern to reference.
             offset: (x, y) offset applied to the referenced pattern. Not affected by rotation etc.
             rotation: Rotation (radians, counterclockwise) relative to the referenced pattern's (0, 0).
             mirrored: Whether to mirror the referenced pattern across its x and y axes.
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
         """
-        self.target = target
         self.offset = offset
         self.rotation = rotation
         self.scale = scale
@@ -76,7 +70,6 @@ class Ref(
 
     def __copy__(self) -> 'Ref':
         new = Ref(
-            target=self.target,
             offset=self.offset.copy(),
             rotation=self.rotation,
             scale=self.scale,
@@ -93,17 +86,6 @@ class Ref(
         new.annotations = copy.deepcopy(self.annotations, memo)
         return new
 
-    # target property
-    @property
-    def target(self) -> str | None:
-        return self._target
-
-    @target.setter
-    def target(self, val: str | None) -> None:
-        if val is not None and not isinstance(val, str):
-            raise PatternError(f'Provided target {val} is not a str or None!')
-        self._target = val
-
     # Mirrored property
     @property
     def mirrored(self) -> Any:   # TODO mypy#3004  NDArray[numpy.bool_]:
@@ -117,27 +99,16 @@ class Ref(
 
     def as_pattern(
             self,
-            *,
-            pattern: 'Pattern | None' = None,
-            library: Mapping[str, 'Pattern'] | None = None,
+            pattern: 'Pattern',
             ) -> 'Pattern':
         """
         Args:
             pattern: Pattern object to transform
-            library: A str->Pattern mapping, used instead of `pattern`. Must contain
-                `self.target`.
 
         Returns:
             A copy of the referenced Pattern which has been scaled, rotated, etc.
              according to this `Ref`'s properties.
         """
-        if pattern is None:
-            if library is None:
-                raise PatternError('as_pattern() must be given a pattern or library.')
-
-            assert self.target is not None
-            pattern = library[self.target]
-
         pattern = pattern.deepcopy()
 
         if self.scale != 1:
@@ -175,8 +146,8 @@ class Ref(
 
     def get_bounds(
             self,
+            pattern: 'Pattern',
             *,
-            pattern: 'Pattern | None' = None,
             library: Mapping[str, 'Pattern'] | None = None,
             ) -> NDArray[numpy.float64] | None:
         """
@@ -190,20 +161,29 @@ class Ref(
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
-        if pattern is None and library is None:
-            raise PatternError('as_pattern() must be given a pattern or library.')
-        if pattern is None and self.target is None:
-            return None
-        if library is not None and self.target not in library:
-            raise PatternError(f'get_bounds() called on dangling reference to "{self.target}"')
-        if pattern is not None and pattern.is_empty():
+        if pattern.is_empty():
             # no need to run as_pattern()
             return None
-        return self.as_pattern(pattern=pattern, library=library).get_bounds(library)
+        return self.as_pattern(pattern=pattern).get_bounds(library)     # TODO can just take pattern's bounds and then transform those!
+
+    def get_bounds_nonempty(
+            self,
+            pattern: 'Pattern',
+            *,
+            library: Mapping[str, 'Pattern'] | None = None,
+            ) -> NDArray[numpy.float64]:
+        """
+        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
+        Asserts that the entity is non-empty (i.e., `get_bounds()` does not return None).
+
+        This is handy for destructuring like `xy_min, xy_max = entity.get_bounds_nonempty()`
+        """
+        bounds = self.get_bounds(pattern, library=library)
+        assert bounds is not None
+        return bounds
 
     def __repr__(self) -> str:
-        name = f'"{self.target}"' if self.target is not None else None
-        rotation = f' r{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        rotation = f' r{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         scale = f' d{self.scale:g}' if self.scale != 1 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        return f'<Ref {name} at {self.offset}{rotation}{scale}{mirrored}>'
+        return f'<Ref {self.offset}{rotation}{scale}{mirrored}>'
