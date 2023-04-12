@@ -1,7 +1,7 @@
 """
 Tools are objects which dynamically generate simple single-use devices (e.g. wires or waveguides)
 """
-from typing import TYPE_CHECKING, Sequence, Literal, Callable
+from typing import Sequence, Literal, Callable
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -19,6 +19,7 @@ render_step_t = (
     tuple[Literal['L', 'S', 'U'], Port, float, float, str, 'Tool']
     | tuple[Literal['P'], None, float, float, str, None]
     )
+
 
 class Tool:
     def path(
@@ -153,6 +154,4 @@ class BasicTool(Tool, metaclass=ABCMeta):
         if out_transition:
             bb.plug(opat, {port_names[1]: oport_ours})
 
-
         return bb.pattern
-

@@ -279,10 +279,10 @@ class RenderPather(PortList):
             p.translate(offset)
             self.ports[name] = p
 
-        sp = Ref(other.name, mirrored=mirrored)
-        sp.rotate_around(pivot, rotation)
-        sp.translate(offset)
-        self.pattern.refs.append(sp)
+        ref = Ref(mirrored=mirrored)
+        ref.rotate_around(pivot, rotation)
+        ref.translate(offset)
+        self.pattern.refs[other.name].append(ref)
         return self
 
     def path(

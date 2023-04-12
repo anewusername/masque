@@ -9,7 +9,7 @@ from . import Shape, Polygon, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, get_bit, normalize_mirror, layer_t
+from ..utils import is_scalar, get_bit, normalize_mirror
 from ..utils import annotations_t
 
 # Loaded on use:
@@ -25,7 +25,7 @@ class Text(RotatableImpl, Shape):
     __slots__ = (
         '_string', '_height', '_mirrored', 'font_path',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations', '_rotation',
+        '_offset', '_repetition', '_annotations', '_rotation',
         )
 
     _string: str
@@ -73,7 +73,6 @@ class Text(RotatableImpl, Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             mirrored: ArrayLike = (False, False),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -82,7 +81,6 @@ class Text(RotatableImpl, Shape):
             assert isinstance(offset, numpy.ndarray)
             assert isinstance(mirrored, numpy.ndarray)
             self._offset = offset
-            self._layer = layer
             self._string = string
             self._height = height
             self._rotation = rotation
@@ -91,7 +89,6 @@ class Text(RotatableImpl, Shape):
             self._annotations = annotations if annotations is not None else {}
         else:
             self.offset = offset
-            self.layer = layer
             self.string = string
             self.height = height
             self.rotation = rotation
@@ -120,7 +117,7 @@ class Text(RotatableImpl, Shape):
 
             # Move these polygons to the right of the previous letter
             for xys in raw_polys:
-                poly = Polygon(xys, layer=self.layer)
+                poly = Polygon(xys)
                 poly.mirror2d(self.mirrored)
                 poly.scale_by(self.height)
                 poly.offset = self.offset + [total_advance, 0]
@@ -144,7 +141,7 @@ class Text(RotatableImpl, Shape):
         mirror_x, rotation = normalize_mirror(self.mirrored)
         rotation += self.rotation
         rotation %= 2 * pi
-        return ((type(self), self.string, self.font_path, self.layer),
+        return ((type(self), self.string, self.font_path),
                 (self.offset, self.height / norm_value, rotation, mirror_x),
                 lambda: Text(
                     string=self.string,
@@ -152,7 +149,6 @@ class Text(RotatableImpl, Shape):
                     font_path=self.font_path,
                     rotation=rotation,
                     mirrored=(mirror_x, False),
-                    layer=self.layer,
                     ))
 
     def get_bounds(self) -> NDArray[numpy.float64]:
@@ -256,6 +252,6 @@ def get_char_as_polygons(
     return polygons, advance
 
     def __repr__(self) -> str:
-        rotation = f' r°{self.rotation*180/pi:g}' if self.rotation != 0 else ''
+        rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
-        return f'<TextShape "{self.string}" l{self.layer} o{self.offset} h{self.height:g}{rotation}{mirrored}>'
+        return f'<TextShape "{self.string}" o{self.offset} h{self.height:g}{rotation}{mirrored}>'

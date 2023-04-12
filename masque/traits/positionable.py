@@ -60,6 +60,8 @@ class Positionable(metaclass=ABCMeta):
         """
         pass
 
+
+class Bounded(metaclass=ABCMeta):
     @abstractmethod
     def get_bounds(self) -> NDArray[numpy.float64] | None:
         """

@@ -8,7 +8,6 @@ from numpy.typing import NDArray, ArrayLike
 
 from ..error import MasqueError
 from ..pattern import Pattern
-from ..ref import Ref
 
 
 def maxrects_bssf(
@@ -160,8 +159,8 @@ def pack_patterns(
     locations, reject_inds = packer(sizes, regions, presort=presort, allow_rejects=allow_rejects)
 
     pat = Pattern()
-    pat.refs = [Ref(pp, offset=oo + loc)
-                for pp, oo, loc in zip(patterns, offsets, locations)]
+    for pp, oo, loc in zip(patterns, offsets, locations):
+        pat.ref(pp, offset=oo + loc)
 
     rejects = [patterns[ii] for ii in reject_inds]
     return pat, rejects

@@ -1,7 +1,7 @@
 """
 Traits (mixins) and default implementations
 """
-from .positionable import Positionable, PositionableImpl
+from .positionable import Positionable, PositionableImpl, Bounded
 from .layerable import Layerable, LayerableImpl
 from .rotatable import Rotatable, RotatableImpl, Pivotable, PivotableImpl
 from .repeatable import Repeatable, RepeatableImpl

@@ -5,15 +5,15 @@ import numpy
 from numpy.typing import ArrayLike, NDArray
 
 from .repetition import Repetition
-from .utils import rotation_matrix_2d, layer_t, AutoSlots, annotations_t
-from .traits import PositionableImpl, LayerableImpl, Copyable, Pivotable, RepeatableImpl
+from .utils import rotation_matrix_2d, AutoSlots, annotations_t
+from .traits import PositionableImpl, Copyable, Pivotable, RepeatableImpl, Bounded
 from .traits import AnnotatableImpl
 
 
-class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
-            Pivotable, Copyable, metaclass=AutoSlots):
+class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl,
+            Bounded, Pivotable, Copyable, metaclass=AutoSlots):
     """
-    A text annotation with a position and layer (but no size; it is not drawn)
+    A text annotation with a position (but no size; it is not drawn)
     """
     __slots__ = ( '_string', )
 
@@ -40,13 +40,11 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
             string: str,
             *,
             offset: ArrayLike = (0.0, 0.0),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             ) -> None:
         self.string = string
         self.offset = numpy.array(offset, dtype=float, copy=True)
-        self.layer = layer
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
 
@@ -54,7 +52,6 @@ class Label(PositionableImpl, LayerableImpl, RepeatableImpl, AnnotatableImpl,
         return type(self)(
             string=self.string,
             offset=self.offset.copy(),
-            layer=self.layer,
             repetition=self.repetition,
             )
 

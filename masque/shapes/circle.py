@@ -7,7 +7,7 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, layer_t, annotations_t
+from ..utils import is_scalar, annotations_t
 
 
 class Circle(Shape):
@@ -17,7 +17,7 @@ class Circle(Shape):
     __slots__ = (
         '_radius',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations',
+        '_offset', '_repetition', '_annotations',
         )
 
     _radius: float
@@ -44,7 +44,6 @@ class Circle(Shape):
             radius: float,
             *,
             offset: ArrayLike = (0.0, 0.0),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -55,13 +54,11 @@ class Circle(Shape):
             self._offset = offset
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
-            self._layer = layer
         else:
             self.radius = radius
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-            self.layer = layer
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Circle':
         memo = {} if memo is None else memo
@@ -90,7 +87,7 @@ class Circle(Shape):
         ys = numpy.sin(thetas) * self.radius
         xys = numpy.vstack((xs, ys)).T
 
-        return [Polygon(xys, offset=self.offset, layer=self.layer)]
+        return [Polygon(xys, offset=self.offset)]
 
     def get_bounds(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset - self.radius,
@@ -110,9 +107,9 @@ class Circle(Shape):
     def normalized_form(self, norm_value) -> normalized_shape_tuple:
         rotation = 0.0
         magnitude = self.radius / norm_value
-        return ((type(self), self.layer),
+        return ((type(self),),
                 (self.offset, magnitude, rotation, False),
-                lambda: Circle(radius=norm_value, layer=self.layer))
+                lambda: Circle(radius=norm_value))
 
     def __repr__(self) -> str:
-        return f'<Circle l{self.layer} o{self.offset} r{self.radius:g}>'
+        return f'<Circle o{self.offset} r{self.radius:g}>'

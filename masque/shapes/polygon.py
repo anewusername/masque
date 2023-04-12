@@ -8,7 +8,7 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, layer_t
+from ..utils import is_scalar, rotation_matrix_2d
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 
 
@@ -22,7 +22,7 @@ class Polygon(Shape):
     __slots__ = (
         '_vertices',
         # Inherited
-        '_offset', '_layer', '_repetition', '_annotations',
+        '_offset', '_repetition', '_annotations',
         )
 
     _vertices: NDArray[numpy.float64]
@@ -82,7 +82,6 @@ class Polygon(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             mirrored: Sequence[bool] = (False, False),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -94,13 +93,11 @@ class Polygon(Shape):
             self._offset = offset
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
-            self._layer = layer
         else:
             self.vertices = vertices
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-            self.layer = layer
         self.rotate(rotation)
         [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
@@ -118,7 +115,6 @@ class Polygon(Shape):
             *,
             rotation: float = 0.0,
             offset: ArrayLike = (0.0, 0.0),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
@@ -128,7 +124,6 @@ class Polygon(Shape):
             side_length: Length of one side
             rotation: Rotation counterclockwise, in radians
             offset: Offset, default `(0, 0)`
-            layer: Layer, default `0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -139,7 +134,7 @@ class Polygon(Shape):
                                    [+1, +1],
                                    [+1, -1]], dtype=float)
         vertices = 0.5 * side_length * norm_square
-        poly = Polygon(vertices, offset=offset, layer=layer, repetition=repetition)
+        poly = Polygon(vertices, offset=offset, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -150,7 +145,6 @@ class Polygon(Shape):
             *,
             rotation: float = 0,
             offset: ArrayLike = (0.0, 0.0),
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
@@ -161,7 +155,6 @@ class Polygon(Shape):
             ly: Length along y (before rotation)
             rotation: Rotation counterclockwise, in radians
             offset: Offset, default `(0, 0)`
-            layer: Layer, default `0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -171,7 +164,7 @@ class Polygon(Shape):
                                       [-lx, +ly],
                                       [+lx, +ly],
                                       [+lx, -ly]], dtype=float)
-        poly = Polygon(vertices, offset=offset, layer=layer, repetition=repetition)
+        poly = Polygon(vertices, offset=offset, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -186,7 +179,6 @@ class Polygon(Shape):
             yctr: float | None = None,
             ymax: float | None = None,
             ly: float | None = None,
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
@@ -204,7 +196,6 @@ class Polygon(Shape):
             yctr: Center y coordinate
             ymax: Maximum y coordinate
             ly: Length along y direction
-            layer: Layer, default `0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -270,7 +261,7 @@ class Polygon(Shape):
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
 
-        poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr), layer=layer, repetition=repetition)
+        poly = Polygon.rectangle(lx, ly, offset=(xctr, yctr), repetition=repetition)
         return poly
 
     @staticmethod
@@ -281,7 +272,6 @@ class Polygon(Shape):
             regular: bool = True,
             center: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            layer: layer_t = 0,
             repetition: Repetition | None = None,
             ) -> 'Polygon':
         """
@@ -300,7 +290,6 @@ class Polygon(Shape):
             rotation: Rotation counterclockwise, in radians.
                 `0` results in four axis-aligned sides (the long sides of the
                 irregular octagon).
-            layer: Layer, default `0`
             repetition: `Repetition` object, default `None`
 
         Returns:
@@ -327,7 +316,7 @@ class Polygon(Shape):
             side_length = 2 * inner_radius / s
 
         vertices = 0.5 * side_length * norm_oct
-        poly = Polygon(vertices, offset=center, layer=layer, repetition=repetition)
+        poly = Polygon(vertices, offset=center, repetition=repetition)
         poly.rotate(rotation)
         return poly
 
@@ -378,9 +367,9 @@ class Polygon(Shape):
 
         # TODO: normalize mirroring?
 
-        return ((type(self), reordered_vertices.data.tobytes(), self.layer),
+        return ((type(self), reordered_vertices.data.tobytes()),
                 (offset, scale / norm_value, rotation, False),
-                lambda: Polygon(reordered_vertices * norm_value, layer=self.layer))
+                lambda: Polygon(reordered_vertices * norm_value))
 
     def clean_vertices(self) -> 'Polygon':
         """
@@ -414,4 +403,4 @@ class Polygon(Shape):
 
     def __repr__(self) -> str:
         centroid = self.offset + self.vertices.mean(axis=0)
-        return f'<Polygon l{self.layer} centroid {centroid} v{len(self.vertices)}>'
+        return f'<Polygon centroid {centroid} v{len(self.vertices)}>'

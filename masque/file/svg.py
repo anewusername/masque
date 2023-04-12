@@ -65,22 +65,24 @@ def writefile(
     for name, pat in library.items():
         svg_group = svg.g(id=mangle_name(name), fill='blue', stroke='red')
 
-        for shape in pat.shapes:
-            for polygon in shape.to_polygons():
-                path_spec = poly2path(polygon.vertices + polygon.offset)
+        for layer, shapes in pat.shapes.items():
+            for shape in shapes:
+                for polygon in shape.to_polygons():
+                    path_spec = poly2path(polygon.vertices + polygon.offset)
 
-                path = svg.path(d=path_spec)
-                if custom_attributes:
-                    path['pattern_layer'] = polygon.layer
+                    path = svg.path(d=path_spec)
+                    if custom_attributes:
+                        path['pattern_layer'] = layer
 
-                svg_group.add(path)
+                    svg_group.add(path)
 
-        for ref in pat.refs:
-            if ref.target is None:
+        for target, refs in pat.refs.items():
+            if target is None:
                 continue
-            transform = f'scale({ref.scale:g}) rotate({ref.rotation:g}) translate({ref.offset[0]:g},{ref.offset[1]:g})'
-            use = svg.use(href='#' + mangle_name(ref.target), transform=transform)
-            svg_group.add(use)
+            for ref in refs:
+                transform = f'scale({ref.scale:g}) rotate({ref.rotation:g}) translate({ref.offset[0]:g},{ref.offset[1]:g})'
+                use = svg.use(href='#' + mangle_name(target), transform=transform)
+                svg_group.add(use)
 
         svg.defs.add(svg_group)
     svg.add(svg.use(href='#' + mangle_name(top)))
@@ -133,9 +135,10 @@ def writefile_inverted(
     path_spec = poly2path(slab_edge)
 
     # Draw polygons with reversed vertex order
-    for shape in pattern.shapes:
-        for polygon in shape.to_polygons():
-            path_spec += poly2path(polygon.vertices[::-1] + polygon.offset)
+    for _layer, shapes in pattern.shapes.items():
+        for shape in shapes:
+            for polygon in shape.to_polygons():
+                path_spec += poly2path(polygon.vertices[::-1] + polygon.offset)
 
     svg.add(svg.path(d=path_spec, fill='blue', stroke='red'))
     svg.save()

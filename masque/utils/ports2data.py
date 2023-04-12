@@ -8,11 +8,11 @@ to write equivalent functions for your own format or alternate storage methods.
 """
 from typing import Sequence, Mapping
 import logging
+from itertools import chain
 
 import numpy
 
 from ..pattern import Pattern
-from ..label import Label
 from ..utils import layer_t
 from ..ports import Port
 from ..error import PatternError
@@ -44,9 +44,7 @@ def ports_to_data(pattern: Pattern, layer: layer_t) -> Pattern:
             angle_deg = numpy.inf
         else:
             angle_deg = numpy.rad2deg(port.rotation)
-        pattern.labels += [
-            Label(string=f'{name}:{port.ptype} {angle_deg:g}', layer=layer, offset=port.offset)
-            ]
+        pattern.label(layer=layer, string=f'{name}:{port.ptype} {angle_deg:g}', offset=port.offset)
     return pattern
 
 
@@ -97,7 +95,7 @@ def data_to_ports(
 
     # Load ports for all subpatterns, and use any we find
     found_ports = False
-    for target in set(rr.target for rr in pattern.refs):
+    for target in pattern.refs:
         if target is None:
             continue
         pp = data_to_ports(
@@ -113,17 +111,20 @@ def data_to_ports(
     if not found_ports:
         return pattern
 
-    for ref in pattern.refs:
-        if ref.target is None:
+    for target, refs in pattern.refs.items():
+        if target is None:
             continue
-        aa = library.abstract(ref.target)
-        if not aa.ports:
+        if not refs:
             continue
 
-        aa.apply_ref_transform(ref)
+        for ref in refs:
+            aa = library.abstract(target)
+            if not aa.ports:
+                break
 
-        pattern.check_ports(other_names=aa.ports.keys())
-        pattern.ports.update(aa.ports)
+            aa.apply_ref_transform(ref)
+            pattern.check_ports(other_names=aa.ports.keys())
+            pattern.ports.update(aa.ports)
     return pattern
 
 
@@ -149,13 +150,13 @@ def data_to_ports_flat(
     Returns:
         The updated `pattern`. Port labels are not removed.
     """
-    labels = [ll for ll in pattern.labels if ll.layer in layers]
+    labels = list(chain.from_iterable((pattern.labels[layer] for layer in layers)))
     if not labels:
         return pattern
 
     pstr = cell_name if cell_name is not None else repr(pattern)
     if pattern.ports:
-        raise PatternError('Pattern "{pstr}" has pre-existing ports!')
+        raise PatternError(f'Pattern "{pstr}" has pre-existing ports!')
 
     local_ports = {}
     for label in labels:
