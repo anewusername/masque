@@ -575,7 +575,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         for old_name in temp:
             new_name = rename_map.get(old_name, old_name)
             pat = self[new_name]
-            pat.refs = map_targets(pat.refs, rename_map)
+            pat.refs = map_targets(pat.refs, lambda tt: cast(dict[str | None, str | None], rename_map).get(tt, tt))
 
         return rename_map
 

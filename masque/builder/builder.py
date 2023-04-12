@@ -358,35 +358,35 @@ class Builder(PortList):
                        mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
         return self
 
-    @overload
-    def place(
-            self,
-            other: Abstract | str,
-            *,
-            offset: ArrayLike,
-            rotation: float,
-            pivot: ArrayLike,
-            mirrored: tuple[bool, bool],
-            port_map: dict[str, str | None] | None,
-            skip_port_check: bool,
-            append: bool,
-            ) -> Self:
-        pass
-
-    @overload
-    def place(
-            self,
-            other: Pattern,
-            *,
-            offset: ArrayLike,
-            rotation: float,
-            pivot: ArrayLike,
-            mirrored: tuple[bool, bool],
-            port_map: dict[str, str | None] | None,
-            skip_port_check: bool,
-            append: Literal[True],
-            ) -> Self:
-        pass
+#    @overload
+#    def place(
+#            self,
+#            other: Abstract | str,
+#            *,
+#            offset: ArrayLike,
+#            rotation: float,
+#            pivot: ArrayLike,
+#            mirrored: tuple[bool, bool],
+#            port_map: dict[str, str | None] | None,
+#            skip_port_check: bool,
+#            append: bool,
+#            ) -> Self:
+#        pass
+#
+#    @overload
+#    def place(
+#            self,
+#            other: Pattern,
+#            *,
+#            offset: ArrayLike,
+#            rotation: float,
+#            pivot: ArrayLike,
+#            mirrored: tuple[bool, bool],
+#            port_map: dict[str, str | None] | None,
+#            skip_port_check: bool,
+#            append: Literal[True],
+#            ) -> Self:
+#        pass
 
     def place(
             self,
