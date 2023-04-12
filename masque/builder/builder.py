@@ -1,4 +1,4 @@
-from typing import Self, Sequence, Mapping
+from typing import Self, Sequence, Mapping, Literal, overload, Final, cast
 import copy
 import logging
 
@@ -102,12 +102,6 @@ class Builder(PortList):
             ) -> None:
         """
         # TODO documentation for Builder() constructor
-
-        # TODO MOVE THE BELOW DOCS to PortList
-        # If `ports` is `None`, two default ports ('A' and 'B') are created.
-        # Both are placed at (0, 0) and have default `ptype`, but 'A' has rotation 0
-        #   (attached devices will be placed to the left) and 'B' has rotation
-        #   pi (attached devices will be placed to the right).
         """
         self._dead = False
         self.library = library
@@ -165,8 +159,7 @@ class Builder(PortList):
         Args:
             source: A collection of ports (e.g. Pattern, Builder, or dict)
                 from which to create the interface.
-            library: Used for buildin functions; if not passed and the source
-            library: Library from which existing patterns should be referenced,
+            library: Library from which existing patterns should be referenced,     TODO
                 and to which new ones should be added. If not provided,
                 the source's library will be used (if available).
             in_prefix: Prepended to port names for newly-created ports with
@@ -230,18 +223,47 @@ class Builder(PortList):
         new = Builder(library=library, ports={**ports_in, **ports_out}, name=name)
         return new
 
+#    @overload
+#    def plug(
+#            self,
+#            other: Abstract | str,
+#            map_in: dict[str, str],
+#            map_out: dict[str, str | None] | None,
+#            *,
+#            mirrored: tuple[bool, bool],
+#            inherit_name: bool,
+#            set_rotation: bool | None,
+#            append: bool,
+#            ) -> Self:
+#        pass
+#
+#    @overload
+#    def plug(
+#            self,
+#            other: Pattern,
+#            map_in: dict[str, str],
+#            map_out: dict[str, str | None] | None = None,
+#            *,
+#            mirrored: tuple[bool, bool] = (False, False),
+#            inherit_name: bool = True,
+#            set_rotation: bool | None = None,
+#            append: bool = False,
+#            ) -> Self:
+#        pass
+
     def plug(
             self,
-            other: Abstract | str,
+            other: Abstract | str | Pattern,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
             mirrored: tuple[bool, bool] = (False, False),
             inherit_name: bool = True,
             set_rotation: bool | None = None,
+            append: bool = False,
             ) -> Self:
         """
-        Instantiate a device `library[name]` into the current device, connecting
+        Instantiate or append a pattern into the current device, connecting
           the ports specified by `map_in` and renaming the unconnected
           ports specified by `map_out`.
 
@@ -327,13 +349,48 @@ class Builder(PortList):
             del self.ports[ki]
             map_out[vi] = None
 
-        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                   mirrored=mirrored, port_map=map_out, skip_port_check=True)
+        if isinstance(other, Pattern):
+            assert append
+            self.place(other, offset=translation, rotation=rotation, pivot=pivot,
+                       mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
+        else:
+            self.place(other, offset=translation, rotation=rotation, pivot=pivot,
+                       mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
         return self
 
+    @overload
     def place(
             self,
             other: Abstract | str,
+            *,
+            offset: ArrayLike,
+            rotation: float,
+            pivot: ArrayLike,
+            mirrored: tuple[bool, bool],
+            port_map: dict[str, str | None] | None,
+            skip_port_check: bool,
+            append: bool,
+            ) -> Self:
+        pass
+
+    @overload
+    def place(
+            self,
+            other: Pattern,
+            *,
+            offset: ArrayLike,
+            rotation: float,
+            pivot: ArrayLike,
+            mirrored: tuple[bool, bool],
+            port_map: dict[str, str | None] | None,
+            skip_port_check: bool,
+            append: Literal[True],
+            ) -> Self:
+        pass
+
+    def place(
+            self,
+            other: Abstract | str | Pattern,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -341,9 +398,10 @@ class Builder(PortList):
             mirrored: tuple[bool, bool] = (False, False),
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
+            append: bool = False,
             ) -> Self:
         """
-        Instantiate the device `other` into the current device, adding its
+        Instantiate or append the device `other` into the current device, adding its
           ports to those of the current device (but not connecting any ports).
 
         Mirroring is applied before rotation; translation (`offset`) is applied last.
@@ -375,7 +433,7 @@ class Builder(PortList):
 
         Raises:
             `PortError` if any ports specified in `map_in` or `map_out` do not
-                exist in `self.ports` or `library[name].ports`.
+                exist in `self.ports` or `other.ports`.
             `PortError` if there are any duplicate names after `map_in` and `map_out`
                 are applied.
         """
@@ -408,10 +466,26 @@ class Builder(PortList):
             p.translate(offset)
             self.ports[name] = p
 
-        sp = Ref(other.name, mirrored=mirrored)
-        sp.rotate_around(pivot, rotation)
-        sp.translate(offset)
-        self.pattern.refs.append(sp)
+        if append:
+            if isinstance(other, Pattern):
+                other_pat = other
+            elif isinstance(other, Abstract):
+                assert self.library is not None
+                other_pat = self.library[other.name]
+            else:
+                other_pat = self.library[name]
+            other_copy = other_pat.deepcopy()
+            other_copy.ports.clear()
+            other_copy.mirror2d(mirrored)
+            other_copy.rotate_around(pivot, rotation)
+            other_copy.translate_elements(offset)
+            self.pattern.append(other_copy)
+        else:
+            assert not isinstance(other, Pattern)
+            ref = Ref(other.name, mirrored=mirrored)
+            ref.rotate_around(pivot, rotation)
+            ref.translate(offset)
+            self.pattern.refs.append(ref)
         return self
 
     def translate(self, offset: ArrayLike) -> Self:
