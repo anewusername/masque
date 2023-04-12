@@ -53,6 +53,7 @@ class FlatBuilder(PortList):
         """
         # TODO documentation for FlatBuilder() constructor
         """
+        self._dead = False
         if pattern is not None:
             self.pattern = pattern
         else:
@@ -69,8 +70,6 @@ class FlatBuilder(PortList):
             self.tools = {None: tools}
         else:
             self.tools = dict(tools)
-
-        self._dead = False
 
     @classmethod
     def interface(
@@ -105,7 +104,6 @@ class FlatBuilder(PortList):
         Args:
             source: A collection of ports (e.g. Pattern, Builder, or dict)
                 from which to create the interface.
-            library: Used for buildin functions; if not passed and the source       TODO
             library: Library from which existing patterns should be referenced,     TODO
                 and to which new ones should be added. If not provided,
                 the source's library will be used (if available).
@@ -429,7 +427,7 @@ class FlatBuilder(PortList):
             ccw: SupportsBool | None,
             length: float,
             *,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             base_name: str = '_path',
             **kwargs,
             ) -> Self:
@@ -448,7 +446,7 @@ class FlatBuilder(PortList):
             ccw: SupportsBool | None,
             position: float,
             *,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
             ) -> Self:
@@ -483,7 +481,7 @@ class FlatBuilder(PortList):
             *,
             spacing: float | ArrayLike | None = None,
             set_rotation: float | None = None,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             force_container: bool = False,
             base_name: str = '_mpath',
             **kwargs,

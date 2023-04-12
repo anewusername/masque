@@ -218,7 +218,7 @@ class Pather(Builder):
             ccw: SupportsBool | None,
             length: float,
             *,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             base_name: str = '_path',
             **kwargs,
             ) -> Self:
@@ -239,7 +239,7 @@ class Pather(Builder):
             ccw: SupportsBool | None,
             position: float,
             *,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
             ) -> Self:
@@ -274,7 +274,7 @@ class Pather(Builder):
             *,
             spacing: float | ArrayLike | None = None,
             set_rotation: float | None = None,
-            tool_port_names: Sequence[str] = ('A', 'B'),
+            tool_port_names: tuple[str, str] = ('A', 'B'),
             force_container: bool = False,
             base_name: str = '_mpath',
             **kwargs,
