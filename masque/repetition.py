@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 import numpy
 from numpy.typing import ArrayLike, NDArray
 
-from .traits import Copyable, Scalable, Rotatable, Mirrorable
+from .traits import Copyable, Scalable, Rotatable, Mirrorable, Bounded
 from .error import PatternError
 from .utils import rotation_matrix_2d
 
