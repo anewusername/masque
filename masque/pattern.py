@@ -368,8 +368,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                             mirr_x, rot2 = normalize_mirror(ref.mirrored)
                             if mirr_x:
                                 ubounds[:, 1] *= -1
-                            bounds = numpy.round(rotation_matrix_2d(ref.rotation + rot2)) @ ubounds
-                            # note: rounding fixes up
+
+                            # note: rounding fixes up sin/cos inaccuracy, probably unnecessary
+                            corners = (numpy.round(rotation_matrix_2d(ref.rotation + rot2)) @ ubounds.T).T
+                            bounds = numpy.vstack((numpy.min(corners, axis=0),
+                                                   numpy.max(corners, axis=0))) * ref.scale + [ref.offset]
 
                     else:
                         # Non-manhattan rotation, have to figure out bounds by rotating the pattern
