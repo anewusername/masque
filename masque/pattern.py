@@ -1,21 +1,21 @@
 """
  Base object representing a lithography mask.
 """
-from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar
+from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar, MutableMapping
 import copy
 import logging
 from itertools import chain
 from collections import defaultdict
 
 import numpy
-from numpy import inf
+from numpy import inf, pi
 from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
 from .shapes import Shape, Polygon, Path, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
-from .utils import rotation_matrix_2d, annotations_t, layer_t
+from .utils import rotation_matrix_2d, annotations_t, layer_t, normalize_mirror
 from .error import PatternError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable, Bounded
 from .ports import Port, PortList
@@ -358,7 +358,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                     cache[target] = unrot_bounds
 
                 for ref in refs:
-                    if numpy.isclose(ref.rotation % pi, 0):
+                    if numpy.isclose(ref.rotation % (pi / 2), 0):
                         if unrot_bounds is None:
                             bounds = None
                         else:
@@ -368,6 +368,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                                 ubounds[:, 1] *= -1
                             bounds = numpy.round(rotation_matrix(ref.rotation + rot2)) @ ubounds
                             # note: rounding fixes up
+                        # TODO: repetitions!
                     else:
                         # Non-manhattan rotation, have to figure out bounds by rotating the pattern
                         bounds = ref.get_bounds(library[target], library=library)
