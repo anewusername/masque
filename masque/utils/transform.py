@@ -2,11 +2,13 @@
 Geometric transforms
 """
 from typing import Sequence
+from functools import lru_cache
 
 import numpy
 from numpy.typing import NDArray
 
 
+@lru_cache
 def rotation_matrix_2d(theta: float) -> NDArray[numpy.float64]:
     """
     2D rotation matrix for rotating counterclockwise around the origin.
@@ -17,8 +19,10 @@ def rotation_matrix_2d(theta: float) -> NDArray[numpy.float64]:
     Returns:
         rotation matrix
     """
-    return numpy.array([[numpy.cos(theta), -numpy.sin(theta)],
-                        [numpy.sin(theta), +numpy.cos(theta)]])
+    arr = numpy.array([[numpy.cos(theta), -numpy.sin(theta)],
+                       [numpy.sin(theta), +numpy.cos(theta)]])
+    arr.flags.writeable = False
+    return arr
 
 
 def normalize_mirror(mirrored: Sequence[bool]) -> tuple[bool, float]:
