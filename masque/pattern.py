@@ -561,15 +561,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def copy(self) -> Self:
         """
-        Return a copy of the Pattern, deep-copying shapes and copying refs
-         entries, but not deep-copying any referenced patterns.
-
+        Convenience method for `copy.deepcopy(pattern)` (same as `Pattern.deepcopy()`).
         See also: `Pattern.deepcopy()`
 
         Returns:
-            A copy of the current Pattern.
+            A deep copy of the current Pattern.
         """
-        return copy.copy(self)
+        return copy.deepcopy(self)
 
     def deepcopy(self) -> Self:
         """
