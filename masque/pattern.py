@@ -326,7 +326,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if self.is_empty():
             return None
 
-        rbounds = numpy.array([
+        cbounds = numpy.array([
             (+inf, +inf),
             (-inf, -inf),
             ])
@@ -335,8 +335,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             bounds = cast(Bounded, entry).get_bounds()
             if bounds is None:
                 continue
-            rbounds[0] = numpy.minimum(rbounds[0], bounds[0])
-            rbounds[1] = numpy.maximum(rbounds[1], bounds[1])
+            if entry.repetition is not None:
+                bounds += entry.repetition.get_bounds()
+            cbounds[0] = numpy.minimum(cbounds[0], bounds[0])
+            cbounds[1] = numpy.maximum(cbounds[1], bounds[1])
 
         if recurse and self.has_refs():
             if library is None:
@@ -353,7 +355,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
                 if target in cache:
                     unrot_bounds = cache[target]
-                elif any(numpy.isclose(ref.rotation % pi, 0) for ref in refs):
+                elif any(numpy.isclose(ref.rotation % pi / 2, 0) for ref in refs):
                     unrot_bounds = library[target].get_bounds(library=library, recurse=recurse, cache=cache)
                     cache[target] = unrot_bounds
 
@@ -368,7 +370,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                                 ubounds[:, 1] *= -1
                             bounds = numpy.round(rotation_matrix(ref.rotation + rot2)) @ ubounds
                             # note: rounding fixes up
-                        # TODO: repetitions!
+
                     else:
                         # Non-manhattan rotation, have to figure out bounds by rotating the pattern
                         bounds = ref.get_bounds(library[target], library=library)
@@ -376,13 +378,16 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                     if bounds is None:
                         continue
 
-                    rbounds[0] = numpy.minimum(rbounds[0], bounds[0])
-                    rbounds[1] = numpy.maximum(rbounds[1], bounds[1])
+                    if ref.repetition is not None:
+                        bounds += ref.repetition.get_bounds()
 
-        if (rbounds[1] < rbounds[0]).any():
+                    cbounds[0] = numpy.minimum(cbounds[0], bounds[0])
+                    cbounds[1] = numpy.maximum(cbounds[1], bounds[1])
+
+        if (cbounds[1] < cbounds[0]).any():
             return None
         else:
-            return rbounds
+            return cbounds
 
     def get_bounds_nonempty(
             self,
