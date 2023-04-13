@@ -15,7 +15,7 @@ from .error import PatternError
 from .utils import rotation_matrix_2d
 
 
-class Repetition(Copyable, Rotatable, Mirrorable, Scalable, metaclass=ABCMeta):
+class Repetition(Copyable, Rotatable, Mirrorable, Scalable, Bounded, metaclass=ABCMeta):
     """
     Interface common to all objects which specify repetitions
     """

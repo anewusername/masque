@@ -327,7 +327,7 @@ class Polygon(Shape):
             ) -> list['Polygon']:
         return [copy.deepcopy(self)]
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds(self) -> NDArray[numpy.float64]:         # TODO note shape get_bounds doesn't include repetition
         return numpy.vstack((self.offset + numpy.min(self.vertices, axis=0),
                              self.offset + numpy.max(self.vertices, axis=0)))
 
