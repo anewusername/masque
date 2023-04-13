@@ -310,6 +310,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self,
             library: Mapping[str, 'Pattern'] | None = None,
             recurse: bool = True,
+            cache: MutableMapping[str, NDArray[numpy.float64]] | None = None,
             ) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
@@ -325,37 +326,62 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if self.is_empty():
             return None
 
-        min_bounds = numpy.array((+inf, +inf))
-        max_bounds = numpy.array((-inf, -inf))
+        rbounds = numpy.array([
+            (+inf, +inf),
+            (-inf, -inf),
+            ])
 
         for entry in chain_elements(self.shapes, self.labels):
             bounds = cast(Bounded, entry).get_bounds()
             if bounds is None:
                 continue
-            min_bounds = numpy.minimum(min_bounds, bounds[0, :])
-            max_bounds = numpy.maximum(max_bounds, bounds[1, :])
+            rbounds[0] = numpy.minimum(rbounds[0], bounds[0])
+            rbounds[1] = numpy.maximum(rbounds[1], bounds[1])
 
         if recurse and self.has_refs():
             if library is None:
                 raise PatternError('Must provide a library to get_bounds() to resolve refs')
+
+            if cache is None:
+                cache = {}
 
             for target, refs in self.refs.items():
                 if target is None:
                     continue
                 if not refs:
                     continue
-                target_pat = library[target]
+
+                if target in cache:
+                    unrot_bounds = cache[target]
+                elif any(numpy.isclose(ref.rotation % pi, 0) for ref in refs):
+                    unrot_bounds = library[target].get_bounds(library=library, recurse=recurse, cache=cache)
+                    cache[target] = unrot_bounds
+
                 for ref in refs:
-                    bounds = ref.get_bounds(target_pat, library=library)
+                    if numpy.isclose(ref.rotation % pi, 0):
+                        if unrot_bounds is None:
+                            bounds = None
+                        else:
+                            ubounds = unrot_bounds.copy()
+                            mirr_x, rot2 = normalize_mirror(ref.mirrored)
+                            if mirr_x:
+                                ubounds[:, 1] *= -1
+                            bounds = numpy.round(rotation_matrix(ref.rotation + rot2)) @ ubounds
+                            # note: rounding fixes up
+                    else:
+                        # Non-manhattan rotation, have to figure out bounds by rotating the pattern
+                        bounds = ref.get_bounds(library[target], library=library)
+
                     if bounds is None:
                         continue
-                    min_bounds = numpy.minimum(min_bounds, bounds[0, :])
-                    max_bounds = numpy.maximum(max_bounds, bounds[1, :])
 
-        if (max_bounds < min_bounds).any():
+                    rbounds[0] = numpy.minimum(rbounds[0], bounds[0])
+                    rbounds[1] = numpy.maximum(rbounds[1], bounds[1])
+
+        if (rbounds[1] < rbounds[0]).any():
             return None
         else:
-            return numpy.vstack((min_bounds, max_bounds))
+            return rbounds
 
     def get_bounds_nonempty(
             self,
