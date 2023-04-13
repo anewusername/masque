@@ -368,7 +368,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                             mirr_x, rot2 = normalize_mirror(ref.mirrored)
                             if mirr_x:
                                 ubounds[:, 1] *= -1
-                            bounds = numpy.round(rotation_matrix(ref.rotation + rot2)) @ ubounds
+                            bounds = numpy.round(rotation_matrix_2d(ref.rotation + rot2)) @ ubounds
                             # note: rounding fixes up
 
                     else:
