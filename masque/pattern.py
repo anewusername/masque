@@ -355,7 +355,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
                 if target in cache:
                     unrot_bounds = cache[target]
-                elif any(numpy.isclose(ref.rotation % pi / 2, 0) for ref in refs):
+                elif any(numpy.isclose(ref.rotation % (pi / 2), 0) for ref in refs):
                     unrot_bounds = library[target].get_bounds(library=library, recurse=recurse, cache=cache)
                     cache[target] = unrot_bounds
 
