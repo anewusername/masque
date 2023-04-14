@@ -5,7 +5,7 @@ import numpy
 from numpy.typing import NDArray, ArrayLike
 
 from ..traits import (
-    Rotatable, Mirrorable, Copyable, Scalable, Bounded,
+    Rotatable, Mirrorable, Copyable, Scalable,
     PositionableImpl, PivotableImpl, RepeatableImpl, AnnotatableImpl,
     )
 
@@ -25,7 +25,7 @@ normalized_shape_tuple = tuple[
 DEFAULT_POLY_NUM_VERTICES = 24
 
 
-class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable, Bounded,
+class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Class specifying functions common to all shapes.
@@ -118,7 +118,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable, Bounded
 
         polygon_contours = []
         for polygon in self.to_polygons():
-            bounds = polygon.get_bounds()
+            bounds = polygon.get_bounds_single()
             if bounds is None:
                 continue
 
@@ -250,7 +250,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable, Bounded
         polygon_contours = []
         for polygon in self.to_polygons():
             # Get rid of unused gridlines (anything not within 2 lines of the polygon bounds)
-            bounds = polygon.get_bounds()
+            bounds = polygon.get_bounds_single()
             if bounds is None:
                 continue
 

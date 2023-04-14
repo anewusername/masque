@@ -89,7 +89,7 @@ class Circle(Shape):
 
         return [Polygon(xys, offset=self.offset)]
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset - self.radius,
                              self.offset + self.radius))
 

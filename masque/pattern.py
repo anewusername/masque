@@ -8,7 +8,7 @@ from itertools import chain
 from collections import defaultdict
 
 import numpy
-from numpy import inf, pi
+from numpy import inf, pi, nan
 from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
@@ -310,7 +310,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self,
             library: Mapping[str, 'Pattern'] | None = None,
             recurse: bool = True,
-            cache: MutableMapping[str, NDArray[numpy.float64]] | None = None,
+            cache: MutableMapping[str, NDArray[numpy.float64] | None] | None = None,
             ) -> NDArray[numpy.float64] | None:
         """
         Return a `numpy.ndarray` containing `[[x_min, y_min], [x_max, y_max]]`, corresponding to the
@@ -326,19 +326,24 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if self.is_empty():
             return None
 
-        cbounds = numpy.array([
-            (+inf, +inf),
-            (-inf, -inf),
-            ])
+        n_elems = sum(1 for _ in chain_elements(self.shapes, self.labels))
+        ebounds = numpy.full((n_elems, 2, 2), nan)
+        for ee, entry in enumerate(chain_elements(self.shapes, self.labels)):
+            maybe_ebounds = cast(Bounded, entry).get_bounds()
+            if maybe_ebounds is not None:
+                ebounds[ee] = maybe_ebounds
+        mask = ~numpy.isnan(ebounds[:, 0, 0])
 
-        for entry in chain_elements(self.shapes, self.labels):
-            bounds = cast(Bounded, entry).get_bounds()
-            if bounds is None:
-                continue
-            if entry.repetition is not None:
-                bounds += entry.repetition.get_bounds()
-            cbounds[0] = numpy.minimum(cbounds[0], bounds[0])
-            cbounds[1] = numpy.maximum(cbounds[1], bounds[1])
+        if mask.any():
+            cbounds = numpy.vstack((
+                numpy.min(ebounds[mask, 0, :]),
+                numpy.max(ebounds[mask, 1, :]),
+                ))
+        else:
+            cbounds = numpy.array((
+                (+inf, +inf),
+                (-inf, -inf),
+                ))
 
         if recurse and self.has_refs():
             if library is None:
@@ -380,9 +385,6 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
                     if bounds is None:
                         continue
-
-                    if ref.repetition is not None:
-                        bounds += ref.repetition.get_bounds()
 
                     cbounds[0] = numpy.minimum(cbounds[0], bounds[0])
                     cbounds[1] = numpy.maximum(cbounds[1], bounds[1])

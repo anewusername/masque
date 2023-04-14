@@ -241,7 +241,7 @@ class Arc(Shape):
         poly = Polygon(xys, offset=self.offset, rotation=self.rotation)
         return [poly]
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         '''
         Equation for rotated ellipse is
             `x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)`
