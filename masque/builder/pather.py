@@ -121,13 +121,6 @@ class Pather(Builder):
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
-        if tools is None:
-            self.tools = {}
-        elif isinstance(tools, Tool):
-            self.tools = {None: tools}
-        else:
-            self.tools = dict(tools)
-
         if name is not None:
             library[name] = self.pattern
 

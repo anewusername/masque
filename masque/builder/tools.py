@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod     # TODO any way to make Tool ok with 
 from dataclasses import dataclass
 
 import numpy
+from numpy.typing import NDArray
 from numpy import pi
 
 from ..utils import SupportsBool, rotation_matrix_2d, layer_t
@@ -20,8 +21,9 @@ from .builder import Builder
 @dataclass(frozen=True, slots=True)
 class RenderStep:
     opcode: Literal['L', 'S', 'U', 'P']
-    tool: 'Tool' | None
+    tool: 'Tool | None'
     start_port: Port
+    end_port: Port
     data: Any
 
     def __post_init__(self) -> None:
@@ -50,7 +52,7 @@ class Tool:
             in_ptype: str | None = None,
             out_ptype: str | None = None,
             **kwargs,
-            ) -> Any:
+            ) -> tuple[Port, Any]:
         raise NotImplementedError(f'planL() not implemented for {type(self)}')
 
     def planS(
@@ -62,7 +64,7 @@ class Tool:
             in_ptype: str | None = None,
             out_ptype: str | None = None,
             **kwargs,
-            ) -> Any:
+            ) -> tuple[Port, Any]:
         raise NotImplementedError(f'planS() not implemented for {type(self)}')
 
     def render(
@@ -81,11 +83,19 @@ class Tool:
 abstract_tuple_t = tuple[Abstract, str, str]
 
 
+@dataclass
 class BasicTool(Tool, metaclass=ABCMeta):
     straight: tuple[Callable[[float], Pattern], str, str]
     bend: abstract_tuple_t             # Assumed to be clockwise
     transitions: dict[str, abstract_tuple_t]
     default_out_ptype: str
+
+    @dataclass(frozen=True, slots=True)
+    class LData:
+        straight_length: float
+        ccw: SupportsBool | None
+        in_transition: abstract_tuple_t | None
+        out_transition: abstract_tuple_t | None
 
     def path(
             self,
@@ -97,7 +107,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
             ) -> Pattern:
-        straight_length, _ccw, in_transition, out_transition = self.planL(
+        _out_port, data = self.planL(
             ccw,
             length,
             in_ptype=in_ptype,
@@ -107,17 +117,17 @@ class BasicTool(Tool, metaclass=ABCMeta):
         gen_straight, sport_in, sport_out = self.straight
         tree = Library()
         bb = Builder(library=tree, name='_path').add_port_pair(names=port_names)
-        if in_transition:
-            ipat, iport_theirs, _iport_ours = in_transition
+        if data.in_transition:
+            ipat, iport_theirs, _iport_ours = data.in_transition
             bb.plug(ipat, {port_names[1]: iport_theirs})
-        if not numpy.isclose(straight_length, 0):
-            straight = tree << {'_straight': gen_straight(straight_length)}
+        if not numpy.isclose(data.straight_length, 0):
+            straight = tree << {'_straight': gen_straight(data.straight_length)}
             bb.plug(straight, {port_names[1]: sport_in})
-        if ccw is not None:
+        if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
             bb.plug(bend, {port_names[1]: bport_in}, mirrored=(False, bool(ccw)))
-        if out_transition:
-            opat, oport_theirs, oport_ours = out_transition
+        if data.out_transition:
+            opat, oport_theirs, oport_ours = data.out_transition
             bb.plug(opat, {port_names[1]: oport_ours})
 
         return bb.pattern
@@ -130,7 +140,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             in_ptype: str | None = None,
             out_ptype: str | None = None,
             **kwargs,
-            ) -> tuple[float, SupportsBool | None, abstract_tuple_t | None, abstract_tuple_t | None]:
+            ) -> tuple[Port, LData]:
         # TODO check all the math for L-shaped bends
         if ccw is not None:
             bend, bport_in, bport_out = self.bend
@@ -195,7 +205,9 @@ class BasicTool(Tool, metaclass=ABCMeta):
                 f'bend: {bend_dxy[0]:,g}  in_trans: {itrans_dxy[0]:,g}  out_trans: {otrans_dxy[0]:,g}'
                 )
 
-        return float(straight_length), ccw, in_transition, out_transition
+        data = self.LData(straight_length, ccw, in_transition, out_transition)
+        out_port = Port((length, bend_run), rotation=bend_angle, ptype=out_ptype_actual)
+        return out_port, data
 
     def render(
             self,
@@ -234,20 +246,22 @@ class BasicTool(Tool, metaclass=ABCMeta):
         return tree
 
 
-
+@dataclass
 class PathTool(Tool, metaclass=ABCMeta):
-    straight: tuple[Callable[[float], Pattern], str, str]
-    bend: abstract_tuple_t             # Assumed to be clockwise
-    transitions: dict[str, abstract_tuple_t]
-    ptype: str
-    width: float
     layer: layer_t
+    width: float
+    ptype: str = 'unk'
 
-    def __init__(self, layer: layer_t, width: float, ptype: str = 'unk') -> None:
-        Tool.__init__(self)
-        self.layer = layer
-        self.width = width
-        self.ptype: str
+    #@dataclass(frozen=True, slots=True)
+    #class LData:
+    #    dxy: NDArray[numpy.float64]
+
+
+    #def __init__(self, layer: layer_t, width: float, ptype: str = 'unk') -> None:
+    #    Tool.__init__(self)
+    #    self.layer = layer
+    #    self.width = width
+    #    self.ptype: str
 
     def path(
             self,
@@ -259,7 +273,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
             ) -> Pattern:
-        dxy = self.planL(
+        out_port, dxy = self.planL(
             ccw,
             length,
             in_ptype=in_ptype,
@@ -291,7 +305,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             in_ptype: str | None = None,
             out_ptype: str | None = None,
             **kwargs,
-            ) -> tuple[float, float]:
+            ) -> tuple[Port, NDArray[numpy.float64]]:
         # TODO check all the math for L-shaped bends
 
         if out_ptype and out_ptype != self.ptype:
@@ -306,7 +320,7 @@ class PathTool(Tool, metaclass=ABCMeta):
                 bend_angle *= -1
         else:
             bend_dxy = numpy.zeros(2)
-            bend_angle = 0
+            bend_angle = pi
 
         straight_length = length - bend_dxy[0]
         bend_run = bend_dxy[1]
@@ -315,8 +329,9 @@ class PathTool(Tool, metaclass=ABCMeta):
             raise BuildError(
                 f'Asked to draw path with total length {length:,g}, shorter than required bend: {bend_dxy[0]:,g}'
                 )
-
-        return length, bend_run
+        data = numpy.array((length, bend_run))
+        out_port = Port(data, rotation=bend_angle, ptype=self.ptype)
+        return out_port, data
 
     def render(
             self,
@@ -335,12 +350,16 @@ class PathTool(Tool, metaclass=ABCMeta):
 
             if step.opcode == 'L':
                 length, bend_run = step.data
-                dxy = rotation_matrix_2d(port_rot + pi) @ (length, bend_run)
+                dxy = rotation_matrix_2d(port_rot + pi) @ (length, 0)
+                #path_vertices.append(step.start_port.offset)
                 path_vertices.append(step.start_port.offset + dxy)
             else:
                 raise BuildError(f'Unrecognized opcode "{step.opcode}"')
 
         tree, pat = Library.mktree('_path')
         pat.path(layer=self.layer, width=self.width, vertices=path_vertices)
-
+        pat.ports = {
+            port_names[0]: batch[0].start_port.copy().rotate(pi),
+            port_names[1]: batch[-1].end_port.copy().rotate(pi),
+            }
         return tree
