@@ -309,21 +309,23 @@ class Path(Shape):
 
         return polys
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         if self.cap == PathCap.Circle:
             bounds = self.offset + numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
                                                  numpy.max(self.vertices, axis=0) + self.width / 2))
-        elif self.cap in (PathCap.Flush,
-                          PathCap.Square,
-                          PathCap.SquareCustom):
+        elif self.cap in (
+                PathCap.Flush,
+                PathCap.Square,
+                PathCap.SquareCustom,
+                ):
             bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
             polys = self.to_polygons()
             for poly in polys:
-                poly_bounds = poly.get_bounds_nonempty()
+                poly_bounds = poly.get_bounds_single_nonempty()
                 bounds[0, :] = numpy.minimum(bounds[0, :], poly_bounds[0, :])
                 bounds[1, :] = numpy.maximum(bounds[1, :], poly_bounds[1, :])
         else:
-            raise PatternError(f'get_bounds() not implemented for endcaps: {self.cap}')
+            raise PatternError(f'get_bounds_single() not implemented for endcaps: {self.cap}')
 
         return bounds
 

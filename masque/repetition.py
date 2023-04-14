@@ -237,7 +237,11 @@ class Grid(Repetition):
             `[[x_min, y_min], [x_max, y_max]]` or `None`
         """
         a_extent = self.a_vector * (self.a_count - 1)
-        b_extent = self.b_vector * ((self.b_count - 1) if (self.b_vector is not None) else 0)       # type: NDArray[numpy.float64] | float
+        if self.b_count is None:
+            b_extent = numpy.zeros(2)
+        else:
+            assert self.b_vector is not None
+            b_extent = self.b_vector * (self.b_count - 1)
 
         corners = numpy.stack(((0, 0), a_extent, b_extent, a_extent + b_extent))
         xy_min = numpy.min(corners, axis=0)

@@ -144,7 +144,7 @@ class Ref(
             self.repetition.mirror(axis)
         return self
 
-    def get_bounds(
+    def get_bounds_single(
             self,
             pattern: 'Pattern',
             *,
@@ -165,22 +165,6 @@ class Ref(
             # no need to run as_pattern()
             return None
         return self.as_pattern(pattern=pattern).get_bounds(library)     # TODO can just take pattern's bounds and then transform those!
-
-    def get_bounds_nonempty(
-            self,
-            pattern: 'Pattern',
-            *,
-            library: Mapping[str, 'Pattern'] | None = None,
-            ) -> NDArray[numpy.float64]:
-        """
-        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
-        Asserts that the entity is non-empty (i.e., `get_bounds()` does not return None).
-
-        This is handy for destructuring like `xy_min, xy_max = entity.get_bounds_nonempty()`
-        """
-        bounds = self.get_bounds(pattern, library=library)
-        assert bounds is not None
-        return bounds
 
     def __repr__(self) -> str:
         rotation = f' r{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''

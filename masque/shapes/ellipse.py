@@ -152,7 +152,7 @@ class Ellipse(Shape):
         poly = Polygon(xys, offset=self.offset, rotation=self.rotation)
         return [poly]
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         rot_radii = numpy.dot(rotation_matrix_2d(self.rotation), self.radii)
         return numpy.vstack((self.offset - rot_radii[0],
                              self.offset + rot_radii[1]))

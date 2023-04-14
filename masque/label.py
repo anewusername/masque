@@ -78,7 +78,7 @@ class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl,
         self.translate(+pivot)
         return self
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         """
         Return the bounds of the label.
 

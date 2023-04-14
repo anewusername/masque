@@ -1,4 +1,4 @@
-from typing import Self, Sequence, Mapping, Final
+from typing import Self, Sequence, Mapping
 import copy
 import logging
 from collections import defaultdict
@@ -15,7 +15,7 @@ from ..ports import PortList, Port
 from ..abstract import Abstract
 from ..utils import rotation_matrix_2d
 from ..utils import SupportsBool
-from .tools import Tool, render_step_t
+from .tools import Tool, RenderStep
 from .utils import ell
 from .builder import Builder
 
@@ -35,8 +35,7 @@ class RenderPather(PortList):
     _dead: bool
     """ If True, plug()/place() are skipped (for debugging) """
 
-    paths: defaultdict[str, list[render_step_t]]
-#       op, start_port, dx, dy, o_ptype tool
+    paths: defaultdict[str, list[RenderStep]]
 
     tools: dict[str | None, Tool]
     """
@@ -228,11 +227,10 @@ class RenderPather(PortList):
 
         # get rid of plugged ports
         for ki, vi in map_in.items():
+            if ki in self.paths:
+                self.paths[ki].append(RenderStep('P', None, self.ports[ki].copy(), None))
             del self.ports[ki]
             map_out[vi] = None
-            if ki in self.paths:
-                self.paths[ki].append(('P', None, 0.0, 0.0, 'unk', None))
-
         self.place(other, offset=translation, rotation=rotation, pivot=pivot,
                    mirrored=mirrored, port_map=map_out, skip_port_check=True)
         return self
@@ -270,7 +268,7 @@ class RenderPather(PortList):
                 continue
             ports[new_name] = port
             if new_name in self.paths:
-                self.paths[new_name].append(('P', None, 0.0, 0.0, 'unk', None))
+                self.paths[new_name].append(RenderStep('P', None, port.copy(), None))
 
         for name, port in ports.items():
             p = port.deepcopy()
@@ -303,18 +301,9 @@ class RenderPather(PortList):
 
         tool = self.tools.get(portspec, self.tools[None])
         # ask the tool for bend size (fill missing dx or dy), check feasibility, and get out_ptype
-        bend_radius, out_ptype = tool.planL(ccw, length, in_ptype=in_ptype, **kwargs)
+        data = tool.planL(ccw, length, in_ptype=in_ptype, **kwargs)
 
-        if ccw is None:
-            bend_run = 0.0
-        elif bool(ccw):
-            bend_run = bend_radius
-        else:
-            bend_run = -bend_radius
-
-        dx, dy = rotation_matrix_2d(port_rot + pi) @ [length, bend_run]
-
-        step: Final = ('L', port.deepcopy(), dx, dy, out_ptype, tool)
+        step = RenderStep('L', tool, port.copy(), data)
         self.paths[portspec].append(step)
 
         # Update port
@@ -415,19 +404,19 @@ class RenderPather(PortList):
         bb = Builder(lib)
 
         for portspec, steps in self.paths.items():
-            batch: list[render_step_t] = []
+            batch: list[RenderStep] = []
+            tool0 = batch[0].tool
+            port0 = batch[0].start_port
+            assert tool0 is not None
             for step in steps:
-                opcode, _start_port, _dx, _dy, _out_ptype, tool = step
-
-                appendable_op = opcode in ('L', 'S', 'U')
-                same_tool = batch and tool == batch[-1]
+                appendable_op = step.opcode in ('L', 'S', 'U')
+                same_tool = batch and step.tool == tool0
 
                 if batch and (not appendable_op or not same_tool):
                     # If we can't continue a batch, render it
-                    assert tool is not None
-                    assert batch[0][1] is not None
-                    name = lib << tool.render(batch, portnames=tool_port_names)
-                    bb.ports[portspec] = batch[0][1]
+                    assert batch[0].tool is not None
+                    name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
+                    bb.ports[portspec] = port0.copy()
                     bb.plug(name, {portspec: tool_port_names[0]})
                     batch = []
 
@@ -441,10 +430,9 @@ class RenderPather(PortList):
 
             if batch:
                 # A batch didn't end yet
-                assert tool is not None
-                assert batch[0][1] is not None
-                name = lib << tool.render(batch, portnames=tool_port_names)
-                bb.ports[portspec] = batch[0][1]
+                assert batch[0].tool is not None
+                name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
+                bb.ports[portspec] = batch[0].start_port.copy()
                 bb.plug(name, {portspec: tool_port_names[0]})
 
         bb.ports.clear()

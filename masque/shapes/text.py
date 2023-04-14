@@ -2,7 +2,7 @@ from typing import Sequence, Any
 import copy
 
 import numpy
-from numpy import pi, inf
+from numpy import pi, nan
 from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, Polygon, normalized_shape_tuple
@@ -151,15 +151,20 @@ class Text(RotatableImpl, Shape):
                     mirrored=(mirror_x, False),
                     ))
 
-    def get_bounds(self) -> NDArray[numpy.float64]:
+    def get_bounds_single(self) -> NDArray[numpy.float64]:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so
         #  just convert to polygons instead
-        bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
         polys = self.to_polygons()
-        for poly in polys:
-            poly_bounds = poly.get_bounds()
-            bounds[0, :] = numpy.minimum(bounds[0, :], poly_bounds[0, :])
-            bounds[1, :] = numpy.maximum(bounds[1, :], poly_bounds[1, :])
+        pbounds = numpy.full((len(polys), 2, 2), nan)
+#        bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
+        for pp, poly in enumerate(polys):
+            pbounds[pp] = poly.get_bounds_nonempty()
+#            bounds[0] = numpy.minimum(bounds[0], poly_bounds[0])
+#            bounds[1] = numpy.maximum(bounds[1], poly_bounds[1])
+        bounds = numpy.vstack((
+            numpy.min(pbounds[: 0, :], axis=0),
+            numpy.max(pbounds[: 1, :], axis=0),
+            ))
 
         return bounds
 

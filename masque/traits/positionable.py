@@ -61,27 +61,6 @@ class Positionable(metaclass=ABCMeta):
         pass
 
 
-class Bounded(metaclass=ABCMeta):
-    @abstractmethod
-    def get_bounds(self) -> NDArray[numpy.float64] | None:
-        """
-        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
-        Returns `None` for an empty entity.
-        """
-        pass
-
-    def get_bounds_nonempty(self) -> NDArray[numpy.float64]:
-        """
-        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
-        Asserts that the entity is non-empty (i.e., `get_bounds()` does not return None).
-
-        This is handy for destructuring like `xy_min, xy_max = entity.get_bounds_nonempty()`
-        """
-        bounds = self.get_bounds()
-        assert bounds is not None
-        return bounds
-
-
 class PositionableImpl(Positionable, metaclass=ABCMeta):
     """
     Simple implementation of Positionable
@@ -121,3 +100,26 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     def translate(self, offset: ArrayLike) -> Self:
         self._offset += offset   # type: ignore         # NDArray += ArrayLike should be fine??
         return self
+
+
+class Bounded(metaclass=ABCMeta):
+    @abstractmethod
+    def get_bounds(self, *args, **kwargs) -> NDArray[numpy.float64] | None:
+        """
+        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
+        Returns `None` for an empty entity.
+        """
+        pass
+
+    def get_bounds_nonempty(self, *args, **kwargs) -> NDArray[numpy.float64]:
+        """
+        Returns `[[x_min, y_min], [x_max, y_max]]` which specify a minimal bounding box for the entity.
+        Asserts that the entity is non-empty (i.e., `get_bounds()` does not return None).
+
+        This is handy for destructuring like `xy_min, xy_max = entity.get_bounds_nonempty()`
+        """
+        bounds = self.get_bounds(*args, **kwargs)
+        assert bounds is not None
+        return bounds
+
+
