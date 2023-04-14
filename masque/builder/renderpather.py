@@ -1,4 +1,4 @@
-from typing import Self, Sequence, Mapping
+from typing import Self, Sequence, Mapping, MutableMapping
 import copy
 import logging
 from collections import defaultdict
@@ -57,6 +57,7 @@ class RenderPather(PortList):
             *,
             pattern: Pattern | None = None,
             ports: str | Mapping[str, Port] | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             name: str | None = None,
             ) -> None:
         """
@@ -64,6 +65,7 @@ class RenderPather(PortList):
 
         """
         self._dead = False
+        self.paths = defaultdict(list)
         self.library = library
         if pattern is not None:
             self.pattern = pattern
@@ -85,7 +87,13 @@ class RenderPather(PortList):
                 raise BuildError('Name was supplied, but no library was given!')
             library[name] = self.pattern
 
-        self.paths = defaultdict(list)
+        if tools is None:
+            self.tools = {}
+        elif isinstance(tools, Tool):
+            self.tools = {None: tools}
+        else:
+            self.tools = dict(tools)
+
 
     @classmethod
     def interface(
@@ -228,7 +236,7 @@ class RenderPather(PortList):
         # get rid of plugged ports
         for ki, vi in map_in.items():
             if ki in self.paths:
-                self.paths[ki].append(RenderStep('P', None, self.ports[ki].copy(), None))
+                self.paths[ki].append(RenderStep('P', None, self.ports[ki].copy(), self.ports[ki].copy(), None))
             del self.ports[ki]
             map_out[vi] = None
         self.place(other, offset=translation, rotation=rotation, pivot=pivot,
@@ -268,7 +276,7 @@ class RenderPather(PortList):
                 continue
             ports[new_name] = port
             if new_name in self.paths:
-                self.paths[new_name].append(RenderStep('P', None, port.copy(), None))
+                self.paths[new_name].append(RenderStep('P', None, port.copy(), port.copy(), None))
 
         for name, port in ports.items():
             p = port.deepcopy()
@@ -301,26 +309,18 @@ class RenderPather(PortList):
 
         tool = self.tools.get(portspec, self.tools[None])
         # ask the tool for bend size (fill missing dx or dy), check feasibility, and get out_ptype
-        data = tool.planL(ccw, length, in_ptype=in_ptype, **kwargs)
-
-        step = RenderStep('L', tool, port.copy(), data)
-        self.paths[portspec].append(step)
+        out_port, data = tool.planL(ccw, length, in_ptype=in_ptype, **kwargs)
 
         # Update port
-        port.offset += (dx, dy)
-        if ccw is not None:
-            port.rotate((-1 if ccw else 1) * pi / 2)
-        port.ptype = out_ptype
+        out_port.rotate_around((0, 0), pi + port_rot)
+        out_port.translate(port.offset)
+
+        step = RenderStep('L', tool, port.copy(), out_port.copy(), data)
+        self.paths[portspec].append(step)
+
+        self.pattern.ports[portspec] = out_port.copy()
 
         return self
-
-        '''
-        - record ('path', port, dx, dy, out_ptype, tool)
-        - to render, ccw = {0: None, 1: True, -1: False}[numpy.sign(dx) * numpy.sign(dy) * (-1 if x_start else 1)
-            - length is just dx or dy
-            - in_ptype and out_ptype are taken directly
-        - for sbend: dx and dy are maybe reordered (length and jog)
-        '''
 
     def path_to(
             self,
@@ -396,31 +396,37 @@ class RenderPather(PortList):
                 self.path(port_name, ccw, length)
         return self
 
-    def render(self, lib: ILibrary | None = None) -> Self:
+    def render(
+            self,
+            lib: ILibrary | None = None,
+            append: bool = True,
+            ) -> Self:
         lib = lib if lib is not None else self.library
         assert lib is not None
 
         tool_port_names = ('A', 'B')
         bb = Builder(lib)
 
+        def render_batch(lib: ILibrary, portspec: str, batch: list[RenderStep], append: bool) -> None:
+            assert batch[0].tool is not None
+            name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
+            bb.ports[portspec] = batch[0].start_port.copy()
+            bb.plug(name, {portspec: tool_port_names[0]}, append=append)
+            if append:
+                del lib[name]
+
         for portspec, steps in self.paths.items():
             batch: list[RenderStep] = []
-            tool0 = batch[0].tool
-            port0 = batch[0].start_port
-            assert tool0 is not None
             for step in steps:
                 appendable_op = step.opcode in ('L', 'S', 'U')
-                same_tool = batch and step.tool == tool0
+                same_tool = batch and step.tool == batch[0].tool
 
+                # If we can't continue a batch, render it
                 if batch and (not appendable_op or not same_tool):
-                    # If we can't continue a batch, render it
-                    assert batch[0].tool is not None
-                    name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
-                    bb.ports[portspec] = port0.copy()
-                    bb.plug(name, {portspec: tool_port_names[0]})
+                    render_batch(lib, portspec, batch, append)
                     batch = []
 
-                # batch is emptied already if we couldn't
+                # batch is emptied already if we couldn't continue it
                 if appendable_op:
                     batch.append(step)
 
@@ -428,13 +434,11 @@ class RenderPather(PortList):
                 if not appendable_op:
                     del bb.ports[portspec]
 
+            #If the last batch didn't end yet
             if batch:
-                # A batch didn't end yet
-                assert batch[0].tool is not None
-                name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
-                bb.ports[portspec] = batch[0].start_port.copy()
-                bb.plug(name, {portspec: tool_port_names[0]})
+                render_batch(lib, portspec, batch, append)
 
+        self.paths.clear()
         bb.ports.clear()
         self.pattern.append(bb.pattern)
 
