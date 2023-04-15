@@ -336,8 +336,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         if mask.any():
             cbounds = numpy.vstack((
-                numpy.min(ebounds[mask, 0, :]),
-                numpy.max(ebounds[mask, 1, :]),
+                numpy.min(ebounds[mask, 0, :], axis=0),
+                numpy.max(ebounds[mask, 1, :], axis=0),
                 ))
         else:
             cbounds = numpy.array((
