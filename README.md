@@ -13,7 +13,7 @@ to output to multiple formats.
 ## Installation
 
 Requirements:
-* python >= 3.8
+* python >= 3.11
 * numpy
 * klamath (optional, used for `gdsii` i/o)
 * matplotlib (optional, used for `visualization` functions and `text`)
@@ -25,15 +25,16 @@ Requirements:
 
 Install with pip:
 ```bash
-pip3 install 'masque[visualization,oasis,dxf,svg,text]'
+pip install 'masque[visualization,oasis,dxf,svg,text]'
 ```
 
 Alternatively, install from git
 ```bash
-pip3 install git+https://mpxd.net/code/jan/masque.git@release
+pip install git+https://mpxd.net/code/jan/masque.git@release
 ```
 
-## Translation
+## Glossary
+- `Library`: OASIS or GDS "library" or file (a collection of named cells)
 - `Pattern`: OASIS or GDS "Cell", DXF "Block"
 - `Ref`: GDS "AREF/SREF", OASIS "Placement"
 - `Shape`: OASIS or GDS "Geometry element", DXF "LWPolyline" or "Polyline"
@@ -47,13 +48,4 @@ pip3 install git+https://mpxd.net/code/jan/masque.git@release
 * Better interface for polygon operations (e.g. with `pyclipper`)
     - de-embedding
     - boolean ops
-* Deal with shape repetitions for dxf, svg
-* Maybe lib.create(bname) -> (name, pat)
-* Schematic:
-    - Simple cell:
-        + Assumes no internal hierarchy, or only other simple hierarchy
-        + Return pattern, refer to it by a well-known name
-    - Parametrized cell:
-        + Take in `lib`
-        + lib.create(), and return a string
-        + Can have pcell hierarchy inside
+* DOCS DOCS DOCS
