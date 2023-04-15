@@ -148,11 +148,8 @@ class Text(RotatableImpl, Shape):
         #  just convert to polygons instead
         polys = self.to_polygons()
         pbounds = numpy.full((len(polys), 2, 2), nan)
-#        bounds = numpy.array([[+inf, +inf], [-inf, -inf]])
         for pp, poly in enumerate(polys):
             pbounds[pp] = poly.get_bounds_nonempty()
-#            bounds[0] = numpy.minimum(bounds[0], poly_bounds[0])
-#            bounds[1] = numpy.maximum(bounds[1], poly_bounds[1])
         bounds = numpy.vstack((
             numpy.min(pbounds[: 0, :], axis=0),
             numpy.max(pbounds[: 1, :], axis=0),
