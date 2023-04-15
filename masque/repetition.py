@@ -2,8 +2,7 @@
     Repetitions provide support for efficiently representing multiple identical
      instances of an object .
 """
-
-from typing import Any, Type
+from typing import Any, Type, Self, TypeVar
 import copy
 from abc import ABCMeta, abstractmethod
 
@@ -13,6 +12,9 @@ from numpy.typing import ArrayLike, NDArray
 from .traits import Copyable, Scalable, Rotatable, Mirrorable, Bounded
 from .error import PatternError
 from .utils import rotation_matrix_2d
+
+
+GG = TypeVar('GG', bound='Grid')
 
 
 class Repetition(Copyable, Rotatable, Mirrorable, Scalable, Bounded, metaclass=ABCMeta):
@@ -104,12 +106,12 @@ class Grid(Repetition):
 
     @classmethod
     def aligned(
-            cls: Type,
+            cls: Type[GG],
             x: float,
             y: float,
             x_count: int,
             y_count: int,
-            ) -> 'Grid':
+            ) -> GG:
         """
         Simple constructor for an axis-aligned 2D grid
 
@@ -133,7 +135,7 @@ class Grid(Repetition):
             )
         return new
 
-    def __deepcopy__(self, memo: dict | None = None) -> 'Grid':
+    def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
         new = copy.copy(self)
         return new
@@ -197,7 +199,7 @@ class Grid(Repetition):
         return (aa.flatten()[:, None] * self.a_vector[None, :]
               + bb.flatten()[:, None] * self.b_vector[None, :])             # noqa
 
-    def rotate(self, rotation: float) -> 'Grid':
+    def rotate(self, rotation: float) -> Self:
         """
         Rotate lattice vectors (around (0, 0))
 
@@ -212,7 +214,7 @@ class Grid(Repetition):
             self.b_vector = numpy.dot(rotation_matrix_2d(rotation), self.b_vector)
         return self
 
-    def mirror(self, axis: int) -> 'Grid':
+    def mirror(self, axis: int = 0) -> Self:
         """
         Mirror the Grid across an axis.
 
@@ -248,7 +250,7 @@ class Grid(Repetition):
         xy_max = numpy.max(corners, axis=0)
         return numpy.array((xy_min, xy_max))
 
-    def scale_by(self, c: float) -> 'Grid':
+    def scale_by(self, c: float) -> Self:
         """
         Scale the Grid by a factor
 
@@ -327,7 +329,7 @@ class Arbitrary(Repetition):
             return False
         return numpy.array_equal(self.displacements, other.displacements)
 
-    def rotate(self, rotation: float) -> 'Arbitrary':
+    def rotate(self, rotation: float) -> Self:
         """
         Rotate dispacements (around (0, 0))
 
@@ -340,7 +342,7 @@ class Arbitrary(Repetition):
         self.displacements = numpy.dot(rotation_matrix_2d(rotation), self.displacements.T).T
         return self
 
-    def mirror(self, axis: int) -> 'Arbitrary':
+    def mirror(self, axis: int = 0) -> Self:
         """
         Mirror the displacements across an axis.
 
@@ -366,7 +368,7 @@ class Arbitrary(Repetition):
         xy_max = numpy.max(self.displacements, axis=0)
         return numpy.array((xy_min, xy_max))
 
-    def scale_by(self, c: float) -> 'Arbitrary':
+    def scale_by(self, c: float) -> Self:
         """
         Scale the displacements by a factor
 

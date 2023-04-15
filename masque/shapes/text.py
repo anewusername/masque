@@ -1,4 +1,4 @@
-from typing import Sequence, Any
+from typing import Self
 import copy
 
 import numpy
@@ -9,8 +9,7 @@ from . import Shape, Polygon, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, get_bit, normalize_mirror
-from ..utils import annotations_t
+from ..utils import is_scalar, get_bit, annotations_t
 
 # Loaded on use:
 # from freetype import Face
@@ -30,7 +29,7 @@ class Text(RotatableImpl, Shape):
 
     _string: str
     _height: float
-    _mirrored: NDArray[numpy.bool_]
+    _mirrored: bool
     font_path: str
 
     # vertices property
@@ -53,16 +52,13 @@ class Text(RotatableImpl, Shape):
             raise PatternError('Height must be a scalar')
         self._height = val
 
-    # Mirrored property
     @property
-    def mirrored(self) -> Any:   # TODO mypy#3004  NDArray[numpy.bool_]:
+    def mirrored(self) -> bool:     # mypy#3004, should be bool
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: Sequence[bool]) -> None:
-        if is_scalar(val):
-            raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = numpy.array(val, dtype=bool, copy=True)
+    def mirrored(self, val: bool) -> None:
+        self._mirrored = bool(val)
 
     def __init__(
             self,
@@ -72,19 +68,16 @@ class Text(RotatableImpl, Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            mirrored: ArrayLike = (False, False),
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
             ) -> None:
         if raw:
             assert isinstance(offset, numpy.ndarray)
-            assert isinstance(mirrored, numpy.ndarray)
             self._offset = offset
             self._string = string
             self._height = height
             self._rotation = rotation
-            self._mirrored = mirrored
             self._repetition = repetition
             self._annotations = annotations if annotations is not None else {}
         else:
@@ -92,16 +85,14 @@ class Text(RotatableImpl, Shape):
             self.string = string
             self.height = height
             self.rotation = rotation
-            self.mirrored = mirrored
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
         self.font_path = font_path
 
-    def __deepcopy__(self, memo: dict | None = None) -> 'Text':
+    def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
-        new._mirrored = copy.deepcopy(self._mirrored, memo)
         new._annotations = copy.deepcopy(self._annotations)
         return new
 
@@ -118,7 +109,8 @@ class Text(RotatableImpl, Shape):
             # Move these polygons to the right of the previous letter
             for xys in raw_polys:
                 poly = Polygon(xys)
-                poly.mirror2d(self.mirrored)
+                if self.mirrored:
+                    poly.mirror()
                 poly.scale_by(self.height)
                 poly.offset = self.offset + [total_advance, 0]
                 poly.rotate_around(self.offset, self.rotation)
@@ -129,27 +121,27 @@ class Text(RotatableImpl, Shape):
 
         return all_polygons
 
-    def mirror(self, axis: int) -> 'Text':
-        self.mirrored[axis] = not self.mirrored[axis]
+    def mirror(self, axis: int = 0) -> Self:
+        self.mirrored = not self.mirrored
+        if axis == 1:
+            self.rotation += pi
         return self
 
-    def scale_by(self, c: float) -> 'Text':
+    def scale_by(self, c: float) -> Self:
         self.height *= c
         return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
-        mirror_x, rotation = normalize_mirror(self.mirrored)
-        rotation += self.rotation
-        rotation %= 2 * pi
+        rotation = self.rotation % (2 * pi)
         return ((type(self), self.string, self.font_path),
-                (self.offset, self.height / norm_value, rotation, mirror_x),
+                (self.offset, self.height / norm_value, rotation, bool(self.mirrored)),
                 lambda: Text(
                     string=self.string,
                     height=self.height * norm_value,
                     font_path=self.font_path,
                     rotation=rotation,
-                    mirrored=(mirror_x, False),
-                    ))
+                    ).mirror2d(across_x=self.mirrored),
+                )
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:
         # rotation makes this a huge pain when using slot.advance and glyph.bbox(), so
@@ -258,5 +250,5 @@ def get_char_as_polygons(
 
     def __repr__(self) -> str:
         rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
-        mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
+        mirrored = ' m{:d}' if self.mirrored else ''
         return f'<TextShape "{self.string}" o{self.offset} h{self.height:g}{rotation}{mirrored}>'

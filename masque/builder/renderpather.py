@@ -13,7 +13,6 @@ from ..library import ILibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
-from ..utils import rotation_matrix_2d
 from ..utils import SupportsBool
 from .tools import Tool, RenderStep
 from .utils import ell
@@ -93,7 +92,6 @@ class RenderPather(PortList):
             self.tools = {None: tools}
         else:
             self.tools = dict(tools)
-
 
     @classmethod
     def interface(
@@ -200,7 +198,7 @@ class RenderPather(PortList):
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             inherit_name: bool = True,
             set_rotation: bool | None = None,
             ) -> Self:
@@ -250,7 +248,7 @@ class RenderPather(PortList):
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
             pivot: ArrayLike = (0, 0),
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
             ) -> Self:
@@ -280,7 +278,8 @@ class RenderPather(PortList):
 
         for name, port in ports.items():
             p = port.deepcopy()
-            p.mirror2d(mirrored)
+            if mirrored:
+                p.mirror()
             p.rotate_around(pivot, rotation)
             p.translate(offset)
             self.ports[name] = p

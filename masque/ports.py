@@ -76,7 +76,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         self.ptype = ptype
         return self
 
-    def mirror(self, axis: int) -> Self:
+    def mirror(self, axis: int = 0) -> Self:
         self.offset[1 - axis] *= -1
         if self.rotation is not None:
             self.rotation *= -1
@@ -275,7 +275,7 @@ class PortList(metaclass=ABCMeta):
             other: 'PortList',
             map_in: dict[str, str],
             *,
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             set_rotation: bool | None = None,
             ) -> tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
         """
@@ -286,7 +286,7 @@ class PortList(metaclass=ABCMeta):
             other: a device
             map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
-            mirrored: Mirrors `other` across the x or y axes prior to
+            mirrored: Mirrors `other` across the x axis prior to
                 connecting any ports.
             set_rotation: If the necessary rotation cannot be determined from
                 the ports being connected (i.e. all pairs have at least one
@@ -317,7 +317,7 @@ class PortList(metaclass=ABCMeta):
             o_ports: Mapping[str, Port],
             map_in: dict[str, str],
             *,
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             set_rotation: bool | None = None,
             ) -> tuple[NDArray[numpy.float64], float, NDArray[numpy.float64]]:
         """
@@ -330,7 +330,7 @@ class PortList(metaclass=ABCMeta):
             o_ports: A list of ports which are to be moved/mirrored.
             map_in: dict of `{'s_port': 'o_port'}` mappings, specifying
                 port connections.
-            mirrored: Mirrors `o_ports` across the x or y axes prior to
+            mirrored: Mirrors `o_ports` across the x axis prior to
                 connecting any ports.
             set_rotation: If the necessary rotation cannot be determined from
                 the ports being connected (i.e. all pairs have at least one
@@ -356,13 +356,9 @@ class PortList(metaclass=ABCMeta):
         o_has_rot = numpy.array([p.rotation is not None for p in o_ports.values()], dtype=bool)
         has_rot = s_has_rot & o_has_rot
 
-        if mirrored[0]:
+        if mirrored:
             o_offsets[:, 1] *= -1
             o_rotations *= -1
-        if mirrored[1]:
-            o_offsets[:, 0] *= -1
-            o_rotations *= -1
-            o_rotations += pi
 
         type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
                                       for st, ot in zip(s_types, o_types)])

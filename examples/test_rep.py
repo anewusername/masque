@@ -17,7 +17,8 @@ def main():
     cell_name = 'ellip_grating'
     pat = masque.Pattern()
     for rmin in numpy.arange(10, 15, 0.5):
-        pat.shapes.append(Arc(
+        layer = (0, 0)
+        pat.shapes[layer].append(Arc(
             radii=(rmin, rmin),
             width=0.1,
             angles=(0 * -pi/4, pi/4),
@@ -35,27 +36,27 @@ def main():
     print(f'\nAdded a copy of {cell_name} as {new_name}')
 
     pat3 = Pattern()
-    pat3.refs = [
-        Ref(cell_name, offset=(1e5, 3e5), annotations={'4': ['Hello I am the base Ref']}),
-        Ref(cell_name, offset=(2e5, 3e5), rotation=pi/3),
-        Ref(cell_name, offset=(3e5, 3e5), rotation=pi/2),
-        Ref(cell_name, offset=(4e5, 3e5), rotation=pi),
-        Ref(cell_name, offset=(5e5, 3e5), rotation=3*pi/2),
-        Ref(cell_name, mirrored=(True, False), offset=(1e5, 4e5)),
-        Ref(cell_name, mirrored=(True, False), offset=(2e5, 4e5), rotation=pi/3),
-        Ref(cell_name, mirrored=(True, False), offset=(3e5, 4e5), rotation=pi/2),
-        Ref(cell_name, mirrored=(True, False), offset=(4e5, 4e5), rotation=pi),
-        Ref(cell_name, mirrored=(True, False), offset=(5e5, 4e5), rotation=3*pi/2),
-        Ref(cell_name, mirrored=(False, True), offset=(1e5, 5e5)),
-        Ref(cell_name, mirrored=(False, True), offset=(2e5, 5e5), rotation=pi/3),
-        Ref(cell_name, mirrored=(False, True), offset=(3e5, 5e5), rotation=pi/2),
-        Ref(cell_name, mirrored=(False, True), offset=(4e5, 5e5), rotation=pi),
-        Ref(cell_name, mirrored=(False, True), offset=(5e5, 5e5), rotation=3*pi/2),
-        Ref(cell_name, mirrored=(True, True), offset=(1e5, 6e5)),
-        Ref(cell_name, mirrored=(True, True), offset=(2e5, 6e5), rotation=pi/3),
-        Ref(cell_name, mirrored=(True, True), offset=(3e5, 6e5), rotation=pi/2),
-        Ref(cell_name, mirrored=(True, True), offset=(4e5, 6e5), rotation=pi),
-        Ref(cell_name, mirrored=(True, True), offset=(5e5, 6e5), rotation=3*pi/2),
+    pat3.refs[cell_name] = [
+        Ref(offset=(1e5, 3e5), annotations={'4': ['Hello I am the base Ref']}),
+        Ref(offset=(2e5, 3e5), rotation=pi/3),
+        Ref(offset=(3e5, 3e5), rotation=pi/2),
+        Ref(offset=(4e5, 3e5), rotation=pi),
+        Ref(offset=(5e5, 3e5), rotation=3*pi/2),
+        Ref(mirrored=True, offset=(1e5, 4e5)),
+        Ref(mirrored=True, offset=(2e5, 4e5), rotation=pi/3),
+        Ref(mirrored=True, offset=(3e5, 4e5), rotation=pi/2),
+        Ref(mirrored=True, offset=(4e5, 4e5), rotation=pi),
+        Ref(mirrored=True, offset=(5e5, 4e5), rotation=3*pi/2),
+        Ref(offset=(1e5, 5e5)).mirror_target(1),
+        Ref(offset=(2e5, 5e5), rotation=pi/3).mirror_target(1),
+        Ref(offset=(3e5, 5e5), rotation=pi/2).mirror_target(1),
+        Ref(offset=(4e5, 5e5), rotation=pi).mirror_target(1),
+        Ref(offset=(5e5, 5e5), rotation=3*pi/2).mirror_target(1),
+        Ref(offset=(1e5, 6e5)).mirror2d_target(True, True),
+        Ref(offset=(2e5, 6e5), rotation=pi/3).mirror2d_target(True, True),
+        Ref(offset=(3e5, 6e5), rotation=pi/2).mirror2d_target(True, True),
+        Ref(offset=(4e5, 6e5), rotation=pi).mirror2d_target(True, True),
+        Ref(offset=(5e5, 6e5), rotation=3*pi/2).mirror2d_target(True, True),
         ]
 
     lib['sref_test'] = pat3
@@ -70,27 +71,27 @@ def main():
         b_count=2,
         )
     pat4 = Pattern()
-    pat4.refs = [
-        Ref(cell_name, repetition=rep, offset=(1e5, 3e5)),
-        Ref(cell_name, repetition=rep, offset=(2e5, 3e5), rotation=pi/3),
-        Ref(cell_name, repetition=rep, offset=(3e5, 3e5), rotation=pi/2),
-        Ref(cell_name, repetition=rep, offset=(4e5, 3e5), rotation=pi),
-        Ref(cell_name, repetition=rep, offset=(5e5, 3e5), rotation=3*pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(True, False), offset=(1e5, 4e5)),
-        Ref(cell_name, repetition=rep, mirrored=(True, False), offset=(2e5, 4e5), rotation=pi/3),
-        Ref(cell_name, repetition=rep, mirrored=(True, False), offset=(3e5, 4e5), rotation=pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(True, False), offset=(4e5, 4e5), rotation=pi),
-        Ref(cell_name, repetition=rep, mirrored=(True, False), offset=(5e5, 4e5), rotation=3*pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(False, True), offset=(1e5, 5e5)),
-        Ref(cell_name, repetition=rep, mirrored=(False, True), offset=(2e5, 5e5), rotation=pi/3),
-        Ref(cell_name, repetition=rep, mirrored=(False, True), offset=(3e5, 5e5), rotation=pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(False, True), offset=(4e5, 5e5), rotation=pi),
-        Ref(cell_name, repetition=rep, mirrored=(False, True), offset=(5e5, 5e5), rotation=3*pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(True, True), offset=(1e5, 6e5)),
-        Ref(cell_name, repetition=rep, mirrored=(True, True), offset=(2e5, 6e5), rotation=pi/3),
-        Ref(cell_name, repetition=rep, mirrored=(True, True), offset=(3e5, 6e5), rotation=pi/2),
-        Ref(cell_name, repetition=rep, mirrored=(True, True), offset=(4e5, 6e5), rotation=pi),
-        Ref(cell_name, repetition=rep, mirrored=(True, True), offset=(5e5, 6e5), rotation=3*pi/2),
+    pat4.refs[cell_name] = [
+        Ref(repetition=rep, offset=(1e5, 3e5)),
+        Ref(repetition=rep, offset=(2e5, 3e5), rotation=pi/3),
+        Ref(repetition=rep, offset=(3e5, 3e5), rotation=pi/2),
+        Ref(repetition=rep, offset=(4e5, 3e5), rotation=pi),
+        Ref(repetition=rep, offset=(5e5, 3e5), rotation=3*pi/2),
+        Ref(repetition=rep, mirrored=True, offset=(1e5, 4e5)),
+        Ref(repetition=rep, mirrored=True, offset=(2e5, 4e5), rotation=pi/3),
+        Ref(repetition=rep, mirrored=True, offset=(3e5, 4e5), rotation=pi/2),
+        Ref(repetition=rep, mirrored=True, offset=(4e5, 4e5), rotation=pi),
+        Ref(repetition=rep, mirrored=True, offset=(5e5, 4e5), rotation=3*pi/2),
+        Ref(repetition=rep, offset=(1e5, 5e5)).mirror_target(1),
+        Ref(repetition=rep, offset=(2e5, 5e5), rotation=pi/3).mirror_target(1),
+        Ref(repetition=rep, offset=(3e5, 5e5), rotation=pi/2).mirror_target(1),
+        Ref(repetition=rep, offset=(4e5, 5e5), rotation=pi).mirror_target(1),
+        Ref(repetition=rep, offset=(5e5, 5e5), rotation=3*pi/2).mirror_target(1),
+        Ref(repetition=rep, offset=(1e5, 6e5)).mirror2d_target(True, True),
+        Ref(repetition=rep, offset=(2e5, 6e5), rotation=pi/3).mirror2d_target(True, True),
+        Ref(repetition=rep, offset=(3e5, 6e5), rotation=pi/2).mirror2d_target(True, True),
+        Ref(repetition=rep, offset=(4e5, 6e5), rotation=pi).mirror2d_target(True, True),
+        Ref(repetition=rep, offset=(5e5, 6e5), rotation=3*pi/2).mirror2d_target(True, True),
         ]
 
     lib['aref_test'] = pat4

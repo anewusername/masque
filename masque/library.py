@@ -20,7 +20,7 @@ import numpy
 from numpy.typing import ArrayLike
 
 from .error import LibraryError, PatternError
-from .utils import rotation_matrix_2d, normalize_mirror
+from .utils import rotation_matrix_2d
 from .shapes import Shape, Polygon
 from .label import Label
 from .abstract import Abstract
@@ -410,9 +410,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                     if transform[3]:
                         sign[1] = -1
                     xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
-                    mirror_x, angle = normalize_mirror(ref.mirrored)
-                    angle += ref.rotation
-                    ref_transform = transform + (xy[0], xy[1], angle, mirror_x)
+                    ref_transform = transform + (xy[0], xy[1], ref.rotation, ref.mirrored)
                     ref_transform[3] %= 2
                 else:
                     ref_transform = False

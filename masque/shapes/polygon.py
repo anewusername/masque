@@ -81,7 +81,6 @@ class Polygon(Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            mirrored: Sequence[bool] = (False, False),
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -99,7 +98,6 @@ class Polygon(Shape):
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
         self.rotate(rotation)
-        [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Polygon':
         memo = {} if memo is None else memo
@@ -336,7 +334,7 @@ class Polygon(Shape):
             self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
         return self
 
-    def mirror(self, axis: int) -> 'Polygon':
+    def mirror(self, axis: int = 0) -> 'Polygon':
         self.vertices[:, axis - 1] *= -1
         return self
 

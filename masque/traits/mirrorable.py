@@ -9,7 +9,7 @@ class Mirrorable(metaclass=ABCMeta):
     __slots__ = ()
 
     @abstractmethod
-    def mirror(self, axis: int) -> Self:
+    def mirror(self, axis: int = 0) -> Self:
         """
         Mirror the entity across an axis.
 
@@ -21,7 +21,7 @@ class Mirrorable(metaclass=ABCMeta):
         """
         pass
 
-    def mirror2d(self, axes: tuple[bool, bool]) -> Self:
+    def mirror2d(self, across_x: bool = False, across_y: bool = False) -> Self:
         """
         Optionally mirror the entity across both axes
 
@@ -31,9 +31,9 @@ class Mirrorable(metaclass=ABCMeta):
         Returns:
             self
         """
-        if axes[0]:
+        if across_x:
             self.mirror(0)
-        if axes[1]:
+        if across_y:
             self.mirror(1)
         return self
 

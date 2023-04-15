@@ -37,7 +37,7 @@ from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..shapes import Polygon, Path
 from ..repetition import Grid
-from ..utils import layer_t, normalize_mirror, annotations_t
+from ..utils import layer_t, annotations_t
 from ..library import LazyLibrary, Library, ILibrary, ILibraryView
 
 
@@ -306,7 +306,7 @@ def _gref_to_mref(ref: klamath.library.Reference) -> tuple[str, Ref]:
         offset=offset,
         rotation=numpy.deg2rad(ref.angle_deg),
         scale=ref.mag,
-        mirrored=(ref.invert_y, False),
+        mirrored=ref.invert_y,
         annotations=_properties_to_annotations(ref.properties),
         repetition=repetition,
         )
@@ -348,10 +348,9 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
             continue
         encoded_name = target.encode('ASCII')
         for ref in rseq:
-            # Note: GDS mirrors first and rotates second
-            mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
+            # Note: GDS also mirrors first and rotates second
             rep = ref.repetition
-            angle_deg = numpy.rad2deg(ref.rotation + extra_angle) % 360
+            angle_deg = numpy.rad2deg(ref.rotation) % 360
             properties = _annotations_to_properties(ref.annotations, 512)
 
             if isinstance(rep, Grid):
@@ -367,7 +366,7 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
                     xy=rint_cast(xy),
                     colrow=(numpy.rint(rep.a_count), numpy.rint(rep.b_count)),
                     angle_deg=angle_deg,
-                    invert_y=mirror_across_x,
+                    invert_y=ref.mirrored,
                     mag=ref.scale,
                     properties=properties,
                     )
@@ -378,7 +377,7 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
                     xy=rint_cast([ref.offset]),
                     colrow=None,
                     angle_deg=angle_deg,
-                    invert_y=mirror_across_x,
+                    invert_y=ref.mirrored,
                     mag=ref.scale,
                     properties=properties,
                     )
@@ -390,7 +389,7 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
                         xy=rint_cast([ref.offset + dd]),
                         colrow=None,
                         angle_deg=angle_deg,
-                        invert_y=mirror_across_x,
+                        invert_y=ref.mirrored,
                         mag=ref.scale,
                         properties=properties,
                         )

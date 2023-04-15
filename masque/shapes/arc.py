@@ -1,4 +1,4 @@
-from typing import Sequence, Any
+from typing import Any
 import copy
 import math
 
@@ -155,7 +155,6 @@ class Arc(Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
-            mirrored: Sequence[bool] = (False, False),
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -179,7 +178,6 @@ class Arc(Shape):
             self.rotation = rotation
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-        [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Arc':
         memo = {} if memo is None else memo
@@ -315,7 +313,7 @@ class Arc(Shape):
         self.rotation += theta
         return self
 
-    def mirror(self, axis: int) -> 'Arc':
+    def mirror(self, axis: int = 0) -> 'Arc':
         self.offset[axis - 1] *= -1
         self.rotation *= -1
         self.rotation += axis * pi

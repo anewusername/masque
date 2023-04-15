@@ -96,7 +96,7 @@ class Circle(Shape):
     def rotate(self, theta: float) -> 'Circle':
         return self
 
-    def mirror(self, axis: int) -> 'Circle':
+    def mirror(self, axis: int = 0) -> 'Circle':
         self.offset *= -1
         return self
 
