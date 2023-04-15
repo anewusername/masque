@@ -153,7 +153,6 @@ class Path(Shape):
             cap_extensions: ArrayLike | None = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
-            mirrored: Sequence[bool] = (False, False),
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -180,7 +179,6 @@ class Path(Shape):
             self.cap = cap
             self.cap_extensions = cap_extensions
         self.rotate(rotation)
-        [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Path':
         memo = {} if memo is None else memo
@@ -200,7 +198,6 @@ class Path(Shape):
             cap_extensions: tuple[float, float] | None = None,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
-            mirrored: Sequence[bool] = (False, False),
             ) -> 'Path':
         """
         Build a path by specifying the turn angles and travel distances
@@ -217,9 +214,6 @@ class Path(Shape):
                 Default `(0, 0)` or `None`, depending on cap type
             offset: Offset, default `(0, 0)`
             rotation: Rotation counterclockwise, in radians. Default `0`
-            mirrored: Whether to mirror across the x or y axes. For example,
-                `mirrored=(True, False)` results in a reflection across the x-axis,
-                multiplying the path's y-coordinates by -1. Default `(False, False)`
 
         Returns:
             The resulting Path object
@@ -233,7 +227,7 @@ class Path(Shape):
             verts.append(verts[-1] + direction * distance)
 
         return Path(vertices=verts, width=width, cap=cap, cap_extensions=cap_extensions,
-                    offset=offset, rotation=rotation, mirrored=mirrored)
+                    offset=offset, rotation=rotation)
 
     def to_polygons(
             self,
@@ -334,7 +328,7 @@ class Path(Shape):
             self.vertices = numpy.dot(rotation_matrix_2d(theta), self.vertices.T).T
         return self
 
-    def mirror(self, axis: int) -> 'Path':
+    def mirror(self, axis: int = 0) -> 'Path':
         self.vertices[:, axis - 1] *= -1
         return self
 

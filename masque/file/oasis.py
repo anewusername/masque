@@ -32,7 +32,7 @@ from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
 from ..library import Library, ILibrary
 from ..shapes import Path, Circle
 from ..repetition import Grid, Arbitrary, Repetition
-from ..utils import layer_t, normalize_mirror, annotations_t
+from ..utils import layer_t, annotations_t
 
 
 logger = logging.getLogger(__name__)
@@ -494,7 +494,7 @@ def _placement_to_ref(placement: fatrec.Placement, lib: fatamorgana.OasisLayout)
         rotation = numpy.deg2rad(float(placement.angle))
     ref = Ref(
         offset=xy,
-        mirrored=(placement.flip, False),
+        mirrored=placement.flip,
         rotation=rotation,
         scale=float(mag),
         repetition=repetition_fata2masq(placement.repetition),
@@ -511,15 +511,14 @@ def _refs_to_placements(
         if target is None:
             continue
         for ref in rseq:
-            # Note: OASIS mirrors first and rotates second
-            mirror_across_x, extra_angle = normalize_mirror(ref.mirrored)
+            # Note: OASIS also mirrors first and rotates second
             frep, rep_offset = repetition_masq2fata(ref.repetition)
 
             offset = rint_cast(ref.offset + rep_offset)
-            angle = numpy.rad2deg(ref.rotation + extra_angle) % 360
+            angle = numpy.rad2deg(ref.rotation) % 360
             placement = fatrec.Placement(
                 name=target,
-                flip=mirror_across_x,
+                flip=ref.mirrored,
                 angle=angle,
                 magnification=ref.scale,
                 properties=annotations_to_properties(ref.annotations),

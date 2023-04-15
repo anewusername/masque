@@ -4,15 +4,14 @@
 """
 #TODO more top-level documentation
 
-from typing import Sequence, Mapping, TYPE_CHECKING, Any, Self
+from typing import Mapping, TYPE_CHECKING, Self
 import copy
 
 import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from .error import PatternError
-from .utils import is_scalar, annotations_t
+from .utils import annotations_t
 from .repetition import Repetition
 from .traits import (
     PositionableImpl, RotatableImpl, ScalableImpl,
@@ -31,6 +30,8 @@ class Ref(
     """
     `Ref` provides basic support for nesting Pattern objects within each other, by adding
      offset, rotation, scaling, and associated methods.
+
+    Note: Order is (mirror, rotate, scale, translate, repeat)
     """
     __slots__ = (
         '_mirrored',
@@ -38,32 +39,41 @@ class Ref(
         '_offset', '_rotation', 'scale', '_repetition', '_annotations',
         )
 
-    _mirrored: NDArray[numpy.bool_]
-    """ Whether to mirror the instance across the x and/or y axes. """
+    _mirrored: bool
+    """ Whether to mirror the instance across the x axis (new_y = -old_y)ubefore rotating. """
+
+    # Mirrored property
+    @property
+    def mirrored(self) -> bool:     # mypy#3004, setter should be SupportsBool
+        return self._mirrored
+
+    @mirrored.setter
+    def mirrored(self, val: bool) -> None:
+        self._mirrored = bool(val)
 
     def __init__(
             self,
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
-            mirrored: Sequence[bool] | None = None,
+            mirrored: bool = False,
             scale: float = 1.0,
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             ) -> None:
         """
+        Note: Order is (mirror, rotate, scale, translate, repeat)
+
         Args:
             offset: (x, y) offset applied to the referenced pattern. Not affected by rotation etc.
             rotation: Rotation (radians, counterclockwise) relative to the referenced pattern's (0, 0).
-            mirrored: Whether to mirror the referenced pattern across its x and y axes.
+            mirrored: Whether to mirror the referenced pattern across its x axis before rotating.
             scale: Scaling factor applied to the pattern's geometry.
             repetition: `Repetition` object, default `None`
         """
         self.offset = offset
         self.rotation = rotation
         self.scale = scale
-        if mirrored is None:
-            mirrored = (False, False)
         self.mirrored = mirrored
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
@@ -73,7 +83,7 @@ class Ref(
             offset=self.offset.copy(),
             rotation=self.rotation,
             scale=self.scale,
-            mirrored=self.mirrored.copy(),
+            mirrored=self.mirrored,
             repetition=copy.deepcopy(self.repetition),
             annotations=copy.deepcopy(self.annotations),
             )
@@ -85,17 +95,6 @@ class Ref(
         new.repetition = copy.deepcopy(self.repetition, memo)
         new.annotations = copy.deepcopy(self.annotations, memo)
         return new
-
-    # Mirrored property
-    @property
-    def mirrored(self) -> Any:   # TODO mypy#3004  NDArray[numpy.bool_]:
-        return self._mirrored
-
-    @mirrored.setter
-    def mirrored(self, val: ArrayLike) -> None:
-        if is_scalar(val):
-            raise PatternError('Mirrored must be a 2-element list of booleans')
-        self._mirrored = numpy.array(val, dtype=bool, copy=True)
 
     def as_pattern(
             self,
@@ -113,8 +112,8 @@ class Ref(
 
         if self.scale != 1:
             pattern.scale_by(self.scale)
-        if numpy.any(self.mirrored):
-            pattern.mirror2d(self.mirrored)
+        if self.mirrored:
+            pattern.mirror()
         if self.rotation % (2 * pi) != 0:
             pattern.rotate_around((0.0, 0.0), self.rotation)
         if numpy.any(self.offset):
@@ -137,11 +136,22 @@ class Ref(
             self.repetition.rotate(rotation)
         return self
 
-    def mirror(self, axis: int) -> Self:
-        self.mirrored[axis] = not self.mirrored[axis]
+    def mirror(self, axis: int = 0) -> Self:
+        self.mirror_target(axis)
         self.rotation *= -1
         if self.repetition is not None:
             self.repetition.mirror(axis)
+        return self
+
+    def mirror_target(self, axis: int = 0) -> Self:
+        self.mirrored = not self.mirrored
+        self.rotation += axis * pi
+        return self
+
+    def mirror2d_target(self, across_x: bool = False, across_y: bool = False) -> Self:
+        self.mirrored = bool((self.mirrored + across_x + across_y) % 2)
+        if across_y:
+            self.rotation += pi
         return self
 
     def get_bounds_single(
@@ -169,5 +179,5 @@ class Ref(
     def __repr__(self) -> str:
         rotation = f' r{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         scale = f' d{self.scale:g}' if self.scale != 1 else ''
-        mirrored = ' m{:d}{:d}'.format(*self.mirrored) if self.mirrored.any() else ''
+        mirrored = ' m' if self.mirrored else ''
         return f'<Ref {self.offset}{rotation}{scale}{mirrored}>'

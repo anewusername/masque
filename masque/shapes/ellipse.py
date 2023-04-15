@@ -1,4 +1,4 @@
-from typing import Sequence, Any
+from typing import Any, Self
 import copy
 import math
 
@@ -90,7 +90,6 @@ class Ellipse(Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
-            mirrored: Sequence[bool] = (False, False),
             repetition: Repetition | None = None,
             annotations: annotations_t | None = None,
             raw: bool = False,
@@ -109,9 +108,8 @@ class Ellipse(Shape):
             self.rotation = rotation
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-        [self.mirror(a) for a, do in enumerate(mirrored) if do]
 
-    def __deepcopy__(self, memo: dict | None = None) -> 'Ellipse':
+    def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
         new = copy.copy(self)
         new._offset = self._offset.copy()
@@ -157,17 +155,17 @@ class Ellipse(Shape):
         return numpy.vstack((self.offset - rot_radii[0],
                              self.offset + rot_radii[1]))
 
-    def rotate(self, theta: float) -> 'Ellipse':
+    def rotate(self, theta: float) -> Self:
         self.rotation += theta
         return self
 
-    def mirror(self, axis: int) -> 'Ellipse':
+    def mirror(self, axis: int = 0) -> Self:
         self.offset[axis - 1] *= -1
         self.rotation *= -1
         self.rotation += axis * pi
         return self
 
-    def scale_by(self, c: float) -> 'Ellipse':
+    def scale_by(self, c: float) -> Self:
         self.radii *= c
         return self
 

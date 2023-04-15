@@ -15,7 +15,7 @@ from numpy.typing import NDArray, ArrayLike
 from .ref import Ref
 from .shapes import Shape, Polygon, Path, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
-from .utils import rotation_matrix_2d, annotations_t, layer_t, normalize_mirror
+from .utils import rotation_matrix_2d, annotations_t, layer_t
 from .error import PatternError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable, Bounded
 from .ports import Port, PortList
@@ -370,12 +370,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                             bounds = None
                         else:
                             ubounds = unrot_bounds.copy()
-                            mirr_x, rot2 = normalize_mirror(ref.mirrored)
-                            if mirr_x:
+                            if ref.mirrored:
                                 ubounds[:, 1] *= -1
 
-                            # note: rounding fixes up sin/cos inaccuracy, probably unnecessary
-                            corners = (numpy.round(rotation_matrix_2d(ref.rotation + rot2)) @ ubounds.T).T
+                            corners = (rotation_matrix_2d(ref.rotation) @ ubounds.T).T
                             bounds = numpy.vstack((numpy.min(corners, axis=0),
                                                    numpy.max(corners, axis=0))) * ref.scale + [ref.offset]
 
@@ -518,7 +516,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Rotatable, entry).rotate(rotation)
         return self
 
-    def mirror_element_centers(self, across_axis: int) -> Self:
+    def mirror_element_centers(self, across_axis: int = 0) -> Self:
         """
         Mirror the offsets of all shapes, labels, and refs across an axis
 
@@ -533,7 +531,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Positionable, entry).offset[across_axis - 1] *= -1
         return self
 
-    def mirror_elements(self, across_axis: int) -> Self:
+    def mirror_elements(self, across_axis: int = 0) -> Self:
         """
         Mirror each shape, ref, and pattern across an axis, relative
           to its offset
@@ -549,7 +547,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Mirrorable, entry).mirror(across_axis)
         return self
 
-    def mirror(self, across_axis: int) -> Self:
+    def mirror(self, across_axis: int = 0) -> Self:
         """
         Mirror the Pattern across an axis
 

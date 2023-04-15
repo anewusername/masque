@@ -125,7 +125,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             bb.plug(straight, {port_names[1]: sport_in})
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
-            bb.plug(bend, {port_names[1]: bport_in}, mirrored=(False, bool(ccw)))
+            bb.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
         if data.out_transition:
             opat, oport_theirs, oport_ours = data.out_transition
             bb.plug(opat, {port_names[1]: oport_ours})
@@ -239,7 +239,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
                         bb.plug(straight, {port_names[1]: sport_in}, append=True)
                 if ccw is not None:
                     bend, bport_in, bport_out = self.bend
-                    bb.plug(bend, {port_names[1]: bport_in}, mirrored=(False, bool(ccw)))
+                    bb.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
                 if out_transition:
                     opat, oport_theirs, oport_ours = out_transition
                     bb.plug(opat, {port_names[1]: oport_ours})
@@ -255,7 +255,6 @@ class PathTool(Tool, metaclass=ABCMeta):
     #@dataclass(frozen=True, slots=True)
     #class LData:
     #    dxy: NDArray[numpy.float64]
-
 
     #def __init__(self, layer: layer_t, width: float, ptype: str = 'unk') -> None:
     #    Tool.__init__(self)

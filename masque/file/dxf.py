@@ -21,7 +21,7 @@ from .. import Pattern, Ref, PatternError, Label
 from ..library import ILibraryView, LibraryView, Library
 from ..shapes import Shape, Polygon, Path
 from ..repetition import Grid
-from ..utils import rotation_matrix_2d, layer_t
+from ..utils import rotation_matrix_2d, layer_t, normalize_mirror
 
 
 logger = logging.getLogger(__name__)
@@ -258,8 +258,8 @@ def _read_block(block) -> tuple[str, Pattern]:
             if abs(xscale) != abs(yscale):
                 logger.warning('Masque does not support per-axis scaling; using x-scaling only!')
             scale = abs(xscale)
-            mirrored = (yscale < 0, xscale < 0)
-            rotation = numpy.deg2rad(attr.get('rotation', 0))
+            mirrored, extra_angle = normalize_mirror((yscale < 0, xscale < 0))
+            rotation = numpy.deg2rad(attr.get('rotation', 0)) + extra_angle
 
             offset = numpy.array(attr.get('insert', (0, 0, 0)))[:2]
 
@@ -291,8 +291,8 @@ def _mrefs_to_drefs(
     def mk_blockref(encoded_name: str, ref: Ref) -> None:
         rotation = numpy.rad2deg(ref.rotation) % 360
         attribs = dict(
-            xscale=ref.scale * (-1 if ref.mirrored[1] else 1),
-            yscale=ref.scale * (-1 if ref.mirrored[0] else 1),
+            xscale=ref.scale,
+            yscale=ref.scale * (-1 if ref.mirrored else 1),
             rotation=rotation,
             )
 

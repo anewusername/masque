@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike
 
 from .ref import Ref
 from .ports import PortList, Port
-from .utils import rotation_matrix_2d, normalize_mirror
+from .utils import rotation_matrix_2d
 
 #if TYPE_CHECKING:
 #    from .builder import Builder, Tool
@@ -143,7 +143,7 @@ class Abstract(PortList):
             port.rotate(rotation)
         return self
 
-    def mirror_port_offsets(self, across_axis: int) -> Self:
+    def mirror_port_offsets(self, across_axis: int = 0) -> Self:
         """
         Mirror the offsets of all shapes, labels, and refs across an axis
 
@@ -158,7 +158,7 @@ class Abstract(PortList):
             port.offset[across_axis - 1] *= -1
         return self
 
-    def mirror_ports(self, across_axis: int) -> Self:
+    def mirror_ports(self, across_axis: int = 0) -> Self:
         """
         Mirror each port's rotation across an axis, relative to its
           offset
@@ -174,7 +174,7 @@ class Abstract(PortList):
             port.mirror(across_axis)
         return self
 
-    def mirror(self, across_axis: int) -> Self:
+    def mirror(self, across_axis: int = 0) -> Self:
         """
         Mirror the Pattern across an axis
 
@@ -200,11 +200,10 @@ class Abstract(PortList):
         Returns:
             self
         """
-        mirrored_across_x, angle = normalize_mirror(ref.mirrored)
-        if mirrored_across_x:
-            self.mirror(across_axis=0)
-        self.rotate_ports(angle + ref.rotation)
-        self.rotate_port_offsets(angle + ref.rotation)
+        if ref.mirrored:
+            self.mirror()
+        self.rotate_ports(ref.rotation)
+        self.rotate_port_offsets(ref.rotation)
         self.translate_ports(ref.offset)
         return self
 
@@ -221,10 +220,9 @@ class Abstract(PortList):
 
         # TODO test undo_ref_transform
         """
-        mirrored_across_x, angle = normalize_mirror(ref.mirrored)
         self.translate_ports(-ref.offset)
-        self.rotate_port_offsets(-angle - ref.rotation)
-        self.rotate_ports(-angle - ref.rotation)
-        if mirrored_across_x:
-            self.mirror(across_axis=0)
+        self.rotate_port_offsets(-ref.rotation)
+        self.rotate_ports(-ref.rotation)
+        if ref.mirrored:
+            self.mirror(0)
         return self

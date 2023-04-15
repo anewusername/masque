@@ -230,7 +230,7 @@ class Builder(PortList):
 #            map_in: dict[str, str],
 #            map_out: dict[str, str | None] | None,
 #            *,
-#            mirrored: tuple[bool, bool],
+#            mirrored: bool = False,
 #            inherit_name: bool,
 #            set_rotation: bool | None,
 #            append: bool,
@@ -244,7 +244,7 @@ class Builder(PortList):
 #            map_in: dict[str, str],
 #            map_out: dict[str, str | None] | None = None,
 #            *,
-#            mirrored: tuple[bool, bool] = (False, False),
+#            mirrored: bool = False,
 #            inherit_name: bool = True,
 #            set_rotation: bool | None = None,
 #            append: bool = False,
@@ -257,7 +257,7 @@ class Builder(PortList):
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             inherit_name: bool = True,
             set_rotation: bool | None = None,
             append: bool = False,
@@ -351,11 +351,9 @@ class Builder(PortList):
 
         if isinstance(other, Pattern):
             assert append
-            self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                       mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
-        else:
-            self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                       mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
+
+        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
+                   mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
         return self
 
 #    @overload
@@ -366,7 +364,7 @@ class Builder(PortList):
 #            offset: ArrayLike,
 #            rotation: float,
 #            pivot: ArrayLike,
-#            mirrored: tuple[bool, bool],
+#            mirrored: bool = False,
 #            port_map: dict[str, str | None] | None,
 #            skip_port_check: bool,
 #            append: bool,
@@ -381,7 +379,7 @@ class Builder(PortList):
 #            offset: ArrayLike,
 #            rotation: float,
 #            pivot: ArrayLike,
-#            mirrored: tuple[bool, bool],
+#            mirrored: bool = False,
 #            port_map: dict[str, str | None] | None,
 #            skip_port_check: bool,
 #            append: Literal[True],
@@ -395,7 +393,7 @@ class Builder(PortList):
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
             pivot: ArrayLike = (0, 0),
-            mirrored: tuple[bool, bool] = (False, False),
+            mirrored: bool = False,
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
             append: bool = False,
@@ -461,7 +459,8 @@ class Builder(PortList):
 
         for name, port in ports.items():
             p = port.deepcopy()
-            p.mirror2d(mirrored)
+            if mirrored:
+                p.mirror()
             p.rotate_around(pivot, rotation)
             p.translate(offset)
             self.ports[name] = p
@@ -476,7 +475,8 @@ class Builder(PortList):
                 other_pat = self.library[name]
             other_copy = other_pat.deepcopy()
             other_copy.ports.clear()
-            other_copy.mirror2d(mirrored)
+            if mirrored:
+                other_copy.mirror()
             other_copy.rotate_around(pivot, rotation)
             other_copy.translate_elements(offset)
             self.pattern.append(other_copy)
@@ -517,7 +517,7 @@ class Builder(PortList):
             port.rotate_around(pivot, angle)
         return self
 
-    def mirror(self, axis: int) -> Self:
+    def mirror(self, axis: int = 0) -> Self:
         """
         Mirror the pattern and all ports across the specified axis.
 
@@ -528,8 +528,6 @@ class Builder(PortList):
             self
         """
         self.pattern.mirror(axis)
-        for p in self.ports.values():
-            p.mirror(axis)
         return self
 
     def set_dead(self) -> Self:
