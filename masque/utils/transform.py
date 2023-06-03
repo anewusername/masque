@@ -23,7 +23,7 @@ def rotation_matrix_2d(theta: float) -> NDArray[numpy.float64]:
     arr = numpy.array([[numpy.cos(theta), -numpy.sin(theta)],
                        [numpy.sin(theta), +numpy.cos(theta)]])
 
-    % If this was a manhattan rotation, round to remove some inacuraccies in sin & cos
+    # If this was a manhattan rotation, round to remove some inacuraccies in sin & cos
     if numpy.isclose(theta % (pi / 2), 0):
         arr = numpy.round(arr)
 
