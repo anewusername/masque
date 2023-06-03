@@ -678,6 +678,33 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         self.labels[layer].append(Label(*args, **kwargs))
         return self
 
+    def prune_layers(self) -> Self:
+        """
+        Removes empty layers (empty lists) in `self.shapes` and `self.labels`.
+
+        Returns:
+            self
+        """
+        for layer in list(self.shapes):
+            if not self.shapes[layer]:
+                del self.shapes[layer]
+        for layer in list(self.labels):
+            if not self.labels[layer]:
+                del self.labels[layer]
+        return self
+
+    def prune_refs(self) -> Self:
+        """
+        Remove empty ref lists in `self.refs`.
+
+        Returns:
+            self
+        """
+        for target in list(self.refs):
+            if not self.refs[target]:
+                del self.refs[target]
+        return self
+
     def flatten(
             self,
             library: Mapping[str, 'Pattern'],
