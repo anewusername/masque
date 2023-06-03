@@ -430,7 +430,7 @@ class RenderPather(PortList):
                     batch.append(step)
 
                 # Opcodes which break the batch go below this line
-                if not appendable_op:
+                if not appendable_op and portspec in bb.ports:
                     del bb.ports[portspec]
 
             #If the last batch didn't end yet
