@@ -290,6 +290,18 @@ class RenderPather(PortList):
         self.pattern.refs[other.name].append(ref)
         return self
 
+    def retool(
+            self,
+            tool: Tool,
+            keys: str | Sequence[str | None] | None = None,
+            ) -> Self:
+        if keys is None or isinstance(keys, str):
+            self.tools[keys] = tool
+        else:
+            for key in keys:
+                self.tools[key] = tool
+        return self
+
     def path(
             self,
             portspec: str,
