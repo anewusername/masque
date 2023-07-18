@@ -174,7 +174,21 @@ class Ref(
         if pattern.is_empty():
             # no need to run as_pattern()
             return None
-        return self.as_pattern(pattern=pattern).get_bounds(library)     # TODO can just take pattern's bounds and then transform those!
+
+        # if rotation is manhattan, can take pattern's bounds and transform them
+        if numpy.isclose(self.rotation % (pi / 2), 0):
+            unrot_bounds = pattern.get_bounds(library)
+            if unrot_bounds is None:
+                return None
+
+            if self.mirrored:
+                unrot_bounds[:, 1] *= -1
+
+            corners = (rotation_matrix_2d(self.rotation) @ unrot_bounds.T).T
+            bounds = numpy.vstack((numpy.min(corners, axis=0),
+                                   numpy.max(corners, axis=0))) * self.scale + [self.offset]
+            return bounds
+        return self.as_pattern(pattern=pattern).get_bounds(library)
 
     def __repr__(self) -> str:
         rotation = f' r{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
