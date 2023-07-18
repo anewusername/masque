@@ -60,8 +60,8 @@ def data_to_ports(
         # TODO missing ok?
         ) -> Pattern:
     """
-    # TODO fixup documentation in port_utils
-    # TODO move port_utils to utils.file?
+    # TODO fixup documentation in ports2data
+    # TODO move to utils.file?
     Examine `pattern` for labels specifying port info, and use that info
       to fill out its `ports` attribute.
 

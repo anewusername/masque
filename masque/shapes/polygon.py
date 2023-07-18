@@ -17,6 +17,9 @@ class Polygon(Shape):
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
        implicitly-closed boundary, and an offset.
 
+    Note that the setter for `Polygon.vertices` may (but may not) create a copy of the
+      passed vertex coordinates. See `numpy.array()` for details.
+
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
     __slots__ = (
@@ -38,7 +41,7 @@ class Polygon(Shape):
 
     @vertices.setter
     def vertices(self, val: ArrayLike) -> None:
-        val = numpy.array(val, dtype=float)             # TODO document that these might not be copied
+        val = numpy.array(val, dtype=float)             # note that this hopefully won't create a copy
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 3:

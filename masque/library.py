@@ -36,7 +36,21 @@ visitor_function_t = Callable[..., 'Pattern']
 
 
 def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
-    # TODO document rename function
+    """
+    The default `rename_theirs` function for `ILibrary.add`.
+
+    Treats names starting with an underscore as "one-offs" for which name conflicts
+      should be automatically resolved. Conflicts are resolved by calling
+      `lib.get_name(name.split('$')[0])`.
+    Names without a leading underscore are directly returned.
+
+    Args:
+        lib: The library into which `name` is to be added (but is presumed to conflict)
+        name: The original name, to be modified
+
+    Returns:
+        The new name, not guaranteed to be conflict-free!
+    """
     if not name.startswith('_'):            # TODO what are the consequences of making '_' special?  maybe we can make this decision everywhere?
         return name
 
@@ -45,6 +59,11 @@ def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
 
 
 class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
+    """
+    Interface for a read-only library.
+
+    A library is a mapping from unique names (str) to collections of geometry (`Pattern`).
+    """
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -53,6 +72,10 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
 
     def abstract_view(self) -> 'AbstractView':
+        """
+        Returns:
+            An AbstractView into this library
+        """
         return AbstractView(self)
 
     def abstract(self, name: str) -> Abstract:
@@ -205,14 +228,19 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def flatten(
             self,
             tops: str | Sequence[str],
-            flatten_ports: bool = False,       # TODO document
+            flatten_ports: bool = False,
             ) -> dict[str, 'Pattern']:
         """
-        Removes all refs and adds equivalent shapes.
-        Also flattens all referenced patterns.
+        Returns copies of all `tops` patterns with all refs
+         removed and replaced with equivalent shapes.
+        Also returns flattened copies of all referenced patterns.
+        The originals in the calling `Library` are not modified.
+        For an in-place variant, see `Pattern.flatten`.
 
         Args:
             tops: The pattern(s) to flattern.
+            flatten_ports: If `True`, keep ports from any referenced
+                patterns; otherwise discard them.
 
         Returns:
             {name: flat_pattern} mapping for all flattened patterns.
@@ -222,7 +250,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
         flattened: dict[str, 'Pattern | None'] = {}
 
-        def flatten_single(name) -> None:
+        def flatten_single(name: str) -> None:
             flattened[name] = None
             pat = self[name].deepcopy()
 
@@ -428,11 +456,12 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             pattern = visit_after(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
 
         if pattern is not original_pattern:
-            name = hierarchy[-1]            # TODO what is name=None?
+            name = hierarchy[-1]
             if not isinstance(self, ILibrary):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but the library is immutable')
             if name is None:
+                # The top pattern is not the original pattern, but we don't know what to call it!
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but no top-level name was provided in `hierarchy`')
 
@@ -442,6 +471,11 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
 
 class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
+    """
+    Interface for a writeable library.
+
+    A library is a mapping from unique names (str) to collections of geometry (`Pattern`).
+    """
     # inherited abstract functions
     #def __getitem__(self, key: str) -> 'Pattern':
     #def __iter__(self) -> Iterator[str]:
@@ -477,7 +511,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         Args:
             old_name: Current name for the pattern
             new_name: New name for the pattern
-            #TODO move_Reference
+            move_references: If `True`, any refs in this library pointing to `old_name`
+                will be updated to point to `new_name`.
 
         Returns:
             self
@@ -534,19 +569,31 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             rename_theirs: Callable[['ILibraryView', str], str] = _rename_patterns,
             ) -> dict[str, str]:
         """
-        Add keys from another library into this one.
+        Add items from another library into this one.
 
-        # TODO explain reference renaming and return
+        If any name in `other` is already present in `self`, `rename_theirs(self, name)` is called
+          to pick a new name for the newly-added pattern. If the new name still conflicts with a name
+          in `self` a `LibraryError` is raised. All references to the original name (within `other)`
+          are updated to the new name.
+
+        By default, `rename_theirs` makes no changes to the name (causing a `LibraryError`) unless the
+          name starts with an underscore. Underscored names are truncated to before their first '$'
+          and then passed to `self.get_name()` to create a new unique name.
 
         Args:
-            other: The library to insert keys from
+            other: The library to insert keys from.
             rename_theirs: Called as rename_theirs(self, name) for each duplicate name
                 encountered in `other`. Should return the new name for the pattern in
                 `other`.
                 Default is effectively
-                    `name.split('$')[0] if name.startswith('_') else name`
+                    `self.get_name(name.split('$')[0]) if name.startswith('_') else name`
+
         Returns:
-            self
+            A mapping of `{old_name: new_name}` for all `old_name`s in `other`. Unchanged
+            names map to themselves.
+
+        Raises:
+            `LibraryError` if a duplicate name is encountered even after applying `rename_theirs()`.
         """
         from .pattern import map_targets
         duplicates = set(self.keys()) & set(other.keys())
@@ -785,7 +832,15 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             self,
             repeat: bool = True,
             ) -> set[str]:
-        # TODO doc prune_empty
+        """
+        Delete any empty patterns (i.e. where `Pattern.is_empty` returns `True`).
+
+        Args:
+            repeat: Also recursively delete any patterns which only contain(ed) empty patterns.
+
+        Returns:
+            A set containing the names of all deleted patterns
+        """
         trimmed = set()
         while empty := set(name for name, pat in self.items() if pat.is_empty()):
             for name in empty:
@@ -807,7 +862,13 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             key: str,
             delete_refs: bool = True,
             ) -> Self:
-        # TODO doc delete()
+        """
+        Delete a pattern and (optionally) all refs pointing to that pattern.
+
+        Args:
+            key: Name of the pattern to be deleted.
+            delete_refs: If `True` (default), also delete all refs pointing to the pattern.
+        """
         del self[key]
         if delete_refs:
             for pat in self.values():
@@ -817,6 +878,12 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
 
 class LibraryView(ILibraryView):
+    """
+    Default implementation for a read-only library.
+
+    A library is a mapping from unique names (str) to collections of geometry (`Pattern`).
+    This library is backed by an arbitrary python object which implements the `Mapping` interface.
+    """
     mapping: Mapping[str, 'Pattern']
 
     def __init__(
@@ -842,6 +909,12 @@ class LibraryView(ILibraryView):
 
 
 class Library(ILibrary):
+    """
+    Default implementation for a writeable library.
+
+    A library is a mapping from unique names (str) to collections of geometry (`Pattern`).
+    This library is backed by an arbitrary python object which implements the `MutableMapping` interface.
+    """
     mapping: MutableMapping[str, 'Pattern']
 
     def __init__(
@@ -892,6 +965,12 @@ class Library(ILibrary):
     def mktree(cls, name: str) -> tuple[Self, 'Pattern']:
         """
         Create a new Library and immediately add a pattern
+
+        Args:
+            name: The name for the new pattern (usually the name of the topcell).
+
+        Returns:
+            The newly created `Library` and the newly created `Pattern`
         """
         from .pattern import Pattern
         tree = cls()
@@ -1041,6 +1120,11 @@ class LazyLibrary(ILibrary):
 
 
 class AbstractView(Mapping[str, Abstract]):
+    """
+    A read-only mapping from names to `Abstract` objects.
+
+    This is usually just used as a shorthand for repeated calls to `library.abstract()`.
+    """
     library: ILibraryView
 
     def __init__(self, library: ILibraryView) -> None:

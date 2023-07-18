@@ -318,7 +318,12 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns `None` if the Pattern is empty.
 
         Args:
-            TODO docs for get_bounds
+            library: If `recurse=True`, any referenced patterns are loaded from this library.
+            recurse: If `False`, do not evaluate the bounds of any refs (i.e. assume they are empty).
+                If `True`, evaluate the bounds of all refs and their conained geometry recursively.
+                Default `True`.
+            cache: Mapping of `{name: bounds}` for patterns for which the bounds have already been calculated.
+                Modified during the run (any referenced pattern's bounds are added).
 
         Returns:
             `[[x_min, y_min], [x_max, y_max]]` or `None`
@@ -401,7 +406,12 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Convenience wrapper for `get_bounds()` which asserts that the Pattern as non-None bounds.
 
         Args:
-            TODO docs for get_bounds
+            library: If `recurse=True`, any referenced patterns are loaded from this library.
+            recurse: If `False`, do not evaluate the bounds of any refs (i.e. assume they are empty).
+                If `True`, evaluate the bounds of all refs and their conained geometry recursively.
+                Default `True`.
+            cache: Mapping of `{name: bounds}` for patterns for which the bounds have already been calculated.
+                Modified during the run (any referenced pattern's bounds are added).
 
         Returns:
             `[[x_min, y_min], [x_max, y_max]]`
@@ -590,12 +600,24 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return not (self.has_refs() or self.has_shapes() or self.has_labels())
 
     def has_refs(self) -> bool:
+        """
+        Returns:
+            True if the pattern contains any refs.
+        """
         return any(True for _ in chain.from_iterable(self.refs.values()))
 
     def has_shapes(self) -> bool:
+        """
+        Returns:
+            True if the pattern contains any shapes.
+        """
         return any(True for _ in chain.from_iterable(self.shapes.values()))
 
     def has_labels(self) -> bool:
+        """
+        Returns:
+            True if the pattern contains any labels.
+        """
         return any(True for _ in chain.from_iterable(self.labels.values()))
 
     def ref(self, target: str | None, *args: Any, **kwargs: Any) -> Self:
@@ -708,21 +730,23 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     def flatten(
             self,
             library: Mapping[str, 'Pattern'],
-            flatten_ports: bool = False,       # TODO document
+            flatten_ports: bool = False,
             ) -> 'Pattern':
         """
         Removes all refs (recursively) and adds equivalent shapes.
-        Alters the current pattern in-place
+        Alters the current pattern in-place.
+        For a version which creates copies, see `Library.flatten`.
 
         Args:
             library: Source for referenced patterns.
+            flatten_ports: If `True`, keep ports from any referenced
+                patterns; otherwise discard them.
 
         Returns:
             self
         """
         flattened: dict[str | None, 'Pattern | None'] = {}
 
-        # TODO both Library and Pattern have flatten()... pattern is in-place?
         def flatten_single(name: str | None) -> None:
             if name is None:
                 pat = self

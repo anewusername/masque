@@ -1,5 +1,7 @@
 """
 Tools are objects which dynamically generate simple single-use devices (e.g. wires or waveguides)
+
+# TODO document all tools
 """
 from typing import Sequence, Literal, Callable, Any
 from abc import ABCMeta, abstractmethod     # TODO any way to make Tool ok with implementing only one method?
