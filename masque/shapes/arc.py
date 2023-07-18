@@ -202,13 +202,18 @@ class Arc(Shape):
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
         a_ranges = self._angles_to_parameters()
 
-        # Approximate perimeter
-        # Ramanujan, S., "Modular Equations and Approximations to ,"
-        #  Quart. J. Pure. Appl. Math., vol. 45 (1913-1914), pp. 350-372
+        # Approximate outer perimeter via numerical integration
         a0, a1 = a_ranges[1]    # use outer arc
-        h = ((r1 - r0) / (r1 + r0)) ** 2
-        ellipse_perimeter = pi * (r1 + r0) * (1 + 3 * h / (10 + math.sqrt(4 - 3 * h)))
-        perimeter = abs(a0 - a1) / (2 * pi) * ellipse_perimeter         # TODO: make this more accurate
+        t = numpy.linspace(a0, a1, 10_000)      # NOTE: could probably use an adaptive number of points
+        r0sin = r0 * numpy.sin(t)
+        r1cos = r1 * numpy.cos(t)
+        perimeter = numpy.trapz(numpy.sqrt(r0sin * r0sin + r1cos * r1cos), dx=t[1] - t[0])
+
+        #from scipy.special import ellipeinc
+        #m = 1 - (r1 / r0) ** 2
+        #t1 = ellipeinc(a1 - pi / 2, m)
+        #t0 = ellipeinc(a0 - pi / 2, m)
+        #perimeter2 = r0 * (t1 - t0)
 
         n = []
         if num_vertices is not None:
