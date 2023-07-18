@@ -204,10 +204,10 @@ class Arc(Shape):
 
         # Approximate outer perimeter via numerical integration
         a0, a1 = a_ranges[1]    # use outer arc
-        t = numpy.linspace(a0, a1, 10_000)      # NOTE: could probably use an adaptive number of points
+        t, dt = numpy.linspace(a0, a1, 10_000, retstep=True)  # NOTE: could probably use an adaptive number of points
         r0sin = r0 * numpy.sin(t)
         r1cos = r1 * numpy.cos(t)
-        perimeter = numpy.trapz(numpy.sqrt(r0sin * r0sin + r1cos * r1cos), dx=t[1] - t[0])
+        perimeter = numpy.trapz(numpy.sqrt(r0sin * r0sin + r1cos * r1cos), dx=dt)
 
         #from scipy.special import ellipeinc
         #m = 1 - (r1 / r0) ** 2
