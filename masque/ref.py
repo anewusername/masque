@@ -2,7 +2,7 @@
  Ref provides basic support for nesting Pattern objects within each other, by adding
   offset, rotation, scaling, and other such properties to the reference.
 """
-#TODO more top-level documentation
+#TODO more top-level documentation for ref
 
 from typing import Mapping, TYPE_CHECKING, Self
 import copy
