@@ -82,18 +82,18 @@ def perturbed_l3(
 
     # Build L3 cavity, using references to the provided hole pattern
     pat = Pattern()
-    pat.refs += [
-        Ref(hole, scale=r, offset=(lattice_constant * x,
-                                   lattice_constant * y))
+    pat.refs[hole] += [
+        Ref(scale=r, offset=(lattice_constant * x,
+                             lattice_constant * y))
         for x, y, r in xyr]
 
     # Add rectangular undercut aids
     min_xy, max_xy = pat.get_bounds_nonempty(hole_lib)
     trench_dx = max_xy[0] - min_xy[0]
 
-    pat.shapes += [
-        Polygon.rect(ymin=max_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width, layer=trench_layer),
-        Polygon.rect(ymax=min_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width, layer=trench_layer),
+    pat.shapes[trench_layer] += [
+        Polygon.rect(ymin=max_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width),
+        Polygon.rect(ymax=min_xy[1], xmin=min_xy[0], lx=trench_dx, ly=trench_width),
         ]
 
     # Ports are at outer extents of the device (with y=0)
@@ -131,9 +131,9 @@ def waveguide(
 
     # Build the pattern
     pat = Pattern()
-    pat.refs += [
-        Ref(hole, offset=(lattice_constant * x,
-                          lattice_constant * y))
+    pat.refs[hole] += [
+        Ref(offset=(lattice_constant * x,
+                    lattice_constant * y))
         for x, y in xy]
 
     # Ports are at outer edges, with y=0
@@ -170,9 +170,9 @@ def bend(
 
     # Build the pattern
     pat= Pattern()
-    pat.refs += [
-        Ref(hole, offset=(lattice_constant * x,
-                          lattice_constant * y))
+    pat.refs[hole] += [
+        Ref(offset=(lattice_constant * x,
+                    lattice_constant * y))
         for x, y in xy]
 
     # Figure out port locations.
@@ -209,9 +209,9 @@ def y_splitter(
 
     # Build pattern
     pat = Pattern()
-    pat.refs += [
-        Ref(hole, offset=(lattice_constant * x,
-                          lattice_constant * y))
+    pat.refs[hole] += [
+        Ref(offset=(lattice_constant * x,
+                    lattice_constant * y))
         for x, y in xy]
 
     # Determine port locations
@@ -248,30 +248,30 @@ def main(interactive: bool = True) -> None:
 
     # Turn our dict of devices into a Library -- useful for getting abstracts
     lib = Library(devices)
-    abv = lib.abstract_view()     # lets us use abv[cell] instead of lib.abstract(cell)
 
     #
     # Build a circuit
     #
-    circ = Builder(library=lib)
+    # Create a builder, and add the circuit to our library as "my_circuit"
+    circ = Builder(library=lib, name='my_circuit')
 
     # Start by placing a waveguide. Call its ports "in" and "signal".
-    circ.place(abv['wg10'], offset=(0, 0), port_map={'left': 'in', 'right': 'signal'})
+    circ.place('wg10', offset=(0, 0), port_map={'left': 'in', 'right': 'signal'})
 
     # Extend the signal path by attaching the "left" port of a waveguide.
     #   Since there is only one other port ("right") on the waveguide we
     # are attaching (wg10), it automatically inherits the name "signal".
-    circ.plug(abv['wg10'], {'signal': 'left'})
+    circ.plug('wg10', {'signal': 'left'})
 
     # Attach a y-splitter to the signal path.
     #   Since the y-splitter has 3 ports total, we can't auto-inherit the
     # port name, so we have to specify what we want to name the unattached
     # ports. We can call them "signal1" and "signal2".
-    circ.plug(abv['ysplit'], {'signal': 'in'}, {'top': 'signal1', 'bot': 'signal2'})
+    circ.plug('ysplit', {'signal': 'in'}, {'top': 'signal1', 'bot': 'signal2'})
 
     # Add a waveguide to both signal ports, inheriting their names.
-    circ.plug(abv['wg05'], {'signal1': 'left'})
-    circ.plug(abv['wg05'], {'signal2': 'left'})
+    circ.plug('wg05', {'signal1': 'left'})
+    circ.plug('wg05', {'signal2': 'left'})
 
     # Add a bend to both ports.
     #   Our bend's ports "left" and "right" refer to the original counterclockwise
@@ -280,22 +280,22 @@ def main(interactive: bool = True) -> None:
     # to "signal2" to bend counterclockwise.
     #   We could also use `mirrored=(True, False)` to mirror one of the devices
     # and then use same device port on both paths.
-    circ.plug(abv['bend0'], {'signal1': 'right'})
-    circ.plug(abv['bend0'], {'signal2': 'left'})
+    circ.plug('bend0', {'signal1': 'right'})
+    circ.plug('bend0', {'signal2': 'left'})
 
     # We add some waveguides and a cavity to "signal1".
-    circ.plug(abv['wg10'], {'signal1': 'left'})
-    circ.plug(abv['l3cav'], {'signal1': 'input'})
-    circ.plug(abv['wg10'], {'signal1': 'left'})
+    circ.plug('wg10', {'signal1': 'left'})
+    circ.plug('l3cav', {'signal1': 'input'})
+    circ.plug('wg10', {'signal1': 'left'})
 
     # "signal2" just gets a single of equivalent length
-    circ.plug(abv['wg28'], {'signal2': 'left'})
+    circ.plug('wg28', {'signal2': 'left'})
 
     # Now we bend both waveguides back towards each other
-    circ.plug(abv['bend0'], {'signal1': 'right'})
-    circ.plug(abv['bend0'], {'signal2': 'left'})
-    circ.plug(abv['wg05'], {'signal1': 'left'})
-    circ.plug(abv['wg05'], {'signal2': 'left'})
+    circ.plug('bend0', {'signal1': 'right'})
+    circ.plug('bend0', {'signal2': 'left'})
+    circ.plug('wg05', {'signal1': 'left'})
+    circ.plug('wg05', {'signal2': 'left'})
 
     # To join the waveguides, we attach a second y-junction.
     #   We plug "signal1" into the "bot" port, and "signal2" into the "top" port.
@@ -303,18 +303,15 @@ def main(interactive: bool = True) -> None:
     #   This operation would raise an exception if the ports did not line up
     # correctly (i.e. they required different rotations or translations of the
     # y-junction device).
-    circ.plug(abv['ysplit'], {'signal1': 'bot', 'signal2': 'top'}, {'in': 'signal_out'})
+    circ.plug('ysplit', {'signal1': 'bot', 'signal2': 'top'}, {'in': 'signal_out'})
 
     # Finally, add some more waveguide to "signal_out".
-    circ.plug(abv['wg10'], {'signal_out': 'left'})
+    circ.plug('wg10', {'signal_out': 'left'})
 
     # We can also add text labels for our circuit's ports.
     #   They will appear at the uppermost hierarchy level, while the individual
     # device ports will appear further down, in their respective cells.
     ports_to_data(circ.pattern)
-
-    # Add the pattern into our library
-    lib['my_circuit'] = circ.pattern
 
     # Check if we forgot to include any patterns... ooops!
     if dangling := lib.dangling_refs():

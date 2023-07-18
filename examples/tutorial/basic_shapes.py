@@ -32,9 +32,10 @@ def hole(
     Returns:
         Pattern containing a circle.
     """
-    pat = Pattern(shapes=[
-        Circle(radius=radius, offset=(0, 0), layer=layer),
-        ])
+    pat = Pattern()
+    pat.shapes[layer].append(
+        Circle(radius=radius, offset=(0, 0))
+        )
     return pat
 
 
@@ -58,8 +59,9 @@ def triangle(
         (numpy.cos(   - pi / 6), numpy.sin(   - pi / 6)),
         ]) * radius
 
-    pat = Pattern(shapes=[
-        Polygon(offset=(0, 0), layer=layer, vertices=vertices),
+    pat = Pattern()
+    pat.shapes[layer].extend([
+        Polygon(offset=(0, 0), vertices=vertices),
         ])
     return pat
 
@@ -84,16 +86,18 @@ def smile(
     pat = Pattern()
 
     # Add all the shapes we want
-    pat.shapes += [
-        Circle(radius=radius, offset=(0, 0), layer=layer),   # Outer circle
-        Circle(radius=radius / 10, offset=(radius / 3, radius / 3), layer=secondary_layer),
-        Circle(radius=radius / 10, offset=(-radius / 3, radius / 3), layer=secondary_layer),
+    pat.shapes[layer] += [
+        Circle(radius=radius, offset=(0, 0)),   # Outer circle
+        ]
+
+    pat.shapes[secondary_layer] += [
+        Circle(radius=radius / 10, offset=(radius / 3, radius / 3)),
+        Circle(radius=radius / 10, offset=(-radius / 3, radius / 3)),
         Arc(
             radii=(radius * 2 / 3, radius * 2 / 3), # Underlying ellipse radii
             angles=(7 / 6 * pi, 11 / 6 * pi),        # Angles limiting the arc
             width=radius / 10,
             offset=(0, 0),
-            layer=secondary_layer,
             ),
         ]
 

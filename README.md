@@ -49,3 +49,6 @@ pip install git+https://mpxd.net/code/jan/masque.git@release
     - de-embedding
     - boolean ops
 * DOCS DOCS DOCS
+* Tests tests tests
+* check renderpather
+* pather and renderpather examples

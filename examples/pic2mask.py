@@ -33,7 +33,9 @@ pyplot.show(block=False)
 # Create the layout from the contours
 #
 pat = Pattern()
-pat.shapes = [Polygon(vertices=vv) for vv in contours if len(vv) < 1_000]
+pat.shapes[(0, 0)].extend([
+    Polygon(vertices=vv) for vv in contours if len(vv) < 1_000
+    ])
 
 lib = {}
 lib['my_mask_name'] = pat
