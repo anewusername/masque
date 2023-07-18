@@ -593,7 +593,6 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def is_empty(self) -> bool:
         """
-        # TODO is_empty doesn't include ports... maybe there should be an equivalent?
         Returns:
             True if the pattern is contains no shapes, labels, or refs.
         """
@@ -619,6 +618,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             True if the pattern contains any labels.
         """
         return any(True for _ in chain.from_iterable(self.labels.values()))
+
+    def has_ports(self) -> bool:
+        """
+        Returns:
+            True if the pattern contains any ports.
+        """
+        return bool(self.ports)
 
     def ref(self, target: str | None, *args: Any, **kwargs: Any) -> Self:
         """
