@@ -567,6 +567,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             self,
             other: Mapping[str, 'Pattern'],
             rename_theirs: Callable[['ILibraryView', str], str] = _rename_patterns,
+            mutate_other: bool = False,
             ) -> dict[str, str]:
         """
         Add items from another library into this one.
@@ -575,6 +576,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
           to pick a new name for the newly-added pattern. If the new name still conflicts with a name
           in `self` a `LibraryError` is raised. All references to the original name (within `other)`
           are updated to the new name.
+        If `mutate_other=False` (default), all changes are made to a deepcopy of `other`.
 
         By default, `rename_theirs` makes no changes to the name (causing a `LibraryError`) unless the
           name starts with an underscore. Underscored names are truncated to before their first '$'
@@ -587,6 +589,9 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
                 `other`.
                 Default is effectively
                     `self.get_name(name.split('$')[0]) if name.startswith('_') else name`
+            mutate_other: If `True`, modify the original library and its contained patterns
+                (e.g. when renaming patterns and updating refs). Otherwise, operate on a deepcopy
+                (default).
 
         Returns:
             A mapping of `{old_name: new_name}` for all `old_name`s in `other`. Unchanged
@@ -603,7 +608,13 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
                 self._merge(key, other, key)
             return {}
 
-        temp = Library(copy.deepcopy(dict(other)))      # TODO maybe add a `mutate` arg? Might want to keep the same patterns
+        if mutate_other:
+            if isinstance(Library, other):
+                temp = other
+            else:
+                temp = Library(dict(other))
+        else:
+            temp = Library(copy.deepcopy(dict(other)))
         rename_map = {}
         for old_name in temp:
             if old_name in self:
