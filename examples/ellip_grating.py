@@ -3,28 +3,33 @@
 import numpy
 
 import masque
-import masque.file.klamath
+from masque.file import gdsii
 from masque import shapes
 
 
 def main():
     pat = masque.Pattern(name='ellip_grating')
-    for rmin in numpy.arange(10, 15, 0.5):
-        pat.shapes.append(shapes.Arc(
+    layer = (0, 0)
+    pat.shapes[layer].extend([
+        shapes.Arc(
             radii=(rmin, rmin),
             width=0.1,
             angles=(-numpy.pi/4, numpy.pi/4),
-            layer=(0, 0),
-        ))
+            )
+        for rmin in numpy.arange(10, 15, 0.5)]
+        )
 
-    pat.labels.append(masque.Label(string='grating centerline', offset=(1, 0), layer=(1, 2)))
+    pat.label(string='grating centerline', offset=(1, 0), layer=(1, 2))
 
     pat.scale_by(1000)
     pat.visualize()
-    pat2 = pat.copy()
-    pat2.name = 'grating2'
 
-    masque.file.klamath.writefile((pat, pat2), 'out.gds.gz', 1e-9, 1e-3)
+    lib = {
+        'ellip_grating': pat,
+        'grating2': pat.copy(),
+        }
+
+    gdsii.writefile(lib, 'out.gds.gz', meters_per_unit=1e-9, logical_units_per_unit=1e-3)
 
 
 if __name__ == '__main__':

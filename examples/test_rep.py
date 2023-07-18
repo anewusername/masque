@@ -16,8 +16,9 @@ def main():
 
     cell_name = 'ellip_grating'
     pat = masque.Pattern()
+
+    layer = (0, 0)
     for rmin in numpy.arange(10, 15, 0.5):
-        layer = (0, 0)
         pat.shapes[layer].append(Arc(
             radii=(rmin, rmin),
             width=0.1,

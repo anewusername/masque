@@ -1,4 +1,4 @@
-from typing import Sequence, Callable
+from typing import Sequence, Callable, Any
 from pprint import pformat
 
 import numpy
@@ -38,7 +38,7 @@ def main() -> None:
     #
 
     lib['triangle'] = lambda: basic_shapes.triangle(devices.RADIUS)
-    opts = dict(
+    opts: dict[str, Any] = dict(
         lattice_constant = devices.LATTICE_CONSTANT,
         hole = 'triangle',
         )
@@ -73,9 +73,7 @@ def main() -> None:
     circ2.plug('tri_wg10', {'output': 'left'})
 
     # Add the circuit to the device library.
-    #  It has already been generated, so we can use `set_const` as a shorthand for
-    #       `lib['mixed_wg_cav'] = lambda: circ2.pattern`
-    lib.set_const('mixed_wg_cav', circ2.pattern)
+    lib['mixed_wg_cav'] = circ2.pattern
 
 
     #
@@ -87,7 +85,7 @@ def main() -> None:
 
     # ... that lets us continue from where we left off.
     circ3.plug('tri_bend0', {'input': 'right'})
-    circ3.plug('tri_bend0', {'input': 'left'}, mirrored=(True, False)) # mirror since no tri y-symmetry
+    circ3.plug('tri_bend0', {'input': 'left'}, mirrored=True) # mirror since no tri y-symmetry
     circ3.plug('tri_bend0', {'input': 'right'})
     circ3.plug('bend0', {'output': 'left'})
     circ3.plug('bend0', {'output': 'left'})
@@ -96,7 +94,7 @@ def main() -> None:
     circ3.plug('tri_wg28', {'input': 'right'})
     circ3.plug('tri_wg10', {'input': 'right', 'output': 'left'})
 
-    lib.set_const('loop_segment', circ3.pattern)
+    lib['loop_segment'] = circ3.pattern
 
     #
     # Write all devices into a GDS file
@@ -128,7 +126,6 @@ if __name__ == '__main__':
 #                name = port_map.get(name, name)
 #            if name is None:
 #                continue
-#            self.pattern.labels += [
-#                Label(string=name, offset=self.ports[name].offset, layer=layer)]
+#            self.pattern.label(string=name, offset=self.ports[name].offset, layer=label_layer)
 #        return self
 #
