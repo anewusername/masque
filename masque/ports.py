@@ -303,7 +303,7 @@ class PortList(metaclass=ABCMeta):
         """
         s_ports = self[map_in.keys()]
         o_ports = other[map_in.values()]
-        return self.find_ptransform(
+        return self.find_port_transform(
             s_ports=s_ports,
             o_ports=o_ports,
             map_in=map_in,
@@ -312,7 +312,7 @@ class PortList(metaclass=ABCMeta):
             )
 
     @staticmethod
-    def find_ptransform(            # TODO needs better name
+    def find_port_transform(
             s_ports: Mapping[str, Port],
             o_ports: Mapping[str, Port],
             map_in: dict[str, str],
