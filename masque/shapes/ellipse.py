@@ -31,7 +31,7 @@ class Ellipse(Shape):
 
     # radius properties
     @property
-    def radii(self) -> Any:         # TODO mypy#3004  NDArray[numpy.float64]:
+    def radii(self) -> Any:         # mypy#3004  NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
