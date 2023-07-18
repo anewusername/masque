@@ -76,7 +76,7 @@ class Path(Shape):
 
     # cap_extensions property
     @property
-    def cap_extensions(self) -> Any | None:  # TODO mypy#3004  NDArray[numpy.float64]]:
+    def cap_extensions(self) -> Any | None:  # mypy#3004  NDArray[numpy.float64]]:
         """
         Path end-cap extension
 
@@ -99,7 +99,7 @@ class Path(Shape):
 
     # vertices property
     @property
-    def vertices(self) -> Any:  # TODO mypy#3004  NDArray[numpy.float64]]:
+    def vertices(self) -> Any:  # mypy#3004  NDArray[numpy.float64]]:
         """
         Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """

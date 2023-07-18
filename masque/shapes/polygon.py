@@ -30,7 +30,7 @@ class Polygon(Shape):
 
     # vertices property
     @property
-    def vertices(self) -> Any:        # TODO mypy#3004   NDArray[numpy.float64]:
+    def vertices(self) -> Any:        # mypy#3004   NDArray[numpy.float64]:
         """
         Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
         """

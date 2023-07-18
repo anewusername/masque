@@ -41,7 +41,7 @@ class Arc(Shape):
 
     # radius properties
     @property
-    def radii(self) -> Any:         # TODO mypy#3004   NDArray[numpy.float64]:
+    def radii(self) -> Any:         # mypy#3004   NDArray[numpy.float64]:
         """
         Return the radii `[rx, ry]`
         """
@@ -78,7 +78,7 @@ class Arc(Shape):
 
     # arc start/stop angle properties
     @property
-    def angles(self) -> Any:            # TODO mypy#3004    NDArray[numpy.float64]:
+    def angles(self) -> Any:            # mypy#3004    NDArray[numpy.float64]:
         """
         Return the start and stop angles `[a_start, a_stop]`.
         Angles are measured from x-axis after rotation

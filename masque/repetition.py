@@ -302,7 +302,7 @@ class Arbitrary(Repetition):
     """
 
     @property
-    def displacements(self) -> Any:     # TODO: mypy#3004   NDArray[numpy.float64]:
+    def displacements(self) -> Any:     # mypy#3004   NDArray[numpy.float64]:
         return self._displacements
 
     @displacements.setter

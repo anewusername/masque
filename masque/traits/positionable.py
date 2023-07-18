@@ -75,7 +75,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     #
     # offset property
     @property
-    def offset(self) -> Any:  # TODO mypy#3003  NDArray[numpy.float64]:
+    def offset(self) -> Any:  # mypy#3004  NDArray[numpy.float64]:
         """
         [x, y] offset
         """

@@ -115,7 +115,7 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
         pivot = numpy.array(pivot, dtype=float)
         cast(Positionable, self).translate(-pivot)
         cast(Rotatable, self).rotate(rotation)
-        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      # type: ignore # TODO: mypy#3004
+        self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      # type: ignore # mypy#3004
         cast(Positionable, self).translate(+pivot)
         return self
 
