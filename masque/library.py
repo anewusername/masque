@@ -71,6 +71,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     #__contains__, keys, items, values, get, __eq__, __ne__ supplied by Mapping
 
+    def __repr__(self) -> str:
+        return '<ILibraryView with keys\n' + pformat(list(self.keys())) + '>'
+
     def abstract_view(self) -> 'AbstractView':
         """
         Returns:
@@ -89,9 +92,6 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             An `Abstract` object for the pattern
         """
         return Abstract(name=name, ports=self[name].ports)
-
-    def __repr__(self) -> str:
-        return '<ILibraryView with keys\n' + pformat(list(self.keys())) + '>'
 
     def dangling_refs(
             self,
