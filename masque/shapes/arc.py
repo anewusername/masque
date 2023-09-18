@@ -202,32 +202,55 @@ class Arc(Shape):
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
         a_ranges = self._angles_to_parameters()
 
-        # Approximate outer perimeter via numerical integration
-        a0, a1 = a_ranges[1]    # use outer arc
-        t, dt = numpy.linspace(a0, a1, 10_000, retstep=True)  # NOTE: could probably use an adaptive number of points
-        r0sin = r0 * numpy.sin(t)
-        r1cos = r1 * numpy.cos(t)
-        perimeter = numpy.trapz(numpy.sqrt(r0sin * r0sin + r1cos * r1cos), dx=dt)
+        # Approximate perimeter via numerical integration
 
+        #perimeter1 = numpy.trapz(numpy.sqrt(r0sin * r0sin + r1cos * r1cos), dx=dt)
         #from scipy.special import ellipeinc
         #m = 1 - (r1 / r0) ** 2
         #t1 = ellipeinc(a1 - pi / 2, m)
         #t0 = ellipeinc(a0 - pi / 2, m)
         #perimeter2 = r0 * (t1 - t0)
 
-        n = []
+        def get_arclens(n_pts: int, a0: float, a1: float) -> NDArray[numpy.float64]:
+            """ Get `n_pts` arclengths """
+            t, dt = numpy.linspace(a0, a1, n_pts, retstep=True)  # NOTE: could probably use an adaptive number of points
+            r0sin = r0 * numpy.sin(t)
+            r1cos = r1 * numpy.cos(t)
+            arc_dl = numpy.sqrt(r0sin * r0sin + r1cos * r1cos)
+            #arc_lengths = numpy.diff(t) * (v[1:] + v[:-1]) / 2
+            arc_lengths = (v[1:] + v[:-1]) * dt / 2
+            return arc_lengths, t
+
         if num_vertices is not None:
-            n += [num_vertices]
-        if max_arclen is not None:
-            n += [perimeter / max_arclen]
-        num_vertices = int(round(max(n)))
+            n_pts = max(self.radii) / min(self.radii) * num_vertices * 100
+            perimeter_inner = get_arclens(n_pts, *a_ranges[0])[0].sum()
+            perimeter_outer = get_arclens(n_pts, *a_ranges[1])[0].sum()
+            implied_arclen = (perimeter_outer + perimeter_inner + self.width * 2) / num_vertices
+            max_arclen = min(implied_arclen, max_arclen if max_arclen is not None else numpy.inf)
+
+        def get_thetas(inner: bool) -> NDArray[numpy.float64]:
+            """ Figure out the parameter values at which we should place vertices to meet the arclength constraint"""
+            dr = -self.width / 2.0 * (-1 if inner else 1)
+
+            n_pts = 2 * pi * max(self.radii) / max_arclen
+            arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1])
+
+            keep = []
+            removable = (numpy.cumsum(arc_lengths) <= max_arclen)
+            start = 0
+            while True:
+                next_to_keep = start + numpy.where(removable)[0][-1]    # TODO: any chance we haven't sampled finely enough?
+                keep.append(next_to_keep)
+                removable = (numpy.cumsum(arc_lengths[next_to_keep + 1:]) <= max_arclen)
+                start = next_to_keep + 1
+            return thetas[keep]
 
         wh = self.width / 2.0
         if wh == r0 or wh == r1:
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
-            thetas_inner = numpy.linspace(a_ranges[0][1], a_ranges[0][0], num_vertices, endpoint=True)
-        thetas_outer = numpy.linspace(a_ranges[1][0], a_ranges[1][1], num_vertices, endpoint=True)
+            thetas_inner = get_thetas(inner=True)
+        thetas_outer = get_thetas(inner=False)
 
         sin_th_i, cos_th_i = (numpy.sin(thetas_inner), numpy.cos(thetas_inner))
         sin_th_o, cos_th_o = (numpy.sin(thetas_outer), numpy.cos(thetas_outer))
