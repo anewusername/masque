@@ -1,5 +1,7 @@
 """
 Traits (mixins) and default implementations
+
+Traits and mixins should set `__slots__ = ()` to enable use of `__slots__` in subclasses.
 """
 from .positionable import Positionable, PositionableImpl, Bounded
 from .layerable import Layerable, LayerableImpl

@@ -1,5 +1,3 @@
-# TODO top-level comment about how traits should set __slots__ = (), and how to use AutoSlots
-
 from typing import Self, Any
 from abc import ABCMeta, abstractmethod
 
