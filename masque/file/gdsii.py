@@ -495,12 +495,12 @@ def _labels_to_texts(labels: dict[layer_t, list[Label]]) -> list[klamath.element
                 xy=xy,
                 string=label.string.encode('ASCII'),
                 properties=properties,
-                presentation=0,  # TODO maybe set some of these?
-                angle_deg=0,
-                invert_y=False,
-                width=0,
-                path_type=0,
-                mag=1,
+                presentation=0,  # font number & alignment -- unused by us
+                angle_deg=0,     # rotation -- unused by us
+                invert_y=False,  # inversion -- unused by us
+                width=0,         # stroke width -- unused by us
+                path_type=0,     # text path endcaps, unused
+                mag=1,           # size -- unused by us
                 )
             texts.append(text)
     return texts

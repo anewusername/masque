@@ -1,9 +1,7 @@
 """
- Ref provides basic support for nesting Pattern objects within each other, by adding
-  offset, rotation, scaling, and other such properties to the reference.
+ Ref provides basic support for nesting Pattern objects within each other.
+ It carries offset, rotation, mirroring, and scaling data for each individual instance.
 """
-#TODO more top-level documentation for ref
-
 from typing import Mapping, TYPE_CHECKING, Self
 import copy
 
@@ -28,10 +26,15 @@ class Ref(
         PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
         ):
     """
-    `Ref` provides basic support for nesting Pattern objects within each other, by adding
-     offset, rotation, scaling, and associated methods.
+    `Ref` provides basic support for nesting Pattern objects within each other.
 
-    Note: Order is (mirror, rotate, scale, translate, repeat)
+    It containts the transformation (mirror, rotation, scale, offset, repetition)
+    and annotations for a single instantiation of a `Pattern`.
+
+    Note that the target (i.e. which pattern a `Ref` instantiates) is not stored within the
+    `Ref` itself, but is specified by the containing `Pattern`.
+
+    Order of operations is (mirror, rotate, scale, translate, repeat).
     """
     __slots__ = (
         '_mirrored',

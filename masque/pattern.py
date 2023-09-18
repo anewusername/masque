@@ -1,5 +1,6 @@
 """
- Base object representing a lithography mask.
+  Object representing a one multi-layer lithographic layout.
+  A single level of hierarchical references is included.
 """
 from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar, MutableMapping
 import copy
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 class Pattern(PortList, AnnotatableImpl, Mirrorable):
     """
     2D layout consisting of some set of shapes, labels, and references to other Pattern objects
-     (via Ref). Shapes are assumed to inherit from masque.shapes.Shape or provide equivalent functions.
+     (via Ref). Shapes are assumed to inherit from `masque.shapes.Shape` or provide equivalent functions.
     """
     __slots__ = (
         'shapes', 'labels', 'refs', '_ports',
@@ -864,6 +865,19 @@ TT = TypeVar('TT')
 
 
 def chain_elements(*args: Mapping[Any, Iterable[TT]]) -> Iterable[TT]:
+    """
+    Iterate over each element in one or more {layer: elements} mappings.
+
+    Useful when you want to do some operation on all shapes and/or labels,
+    disregarding which layer they are on.
+
+    Args:
+        *args: One or more {layer: [element0, ...]} mappings.
+            Can also be applied to e.g. {target: [ref0, ...]} mappings.
+
+    Returns:
+        An iterable containing all elements, regardless of layer.
+    """
     return chain(*(chain.from_iterable(aa.values()) for aa in args))
 
 
@@ -871,6 +885,20 @@ def map_layers(
         elements: Mapping[layer_t, Sequence[TT]],
         map_layer: Callable[[layer_t], layer_t],
         ) -> defaultdict[layer_t, list[TT]]:
+    """
+    Move all the elements from one layer onto a different layer.
+    Can also handle multiple such mappings simultaneously.
+
+    Args:
+        elements: Mapping of {old_layer: geometry_or_labels}.
+        map_layer: Callable which may be called with each layer present in `elements`,
+            and should return the new layer to which it will be mapped.
+            A simple example which maps `old_layer` to `new_layer` and leaves all others
+            as-is would look like `lambda layer: {old_layer: new_layer}.get(layer, layer)`
+
+    Returns:
+        Mapping of {new_layer: geometry_or_labels}
+    """
     new_elements: defaultdict[layer_t, list[TT]] = defaultdict(list)
     for old_layer, seq in elements.items():
         new_layer = map_layer(old_layer)
@@ -882,6 +910,20 @@ def map_targets(
         refs: Mapping[str | None, Sequence[Ref]],
         map_target: Callable[[str | None], str | None],
         ) -> defaultdict[str | None, list[Ref]]:
+    """
+    Change the target of all references to a given cell.
+    Can also handle multiple such mappings simultaneously.
+
+    Args:
+        refs: Mapping of {old_target: ref_objects}.
+        map_target: Callable which may be called with each target present in `refs`,
+            and should return the new target to which it will be mapped.
+            A simple example which maps `old_target` to `new_target` and leaves all others
+            as-is would look like `lambda target: {old_target: new_target}.get(target, target)`
+
+    Returns:
+        Mapping of {new_target: ref_objects}
+    """
     new_refs: defaultdict[str | None, list[Ref]] = defaultdict(list)
     for old_target, seq in refs.items():
         new_target = map_target(old_target)
