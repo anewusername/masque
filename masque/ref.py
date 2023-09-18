@@ -95,8 +95,8 @@ class Ref(
     def __deepcopy__(self, memo: dict | None = None) -> 'Ref':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        new.repetition = copy.deepcopy(self.repetition, memo)
-        new.annotations = copy.deepcopy(self.annotations, memo)
+        #new.repetition = copy.deepcopy(self.repetition, memo)
+        #new.annotations = copy.deepcopy(self.annotations, memo)
         return new
 
     def as_pattern(
