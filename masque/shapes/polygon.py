@@ -18,7 +18,7 @@ class Polygon(Shape):
        implicitly-closed boundary, and an offset.
 
     Note that the setter for `Polygon.vertices` may (but may not) create a copy of the
-      passed vertex coordinates. See `numpy.array()` for details.
+      passed vertex coordinates. See `numpy.array(..., copy=False)` for details.
 
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
@@ -36,12 +36,15 @@ class Polygon(Shape):
     def vertices(self) -> Any:        # mypy#3004   NDArray[numpy.float64]:
         """
         Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
+
+        When setting, note that a copy of the provided vertices may or may not be made,
+        following the rules from `numpy.array(.., copy=False)`.
         """
         return self._vertices
 
     @vertices.setter
     def vertices(self, val: ArrayLike) -> None:
-        val = numpy.array(val, dtype=float)             # note that this hopefully won't create a copy
+        val = numpy.array(val, dtype=float)
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 3:

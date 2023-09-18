@@ -26,6 +26,9 @@ class Path(Shape):
     A path, consisting of a bunch of vertices (Nx2 ndarray), a width, an end-cap shape,
         and an offset.
 
+    Note that the setter for `Path.vertices` may (but may not) create a copy of the
+      passed vertex coordinates. See `numpy.array(..., copy=False)` for details.
+
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
     __slots__ = (
@@ -61,12 +64,14 @@ class Path(Shape):
     def cap(self) -> PathCap:
         """
         Path end-cap
+
+        Note that `cap_extensions` will be reset to default values if
+         `cap` is changed away from `PathCap.SquareCustom`.
         """
         return self._cap
 
     @cap.setter
     def cap(self, val: PathCap) -> None:
-        # TODO: Document that setting cap can change cap_extensions
         self._cap = PathCap(val)
         if self.cap != PathCap.SquareCustom:
             self.cap_extensions = None
@@ -79,6 +84,9 @@ class Path(Shape):
     def cap_extensions(self) -> Any | None:  # mypy#3004  NDArray[numpy.float64]]:
         """
         Path end-cap extension
+
+        Note that `cap_extensions` will be reset to default values if
+         `cap` is changed away from `PathCap.SquareCustom`.
 
         Returns:
             2-element ndarray or `None`
@@ -101,13 +109,16 @@ class Path(Shape):
     @property
     def vertices(self) -> Any:  # mypy#3004  NDArray[numpy.float64]]:
         """
-        Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
+        Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`
+
+        When setting, note that a copy of the provided vertices may or may not be made,
+        following the rules from `numpy.array(.., copy=False)`.
         """
         return self._vertices
 
     @vertices.setter
     def vertices(self, val: ArrayLike) -> None:
-        val = numpy.array(val, dtype=float)                 # TODO document that these might not be copied
+        val = numpy.array(val, dtype=float)
         if len(val.shape) < 2 or val.shape[1] != 2:
             raise PatternError('Vertices must be an Nx2 array')
         if val.shape[0] < 2:
@@ -218,7 +229,7 @@ class Path(Shape):
         Returns:
             The resulting Path object
         """
-        # TODO: needs testing
+        # TODO: Path.travel() needs testing
         direction = numpy.array([1, 0])
 
         verts = [numpy.zeros(2)]
