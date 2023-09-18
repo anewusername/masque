@@ -9,7 +9,7 @@ import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from .utils import annotations_t
+from .utils import annotations_t, rotation_matrix_2d
 from .repetition import Repetition
 from .traits import (
     PositionableImpl, RotatableImpl, ScalableImpl,
