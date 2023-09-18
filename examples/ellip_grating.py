@@ -2,16 +2,15 @@
 
 import numpy
 
-import masque
 from masque.file import gdsii
-from masque import shapes
+from masque import Arc, Pattern
 
 
 def main():
-    pat = masque.Pattern(name='ellip_grating')
+    pat = Pattern()
     layer = (0, 0)
     pat.shapes[layer].extend([
-        shapes.Arc(
+        Arc(
             radii=(rmin, rmin),
             width=0.1,
             angles=(-numpy.pi/4, numpy.pi/4),
