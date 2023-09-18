@@ -211,14 +211,14 @@ class Arc(Shape):
         #t0 = ellipeinc(a0 - pi / 2, m)
         #perimeter2 = r0 * (t1 - t0)
 
-        def get_arclens(n_pts: int, a0: float, a1: float) -> NDArray[numpy.float64]:
+        def get_arclens(n_pts: int, a0: float, a1: float) -> tuple[NDArray[numpy.float64], NDArray[numpy.float64]]:
             """ Get `n_pts` arclengths """
             t, dt = numpy.linspace(a0, a1, n_pts, retstep=True)  # NOTE: could probably use an adaptive number of points
             r0sin = r0 * numpy.sin(t)
             r1cos = r1 * numpy.cos(t)
             arc_dl = numpy.sqrt(r0sin * r0sin + r1cos * r1cos)
-            #arc_lengths = numpy.diff(t) * (v[1:] + v[:-1]) / 2
-            arc_lengths = (v[1:] + v[:-1]) * dt / 2
+            #arc_lengths = numpy.diff(t) * (arc_dl[1:] + arc_dl[:-1]) / 2
+            arc_lengths = (arc_dl[1:] + arc_dl[:-1]) * dt / 2
             return arc_lengths, t
 
         if num_vertices is not None:
@@ -227,6 +227,7 @@ class Arc(Shape):
             perimeter_outer = get_arclens(n_pts, *a_ranges[1])[0].sum()
             implied_arclen = (perimeter_outer + perimeter_inner + self.width * 2) / num_vertices
             max_arclen = min(implied_arclen, max_arclen if max_arclen is not None else numpy.inf)
+        assert max_arclen is not None
 
         def get_thetas(inner: bool) -> NDArray[numpy.float64]:
             """ Figure out the parameter values at which we should place vertices to meet the arclength constraint"""
