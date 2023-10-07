@@ -14,10 +14,11 @@ from numpy.typing import NDArray, ArrayLike
 # .visualize imports matplotlib and matplotlib.collections
 
 from .ref import Ref
+from .abstract import Abstract
 from .shapes import Shape, Polygon, Path, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
 from .utils import rotation_matrix_2d, annotations_t, layer_t
-from .error import PatternError
+from .error import PatternError, PortError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable, Bounded
 from .ports import Port, PortList
 
@@ -859,6 +860,346 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             pyplot.xlabel('x')
             pyplot.ylabel('y')
             pyplot.show()
+
+#    @overload
+#    def place(
+#            self,
+#            other: Pattern,
+#            *,
+#            offset: ArrayLike,
+#            rotation: float,
+#            pivot: ArrayLike,
+#            mirrored: bool,
+#            port_map: dict[str, str | None] | None,
+#            skip_port_check: bool,
+#            append: bool,
+#            ) -> Self:
+#        pass
+#
+#    @overload
+#    def place(
+#            self,
+#            other: Abstract,
+#            *,
+#            offset: ArrayLike,
+#            rotation: float,
+#            pivot: ArrayLike,
+#            mirrored: bool,
+#            port_map: dict[str, str | None] | None,
+#            skip_port_check: bool,
+#            append: Literal[False],
+#            ) -> Self:
+#        pass
+
+    def place(
+            self,
+            other: Abstract | Pattern,
+            *,
+            offset: ArrayLike = (0, 0),
+            rotation: float = 0,
+            pivot: ArrayLike = (0, 0),
+            mirrored: bool = False,
+            port_map: dict[str, str | None] | None = None,
+            skip_port_check: bool = False,
+            append: bool = False,
+            ) -> Self:
+        """
+        Instantiate or append the pattern `other` into the current pattern, adding its
+          ports to those of the current pattern (but not connecting/removing any ports).
+
+        Mirroring is applied before rotation; translation (`offset`) is applied last.
+
+        Examples:
+        =========
+        - `my_pat.place(pad_pat, offset=(10, 10), rotation=pi / 2, port_map={'A': 'gnd'})`
+            instantiates `pad` at the specified (x, y) offset and with the specified
+            rotation, adding its ports to those of `my_pat`. Port 'A' of `pad` is
+            renamed to 'gnd' so that further routing can use this signal or net name
+            rather than the port name on the original `pad_pat` pattern.
+
+        Args:
+            other: An `Abstract` or `Pattern` describing the device to be instatiated.
+            offset: Offset at which to place the instance. Default (0, 0).
+            rotation: Rotation applied to the instance before placement. Default 0.
+            pivot: Rotation is applied around this pivot point (default (0, 0)).
+                Rotation is applied prior to translation (`offset`).
+            mirrored: Whether theinstance should be mirrored across the x axis.
+                Mirroring is applied before translation and rotation.
+            port_map: dict of `{'old_name': 'new_name'}` mappings, specifying
+                new names for ports in the instantiated pattern. New names can be
+                `None`, which will delete those ports.
+            skip_port_check: Can be used to skip the internal call to `check_ports`,
+                in case it has already been performed elsewhere.
+            append: If `True`, `other` is appended instead of being referenced.
+                Note that this does not flatten  `other`, so its refs will still
+                be refs (now inside `self`).
+
+        Returns:
+            self
+
+        Raises:
+            `PortError` if any ports specified in `map_in` or `map_out` do not
+                exist in `self.ports` or `other.ports`.
+            `PortError` if there are any duplicate names after `map_in` and `map_out`
+                are applied.
+        """
+        if port_map is None:
+            port_map = {}
+
+        if not skip_port_check:
+            self.check_ports(other.ports.keys(), map_in=None, map_out=port_map)
+
+        ports = {}
+        for name, port in other.ports.items():
+            new_name = port_map.get(name, name)
+            if new_name is None:
+                continue
+            ports[new_name] = port
+
+        for name, port in ports.items():
+            p = port.deepcopy()
+            if mirrored:
+                p.mirror()
+            p.rotate_around(pivot, rotation)
+            p.translate(offset)
+            self.ports[name] = p
+
+        if append:
+            if isinstance(other, Abstract):
+                raise PatternError('Must provide a full `Pattern` (not an `Abstract`) when appending!')
+            other_copy = other.deepcopy()
+            other_copy.ports.clear()
+            if mirrored:
+                other_copy.mirror()
+            other_copy.rotate_around(pivot, rotation)
+            other_copy.translate_elements(offset)
+            self.append(other_copy)
+        else:
+            assert not isinstance(other, Pattern)
+            ref = Ref(mirrored=mirrored)
+            ref.rotate_around(pivot, rotation)
+            ref.translate(offset)
+            self.refs[other.name].append(ref)
+        return self
+
+#    @overload
+#    def plug(
+#            self,
+#            other: Abstract,
+#            map_in: dict[str, str],
+#            map_out: dict[str, str | None] | None,
+#            *,
+#            mirrored: bool,
+#            inherit_name: bool,
+#            set_rotation: bool | None,
+#            append: Literal[False],
+#            ) -> Self:
+#        pass
+#
+#    @overload
+#    def plug(
+#            self,
+#            other: Pattern,
+#            map_in: dict[str, str],
+#            map_out: dict[str, str | None] | None,
+#            *,
+#            mirrored: bool,
+#            inherit_name: bool,
+#            set_rotation: bool | None,
+#            append: bool,
+#            ) -> Self:
+#        pass
+
+    def plug(
+            self,
+            other: Abstract | Pattern,
+            map_in: dict[str, str],
+            map_out: dict[str, str | None] | None = None,
+            *,
+            mirrored: bool = False,
+            inherit_name: bool = True,
+            set_rotation: bool | None = None,
+            append: bool = False,
+            ) -> Self:
+        """
+        Instantiate or append a pattern into the current pattern, connecting
+          the ports specified by `map_in` and renaming the unconnected
+          ports specified by `map_out`.
+
+        Examples:
+        =========
+        - `my_pat.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
+            instantiates `subdevice` into `my_pat`, plugging ports 'A' and 'B'
+            of `my_pat` into ports 'C' and 'B' of `subdevice`. The connected ports
+            are removed and any unconnected ports from `subdevice` are added to
+            `my_pat`. Port 'D' of `subdevice` (unconnected) is renamed to 'myport'.
+
+        - `my_pat.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
+            of `my_pat`.
+            If `wire` has only two ports (e.g. 'A' and 'B'), no `map_out` argument is
+            provided, and the `inherit_name` argument is not explicitly set to `False`,
+            the unconnected port of `wire` is automatically renamed to 'myport'. This
+            allows easy extension of existing ports without changing their names or
+            having to provide `map_out` each time `plug` is called.
+
+        Args:
+            other: A `Pattern` or `Abstract` describing the subdevice to be instatiated.
+            map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
+                port connections between the current pattern and the subdevice.
+            map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
+                new names for ports in `other`.
+            mirrored: Enables mirroring `other` across the x axis prior to connecting
+                any ports.
+            inherit_name: If `True`, and `map_in` specifies only a single port,
+                and `map_out` is `None`, and `other` has only two ports total,
+                then automatically renames the output port of `other` to the
+                name of the port from `self` that appears in `map_in`. This
+                makes it easy to extend a pattern with simple 2-port devices
+                (e.g. wires) without providing `map_out` each time `plug` is
+                called. See "Examples" above for more info. Default `True`.
+            set_rotation: If the necessary rotation cannot be determined from
+                the ports being connected (i.e. all pairs have at least one
+                port with `rotation=None`), `set_rotation` must be provided
+                to indicate how much `other` should be rotated. Otherwise,
+                `set_rotation` must remain `None`.
+            append: If `True`, `other` is appended instead of being referenced.
+                Note that this does not flatten  `other`, so its refs will still
+                be refs (now inside `self`).
+
+        Returns:
+            self
+
+        Raises:
+            `PortError` if any ports specified in `map_in` or `map_out` do not
+                exist in `self.ports` or `other_names`.
+            `PortError` if there are any duplicate names after `map_in` and `map_out`
+                are applied.
+            `PortError` if the specified port mapping is not achieveable (the ports
+                do not line up)
+        """
+        # If asked to inherit a name, check that all conditions are met
+        if (inherit_name
+                and not map_out
+                and len(map_in) == 1
+                and len(other.ports) == 2):
+            out_port_name = next(iter(set(other.ports.keys()) - set(map_in.values())))
+            map_out = {out_port_name: next(iter(map_in.keys()))}
+
+        if map_out is None:
+            map_out = {}
+        map_out = copy.deepcopy(map_out)
+
+        self.check_ports(other.ports.keys(), map_in, map_out)
+        translation, rotation, pivot = self.find_transform(
+            other,
+            map_in,
+            mirrored=mirrored,
+            set_rotation=set_rotation,
+            )
+
+        # get rid of plugged ports
+        for ki, vi in map_in.items():
+            del self.ports[ki]
+            map_out[vi] = None
+
+        if isinstance(other, Pattern):
+            assert append
+
+        self.place(
+            other,
+            offset=translation,
+            rotation=rotation,
+            pivot=pivot,
+            mirrored=mirrored,
+            port_map=map_out,
+            skip_port_check=True,
+            append=append,
+            )
+        return self
+
+    @classmethod
+    def interface(
+            cls,
+            source: PortList | Mapping[str, Port],
+            *,
+            in_prefix: str = 'in_',
+            out_prefix: str = '',
+            port_map: dict[str, str] | Sequence[str] | None = None,
+            ) -> 'Pattern':
+        """
+        Generate an empty pattern with ports based on all or some of the ports
+          in the `source`. Do not include the source device istelf; instead use
+          it to define ports (the "interface") for the new device.
+
+        The ports specified by `port_map` (default: all ports) are copied to
+          new device, and additional (input) ports are created facing in the
+          opposite directions. The specified `in_prefix` and `out_prefix` are
+          prepended to the port names to differentiate them.
+
+        By default, the flipped ports are given an 'in_' prefix and unflipped
+          ports keep their original names, enabling intuitive construction of
+          a device that will "plug into" the current device; the 'in_*' ports
+          are used for plugging the devices together while the original port
+          names are used for building the new device.
+
+        Another use-case could be to build the new device using the 'in_'
+          ports, creating a new device which could be used in place of the
+          current device.
+
+        Args:
+            source: A collection of ports (e.g. Pattern, Builder, or dict)
+                from which to create the interface.
+            in_prefix: Prepended to port names for newly-created ports with
+                reversed directions compared to the current device.
+            out_prefix: Prepended to port names for ports which are directly
+                copied from the current device.
+            port_map: Specification for ports to copy into the new device:
+                - If `None`, all ports are copied.
+                - If a sequence, only the listed ports are copied
+                - If a mapping, the listed ports (keys) are copied and
+                    renamed (to the values).
+
+        Returns:
+            The new empty pattern, with 2x as many ports as listed in port_map.
+
+        Raises:
+            `PortError` if `port_map` contains port names not present in the
+                current device.
+            `PortError` if applying the prefixes results in duplicate port
+                names.
+        """
+        if isinstance(source, PortList):
+            orig_ports = source.ports
+        elif isinstance(source, dict):
+            orig_ports = source
+        else:
+            raise PatternError(f'Unable to get ports from {type(source)}: {source}')
+
+        if port_map:
+            if isinstance(port_map, dict):
+                missing_inkeys = set(port_map.keys()) - set(orig_ports.keys())
+                mapped_ports = {port_map[k]: v for k, v in orig_ports.items() if k in port_map}
+            else:
+                port_set = set(port_map)
+                missing_inkeys = port_set - set(orig_ports.keys())
+                mapped_ports = {k: v for k, v in orig_ports.items() if k in port_set}
+
+            if missing_inkeys:
+                raise PortError(f'`port_map` keys not present in source: {missing_inkeys}')
+        else:
+            mapped_ports = orig_ports
+
+        ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
+                    for name, port in mapped_ports.items()}
+        ports_out = {f'{out_prefix}{name}': port.deepcopy()
+                     for name, port in mapped_ports.items()}
+
+        duplicates = set(ports_out.keys()) & set(ports_in.keys())
+        if duplicates:
+            raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
+
+        new = Pattern(ports={**ports_in, **ports_out})
+        return new
 
 
 TT = TypeVar('TT')

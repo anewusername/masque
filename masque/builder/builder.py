@@ -18,39 +18,44 @@ logger = logging.getLogger(__name__)
 
 class Builder(PortList):
     """
-    TODO DOCUMENT Builder
-    A `Device` is a combination of a `Pattern` with a set of named `Port`s
-      which can be used to "snap" devices together to make complex layouts.
+      A `Builder` is a helper object used for snapping together multiple
+    lower-level patterns at their `Port`s.
 
-    `Device`s can be as simple as one or two ports (e.g. an electrical pad
-    or wire), but can also be used to build and represent a large routed
-    layout (e.g. a logical block with multiple I/O connections or even a
-    full chip).
+      The `Builder` mostly just holds context, in the form of a `Library`,
+    in addition to its underlying pattern. This simplifies some calls
+    to `plug` and `place`, by making the library implicit.
 
-    For convenience, ports can be read out using square brackets:
-    - `device['A'] == Port((0, 0), 0)`
-    - `device[['A', 'B']] == {'A': Port((0, 0), 0), 'B': Port((0, 0), pi)}`
+    `Builder` can also be `set_dead()`, at which point further calls to `plug()`
+    and `place()` are ignored (intended for debugging).
 
-    Examples: Creating a Device
+
+    Examples: Creating a Builder
     ===========================
-    - `Device(pattern, ports={'A': port_a, 'C': port_c})` uses an existing
-        pattern and defines some ports.
+    - `Builder(library, ports={'A': port_a, 'C': port_c}, name='mypat')` makes
+        an empty pattern, adds the given ports, and places it into `library`
+        under the name `'mypat'`.
 
-    - `Device(ports=None)` makes a new empty pattern with
-        default ports ('A' and 'B', in opposite directions, at (0, 0)).
+    - `Builder(library)` makes an empty pattern with no ports. The pattern
+        is not added into `library` and must later be added with e.g.
+        `library['mypat'] = builder.pattern`
 
-    - `my_device.build('my_layout')` makes a new pattern and instantiates
-        `my_device` in it with offset (0, 0) as a base for further building.
+    - `Builder(library, pattern=pattern, name='mypat')` uses an existing
+        pattern (including its ports) and sets `library['mypat'] = pattern`.
 
-    - `my_device.as_interface('my_component', port_map=['A', 'B'])` makes a new
-        (empty) pattern, copies over ports 'A' and 'B' from `my_device`, and
-        creates additional ports 'in_A' and 'in_B' facing in the opposite
-        directions. This can be used to build a device which can plug into
-        `my_device` (using the 'in_*' ports) but which does not itself include
-        `my_device` as a subcomponent.
+    - `Builder.interface(other_pat, port_map=['A', 'B'], library=library)`
+        makes a new (empty) pattern, copies over ports 'A' and 'B' from
+        `other_pat`, and creates additional ports 'in_A' and 'in_B' facing
+        in the opposite directions. This can be used to build a device which
+        can plug into `other_pat` (using the 'in_*' ports) but which does not
+        itself include `other_pat` as a subcomponent.
 
-    Examples: Adding to a Device
-    ============================
+    - `Builder.interface(other_builder, ...)` does the same thing as
+        `Builder.interface(other_builder.pattern, ...)` but also uses
+        `other_builder.library` as its library by default.
+
+
+    Examples: Adding to a pattern
+    =============================
     - `my_device.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
         instantiates `subdevice` into `my_device`, plugging ports 'A' and 'B'
         of `my_device` into ports 'C' and 'B' of `subdevice`. The connected ports
@@ -75,10 +80,9 @@ class Builder(PortList):
     pattern: Pattern
     """ Layout of this device """
 
-    library: ILibrary | None
+    library: ILibrary
     """
-    Library from which existing patterns should be referenced, and to which
-    new ones should be added
+    Library from which patterns should be referenced
     """
 
     _dead: bool
@@ -94,7 +98,7 @@ class Builder(PortList):
 
     def __init__(
             self,
-            library: ILibrary | None = None,
+            library: ILibrary,
             *,
             pattern: Pattern | None = None,
             ports: str | Mapping[str, Port] | None = None,
@@ -114,15 +118,11 @@ class Builder(PortList):
             if self.pattern.ports:
                 raise BuildError('Ports supplied for pattern with pre-existing ports!')
             if isinstance(ports, str):
-                if library is None:
-                    raise BuildError('Ports given as a string, but `library` was `None`!')
                 ports = library.abstract(ports).ports
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
         if name is not None:
-            if library is None:
-                raise BuildError('Name was supplied, but no library was given!')
             library[name] = self.pattern
 
     @classmethod
@@ -137,31 +137,15 @@ class Builder(PortList):
             name: str | None = None,
             ) -> 'Builder':
         """
-        Begin building a new device based on all or some of the ports in the
-          source device. Do not include the source device; instead use it
-          to define ports (the "interface") for the new device.
-
-        The ports specified by `port_map` (default: all ports) are copied to
-          new device, and additional (input) ports are created facing in the
-          opposite directions. The specified `in_prefix` and `out_prefix` are
-          prepended to the port names to differentiate them.
-
-        By default, the flipped ports are given an 'in_' prefix and unflipped
-          ports keep their original names, enabling intuitive construction of
-          a device that will "plug into" the current device; the 'in_*' ports
-          are used for plugging the devices together while the original port
-          names are used for building the new device.
-
-        Another use-case could be to build the new device using the 'in_'
-          ports, creating a new device which could be used in place of the
-          current device.
+        Wrapper for `Pattern.interface()`, which returns a Builder instead.
 
         Args:
             source: A collection of ports (e.g. Pattern, Builder, or dict)
-                from which to create the interface.
-            library: Library from which existing patterns should be referenced,     TODO
-                and to which new ones should be added. If not provided,
-                the source's library will be used (if available).
+                from which to create the interface. May be a pattern name if
+                `library` is provided.
+            library: Library from which existing patterns should be referenced,
+                and to which the new one should be added (if named). If not provided,
+                `source.library` must exist and will be used.
             in_prefix: Prepended to port names for newly-created ports with
                 reversed directions compared to the current device.
             out_prefix: Prepended to port names for ports which are directly
@@ -185,71 +169,15 @@ class Builder(PortList):
         if library is None:
             if hasattr(source, 'library') and isinstance(source.library, ILibrary):
                 library = source.library
+            else:
+                raise BuildError('No library was given, and `source.library` does not have one either.')
 
         if isinstance(source, str):
-            if library is None:
-                raise BuildError('Source given as a string, but `library` was `None`!')
-            orig_ports = library.abstract(source).ports
-        elif isinstance(source, PortList):
-            orig_ports = source.ports
-        elif isinstance(source, dict):
-            orig_ports = source
-        else:
-            raise BuildError(f'Unable to get ports from {type(source)}: {source}')
+            source = library.abstract(source).ports
 
-        if port_map:
-            if isinstance(port_map, dict):
-                missing_inkeys = set(port_map.keys()) - set(orig_ports.keys())
-                mapped_ports = {port_map[k]: v for k, v in orig_ports.items() if k in port_map}
-            else:
-                port_set = set(port_map)
-                missing_inkeys = port_set - set(orig_ports.keys())
-                mapped_ports = {k: v for k, v in orig_ports.items() if k in port_set}
-
-            if missing_inkeys:
-                raise PortError(f'`port_map` keys not present in source: {missing_inkeys}')
-        else:
-            mapped_ports = orig_ports
-
-        ports_in = {f'{in_prefix}{name}': port.deepcopy().rotate(pi)
-                    for name, port in mapped_ports.items()}
-        ports_out = {f'{out_prefix}{name}': port.deepcopy()
-                     for name, port in mapped_ports.items()}
-
-        duplicates = set(ports_out.keys()) & set(ports_in.keys())
-        if duplicates:
-            raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
-
-        new = Builder(library=library, ports={**ports_in, **ports_out}, name=name)
+        pat = Pattern.interface(source, in_prefix=in_prefix, out_prefix=out_prefix, port_map=port_map)
+        new = Builder(library=library, pattern=pat, name=name)
         return new
-
-#    @overload
-#    def plug(
-#            self,
-#            other: Abstract | str,
-#            map_in: dict[str, str],
-#            map_out: dict[str, str | None] | None,
-#            *,
-#            mirrored: bool = False,
-#            inherit_name: bool,
-#            set_rotation: bool | None,
-#            append: bool,
-#            ) -> Self:
-#        pass
-#
-#    @overload
-#    def plug(
-#            self,
-#            other: Pattern,
-#            map_in: dict[str, str],
-#            map_out: dict[str, str | None] | None = None,
-#            *,
-#            mirrored: bool = False,
-#            inherit_name: bool = True,
-#            set_rotation: bool | None = None,
-#            append: bool = False,
-#            ) -> Self:
-#        pass
 
     def plug(
             self,
@@ -263,34 +191,18 @@ class Builder(PortList):
             append: bool = False,
             ) -> Self:
         """
-        Instantiate or append a pattern into the current device, connecting
-          the ports specified by `map_in` and renaming the unconnected
-          ports specified by `map_out`.
-
-        Examples:
-        =========
-        - `my_device.plug(lib, 'subdevice', {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
-            instantiates `lib['subdevice']` into `my_device`, plugging ports 'A' and 'B'
-            of `my_device` into ports 'C' and 'B' of `subdevice`. The connected ports
-            are removed and any unconnected ports from `subdevice` are added to
-            `my_device`. Port 'D' of `subdevice` (unconnected) is renamed to 'myport'.
-
-        - `my_device.plug(lib, 'wire', {'myport': 'A'})` places port 'A' of `lib['wire']`
-            at 'myport' of `my_device`.
-            If `'wire'` has only two ports (e.g. 'A' and 'B'), no `map_out` argument is
-            provided, and the `inherit_name` argument is not explicitly set to `False`,
-            the unconnected port of `wire` is automatically renamed to 'myport'. This
-            allows easy extension of existing ports without changing their names or
-            having to provide `map_out` each time `plug` is called.
+        Wrapper around `Pattern.plug` which allows a string for `other`.
+        The `Builder`'s library is used to dereference the string (or `Abstract`, if
+        one is passed with `append=True`).
 
         Args:
-            other: An `Abstract` describing the device to be instatiated.
+            other: An `Abstract`, string, or `Pattern` describing the device to be instatiated.
             map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in `other`.
-            mirrored: Enables mirroring `other` across the x or y axes prior
-                to connecting any ports.
+            mirrored: Enables mirroring `other` across the x axis prior to
+                connecting any ports.
             inherit_name: If `True`, and `map_in` specifies only a single port,
                 and `map_out` is `None`, and `other` has only two ports total,
                 then automatically renames the output port of `other` to the
@@ -303,6 +215,9 @@ class Builder(PortList):
                 port with `rotation=None`), `set_rotation` must be provided
                 to indicate how much `other` should be rotated. Otherwise,
                 `set_rotation` must remain `None`.
+            append: If `True`, `other` is appended instead of being referenced.
+                Note that this does not flatten  `other`, so its refs will still
+                be refs (now inside `self`).
 
         Returns:
             self
@@ -320,71 +235,20 @@ class Builder(PortList):
             return self
 
         if isinstance(other, str):
-            if self.library is None:
-                raise BuildError('No library available, but `other` was a string!')
             other = self.library.abstract(other)
+        if append and isinstance(other, Abstract):
+            other = self.library[other.name]
 
-        # If asked to inherit a name, check that all conditions are met
-        if (inherit_name
-                and not map_out
-                and len(map_in) == 1
-                and len(other.ports) == 2):
-            out_port_name = next(iter(set(other.ports.keys()) - set(map_in.values())))
-            map_out = {out_port_name: next(iter(map_in.keys()))}
-
-        if map_out is None:
-            map_out = {}
-        map_out = copy.deepcopy(map_out)
-
-        self.check_ports(other.ports.keys(), map_in, map_out)
-        translation, rotation, pivot = self.find_transform(
-            other,
-            map_in,
+        self.pattern.plug(
+            other=other,
+            map_in=map_in,
+            map_out=map_out,
             mirrored=mirrored,
+            inherit_name=inherit_name,
             set_rotation=set_rotation,
+            append=append,
             )
-
-        # get rid of plugged ports
-        for ki, vi in map_in.items():
-            del self.ports[ki]
-            map_out[vi] = None
-
-        if isinstance(other, Pattern):
-            assert append
-
-        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                   mirrored=mirrored, port_map=map_out, skip_port_check=True, append=append)
         return self
-
-#    @overload
-#    def place(
-#            self,
-#            other: Abstract | str,
-#            *,
-#            offset: ArrayLike,
-#            rotation: float,
-#            pivot: ArrayLike,
-#            mirrored: bool = False,
-#            port_map: dict[str, str | None] | None,
-#            skip_port_check: bool,
-#            append: bool,
-#            ) -> Self:
-#        pass
-#
-#    @overload
-#    def place(
-#            self,
-#            other: Pattern,
-#            *,
-#            offset: ArrayLike,
-#            rotation: float,
-#            pivot: ArrayLike,
-#            mirrored: bool = False,
-#            port_map: dict[str, str | None] | None,
-#            skip_port_check: bool,
-#            append: Literal[True],
-#            ) -> Self:
-#        pass
 
     def place(
             self,
@@ -440,52 +304,20 @@ class Builder(PortList):
             return self
 
         if isinstance(other, str):
-            if self.library is None:
-                raise BuildError('No library available, but `other` was a string!')
             other = self.library.abstract(other)
+        if append and isinstance(other, Abstract):
+            other = self.library[other.name]
 
-        if port_map is None:
-            port_map = {}
-
-        if not skip_port_check:
-            self.check_ports(other.ports.keys(), map_in=None, map_out=port_map)
-
-        ports = {}
-        for name, port in other.ports.items():
-            new_name = port_map.get(name, name)
-            if new_name is None:
-                continue
-            ports[new_name] = port
-
-        for name, port in ports.items():
-            p = port.deepcopy()
-            if mirrored:
-                p.mirror()
-            p.rotate_around(pivot, rotation)
-            p.translate(offset)
-            self.ports[name] = p
-
-        if append:
-            if isinstance(other, Pattern):
-                other_pat = other
-            elif isinstance(other, Abstract):
-                assert self.library is not None
-                other_pat = self.library[other.name]
-            else:
-                other_pat = self.library[name]
-            other_copy = other_pat.deepcopy()
-            other_copy.ports.clear()
-            if mirrored:
-                other_copy.mirror()
-            other_copy.rotate_around(pivot, rotation)
-            other_copy.translate_elements(offset)
-            self.pattern.append(other_copy)
-        else:
-            assert not isinstance(other, Pattern)
-            ref = Ref(mirrored=mirrored)
-            ref.rotate_around(pivot, rotation)
-            ref.translate(offset)
-            self.pattern.refs[other.name].append(ref)
+        self.pattern.place(
+            other=other,
+            offset=offset,
+            rotation=rotation,
+            pivot=pivot,
+            mirrored=mirrored,
+            port_map=port_map,
+            skip_port_check=skip_port_check,
+            append=append,
+            )
         return self
 
     def translate(self, offset: ArrayLike) -> Self:

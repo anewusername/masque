@@ -149,14 +149,19 @@ class Pather(Builder):
             cls,
             builder: Builder,
             *,
-            library: ILibrary | None = None,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
             ) -> 'Pather':
-        """TODO from_builder docs"""
-        library = library if library is not None else builder.library
-        if library is None:
-            raise BuildError('No library available for Pather!')
-        new = Pather(library=library, tools=tools, pattern=builder.pattern)
+        """
+        Construct a `Pather` by adding tools to a `Builder`.
+
+        Args:
+            builder: Builder to turn into a Pather
+            tools: Tools for the `Pather`
+
+        Returns:
+            A new Pather object, using `builder.library` and `builder.pattern`.
+        """
+        new = Pather(library=builder.library, tools=tools, pattern=builder.pattern)
         return new
 
     @classmethod
@@ -183,17 +188,11 @@ class Pather(Builder):
         if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
             tools = source.tools
 
-        new = Pather.from_builder(
-            Builder.interface(
-                source=source,
-                library=library,
-                in_prefix=in_prefix,
-                out_prefix=out_prefix,
-                port_map=port_map,
-                name=name,
-                ),
-            tools=tools,
-            )
+        if isinstance(source, str):
+            source = library.abstract(source).ports
+
+        pat = Pattern.interface(source, in_prefix=in_prefix, out_prefix=out_prefix, port_map=port_map)
+        new = Pather(library=library, pattern=pat, name=name, tools=tools)
         return new
 
     def __repr__(self) -> str:
