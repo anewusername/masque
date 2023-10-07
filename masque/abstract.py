@@ -42,23 +42,6 @@ class Abstract(PortList):
         self.name = name
         self.ports = copy.deepcopy(ports)
 
-#    def build(
-#            self,
-#            library: 'ILibrary',
-#            tools: 'None | Tool | MutableMapping[str | None, Tool]' = None,
-#            ) -> 'Builder':
-#        """
-#        Begin building a new device around an instance of the current device
-#          (rather than modifying the current device).
-#
-#        Returns:
-#            The new `Builder` object.
-#        """
-#        pat = Pattern(ports=self.ports)
-#        pat.ref(self.name)
-#        new = Builder(library=library, pattern=pat, tools=tools)   # TODO should Abstract have tools?
-#        return new
-
     # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
 
     def __repr__(self) -> str:
