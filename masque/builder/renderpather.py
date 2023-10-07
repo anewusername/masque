@@ -2,6 +2,7 @@ from typing import Self, Sequence, Mapping, MutableMapping
 import copy
 import logging
 from collections import defaultdict
+from pprint import pformat
 
 import numpy
 from numpy import pi
@@ -508,7 +509,7 @@ class RenderPather(PortList):
         return self
 
     def __repr__(self) -> str:
-        s = f'<RenderPather {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
+        s = f'<Pather {self.pattern} L({len(self.library)}) {pformat(self.tools)}>'
         return s
 
 

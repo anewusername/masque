@@ -381,7 +381,7 @@ class Builder(PortList):
         return self
 
     def __repr__(self) -> str:
-        s = f'<Builder {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
+        s = f'<Builder {self.pattern} L({len(self.library)})>'
         return s
 
 

@@ -1,6 +1,7 @@
 from typing import Self, Sequence, MutableMapping, Mapping
 import copy
 import logging
+from pprint import pformat
 
 import numpy
 from numpy import pi
@@ -196,7 +197,7 @@ class Pather(Builder):
         return new
 
     def __repr__(self) -> str:
-        s = f'<Pather {self.pattern} >'    # TODO maybe show lib and tools? in builder repr?
+        s = f'<Pather {self.pattern} L({len(self.library)}) {pformat(self.tools)}>'
         return s
 
     def retool(
