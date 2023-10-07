@@ -812,8 +812,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             overdraw: Whether to create a new figure or draw on a pre-existing one
         """
         # TODO: add text labels to visualize()
-        from matplotlib import pyplot       # type: ignore
-        import matplotlib.collections       # type: ignore
+        try:
+            from matplotlib import pyplot       # type: ignore
+            import matplotlib.collections       # type: ignore
+        except ImportError as err:
+            logger.error('Pattern.visualize() depends on matplotlib!')
+            logger.error('Make sure to install masque with the [visualize] option to pull in the needed dependencies.')
+            raise err
 
         if self.has_refs() and library is None:
             raise PatternError('Must provide a library when visualizing a pattern with refs')
