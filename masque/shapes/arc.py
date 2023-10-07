@@ -218,11 +218,11 @@ class Arc(Shape):
             r1cos = r1 * numpy.cos(t)
             arc_dl = numpy.sqrt(r0sin * r0sin + r1cos * r1cos)
             #arc_lengths = numpy.diff(t) * (arc_dl[1:] + arc_dl[:-1]) / 2
-            arc_lengths = (arc_dl[1:] + arc_dl[:-1]) * dt / 2
+            arc_lengths = (arc_dl[1:] + arc_dl[:-1]) * numpy.abs(dt) / 2
             return arc_lengths, t
 
         if num_vertices is not None:
-            n_pts = max(self.radii) / min(self.radii) * num_vertices * 100
+            n_pts = numpy.ceil(max(self.radii) / min(self.radii) * num_vertices * 100).astype(int)
             perimeter_inner = get_arclens(n_pts, *a_ranges[0])[0].sum()
             perimeter_outer = get_arclens(n_pts, *a_ranges[1])[0].sum()
             implied_arclen = (perimeter_outer + perimeter_inner + self.width * 2) / num_vertices
@@ -233,7 +233,7 @@ class Arc(Shape):
             """ Figure out the parameter values at which we should place vertices to meet the arclength constraint"""
             dr = -self.width / 2.0 * (-1 if inner else 1)
 
-            n_pts = 2 * pi * max(self.radii) / max_arclen
+            n_pts = numpy.ceil(2 * pi * max(self.radii) / max_arclen).astype(int)
             arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1])
 
             keep = []
