@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 class Abstract(PortList):
+    """
+    An `Abstract` is a container for a name and associated ports.
+
+    When snapping a sub-component to an existing pattern, only the name (not contained
+    in a `Pattern` object) and port info is needed, and not the geometry itself.
+    """
     __slots__ = ('name', '_ports')
 
     name: str

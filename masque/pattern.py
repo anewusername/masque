@@ -28,8 +28,61 @@ logger = logging.getLogger(__name__)
 
 class Pattern(PortList, AnnotatableImpl, Mirrorable):
     """
-    2D layout consisting of some set of shapes, labels, and references to other Pattern objects
-     (via Ref). Shapes are assumed to inherit from `masque.shapes.Shape` or provide equivalent functions.
+      2D layout consisting of some set of shapes, labels, and references to other
+    Pattern objects (via Ref). Shapes are assumed to inherit from `masque.shapes.Shape`
+    or provide equivalent functions.
+
+    `Pattern` also stores a dict of `Port`s, which can be used to "snap" together points.
+    See `Pattern.plug()` and `Pattern.place()`, as well as the helper classes
+    `builder.Builder`, `builder.Pather`, `builder.RenderPather`, and `ports.PortsList`.
+
+    For convenience, ports can be read out using square brackets:
+    - `pattern['A'] == Port((0, 0), 0)`
+    - `pattern[['A', 'B']] == {'A': Port((0, 0), 0), 'B': Port((0, 0), pi)}`
+
+
+    Examples: Making a Pattern
+    ==========================
+    - `pat = Pattern()` just creates an empty pattern, with no geometry or ports
+
+    - To immediately set some of the pattern's contents,
+      ```
+        pat = Pattern(
+            shapes={'layer1': [shape0, ...], 'layer2': [shape,...], ...},
+            labels={'layer1': [...], ...},
+            refs={'name1': [ref0, ...], 'name2': [ref, ...], ...},
+            ports={'in': Port(...), 'out': Port(...)},
+            )
+      ```
+
+    - `Pattern.interface(other_pat, port_map=['A', 'B'])` makes a new
+        (empty) pattern, copies over ports 'A' and 'B' from `other_pat`, and
+        creates additional ports 'in_A' and 'in_B' facing in the opposite
+        directions. This can be used to build a device which can plug into
+        `other_pat` (using the 'in_*' ports) but which does not itself include
+        `other_pat` as a subcomponent.
+
+
+    Examples: Adding to a pattern
+    =============================
+    - `pat.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
+        instantiates `subdevice` into `pat`, plugging ports 'A' and 'B'
+        of `pat` into ports 'C' and 'B' of `subdevice`. The connected ports
+        are removed and any unconnected ports from `subdevice` are added to
+        `pat`. Port 'D' of `subdevice` (unconnected) is renamed to 'myport'.
+
+    - `pat.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
+        of `pat`. If `wire` has only two ports (e.g. 'A' and 'B'), since no `map_out`
+        argument is provided and the `inherit_name` argument is not explicitly
+        set to `False`, the unconnected port of `wire` is automatically renamed to
+        'myport'. This allows easy extension of existing ports without changing
+        their names or having to provide `map_out` each time `plug` is called.
+
+    - `pat.place(pad, offset=(10, 10), rotation=pi / 2, port_map={'A': 'gnd'})`
+        instantiates `pad` at the specified (x, y) offset and with the specified
+        rotation, adding its ports to those of `pat`. Port 'A' of `pad` is
+        renamed to 'gnd' so that further routing can use this signal or net name
+        rather than the port name on the original `pad` device.
     """
     __slots__ = (
         'shapes', 'labels', 'refs', '_ports',
