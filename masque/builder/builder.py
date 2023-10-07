@@ -1,3 +1,6 @@
+"""
+Simplified Pattern assembly (`Builder`)
+"""
 from typing import Self, Sequence, Mapping, Literal, overload
 import copy
 import logging
@@ -105,7 +108,15 @@ class Builder(PortList):
             name: str | None = None,
             ) -> None:
         """
-        # TODO documentation for Builder() constructor
+        Args:
+            library: The library from which referenced patterns will be taken
+            pattern: The pattern which will be modified by subsequent operations.
+                If `None` (default), a new pattern is created.
+            ports: Allows specifying the initial set of ports, if `pattern` does
+                not already have any ports (or is not provided). May be a string,
+                in which case it is interpreted as a name in `library`.
+                Default `None` (no ports).
+            name: If specified, `library[name]` is set to `self.pattern`.
         """
         self._dead = False
         self.library = library
@@ -263,32 +274,26 @@ class Builder(PortList):
             append: bool = False,
             ) -> Self:
         """
-        Instantiate or append the device `other` into the current device, adding its
-          ports to those of the current device (but not connecting any ports).
-
-        Mirroring is applied before rotation; translation (`offset`) is applied last.
-
-        Examples:
-        =========
-        - `my_device.place(pad, offset=(10, 10), rotation=pi / 2, port_map={'A': 'gnd'})`
-            instantiates `pad` at the specified (x, y) offset and with the specified
-            rotation, adding its ports to those of `my_device`. Port 'A' of `pad` is
-            renamed to 'gnd' so that further routing can use this signal or net name
-            rather than the port name on the original `pad` device.
+        Wrapper around `Pattern.place` which allows a string for `other`.
+        The `Builder`'s library is used to dereference the string (or `Abstract`, if
+        one is passed with `append=True`).
 
         Args:
-            other: An `Abstract` describing the device to be instatiated.
+            other: An `Abstract`, string, or `Pattern` describing the device to be instatiated.
             offset: Offset at which to place the instance. Default (0, 0).
             rotation: Rotation applied to the instance before placement. Default 0.
             pivot: Rotation is applied around this pivot point (default (0, 0)).
                 Rotation is applied prior to translation (`offset`).
-            mirrored: Whether theinstance should be mirrored across the x and y axes.
+            mirrored: Whether theinstance should be mirrored across the x axis.
                 Mirroring is applied before translation and rotation.
             port_map: dict of `{'old_name': 'new_name'}` mappings, specifying
                 new names for ports in the instantiated device. New names can be
                 `None`, which will delete those ports.
             skip_port_check: Can be used to skip the internal call to `check_ports`,
                 in case it has already been performed elsewhere.
+            append: If `True`, `other` is appended instead of being referenced.
+                Note that this does not flatten  `other`, so its refs will still
+                be refs (now inside `self`).
 
         Returns:
             self
