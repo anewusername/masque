@@ -9,7 +9,7 @@ from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
 from ..ref import Ref
-from ..library import ILibrary
+from ..library import ILibrary, Library
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -28,7 +28,7 @@ class RenderPather(PortList):
     pattern: Pattern
     """ Layout of this device """
 
-    library: ILibrary | None
+    library: ILibrary
     """ Library from which patterns should be referenced """
 
     _dead: bool
@@ -52,7 +52,7 @@ class RenderPather(PortList):
 
     def __init__(
             self,
-            library: ILibrary | None = None,
+            library: ILibrary,
             *,
             pattern: Pattern | None = None,
             ports: str | Mapping[str, Port] | None = None,
@@ -99,6 +99,7 @@ class RenderPather(PortList):
             source: PortList | Mapping[str, Port] | str,
             *,
             library: ILibrary | None = None,
+            tools: Tool | MutableMapping[str | None, Tool] | None = None,
             in_prefix: str = 'in_',
             out_prefix: str = '',
             port_map: dict[str, str] | Sequence[str] | None = None,
@@ -154,42 +155,17 @@ class RenderPather(PortList):
         if library is None:
             if hasattr(source, 'library') and isinstance(source.library, ILibrary):
                 library = source.library
+            else:
+                raise BuildError('No library provided (and not present in `source.library`')
+
+        if tools is None and hasattr(source, 'tools') and isinstance(source.tools, dict):
+            tools = source.tools
 
         if isinstance(source, str):
-            if library is None:
-                raise BuildError('Source given as a string, but `library` was `None`!')
-            orig_ports = library.abstract(source).ports
-        elif isinstance(source, PortList):
-            orig_ports = source.ports
-        elif isinstance(source, dict):
-            orig_ports = source
-        else:
-            raise BuildError(f'Unable to get ports from {type(source)}: {source}')
+            source = library.abstract(source).ports
 
-        if port_map:
-            if isinstance(port_map, dict):
-                missing_inkeys = set(port_map.keys()) - set(orig_ports.keys())
-                mapped_ports = {port_map[k]: v for k, v in orig_ports.items() if k in port_map}
-            else:
-                port_set = set(port_map)
-                missing_inkeys = port_set - set(orig_ports.keys())
-                mapped_ports = {k: v for k, v in orig_ports.items() if k in port_set}
-
-            if missing_inkeys:
-                raise PortError(f'`port_map` keys not present in source: {missing_inkeys}')
-        else:
-            mapped_ports = orig_ports
-
-        ports_in = {f'{in_prefix}{pname}': port.deepcopy().rotate(pi)
-                    for pname, port in mapped_ports.items()}
-        ports_out = {f'{out_prefix}{pname}': port.deepcopy()
-                     for pname, port in mapped_ports.items()}
-
-        duplicates = set(ports_out.keys()) & set(ports_in.keys())
-        if duplicates:
-            raise PortError(f'Duplicate keys after prefixing, try a different prefix: {duplicates}')
-
-        new = RenderPather(library=library, ports={**ports_in, **ports_out}, name=name)
+        pat = Pattern.interface(source, in_prefix=in_prefix, out_prefix=out_prefix, port_map=port_map)
+        new = RenderPather(library=library, pattern=pat, name=name, tools=tools)
         return new
 
     def plug(
@@ -201,44 +177,41 @@ class RenderPather(PortList):
             mirrored: bool = False,
             inherit_name: bool = True,
             set_rotation: bool | None = None,
+            append: bool = False,
             ) -> Self:
         if self._dead:
             logger.error('Skipping plug() since device is dead')
             return self
 
+        other_tgt: Pattern | Abstract
         if isinstance(other, str):
-            if self.library is None:
-                raise BuildError('No library available, but `other` was a string!')
-            other = self.library.abstract(other)
-
-        # If asked to inherit a name, check that all conditions are met
-        if (inherit_name
-                and not map_out
-                and len(map_in) == 1
-                and len(other.ports) == 2):
-            out_port_name = next(iter(set(other.ports.keys()) - set(map_in.values())))
-            map_out = {out_port_name: next(iter(map_in.keys()))}
-
-        if map_out is None:
-            map_out = {}
-        map_out = copy.deepcopy(map_out)
-
-        self.check_ports(other.ports.keys(), map_in, map_out)
-        translation, rotation, pivot = self.find_transform(
-            other,
-            map_in,
-            mirrored=mirrored,
-            set_rotation=set_rotation,
-            )
+            other_tgt = self.library.abstract(other)
+        if append and isinstance(other, Abstract):
+            other_tgt = self.library[other.name]
 
         # get rid of plugged ports
-        for ki, vi in map_in.items():
-            if ki in self.paths:
-                self.paths[ki].append(RenderStep('P', None, self.ports[ki].copy(), self.ports[ki].copy(), None))
-            del self.ports[ki]
-            map_out[vi] = None
-        self.place(other, offset=translation, rotation=rotation, pivot=pivot,
-                   mirrored=mirrored, port_map=map_out, skip_port_check=True)
+        for kk in map_in.keys():
+            if kk in self.paths:
+                self.paths[kk].append(RenderStep('P', None, self.ports[kk].copy(), self.ports[kk].copy(), None))
+
+        plugged = map_in.values()
+        for name, port in other_tgt.ports.items():
+            if name in plugged:
+                continue
+            new_name = map_out.get(name, name) if map_out is not None else name
+            if new_name is not None and new_name in self.paths:
+                self.paths[new_name].append(RenderStep('P', None, port.copy(), port.copy(), None))
+
+        self.pattern.plug(
+            other=other_tgt,
+            map_in=map_in,
+            map_out=map_out,
+            mirrored=mirrored,
+            inherit_name=inherit_name,
+            set_rotation=set_rotation,
+            append=append,
+            )
+
         return self
 
     def place(
@@ -251,43 +224,34 @@ class RenderPather(PortList):
             mirrored: bool = False,
             port_map: dict[str, str | None] | None = None,
             skip_port_check: bool = False,
+            append: bool = False,
             ) -> Self:
         if self._dead:
             logger.error('Skipping place() since device is dead')
             return self
 
+        other_tgt: Pattern | Abstract
         if isinstance(other, str):
-            if self.library is None:
-                raise BuildError('No library available, but `other` was a string!')
-            other = self.library.abstract(other)
+            other_tgt = self.library.abstract(other)
+        if append and isinstance(other, Abstract):
+            other_tgt = self.library[other.name]
 
-        if port_map is None:
-            port_map = {}
-
-        if not skip_port_check:
-            self.check_ports(other.ports.keys(), map_in=None, map_out=port_map)
-
-        ports = {}
-        for name, port in other.ports.items():
-            new_name = port_map.get(name, name)
-            if new_name is None:
-                continue
-            ports[new_name] = port
-            if new_name in self.paths:
+        for name, port in other_tgt.ports.items():
+            new_name = port_map.get(name, name) if port_map is not None else name
+            if new_name is not None and new_name in self.paths:
                 self.paths[new_name].append(RenderStep('P', None, port.copy(), port.copy(), None))
 
-        for name, port in ports.items():
-            p = port.deepcopy()
-            if mirrored:
-                p.mirror()
-            p.rotate_around(pivot, rotation)
-            p.translate(offset)
-            self.ports[name] = p
+        self.pattern.place(
+            other=other_tgt,
+            offset=offset,
+            rotation=rotation,
+            pivot=pivot,
+            mirrored=mirrored,
+            port_map=port_map,
+            skip_port_check=skip_port_check,
+            append=append,
+            )
 
-        ref = Ref(mirrored=mirrored)
-        ref.rotate_around(pivot, rotation)
-        ref.translate(offset)
-        self.pattern.refs[other.name].append(ref)
         return self
 
     def retool(
@@ -409,22 +373,32 @@ class RenderPather(PortList):
 
     def render(
             self,
-            lib: ILibrary | None = None,
             append: bool = True,
             ) -> Self:
-        lib = lib if lib is not None else self.library
-        assert lib is not None
+        """
+        Generate the geometry which has been planned out with `path`/`path_to`/etc.
 
+        Args:
+            append: If `True`, the rendered geometry will be directly appended to
+                `self.pattern`. Note that it will not be flattened, so if only one
+                layer of hierarchy is eliminated.
+
+        Returns:
+            self
+        """
+        lib = self.library
         tool_port_names = ('A', 'B')
-        bb = Builder(lib)
+        pat = Pattern()
 
-        def render_batch(lib: ILibrary, portspec: str, batch: list[RenderStep], append: bool) -> None:
+        def render_batch(portspec: str, batch: list[RenderStep], append: bool) -> None:
             assert batch[0].tool is not None
             name = lib << batch[0].tool.render(batch, port_names=tool_port_names)
-            bb.ports[portspec] = batch[0].start_port.copy()
-            bb.plug(name, {portspec: tool_port_names[0]}, append=append)
+            pat.ports[portspec] = batch[0].start_port.copy()
             if append:
-                del lib[name]
+                pat.plug(lib[name], {portspec: tool_port_names[0]}, append=append)
+                del lib[name]       # NOTE if the rendered pattern has refs, those are now in `pat` but not flattened
+            else:
+                pat.plug(lib.abstract(name), {portspec: tool_port_names[0]}, append=append)
 
         for portspec, steps in self.paths.items():
             batch: list[RenderStep] = []
@@ -434,7 +408,7 @@ class RenderPather(PortList):
 
                 # If we can't continue a batch, render it
                 if batch and (not appendable_op or not same_tool):
-                    render_batch(lib, portspec, batch, append)
+                    render_batch(portspec, batch, append)
                     batch = []
 
                 # batch is emptied already if we couldn't continue it
@@ -442,16 +416,16 @@ class RenderPather(PortList):
                     batch.append(step)
 
                 # Opcodes which break the batch go below this line
-                if not appendable_op and portspec in bb.ports:
-                    del bb.ports[portspec]
+                if not appendable_op and portspec in pat.ports:
+                    del pat.ports[portspec]
 
             #If the last batch didn't end yet
             if batch:
-                render_batch(lib, portspec, batch, append)
+                render_batch(portspec, batch, append)
 
         self.paths.clear()
-        bb.ports.clear()
-        self.pattern.append(bb.pattern)
+        pat.ports.clear()
+        self.pattern.append(pat)
 
         return self
 
