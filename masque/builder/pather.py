@@ -133,19 +133,6 @@ class Pather(Builder):
             self.tools = dict(tools)
 
     @classmethod
-    def mk(
-            cls,
-            library: ILibrary,
-            name: str,
-            *,
-            ports: str | Mapping[str, Port] | None = None,
-            tools: Tool | MutableMapping[str | None, Tool] | None = None,
-            ) -> tuple[str, 'Pather']:
-        """ Name-and-make combination """           # TODO document
-        pather = Pather(library, name=name, ports=ports, tools=tools)
-        return name, pather
-
-    @classmethod
     def from_builder(
             cls,
             builder: Builder,
