@@ -239,7 +239,7 @@ class Arc(Shape):
             keep = []
             removable = (numpy.cumsum(arc_lengths) <= max_arclen)
             start = 0
-            while True:
+            while start < arc_lengths.size:
                 next_to_keep = start + numpy.where(removable)[0][-1]    # TODO: any chance we haven't sampled finely enough?
                 keep.append(next_to_keep)
                 removable = (numpy.cumsum(arc_lengths[next_to_keep + 1:]) <= max_arclen)
