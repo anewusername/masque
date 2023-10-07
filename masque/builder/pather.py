@@ -236,8 +236,10 @@ class Pather(Builder):
             self,
             portspec: str,
             ccw: SupportsBool | None,
-            position: float,
+            position: float | None = None,
             *,
+            x: float | None = None,
+            y: float | None = None,
             tool_port_names: tuple[str, str] = ('A', 'B'),
             base_name: str = '_pathto',
             **kwargs,
@@ -246,8 +248,13 @@ class Pather(Builder):
             logger.error('Skipping path_to() since device is dead')
             return self
 
+        pos_count = sum(vv is not None for vv in (position, x, y))
+        if pos_count > 1:
+            raise BuildError('Only one of `position`, `x`, and `y` may be specified at once')
+        if pos_count < 1:
+            raise BuildError('One of `position`, `x`, and `y` must be specified')
+
         port = self.pattern[portspec]
-        x, y = port.offset
         if port.rotation is None:
             raise PortError(f'Port {portspec} has no rotation and cannot be used for path_to()')
 
@@ -256,13 +263,25 @@ class Pather(Builder):
 
         is_horizontal = numpy.isclose(port.rotation % pi, 0)
         if is_horizontal:
-            if numpy.sign(numpy.cos(port.rotation)) == numpy.sign(position - x):
-                raise BuildError(f'path_to routing to behind source port: x={x:g} to {position:g}')
-            length = numpy.abs(position - x)
+            if y is not None:
+                raise BuildError(f'Asked to path to y-coordinate, but port is horizontal')
+            if position is None:
+                position = x
         else:
-            if numpy.sign(numpy.sin(port.rotation)) == numpy.sign(position - y):
-                raise BuildError(f'path_to routing to behind source port: y={y:g} to {position:g}')
-            length = numpy.abs(position - y)
+            if x is not None:
+                raise BuildError(f'Asked to path to x-coordinate, but port is vertical')
+            if position is None:
+                position = y
+
+        x0, y0 = port.offset
+        if is_horizontal:
+            if numpy.sign(numpy.cos(port.rotation)) == numpy.sign(position - x0):
+                raise BuildError(f'path_to routing to behind source port: x0={x0:g} to {position:g}')
+            length = numpy.abs(position - x0)
+        else:
+            if numpy.sign(numpy.sin(port.rotation)) == numpy.sign(position - y0):
+                raise BuildError(f'path_to routing to behind source port: y0={y0:g} to {position:g}')
+            length = numpy.abs(position - y0)
 
         return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
 
@@ -286,7 +305,7 @@ class Pather(Builder):
         if 'bound_type' in kwargs:
             bound_types.add(kwargs['bound_type'])
             bound = kwargs['bound']
-        for bt in ('emin', 'emax', 'pmin', 'pmax', 'min_past_furthest'):
+        for bt in ('emin', 'emax', 'pmin', 'pmax', 'xmin', 'xmax', 'ymin', 'ymax', 'min_past_furthest'):
             if bt in kwargs:
                 bound_types.add(bt)
                 bound = kwargs[bt]
