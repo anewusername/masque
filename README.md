@@ -61,6 +61,14 @@ Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Lab
     * 1 earth radii in nanometers (6e15) is still represented without approximation (53 bit mantissa -> 2^53 > 9e15)
     * Operations that would otherwise clip/round on are still represented approximately.
     * Memory usage is usually dominated by other Python overhead.
+- `Pattern` objects also contain `Port` information, which can be used to "snap" together
+    multiple sub-components by matching up the requested port offsets and rotations.
+    * Port rotations are defined as counter-clockwise angles from the +x axis.
+    * Ports point into the interior of their associated device.
+    * Port rotations may be `None` in the case of non-oriented ports.
+    * Ports have a `ptype` string which is compared in order to catch mismatched connections at build time.
+    * Ports can be exported into/imported from `Label`s stored directly in the layout,
+        editable from standard tools (e.g. KLayout). A default format is provided.
 
 
 ## Glossary
