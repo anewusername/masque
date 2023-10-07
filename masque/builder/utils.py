@@ -53,9 +53,9 @@ def ell(
                 The distance between furthest out-port (B) and the innermost bend (D's bend).
             - 'max_extension' or 'emax':
                 The total extension value for the closest-in port (C in the diagram).
-            - 'min_position' or 'pmin':
+            - 'min_position', 'pmin', 'xmin', 'ymin':
                 The coordinate of the innermost bend (D's bend).
-            - 'max_position' or 'pmax':
+            - 'max_position', 'pmax', 'xmax', 'ymax':
                 The coordinate of the outermost bend (A's bend).
 
             `bound` can also be a vector. If specifying an extension (e.g. 'min_extension',
@@ -108,6 +108,12 @@ def ell(
         if set_rotation is not None:
             raise BuildError('set_rotation must be specified if no ports have rotations!')
         rotations = numpy.full_like(has_rotation, set_rotation, dtype=float)
+
+    is_horizontal = numpy.isclose(rotations[0] % pi, 0)
+    if bound_type in ('ymin', 'ymax') and is_horizontal:
+        raise BuildError('Asked for {bound_type} position but ports are pointing along the x-axis!')
+    elif bound_type in ('xmin', 'xmax') and not is_horizontal:
+        raise BuildError('Asked for {bound_type} position but ports are pointing along the y-axis!')
 
     direction = rotations[0] + pi                        # direction we want to travel in (+pi relative to port)
     rot_matrix = rotation_matrix_2d(-direction)
@@ -184,9 +190,9 @@ def ell(
             rot_bound = -bound if neg else bound
 
         min_possible = x_start + offsets
-        if bound_type in ('pmax', 'max_position'):
+        if bound_type in ('pmax', 'max_position', 'xmax', 'ymax'):
             extension = rot_bound - min_possible.max()
-        elif bound_type in ('pmin', 'min_position'):
+        elif bound_type in ('pmin', 'min_position', 'xmin', 'ymin'):
             extension = rot_bound - min_possible.min()
 
         offsets += extension
