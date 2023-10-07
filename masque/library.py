@@ -609,7 +609,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             return {}
 
         if mutate_other:
-            if isinstance(Library, other):
+            if isinstance(other, Library):
                 temp = other
             else:
                 temp = Library(dict(other))
