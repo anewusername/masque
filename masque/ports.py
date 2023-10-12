@@ -1,4 +1,4 @@
-from typing import Iterable, KeysView, ValuesView, overload, Self, Mapping
+from typing import Iterable, KeysView, ValuesView, overload, Self, Mapping, NoReturn
 import warnings
 import traceback
 import logging
@@ -137,6 +137,9 @@ class PortList(metaclass=ABCMeta):
             return self.ports[key]
         else:
             return {k: self.ports[k] for k in key}
+
+    def __contains__(self, key: str) -> NoReturn:
+        raise NotImplementedError('PortsList.__contains__ is left unimplemented. Use `key in container.ports` instead.')
 
     # NOTE: Didn't add keys(), items(), values(), __contains__(), etc.
     # because it's weird on stuff like Pattern that contains other lists
