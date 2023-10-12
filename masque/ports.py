@@ -142,6 +142,30 @@ class PortList(metaclass=ABCMeta):
     # because it's weird on stuff like Pattern that contains other lists
     # and because you can just grab .ports and use that instead
 
+    def mkport(
+            self,
+            name: str,
+            value: Port,
+            ) -> Self:
+        """
+        Create a port, raising a `PortError` if a port with the same name already exists.
+
+        Args:
+            name: Name for the port. A port with this name should not already exist.
+            value: The `Port` object to which `name` will refer.
+
+        Returns:
+            self
+
+        Raises:
+            `PortError` if the name already exists.
+        """
+        if name in self.ports:
+            raise PortError(f'Port {name} already exists.')
+        assert name not in self.ports
+        self.ports[name] = value
+        return self
+
     def rename_ports(
             self,
             mapping: dict[str, str | None],
