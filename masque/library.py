@@ -649,7 +649,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             name = tops[0]
 
         rename_map = self.add(other)
-        return rename_map.get(name, name)
+        new_name = rename_map.get(name, name)
+        return new_name
 
     def __le__(self, other: Mapping[str, 'Pattern']) -> Abstract:
         new_name = self << other
