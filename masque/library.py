@@ -651,6 +651,10 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         rename_map = self.add(other)
         return rename_map.get(name, name)
 
+    def __le__(self, other: Mapping[str, 'Pattern']) -> Abstract:
+        new_name = self << other
+        return self.abstract(new_name)
+
     def dedup(
             self,
             norm_value: int = int(1e6),
