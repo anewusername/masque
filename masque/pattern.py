@@ -681,7 +681,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         return bool(self.ports)
 
-    def ref(self, target: str | None, *args: Any, **kwargs: Any) -> Self:
+    def ref(self, target: str | Abstract | None, *args: Any, **kwargs: Any) -> Self:
         """
         Convenience function which constructs a `Ref` object and adds it
          to this pattern.
@@ -694,6 +694,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
+        if isinstance(target, Abstract):
+            target = target.name
         self.refs[target].append(Ref(*args, **kwargs))
         return self
 
