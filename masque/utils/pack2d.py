@@ -26,7 +26,7 @@ def maxrects_bssf(
     rejected_inds = set()
 
     if presort:
-        rotated_sizes = numpy.sort(rect_sizes, axis=0)  # shortest side first
+        rotated_sizes = numpy.sort(rect_sizes, axis=1)  # shortest side first
         rect_order = numpy.lexsort(rotated_sizes.T)[::-1]  # Descending shortest side
         rect_sizes = rect_sizes[rect_order]
 
@@ -80,26 +80,34 @@ def maxrects_bssf(
         r_top[:, 1] = loc[1] + rect_size[1]
 
         regions = numpy.vstack((regions[~intersects], r_lft, r_bot, r_rgt, r_top))
+
+    if presort:
+        unsort_order = rect_order.argsort()
+        rect_locs = rect_locs[unsort_order]
+        rejected_inds = set(unsort_order[list(rejected_inds)])
+
     return rect_locs, rejected_inds
 
 
-def guillotine_bssf_sas(rect_sizes: numpy.ndarray,
-                        regions: numpy.ndarray,
-                        presort: bool = True,
-                        allow_rejects: bool = True,
-                        ) -> tuple[numpy.ndarray, set[int]]:
+def guillotine_bssf_sas(
+        rects: ArrayLike,
+        containers: ArrayLike,
+        presort: bool = True,
+        allow_rejects: bool = True,
+        ) -> tuple[NDArray[numpy.float64], set[int]]:
     """
     sizes should be Nx2
     regions should be Mx4 (xmin, ymin, xmax, ymax)
     #TODO: test me!
     # TODO add rectangle-merge?
     """
-    rect_sizes = numpy.array(rect_sizes)
+    regions = numpy.array(containers, copy=False, dtype=float)
+    rect_sizes = numpy.array(rects, copy=False, dtype=float)
     rect_locs = numpy.zeros_like(rect_sizes)
     rejected_inds = set()
 
     if presort:
-        rotated_sizes = numpy.sort(rect_sizes, axis=0)  # shortest side first
+        rotated_sizes = numpy.sort(rect_sizes, axis=1)  # shortest side first
         rect_order = numpy.lexsort(rotated_sizes.T)[::-1]  # Descending shortest side
         rect_sizes = rect_sizes[rect_order]
 
@@ -137,6 +145,11 @@ def guillotine_bssf_sas(rect_sizes: numpy.ndarray,
 
         regions = numpy.vstack((regions[:rr], regions[rr + 1:],
                                 new_region0, new_region1))
+
+    if presort:
+        unsort_order = rect_order.argsort()
+        rect_locs = rect_locs[unsort_order]
+        rejected_inds = set(unsort_order[list(rejected_inds)])
 
     return rect_locs, rejected_inds
 
