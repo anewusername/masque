@@ -924,7 +924,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 #    @overload
 #    def place(
 #            self,
-#            other: Pattern,
+#            other: 'Pattern',
 #            *,
 #            offset: ArrayLike,
 #            rotation: float,
@@ -953,7 +953,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def place(
             self,
-            other: Abstract | Pattern,
+            other: 'Abstract | Pattern',
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -1059,7 +1059,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 #    @overload
 #    def plug(
 #            self,
-#            other: Pattern,
+#            other: 'Pattern',
 #            map_in: dict[str, str],
 #            map_out: dict[str, str | None] | None,
 #            *,
@@ -1072,7 +1072,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def plug(
             self,
-            other: Abstract | Pattern,
+            other: 'Abstract | Pattern',
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
