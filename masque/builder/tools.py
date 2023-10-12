@@ -4,7 +4,7 @@ Tools are objects which dynamically generate simple single-use devices (e.g. wir
 # TODO document all tools
 """
 from typing import Sequence, Literal, Callable, Any
-from abc import ABCMeta, # abstractmethod     # TODO any way to make Tool ok with implementing only one method?
+from abc import ABCMeta  # , abstractmethod     # TODO any way to make Tool ok with implementing only one method?
 from dataclasses import dataclass
 
 import numpy
