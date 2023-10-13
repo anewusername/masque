@@ -324,10 +324,10 @@ class Pather(Builder):
 
         tool = self.tools.get(portspec, self.tools[None])
         in_ptype = self.pattern[portspec].ptype
-        pat = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
+        tree = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
         name = self.library.get_name(base_name)
-        self.library[name] = pat
-        return self.plug(Abstract(name, pat.ports), {portspec: tool_port_names[0]})
+        abstract = self.library << tree.rename_top(name)
+        return self.plug(abstract, {portspec: tool_port_names[0]})
 
     def path_to(
             self,
