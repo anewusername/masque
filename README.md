@@ -73,6 +73,7 @@ Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Lab
 
 ## Glossary
 - `Library`: A collection of named cells. OASIS or GDS "library" or file.
+- "tree": Any Library which has only one topcell.
 - `Pattern`: A collection of geometry, text labels, and reference to other patterns.
         OASIS or GDS "Cell", DXF "Block".
 - `Ref`: A reference to another pattern. GDS "AREF/SREF", OASIS "Placement".
@@ -81,6 +82,92 @@ Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Lab
         GDS "AREF" is a `Ref` combined with a `Grid` repetition.
 - `Label`: Text label. Not rendered into geometry. OASIS, GDS, DXF "Text".
 - `annotation`: Additional metadata. OASIS or GDS "property".
+
+
+## Design choices & shorthand
+Most syntax and behavior should follow normal python conventions.
+There are a few exceptions, either meant to catch common mistakes or to provide a shorthand for common operations:
+
+### `Library` objects don't allow overwriting already-existing patterns
+```python3
+library['mycell'] = pattern0
+library['mycell'] = pattern1   # Error! 'mycell' already exists and can't be overwritten
+del library['mycell']          # We can explicitly delete it
+library['mycell'] = pattern1   # And now it's ok to assign a new value
+```
+
+### Insert a newly-made hierarchical pattern (with children) into a layout
+```python3
+# Let's say we have a function which returns a new library containing one topcell (and possibly children)
+tree = make_tree(...)
+
+# To reference this cell in our layout, we have to add all its children to our `library` first:
+top_name = tree.top()              # get the name of the topcell
+name_mapping = library.add(tree)   # add all patterns from `tree`, renaming elgible conflicting patterns
+new_name = name_mapping.get(top_name, top_name)    # get the new name for the cell (in case it was auto-renamed)
+my_pattern.ref(new_name, ...)       # instantiate the cell
+
+# This can be accomplished as follows
+new_name = library << tree       # Add `tree` into `library` and return the top cell's new name
+my_pattern.ref(new_name, ...)       # instantiate the cell
+
+# In practice, you may do lots of
+top_pattern.ref(lib << make_tree(...), ...)
+```
+
+### Place a hierarchical pattern into a layout, preserving its port info
+```python3
+# As above, we have a function that makes a new library containing one topcell (and possibly children)
+tree = make_tree(...)
+
+# We need to go get its port info to `place()` it into our existing layout,
+new_name = library << tree          # Add the tree to the library and return its name (see `<<` above)
+abstract = library.abstract(tree)   # An `Abstract` stores a pattern's name and its ports (but no geometry)
+my_pattern.place(abstract, ...)
+
+# With shorthand,
+abstract = library <= tree
+my_pattern.place(abstract, ...)
+
+# or
+
+my_pattern.place(library << make_tree(...), ...)
+```
+
+### Quickly add geometry, labels, or refs:
+The long form for adding elements can be overly verbose:
+```python3
+my_pattern.shapes[layer].append(Polygon(vertices, ...))
+my_pattern.labels[layer] += [Label('my text')]
+my_pattern.refs[target_name].append(Ref(offset=..., ...))
+```
+
+There is shorthand for the most common elements:
+```python3
+my_pattern.polygon(layer=layer, vertices=vertices, ...)
+my_pattern.rect(layer=layer, xctr=..., xmin=..., ymax=..., ly=...)  # rectangle; pick 4 of 6 constraints
+my_pattern.rect(layer=layer, ymin=..., ymax=..., xctr=..., lx=...)
+my_pattern.path(...)
+my_pattern.label(layer, 'my_text')
+my_pattern.ref(target_name, offset=..., ...)
+```
+
+### Accessing ports
+```python3
+# Square brackets pull from the underlying `.ports` dict:
+assert pattern['input'] is pattern.ports['input']
+
+# And you can use them to read multiple ports at once:
+assert pattern[('input', 'output')] == {
+    'input': pattern.ports['input'],
+    'output': pattern.ports['output'],
+    }
+
+# But you shouldn't use them for anything except reading
+pattern['input'] = Port(...)   # Error!
+has_input = ('input' in pattern)   # Error!
+```
+
 
 
 
