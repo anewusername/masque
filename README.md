@@ -130,7 +130,6 @@ abstract = library <= tree
 my_pattern.place(abstract, ...)
 
 # or
-
 my_pattern.place(library << make_tree(...), ...)
 ```
 
@@ -167,8 +166,6 @@ assert pattern[('input', 'output')] == {
 pattern['input'] = Port(...)   # Error!
 has_input = ('input' in pattern)   # Error!
 ```
-
-
 
 
 ## TODO
