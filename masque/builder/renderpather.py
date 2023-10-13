@@ -1,3 +1,6 @@
+"""
+Pather with batched (multi-step) rendering
+"""
 from typing import Self, Sequence, Mapping, MutableMapping
 import copy
 import logging

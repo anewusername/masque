@@ -22,11 +22,26 @@ from .builder import Builder
 
 @dataclass(frozen=True, slots=True)
 class RenderStep:
+    """
+    Representation of a single saved operation, used by `RenderPather` and passed
+    to `Tool.render()` when `RenderPather.render()` is called.
+    """
     opcode: Literal['L', 'S', 'U', 'P']
+    """ What operation is being performed.
+        L: planL   (straight, optionally with a single bend)
+        S: planS   (s-bend)
+        U: planU   (u-bend)
+        P: plug
+    """
+
     tool: 'Tool | None'
+    """ The current tool. May be `None` if `opcode='P'` """
+
     start_port: Port
     end_port: Port
+
     data: Any
+    """ Arbitrary tool-specific data"""
 
     def __post_init__(self) -> None:
         if self.opcode != 'P' and self.tool is None:
@@ -34,6 +49,13 @@ class RenderStep:
 
 
 class Tool:
+    """
+    Interface for path (e.g. wire or waveguide) generation.
+
+    Note that subclasses may implement only a subset of the methods and leave others
+    unimplemented (e.g. in cases where they don't make sense or the required components
+    are impractical or unavailable).
+    """
     def path(
             self,
             ccw: SupportsBool | None,
@@ -44,6 +66,39 @@ class Tool:
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
             ) -> Pattern:
+        """
+        Create a wire or waveguide that travels exactly `length` distance along the axis
+        of its input port.
+
+        Used by `Pather`.
+
+        The output port must be exactly `length` away along the input port's axis, but
+        may be placed an additional (unspecified) distance away along the perpendicular
+        direction. The output port should be rotated (or not) based on the value of
+        `ccw`.
+
+        The input and output ports should be compatible with `in_ptype` and
+        `out_ptype`, respectively. They should also be named `port_names[0]` and
+        `port_names[1]`, respectively.
+
+        Args:
+            ccw: If `None`, the output should be along the same axis as the input.
+                Otherwise, cast to bool and turn counterclockwise if True
+                and clockwise otherwise.
+            length: The total distance from input to output, along the input's axis only.
+                (There may be a tool-dependent offset along the other axis.)
+            in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
+            out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
+            port_names: The output pattern will have its input port named `port_names[0]` and
+                its output named `port_names[1]`.
+            kwargs: Custom tool-specific parameters.
+
+        Returns:
+            A pattern tree containing the requested L-shaped (or straight) wire or waveguide
+
+        Raises:
+            BuildError if an impossible or unsupported geometry is requested.
+        """
         raise NotImplementedError(f'path() not implemented for {type(self)}')
 
     def planL(
@@ -55,6 +110,37 @@ class Tool:
             out_ptype: str | None = None,
             **kwargs,
             ) -> tuple[Port, Any]:
+        """
+        Plan a wire or waveguide that travels exactly `length` distance along the axis
+        of its input port.
+
+        Used by `RenderPather`.
+
+        The output port must be exactly `length` away along the input port's axis, but
+        may be placed an additional (unspecified) distance away along the perpendicular
+        direction. The output port should be rotated (or not) based on the value of
+        `ccw`.
+
+        The input and output ports should be compatible with `in_ptype` and
+        `out_ptype`, respectively.
+
+        Args:
+            ccw: If `None`, the output should be along the same axis as the input.
+                Otherwise, cast to bool and turn counterclockwise if True
+                and clockwise otherwise.
+            length: The total distance from input to output, along the input's axis only.
+                (There may be a tool-dependent offset along the other axis.)
+            in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
+            out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
+            kwargs: Custom tool-specific parameters.
+
+        Returns:
+            The calculated output `Port` for the wire.
+            Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
+
+        Raises:
+            BuildError if an impossible or unsupported geometry is requested.
+        """
         raise NotImplementedError(f'planL() not implemented for {type(self)}')
 
     def planS(
@@ -67,6 +153,33 @@ class Tool:
             out_ptype: str | None = None,
             **kwargs,
             ) -> tuple[Port, Any]:
+        """
+        Plan a wire or waveguide that travels exactly `length` distance along the axis
+        of its input port and `jog` distance along the perpendicular axis (i.e. an S-bend).
+
+        Used by `RenderPather`.
+
+        The output port must have an orientation rotated by pi from the input port.
+
+        The input and output ports should be compatible with `in_ptype` and
+        `out_ptype`, respectively.
+
+        Args:
+            length: The total distance from input to output, along the input's axis only.
+            jog: The total offset from the input to output, along the perpendicular axis.
+                A positive number implies a rightwards shift (i.e. clockwise bend followed
+                by a counterclockwise bend)
+            in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
+            out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
+            kwargs: Custom tool-specific parameters.
+
+        Returns:
+            The calculated output `Port` for the wire.
+            Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
+
+        Raises:
+            BuildError if an impossible or unsupported geometry is requested.
+        """
         raise NotImplementedError(f'planS() not implemented for {type(self)}')
 
     def render(
@@ -78,6 +191,17 @@ class Tool:
             port_names: Sequence[str] = ('A', 'B'),
             **kwargs,
             ) -> ILibrary:
+        """
+        Render the provided `batch` of `RenderStep`s into geometry, returning a tree
+        (a Library with a single topcell).
+
+        Args:
+            batch: A sequence of `RenderStep` objects containing the ports and data
+                provided by this tool's `planL`/`planS`/`planU` functions.
+            port_names: The topcell's input and output ports should be named
+                `port_names[0]` and `port_names[1]` respectively.
+            kwargs: Custom tool-specific parameters.
+        """
         assert not batch or batch[0].tool == self
         raise NotImplementedError(f'render() not implemented for {type(self)}')
 
@@ -87,13 +211,27 @@ abstract_tuple_t = tuple[Abstract, str, str]
 
 @dataclass
 class BasicTool(Tool, metaclass=ABCMeta):
+    """
+      A simple tool which relies on a single pre-rendered `bend` pattern, a function
+    for generating straight paths, and a table of pre-rendered `transitions` for converting
+    from non-native ptypes.
+    """
     straight: tuple[Callable[[float], Pattern], str, str]
+    """ `create_straight(length: float), in_port_name, out_port_name` """
+
     bend: abstract_tuple_t             # Assumed to be clockwise
+    """ `clockwise_bend_abstract, in_port_name, out_port_name` """
+
     transitions: dict[str, abstract_tuple_t]
+    """ `{ptype: (transition_abstract`, ptype_port_name, other_port_name), ...}` """
+
     default_out_ptype: str
+    """ Default value for out_ptype """
+
 
     @dataclass(frozen=True, slots=True)
     class LData:
+        """ Data for planL """
         straight_length: float
         ccw: SupportsBool | None
         in_transition: abstract_tuple_t | None
@@ -250,9 +388,20 @@ class BasicTool(Tool, metaclass=ABCMeta):
 
 @dataclass
 class PathTool(Tool, metaclass=ABCMeta):
+    """
+    A tool which draws `Path` geometry elements.
+
+    If `planL` / `render` are used, the `Path` elements can cover >2 vertices;
+    with `path` only individual rectangles will be drawn.
+    """
     layer: layer_t
+    """ Layer to draw on """
+
     width: float
+    """ `Path` width """
+
     ptype: str = 'unk'
+    """ ptype for any ports in patterns generated by this tool """
 
     #@dataclass(frozen=True, slots=True)
     #class LData:
