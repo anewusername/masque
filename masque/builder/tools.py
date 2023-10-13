@@ -65,7 +65,7 @@ class Tool:
             out_ptype: str | None = None,
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
-            ) -> Pattern:
+            ) -> Library:
         """
         Create a wire or waveguide that travels exactly `length` distance along the axis
         of its input port.
@@ -246,7 +246,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             out_ptype: str | None = None,
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
-            ) -> Pattern:
+            ) -> Library:
         _out_port, data = self.planL(
             ccw,
             length,
@@ -270,7 +270,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             opat, oport_theirs, oport_ours = data.out_transition
             bb.plug(opat, {port_names[1]: oport_ours})
 
-        return bb.pattern
+        return tree
 
     def planL(
             self,
@@ -422,7 +422,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             out_ptype: str | None = None,
             port_names: tuple[str, str] = ('A', 'B'),
             **kwargs,
-            ) -> Pattern:
+            ) -> Library:
         out_port, dxy = self.planL(
             ccw,
             length,
@@ -430,7 +430,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             out_ptype=out_ptype,
             )
 
-        pat = Pattern()
+        tree, pat = Library.mktree('_path')
         pat.path(layer=self.layer, width=self.width, vertices=[(0, 0), (length, 0)])
 
         if ccw is None:
@@ -445,7 +445,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             port_names[1]: Port(dxy, rotation=out_rot, ptype=self.ptype),
             }
 
-        return pat
+        return tree
 
     def planL(
             self,
