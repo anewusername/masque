@@ -144,7 +144,6 @@ class Tool:
 
     def planS(
             self,
-            ccw: SupportsBool | None,
             length: float,
             jog: float,
             *,
@@ -181,12 +180,48 @@ class Tool:
         """
         raise NotImplementedError(f'planS() not implemented for {type(self)}')
 
+    def planU(
+            self,
+            jog: float,
+            *,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
+            **kwargs,
+            ) -> tuple[Port, Any]:
+        """
+        # NOTE: TODO: U-bend is WIP; this interface may change in the future.
+
+        Plan a wire or waveguide that travels exactly `jog` distance along the axis
+        perpendicular to its input port (i.e. a U-bend).
+
+        Used by `RenderPather`.
+
+        The output port must have an orientation identical to the input port.
+
+        The input and output ports should be compatible with `in_ptype` and
+        `out_ptype`, respectively.
+
+        Args:
+            jog: The total offset from the input to output, along the perpendicular axis.
+                A positive number implies a rightwards shift (i.e. clockwise bend followed
+                by a counterclockwise bend)
+            in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
+            out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
+            kwargs: Custom tool-specific parameters.
+
+        Returns:
+            The calculated output `Port` for the wire.
+            Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
+
+        Raises:
+            BuildError if an impossible or unsupported geometry is requested.
+        """
+        raise NotImplementedError(f'planU() not implemented for {type(self)}')
+
     def render(
             self,
             batch: Sequence[RenderStep],
             *,
-            in_ptype: str | None = None,
-            out_ptype: str | None = None,
             port_names: Sequence[str] = ('A', 'B'),
             **kwargs,
             ) -> ILibrary:
