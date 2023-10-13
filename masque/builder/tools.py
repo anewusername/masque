@@ -17,7 +17,6 @@ from ..pattern import Pattern
 from ..abstract import Abstract
 from ..library import ILibrary, Library
 from ..error import BuildError
-from .builder import Builder
 
 
 @dataclass(frozen=True, slots=True)
@@ -255,20 +254,20 @@ class BasicTool(Tool, metaclass=ABCMeta):
             )
 
         gen_straight, sport_in, sport_out = self.straight
-        tree = Library()
-        bb = Builder(library=tree, name='_path').add_port_pair(names=port_names)
+        tree, pat = Library.mktree('_path')
+        pat.add_port_pair(names=port_names)
         if data.in_transition:
             ipat, iport_theirs, _iport_ours = data.in_transition
-            bb.plug(ipat, {port_names[1]: iport_theirs})
+            pat.plug(ipat, {port_names[1]: iport_theirs})
         if not numpy.isclose(data.straight_length, 0):
-            straight = tree << {'_straight': gen_straight(data.straight_length)}
-            bb.plug(straight, {port_names[1]: sport_in})
+            straight = tree <= {'_straight': gen_straight(data.straight_length)}
+            pat.plug(straight, {port_names[1]: sport_in})
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
-            bb.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
+            pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
         if data.out_transition:
             opat, oport_theirs, oport_ours = data.out_transition
-            bb.plug(opat, {port_names[1]: oport_ours})
+            pat.plug(opat, {port_names[1]: oport_ours})
 
         return tree
 
@@ -358,8 +357,8 @@ class BasicTool(Tool, metaclass=ABCMeta):
             **kwargs,
             ) -> ILibrary:
 
-        tree = Library()
-        bb = Builder(library=tree, name='_path').add_port_pair(names=(port_names[0], port_names[1]))
+        tree, pat = Library.mktree('_path')
+        pat.add_port_pair(names=(port_names[0], port_names[1]))
 
         gen_straight, sport_in, _sport_out = self.straight
         for step in batch:
@@ -369,20 +368,20 @@ class BasicTool(Tool, metaclass=ABCMeta):
             if step.opcode == 'L':
                 if in_transition:
                     ipat, iport_theirs, _iport_ours = in_transition
-                    bb.plug(ipat, {port_names[1]: iport_theirs})
+                    pat.plug(ipat, {port_names[1]: iport_theirs})
                 if not numpy.isclose(straight_length, 0):
                     straight_pat = gen_straight(straight_length)
                     if append:
-                        bb.plug(straight_pat, {port_names[1]: sport_in}, append=True)
+                        pat.plug(straight_pat, {port_names[1]: sport_in}, append=True)
                     else:
-                        straight = tree << {'_straight': straight_pat}
-                        bb.plug(straight, {port_names[1]: sport_in}, append=True)
+                        straight = tree <= {'_straight': straight_pat}
+                        pat.plug(straight, {port_names[1]: sport_in}, append=True)
                 if ccw is not None:
                     bend, bport_in, bport_out = self.bend
-                    bb.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
+                    pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
                 if out_transition:
                     opat, oport_theirs, oport_ours = out_transition
-                    bb.plug(opat, {port_names[1]: oport_ours})
+                    pat.plug(opat, {port_names[1]: oport_ours})
         return tree
 
 
