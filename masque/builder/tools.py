@@ -262,7 +262,6 @@ class BasicTool(Tool, metaclass=ABCMeta):
     default_out_ptype: str
     """ Default value for out_ptype """
 
-
     @dataclass(frozen=True, slots=True)
     class LData:
         """ Data for planL """

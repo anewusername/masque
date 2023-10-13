@@ -12,15 +12,13 @@ from numpy import pi
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..ref import Ref
-from ..library import ILibrary, Library
+from ..library import ILibrary
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
 from ..utils import SupportsBool
 from .tools import Tool, RenderStep
 from .utils import ell
-from .builder import Builder
 
 
 logger = logging.getLogger(__name__)
@@ -491,12 +489,12 @@ class RenderPather(PortList):
         is_horizontal = numpy.isclose(port.rotation % pi, 0)
         if is_horizontal:
             if y is not None:
-                raise BuildError(f'Asked to path to y-coordinate, but port is horizontal')
+                raise BuildError('Asked to path to y-coordinate, but port is horizontal')
             if position is None:
                 position = x
         else:
             if x is not None:
-                raise BuildError(f'Asked to path to x-coordinate, but port is vertical')
+                raise BuildError('Asked to path to x-coordinate, but port is vertical')
             if position is None:
                 position = y
 

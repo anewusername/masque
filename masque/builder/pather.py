@@ -399,12 +399,12 @@ class Pather(Builder):
         is_horizontal = numpy.isclose(port.rotation % pi, 0)
         if is_horizontal:
             if y is not None:
-                raise BuildError(f'Asked to path to y-coordinate, but port is horizontal')
+                raise BuildError('Asked to path to y-coordinate, but port is horizontal')
             if position is None:
                 position = x
         else:
             if x is not None:
-                raise BuildError(f'Asked to path to x-coordinate, but port is vertical')
+                raise BuildError('Asked to path to x-coordinate, but port is vertical')
             if position is None:
                 position = y
 
