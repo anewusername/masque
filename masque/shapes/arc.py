@@ -1,6 +1,5 @@
 from typing import Any
 import copy
-import math
 
 import numpy
 from numpy import pi
@@ -231,7 +230,7 @@ class Arc(Shape):
 
         def get_thetas(inner: bool) -> NDArray[numpy.float64]:
             """ Figure out the parameter values at which we should place vertices to meet the arclength constraint"""
-            dr = -self.width / 2.0 * (-1 if inner else 1)
+            #dr = -self.width / 2.0 * (-1 if inner else 1)
 
             n_pts = numpy.ceil(2 * pi * max(self.radii) / max_arclen).astype(int)
             arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1])
