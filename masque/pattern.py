@@ -765,7 +765,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     def prune_layers(self) -> Self:
         """
-        Removes empty layers (empty lists) in `self.shapes` and `self.labels`.
+        Remove empty layers (empty lists) in `self.shapes` and `self.labels`.
 
         Returns:
             self
