@@ -84,7 +84,7 @@ Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Lab
 - `annotation`: Additional metadata. OASIS or GDS "property".
 
 
-## Design choices & shorthand
+## Syntax, shorthand, and design patterns
 Most syntax and behavior should follow normal python conventions.
 There are a few exceptions, either meant to catch common mistakes or to provide a shorthand for common operations:
 
@@ -94,6 +94,7 @@ library['mycell'] = pattern0
 library['mycell'] = pattern1   # Error! 'mycell' already exists and can't be overwritten
 del library['mycell']          # We can explicitly delete it
 library['mycell'] = pattern1   # And now it's ok to assign a new value
+library.delete('mycell')       # This also deletes all refs pointing to 'mycell' by default
 ```
 
 ### Insert a newly-made hierarchical pattern (with children) into a layout
@@ -112,7 +113,13 @@ new_name = library << tree       # Add `tree` into `library` and return the top 
 my_pattern.ref(new_name, ...)       # instantiate the cell
 
 # In practice, you may do lots of
-top_pattern.ref(lib << make_tree(...), ...)
+my_pattern.ref(lib << make_tree(...), ...)
+```
+
+We can also use this shorthand to quickly add and reference a single flat (as yet un-named) pattern:
+```python3
+anonymous_pattern = Pattern(...)
+my_pattern.ref(lib << {'_tentative_name': anonymous_pattern}, ...)
 ```
 
 ### Place a hierarchical pattern into a layout, preserving its port info
@@ -131,7 +138,7 @@ my_pattern.place(abstract, ...)
 
 # or
 my_pattern.place(library << make_tree(...), ...)
-```
+
 
 ### Quickly add geometry, labels, or refs:
 The long form for adding elements can be overly verbose:
@@ -165,6 +172,22 @@ assert pattern[('input', 'output')] == {
 # But you shouldn't use them for anything except reading
 pattern['input'] = Port(...)   # Error!
 has_input = ('input' in pattern)   # Error!
+```
+
+### Building patterns
+```python3
+library = Library(...)
+my_pattern_name, my_pattern = library.mkpat(some_name_generator())
+...
+def _make_my_subpattern() -> str:
+    #   This function can draw from the outer scope (e.g. `library`) but will not pollute the outer scope
+    # (e.g. the variable `subpattern` will not be accessible from outside the function; you must load it
+    # from within `library`).
+    subpattern_name, subpattern = library.mkpat(...)
+    subpattern.rect(...)
+    ...
+    return subpattern_name
+my_pattern.ref(_make_my_subpattern(), offset=..., ...)
 ```
 
 
