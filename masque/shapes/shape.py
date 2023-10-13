@@ -30,7 +30,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
     """
     Class specifying functions common to all shapes.
     """
-    __slots__ = ()      # Children should use AutoSlots
+    __slots__ = ()      # Children should use AutoSlots or set slots themselves
 
     def __copy__(self) -> Self:
         cls = self.__class__
