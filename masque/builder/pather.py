@@ -287,7 +287,6 @@ class Pather(Builder):
             length: float,
             *,
             tool_port_names: tuple[str, str] = ('A', 'B'),
-            base_name: str = '_path',
             **kwargs,
             ) -> Self:
         """
@@ -308,8 +307,6 @@ class Pather(Builder):
             tool_port_names: The names of the ports on the generated pattern. It is unlikely
                 that you will need to change these. The first port is the input (to be
                 connected to `portspec`).
-            base_name: Name to use for the generated `Pattern`. This will be passed through
-                `self.library.get_name()` to get a unique name for each new `Pattern`.
 
         Returns:
             self
@@ -325,8 +322,7 @@ class Pather(Builder):
         tool = self.tools.get(portspec, self.tools[None])
         in_ptype = self.pattern[portspec].ptype
         tree = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
-        name = self.library.get_name(base_name)
-        abstract = self.library << tree.rename_top(name)
+        abstract = self.library << tree
         return self.plug(abstract, {portspec: tool_port_names[0]})
 
     def path_to(
@@ -338,7 +334,6 @@ class Pather(Builder):
             x: float | None = None,
             y: float | None = None,
             tool_port_names: tuple[str, str] = ('A', 'B'),
-            base_name: str = '_pathto',
             **kwargs,
             ) -> Self:
         """
@@ -367,8 +362,6 @@ class Pather(Builder):
             tool_port_names: The names of the ports on the generated pattern. It is unlikely
                 that you will need to change these. The first port is the input (to be
                 connected to `portspec`).
-            base_name: Name to use for the generated `Pattern`. This will be passed through
-                `self.library.get_name()` to get a unique name for each new `Pattern`.
 
         Returns:
             self
@@ -418,7 +411,7 @@ class Pather(Builder):
                 raise BuildError(f'path_to routing to behind source port: y0={y0:g} to {position:g}')
             length = numpy.abs(position - y0)
 
-        return self.path(portspec, ccw, length, tool_port_names=tool_port_names, base_name=base_name, **kwargs)
+        return self.path(portspec, ccw, length, tool_port_names=tool_port_names, **kwargs)
 
     def mpath(
             self,
