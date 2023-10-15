@@ -60,14 +60,17 @@ def main() -> None:
     circ2 = Builder(library=lib, ports='tri_l3cav')
 
     #   First way to get abstracts is `lib.abstract(name)`
+    # We can use this syntax directly with `Pattern.plug()` and `Pattern.place()` as well as through `Builder`.
     circ2.plug(lib.abstract('wg10'), {'input': 'right'})
 
     #   Second way to get abstracts is to use an AbstractView
+    # This also works directly with `Pattern.plug()` / `Pattern.place()`.
     abstracts = lib.abstract_view()
     circ2.plug(abstracts['wg10'], {'output': 'left'})
 
     # Third way to specify an abstract works by automatically getting
-    # it from the library already within the Builder object:
+    # it from the library already within the Builder object.
+    # This wouldn't work if we only had a `Pattern` (not a `Builder`).
     # Just pass the pattern name!
     circ2.plug('tri_wg10', {'input': 'right'})
     circ2.plug('tri_wg10', {'output': 'left'})

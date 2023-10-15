@@ -1,5 +1,5 @@
 """
-Manual wire routing tutorial
+Manual wire routing tutorial: Pather and BasicTool
 """
 from typing import Callable
 from numpy import pi
@@ -7,6 +7,7 @@ from masque import Pather, RenderPather, Library, Pattern, Port, layer_t, map_la
 from masque.builder.tools import BasicTool, PathTool
 from masque.file.gdsii import writefile
 
+from basic_shapes import GDS_OPTS
 
 #
 # Define some basic wire widths, in nanometers
@@ -97,10 +98,25 @@ def make_straight_wire(layer: layer_t, width: float, ptype: str, length: float) 
     return pat
 
 
+def map_layer(layer: layer_t) -> layer_t:
+    """
+    Map from a strings to GDS layer numbers
+    """
+    layer_mapping = {
+        'M1': (10, 0),
+        'M2': (20, 0),
+        'V1': (30, 0),
+        }
+    return layer_mapping.get(layer, layer)
+
+
 #
 # Now we can start building up our library (collection of static cells) and pathing tools.
 #
-
+#   If any of the operations below are confusing, you can cross-reference against the `RenderPather`
+# tutorial, which handles some things more explicitly (e.g. via placement) and simplifies others
+# (e.g. geometry definition).
+#
 def main() -> None:
     # Build some patterns (static cells) using the above functions and store them in a library
     library = Library()
@@ -181,6 +197,7 @@ def main() -> None:
     # Place two pads, and define their ports as 'VCC' and 'GND'
     pather.place('pad', offset=(18_000, 30_000), port_map={'wire_port': 'VCC'})
     pather.place('pad', offset=(18_000, 60_000), port_map={'wire_port': 'GND'})
+    # Add some labels to make the pads easier to distinguish
     pather.pattern.label(layer='M2', string='VCC', offset=(18e3, 30e3))
     pather.pattern.label(layer='M2', string='GND', offset=(18e3, 60e3))
 
@@ -251,56 +268,9 @@ def main() -> None:
     # Save the pather's pattern into our library
     library['Pather_and_BasicTool'] = pather.pattern
 
-
-
-    M1_ptool = PathTool(layer='M1', width=M1_WIDTH, ptype='m1wire')
-    M2_ptool = PathTool(layer='M2', width=M2_WIDTH, ptype='m2wire')
-    rpather = RenderPather(tools=M2_ptool, library=library).add_port_pair()
-
-    rpather.place('pad', offset=(18_000, 30_000), port_map={'wire_port': 'VCC'})
-    rpather.place('pad', offset=(18_000, 60_000), port_map={'wire_port': 'GND'})
-    rpather.pattern.label(layer='M2', string='VCC', offset=(18e3, 30e3))
-    rpather.pattern.label(layer='M2', string='GND', offset=(18e3, 60e3))
-
-    rpather.path('VCC', ccw=False, length=6_000)
-    rpather.path_to('VCC', ccw=None, x=0)
-    rpather.path('GND', 0, 5_000)
-    rpather.path_to('GND', None, x=rpather['VCC'].offset[0])
-
-    rpather.plug('v1_via', {'GND': 'top'})
-    rpather.retool(M1_ptool, keys=['GND'])
-    rpather.mpath(['GND', 'VCC'], ccw=True, xmax=-10_000, spacing=5_000)
-
-    rpather.plug('v1_via', {'VCC': 'top'})
-    rpather.retool(M1_ptool)
-    rpather.mpath(['GND', 'VCC'], ccw=True, emax=50_000, spacing=1_200)
-    rpather.mpath(['GND', 'VCC'], ccw=False, emin=1_000, spacing=1_200)
-    rpather.mpath(['GND', 'VCC'], ccw=False, emin=2_000, spacing=4_500)
-
-    rpather.plug('v1_via', {'VCC': 'bottom'})
-    rpather.retool(M2_ptool)
-    rpather.mpath(['GND', 'VCC'], None, xmin=-28_000)
-    via_size = abs(
-          library['v1_via'].ports['top'].offset[0]
-        - library['v1_via'].ports['bottom'].offset[0]
-        )
-    rpather.path_to('VCC', None, -50_000 + via_size)  #, out_ptype='m1wire')
-    rpather.plug('v1_via', {'VCC': 'top'})
-
-    rpather.render()
-    library['RenderPather_and_PathTool'] = rpather.pattern
-
-
     # Convert from text-based layers to numeric layers for GDS, and output the file
-    def map_layer(layer: layer_t) -> layer_t:
-        layer_mapping = {
-            'M1': (10, 0),
-            'M2': (20, 0),
-            'V1': (30, 0),
-            }
-        return layer_mapping.get(layer, layer)
     library.map_layers(map_layer)
-    writefile(library, 'pathers.gds', 1e-9)
+    writefile(library, 'pather.gds', **GDS_OPTS)
 
 
 if __name__ == '__main__':
