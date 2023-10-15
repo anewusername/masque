@@ -31,7 +31,7 @@ def ports_to_data(pat: Pattern) -> Pattern:
 
 def data_to_ports(lib: Mapping[str, Pattern], name: str, pat: Pattern) -> Pattern:
     """
-    Scans the Pattern to determine port locations. Same port format as `ports_to_data`
+    Scan the Pattern to determine port locations. Same port format as `ports_to_data`
     """
     return ports2data.data_to_ports(layers=[(3, 0)], library=lib, pattern=pat, name=name)
 
@@ -246,13 +246,14 @@ def main(interactive: bool = True) -> None:
     devices['ysplit'] = y_splitter(lattice_constant=a, hole='hole', mirror_periods=5)
     devices['l3cav'] = perturbed_l3(lattice_constant=a, hole='smile', hole_lib=shape_lib, xy_size=(4, 10))   # uses smile :)
 
-    # Turn our dict of devices into a Library -- useful for getting abstracts
+    # Turn our dict of devices into a Library.
+    # This provides some convenience functions in the future!
     lib = Library(devices)
 
     #
     # Build a circuit
     #
-    # Create a builder, and add the circuit to our library as "my_circuit"
+    # Create a `Builder`, and add the circuit to our library as "my_circuit".
     circ = Builder(library=lib, name='my_circuit')
 
     # Start by placing a waveguide. Call its ports "in" and "signal".
@@ -262,6 +263,14 @@ def main(interactive: bool = True) -> None:
     #   Since there is only one other port ("right") on the waveguide we
     # are attaching (wg10), it automatically inherits the name "signal".
     circ.plug('wg10', {'signal': 'left'})
+
+    # We could have done the following instead:
+    #   circ_pat = Pattern()
+    #   lib['my_circuit'] = circ_pat
+    #   circ_pat.place(lib.abstract('wg10'), ...)
+    #   circ_pat.plug(lib.abstract('wg10'), ...)
+    # but `Builder` lets us omit some of the repetition of `lib.abstract(...)`, and uses similar
+    # syntax to `Pather` and `RenderPather`, which add wire/waveguide routing functionality.
 
     # Attach a y-splitter to the signal path.
     #   Since the y-splitter has 3 ports total, we can't auto-inherit the
