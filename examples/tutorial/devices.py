@@ -1,4 +1,3 @@
-# TODO update tutorials
 from typing import Sequence, Mapping
 
 import numpy
