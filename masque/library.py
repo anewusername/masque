@@ -20,10 +20,11 @@ import numpy
 from numpy.typing import ArrayLike
 
 from .error import LibraryError, PatternError
-from .utils import rotation_matrix_2d
+from .utils import rotation_matrix_2d, layer_t
 from .shapes import Shape, Polygon
 from .label import Label
 from .abstract import Abstract
+from .pattern import map_layers
 
 if TYPE_CHECKING:
     from .pattern import Pattern
@@ -545,6 +546,28 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             if old_target in pattern.refs:
                 pattern.refs[new_target].extend(pattern.refs[old_target])
                 del pattern.refs[old_target]
+        return self
+
+    def map_layers(
+            self,
+            map_layer: Callable[[layer_t], layer_t],
+            ) -> Self:
+        """
+        Move all the elements in all patterns from one layer onto a different layer.
+        Can also handle multiple such mappings simultaneously.
+
+        Args:
+            map_layer: Callable which may be called with each layer present in `elements`,
+                and should return the new layer to which it will be mapped.
+                A simple example which maps `old_layer` to `new_layer` and leaves all others
+                as-is would look like `lambda layer: {old_layer: new_layer}.get(layer, layer)`
+
+        Returns:
+            self
+        """
+        for pattern in self.values():
+            pattern.shapes = map_layers(pattern.shapes, map_layer)
+            pattern.labels = map_layers(pattern.labels, map_layer)
         return self
 
     def mkpat(self, name: str) -> tuple[str, 'Pattern']:
