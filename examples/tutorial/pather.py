@@ -253,26 +253,42 @@ def main() -> None:
 
 
 
-    tool = PathTool(layer=(2, 0), width=2)
-    q = RenderPather(tools=tool, library=library).add_port_pair()
+    M1_ptool = PathTool(layer='M1', width=M1_WIDTH, ptype='m1wire')
+    M2_ptool = PathTool(layer='M2', width=M2_WIDTH, ptype='m2wire')
+    rpather = RenderPather(tools=M2_ptool, library=library).add_port_pair()
 
-    print('---------------BBBB------------------')
-    print(q.ports)
-    q.path('B', 1, 120)  # next up
-    q.path('B', 0, 20)   # next right
-    q.path('B', 0, 120)  # next down
-    q.path_to('B', None, -90)   # next down
-    print(q.ports)
-    q.path('B', None, 10)   # next down
-    q.path('B', 1, 80)   # next right
-    q.path('B', 1, 80)   # next up
-    print('---------------AAAA------------------')
-    q.path('A', 0, 50)
-    q.path('A', 0, 50)
-    q.path('A', 0, 50)
+    rpather.place('pad', offset=(18_000, 30_000), port_map={'wire_port': 'VCC'})
+    rpather.place('pad', offset=(18_000, 60_000), port_map={'wire_port': 'GND'})
+    rpather.pattern.label(layer='M2', string='VCC', offset=(18e3, 30e3))
+    rpather.pattern.label(layer='M2', string='GND', offset=(18e3, 60e3))
 
-    q.render()
-    library['nom'] = q.pattern
+    rpather.path('VCC', ccw=False, length=6_000)
+    rpather.path_to('VCC', ccw=None, x=0)
+    rpather.path('GND', 0, 5_000)
+    rpather.path_to('GND', None, x=rpather['VCC'].offset[0])
+
+    rpather.plug('v1_via', {'GND': 'top'})
+    rpather.retool(M1_ptool, keys=['GND'])
+    rpather.mpath(['GND', 'VCC'], ccw=True, xmax=-10_000, spacing=5_000)
+
+    rpather.plug('v1_via', {'VCC': 'top'})
+    rpather.retool(M1_ptool)
+    rpather.mpath(['GND', 'VCC'], ccw=True, emax=50_000, spacing=1_200)
+    rpather.mpath(['GND', 'VCC'], ccw=False, emin=1_000, spacing=1_200)
+    rpather.mpath(['GND', 'VCC'], ccw=False, emin=2_000, spacing=4_500)
+
+    rpather.plug('v1_via', {'VCC': 'bottom'})
+    rpather.retool(M2_ptool)
+    rpather.mpath(['GND', 'VCC'], None, xmin=-28_000)
+    via_size = abs(
+          library['v1_via'].ports['top'].offset[0]
+        - library['v1_via'].ports['bottom'].offset[0]
+        )
+    rpather.path_to('VCC', None, -50_000 + via_size)  #, out_ptype='m1wire')
+    rpather.plug('v1_via', {'VCC': 'top'})
+
+    rpather.render()
+    library['RenderPather_and_PathTool'] = rpather.pattern
 
 
     # Convert from text-based layers to numeric layers for GDS, and output the file
