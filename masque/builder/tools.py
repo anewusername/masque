@@ -539,6 +539,10 @@ class PathTool(Tool, metaclass=ABCMeta):
             else:
                 raise BuildError(f'Unrecognized opcode "{step.opcode}"')
 
+        if (path_vertices[-1] != batch[-1].end_port.offset).any():
+            # If the path ends in a bend, we need to add the final vertex
+            path_vertices.append(batch[-1].end_port.offset)
+
         tree, pat = Library.mktree('_path')
         pat.path(layer=self.layer, width=self.width, vertices=path_vertices)
         pat.ports = {
