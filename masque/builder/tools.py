@@ -370,7 +370,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             out_ptype_actual = self.default_out_ptype
 
         straight_length = length - bend_dxy[0] - itrans_dxy[0] - otrans_dxy[0]
-        bend_run = bend_dxy[1] + itrans_dxy[1] + otrans_dxy
+        bend_run = bend_dxy[1] + itrans_dxy[1] + otrans_dxy[1]
 
         if straight_length < 0:
             raise BuildError(
