@@ -48,5 +48,5 @@ from .utils import ports2data, oneshot
 
 __author__ = 'Jan Petykiewicz'
 
-__version__ = '2.7'
+__version__ = '3.0'
 version = __version__       # legacy
