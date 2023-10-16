@@ -15,7 +15,7 @@ from ..utils import SupportsBool, rotation_matrix_2d, layer_t
 from ..ports import Port
 from ..pattern import Pattern
 from ..abstract import Abstract
-from ..library import ILibrary, Library
+from ..library import ILibrary, Library, SINGLE_USE_PREFIX
 from ..error import BuildError
 
 
@@ -288,13 +288,13 @@ class BasicTool(Tool, metaclass=ABCMeta):
             )
 
         gen_straight, sport_in, sport_out = self.straight
-        tree, pat = Library.mktree('_path')
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=port_names)
         if data.in_transition:
             ipat, iport_theirs, _iport_ours = data.in_transition
             pat.plug(ipat, {port_names[1]: iport_theirs})
         if not numpy.isclose(data.straight_length, 0):
-            straight = tree <= {'_straight': gen_straight(data.straight_length)}
+            straight = tree <= {SINGLE_USE_PREFIX + 'straight': gen_straight(data.straight_length)}
             pat.plug(straight, {port_names[1]: sport_in})
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
@@ -391,7 +391,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             **kwargs,
             ) -> ILibrary:
 
-        tree, pat = Library.mktree('_path')
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=(port_names[0], port_names[1]))
 
         gen_straight, sport_in, _sport_out = self.straight
@@ -408,7 +408,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
                     if append:
                         pat.plug(straight_pat, {port_names[1]: sport_in}, append=True)
                     else:
-                        straight = tree <= {'_straight': straight_pat}
+                        straight = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
                         pat.plug(straight, {port_names[1]: sport_in}, append=True)
                 if ccw is not None:
                     bend, bport_in, bport_out = self.bend
@@ -463,7 +463,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             out_ptype=out_ptype,
             )
 
-        tree, pat = Library.mktree('_path')
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.path(layer=self.layer, width=self.width, vertices=[(0, 0), (length, 0)])
 
         if ccw is None:
@@ -543,7 +543,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             # If the path ends in a bend, we need to add the final vertex
             path_vertices.append(batch[-1].end_port.offset)
 
-        tree, pat = Library.mktree('_path')
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.path(layer=self.layer, width=self.width, vertices=path_vertices)
         pat.ports = {
             port_names[0]: batch[0].start_port.copy().rotate(pi),

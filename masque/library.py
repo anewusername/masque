@@ -35,15 +35,24 @@ logger = logging.getLogger(__name__)
 
 visitor_function_t = Callable[..., 'Pattern']
 
+SINGLE_USE_PREFIX = '_'
+"""
+Names starting with this prefix are assumed to refer to single-use patterns,
+which may be renamed automatically by `ILibrary.add()` (via
+`rename_theirs=_rename_patterns()` )
+"""
+# TODO what are the consequences of making '_' special?  maybe we can make this decision everywhere?
+
 
 def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
     """
     The default `rename_theirs` function for `ILibrary.add`.
 
-    Treats names starting with an underscore as "one-offs" for which name conflicts
-      should be automatically resolved. Conflicts are resolved by calling
-      `lib.get_name(name.split('$')[0])`.
-    Names without a leading underscore are directly returned.
+      Treats names starting with `SINGLE_USE_PREFIX` (default: one underscore) as
+    "one-offs" for which name conflicts should be automatically resolved.
+    Conflicts are resolved by calling `lib.get_name(SINGLE_USE_PREFIX + stem)`
+    where `stem = name.removeprefix(SINGLE_USE_PREFIX).split('$')[0]`.
+    Names lacking the prefix are directly returned (not renamed).
 
     Args:
         lib: The library into which `name` is to be added (but is presumed to conflict)
@@ -52,11 +61,11 @@ def _rename_patterns(lib: 'ILibraryView', name: str) -> str:
     Returns:
         The new name, not guaranteed to be conflict-free!
     """
-    if not name.startswith('_'):            # TODO what are the consequences of making '_' special?  maybe we can make this decision everywhere?
+    if not name.startswith(SINGLE_USE_PREFIX):
         return name
 
-    stem = name.split('$')[0]
-    return lib.get_name(stem)
+    stem = name.removeprefix(SINGLE_USE_PREFIX).split('$')[0]
+    return lib.get_name(SINGLE_USE_PREFIX + stem)
 
 
 class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
@@ -284,7 +293,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
 
     def get_name(
             self,
-            name: str = '__',
+            name: str = SINGLE_USE_PREFIX * 2,
             sanitize: bool = True,
             max_length: int = 32,
             quiet: bool | None = None,
@@ -295,17 +304,17 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         This function may be overridden in a subclass or monkey-patched to fit the caller's requirements.
 
         Args:
-            name: Preferred name for the pattern. Default '__'.
+            name: Preferred name for the pattern. Default is `SINGLE_USE_PREFIX * 2`.
             sanitize: Allows only alphanumeric charaters and _?$. Replaces invalid characters with underscores.
             max_length: Names longer than this will be truncated.
             quiet: If `True`, suppress log messages. Default `None` suppresses messages only if
-                the name starts with an underscore.
+                the name starts with `SINGLE_USE_PREFIX`.
 
         Returns:
             Name, unique within this library.
         """
         if quiet is None:
-            quiet = name.startswith('_')
+            quiet = name.startswith(SINGLE_USE_PREFIX)
 
         if sanitize:
             # Remove invalid characters
@@ -316,7 +325,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         ii = 0
         suffixed_name = sanitized_name
         while suffixed_name in self or suffixed_name == '':
-            suffix = base64.b64encode(struct.pack('>Q', ii), b'$?').decode('ASCII')
+            suffix = base64.b64encode(struct.pack('>Q', ii), altchars=b'$?').decode('ASCII')
 
             suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
             ii += 1
@@ -602,16 +611,14 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         If `mutate_other=False` (default), all changes are made to a deepcopy of `other`.
 
         By default, `rename_theirs` makes no changes to the name (causing a `LibraryError`) unless the
-          name starts with an underscore. Underscored names are truncated to before their first '$'
-          and then passed to `self.get_name()` to create a new unique name.
+          name starts with `SINGLE_USE_PREFIX`. Prefixed names are truncated to before their first
+          non-prefix '$' and then passed to `self.get_name()` to create a new unique name.
 
         Args:
             other: The library to insert keys from.
             rename_theirs: Called as rename_theirs(self, name) for each duplicate name
                 encountered in `other`. Should return the new name for the pattern in
-                `other`.
-                Default is effectively
-                    `self.get_name(name.split('$')[0]) if name.startswith('_') else name`
+                `other`. See above for default behavior.
             mutate_other: If `True`, modify the original library and its contained patterns
                 (e.g. when renaming patterns and updating refs). Otherwise, operate on a deepcopy
                 (default).
@@ -703,7 +710,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             exclude_types: Shape types passed in this argument are always left untouched, for
                 speed or convenience. Default: `(shapes.Polygon,)`
             label2name: Given a label tuple as returned by `shape.normalized_form(...)`, pick
-                a name for the generated pattern. Default `self.get_name('_shape')`.
+                a name for the generated pattern.
+                Default `self.get_name(SINGLE_USE_PREIX + 'shape')`.
             threshold: Only replace shapes with refs if there will be at least this many
                 instances.
 
@@ -720,8 +728,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         if label2name is None:
             def label2name(label):
-                return self.get_name('_shape')
-            #label2name = lambda label: self.get_name('_shape')
+                return self.get_name(SINGLE_USE_PREFIX + 'shape')
 
         shape_counts: MutableMapping[tuple, int] = defaultdict(int)
         shape_funcs = {}
@@ -801,7 +808,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         Args:
             name_func: Function f(this_pattern, shape) which generates a name for the
-                        wrapping pattern. Default is `self.get_name('_rep')`.
+                        wrapping pattern.
+                        Default is `self.get_name(SINGLE_USE_PREFIX + 'rep')`.
 
         Returns:
             self
@@ -810,8 +818,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         if name_func is None:
             def name_func(_pat, _shape):
-                return self.get_name('_rep')
-            #name_func = lambda _pat, _shape: self.get_name('_rep')
+                return self.get_name(SINGLE_USE_PREFIX = 'rep')
 
         for pat in tuple(self.values()):
             for layer in pat.shapes:

@@ -11,7 +11,7 @@ from numpy import pi
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..library import ILibrary
+from ..library import ILibrary, SINGLE_USE_PREFIX
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -422,7 +422,7 @@ class Pather(Builder):
             set_rotation: float | None = None,
             tool_port_names: tuple[str, str] = ('A', 'B'),
             force_container: bool = False,
-            base_name: str = '_mpath',
+            base_name: str = SINGLE_USE_PREFIX + 'mpath',
             **kwargs,
             ) -> Self:
         """
