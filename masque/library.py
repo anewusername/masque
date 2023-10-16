@@ -1082,7 +1082,7 @@ class LazyLibrary(ILibrary):
             raise LibraryError(
                 f'Detected multiple simultaneous lookups of "{key}".\n'
                 'This may be caused by an invalid (cyclical) reference, or buggy code.\n'
-                'If you are lazy-loading a file, try a non-lazy load and check for refernce cycles.'        # TODO give advice on finding cycles
+                'If you are lazy-loading a file, try a non-lazy load and check for reference cycles.'        # TODO give advice on finding cycles
                 )
 
         self._lookups_in_progress.add(key)
