@@ -1,7 +1,7 @@
 """
  masque 2D CAD library
 
- masque is an attempt to make a relatively small library for designing lithography
+ masque is an attempt to make a relatively compact library for designing lithography
   masks. The general idea is to implement something resembling the GDSII and OASIS file-formats,
   but with some additional vectorized element types (eg. ellipses, not just polygons), and the
   ability to interface with multiple file formats.
@@ -20,10 +20,10 @@
  NOTES ON INTERNALS
  ==========================
  - Many of `masque`'s classes make use of `__slots__` to make them faster / smaller.
-    Since `__slots__` doesn't play well with multiple inheritance, the `masque.utils.AutoSlots`
-    metaclass is used to auto-generate slots based on superclass type annotations.
- - File I/O submodules are imported by `masque.file` to avoid creating hard dependencies on
-    external file-format reader/writers
+    Since `__slots__` doesn't play well with multiple inheritance, often they are left
+    empty for superclasses and it is the subclass's responsibility to set them correctly.
+ - File I/O submodules are not imported by `masque.file` to avoid creating hard dependencies
+    on external file-format reader/writers
 
 """
 
