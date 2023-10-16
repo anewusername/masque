@@ -33,9 +33,12 @@ pip install 'masque[oasis,dxf,svg,visualization,text]'
 ## Overview
 
 A layout consists of a hierarchy of `Pattern`s stored in a single `Library`.
-Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Label`s.
+Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, `Label`s, and `Port`s.
+
 
 `masque` departs from several "classic" GDSII paradigms:
+- A `Pattern` object does not store its own name. A name is only assigned when the pattern is placed
+    into a `Library`, which is effectively a name->`Pattern` mapping.
 - Layer info for `Shape`ss and `Label`s is not stored in the individual shape and label objects.
     Instead, the layer is determined by the key for the container dict (e.g. `pattern.shapes[layer]`).
     * This simplifies many common tasks: filtering `Shape`s by layer, remapping layers, and checking if
@@ -69,6 +72,31 @@ Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, and `Lab
     * Ports have a `ptype` string which is compared in order to catch mismatched connections at build time.
     * Ports can be exported into/imported from `Label`s stored directly in the layout,
         editable from standard tools (e.g. KLayout). A default format is provided.
+
+In one important way, `masque` stays very orthodox:
+References are accomplished by listing the target's name, not its `Pattern` object.
+
+- The main downside of this is that any operations that traverse the hierarchy require
+    both the `Pattern` and the `Library` which is contains its reference targets.
+- This guarantees that names within a `Library` remain unique at all times.
+    * Since this can be tedious in cases where you don't actually care about the name of a
+        pattern, patterns whose names start with `SINGLE_USE_PREFIX` (default: an underscore)
+        may be silently renamed in order to maintain uniqueness.
+        See `masque.library.SINGLE_USE_PREFIX`, `masque.library._rename_patterns()`,
+        and `ILibrary.add()` for more details.
+- Having all patterns accessible through the `Library` avoids having to perform a
+    tree traversal for every operation which needs to touch all `Pattern` objects
+    (e.g. deleting a layer everywhere or scaling all patterns).
+- Since `Pattern` doesn't know its own name, you can't create a reference by passing in
+    a `Pattern` object -- you need to know its name.
+- You *can* reference a `Pattern` before it is created, so long as you have already decided
+    on its name.
+- Functions like `Pattern.place()` and `Pattern.plug()` need to receive a pattern's name
+    in order to create a reference, but they also need to access the pattern's ports.
+    * One way to provide this data is through an `Abstract`, generated via
+        `Library.abstract()` or through a `Library.abstract_view()`.
+    * Another way is use `Builder.place()` or `Builder.plug()`, which automatically creates
+        an `Abstract` from its internally-referenced `Library`.
 
 
 ## Glossary

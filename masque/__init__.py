@@ -24,7 +24,8 @@
     empty for superclasses and it is the subclass's responsibility to set them correctly.
  - File I/O submodules are not imported by `masque.file` to avoid creating hard dependencies
     on external file-format reader/writers
-
+- Try to accept the broadest-possible inputs: e.g., don't demand an `ILibraryView` if you
+    can accept a `Mapping[str, Pattern]` and wrap it in a `LibraryView` internally.
 """
 
 from .utils import layer_t, annotations_t, SupportsBool

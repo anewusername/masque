@@ -1,9 +1,18 @@
 """
-Library classes for managing unique name->pattern mappings and
- deferred loading or creation.
+Library classes for managing unique name->pattern mappings and deferred loading or execution.
 
-# TODO documennt all library classes
-# TODO toplevel documentation of library, classes, and abstracts
+Classes include:
+- `ILibraryView`: Defines a general interface for read-only name->pattern mappings.
+- `LibraryView`: An implementation of `ILibraryView` backed by an arbitrary `Mapping`.
+    Can be used to wrap any arbitrary `Mapping` to give it all the functionality in `ILibraryView`
+- `ILibrary`: Defines a general interface for mutable name->pattern mappings.
+- `Library`: An implementation of `ILibrary` backed by an arbitrary `MutableMapping`.
+    Can be used to wrap any arbitrary `MutableMapping` to give it all the functionality in `ILibrary`.
+    By default, uses a `dict` as the underylingmapping.
+- `LazyLibrary`: An implementation of `ILibrary` which enables on-demand loading or generation
+    of patterns.
+- `AbstractView`: Provides a way to use []-indexing to generate abstracts for patterns in the linked
+    library. Generated with `ILibraryView.abstract_view()`.
 """
 from typing import Callable, Self, Type, TYPE_CHECKING, cast
 from typing import Iterator, Mapping, MutableMapping, Sequence
