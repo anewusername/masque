@@ -865,7 +865,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         if name_func is None:
             def name_func(_pat, _shape):
-                return self.get_name(SINGLE_USE_PREFIX = 'rep')
+                return self.get_name(SINGLE_USE_PREFIX + 'rep')
 
         for pat in tuple(self.values()):
             for layer in pat.shapes:
