@@ -387,6 +387,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def top(self) -> str:
         """
         Return the name of the topcell, or raise an exception if there isn't a single topcell
+
+        Raises:
+            LibraryError if there is not exactly one topcell.
         """
         tops = self.tops()
         if len(tops) != 1:
@@ -396,6 +399,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
     def top_pattern(self) -> 'Pattern':
         """
         Shorthand for self[self.top()]
+
+        Raises:
+            LibraryError if there is not exactly one topcell.
         """
         return self[self.top()]
 
@@ -692,6 +698,14 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         return rename_map
 
     def __lshift__(self, other: TreeView) -> str:
+        """
+          `add()` items from a tree (single-topcell name: pattern mapping) into this one,
+        and return the name of the tree's topcell (in this library; it may have changed
+        based on `add()`'s default `rename_theirs` argument).
+
+        Raises:
+            LibraryError if there is more than one topcell in `other`.
+        """
         if len(other) == 1:
             name = next(iter(other))
         else:
@@ -709,6 +723,13 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         return new_name
 
     def __le__(self, other: Mapping[str, 'Pattern']) -> Abstract:
+        """
+          Perform the same operation as `__lshift__` / `<<`, but return an `Abstract` instead
+        of just the pattern's name.
+
+        Raises:
+            LibraryError if there is more than one topcell in `other`.
+        """
         new_name = self << other
         return self.abstract(new_name)
 
