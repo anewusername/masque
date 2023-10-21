@@ -26,7 +26,7 @@ from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 
 import numpy
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
 from .error import LibraryError, PatternError
 from .utils import rotation_matrix_2d, layer_t
@@ -42,7 +42,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-visitor_function_t = Callable[..., 'Pattern']
+class visitor_function_t(Protocol):
+    """ Signature for `Library.dfs()` visitor functions. """
+    def __call__(
+            self,
+            pattern: 'Pattern',
+            hierarchy: tuple[str | None, ...],
+            memo: dict,
+            transform: NDArray[numpy.float64] | Literal[False],
+            ) -> Pattern:
+        ...
 
 
 TreeView: TypeAlias = Mapping[str, 'Pattern']
