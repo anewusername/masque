@@ -14,7 +14,7 @@ Classes include:
 - `AbstractView`: Provides a way to use []-indexing to generate abstracts for patterns in the linked
     library. Generated with `ILibraryView.abstract_view()`.
 """
-from typing import Callable, Self, Type, TYPE_CHECKING, cast
+from typing import Callable, Self, Type, TYPE_CHECKING, cast, TypeAlias, Protocol, Literal
 from typing import Iterator, Mapping, MutableMapping, Sequence
 import logging
 import base64
@@ -43,6 +43,14 @@ logger = logging.getLogger(__name__)
 
 
 visitor_function_t = Callable[..., 'Pattern']
+
+
+TreeView: TypeAlias = Mapping[str, 'Pattern']
+""" A name-to-`Pattern` mapping which is expected to have only one top-level cell """
+
+Tree: TypeAlias = MutableMapping[str, 'Pattern']
+""" A mutable name-to-`Pattern` mapping which is expected to have only one top-level cell """
+
 
 SINGLE_USE_PREFIX = '_'
 """
@@ -674,7 +682,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
         return rename_map
 
-    def __lshift__(self, other: Mapping[str, 'Pattern']) -> str:
+    def __lshift__(self, other: TreeView) -> str:
         if len(other) == 1:
             name = next(iter(other))
         else:

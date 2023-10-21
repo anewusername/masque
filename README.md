@@ -101,7 +101,7 @@ References are accomplished by listing the target's name, not its `Pattern` obje
 
 ## Glossary
 - `Library`: A collection of named cells. OASIS or GDS "library" or file.
-- "tree": Any Library which has only one topcell.
+- `Tree`: Any `{name: pattern}` mapping which has only one topcell.
 - `Pattern`: A collection of geometry, text labels, and reference to other patterns.
         OASIS or GDS "Cell", DXF "Block".
 - `Ref`: A reference to another pattern. GDS "AREF/SREF", OASIS "Placement".
@@ -142,6 +142,11 @@ my_pattern.ref(new_name, ...)       # instantiate the cell
 
 # In practice, you may do lots of
 my_pattern.ref(lib << make_tree(...), ...)
+
+# With a `Builder` and `place()`/`plug()` the `lib <<` portion can be implicit:
+my_builder = Builder(library=lib, ...)
+...
+my_builder.place(make_tree(...))
 ```
 
 We can also use this shorthand to quickly add and reference a single flat (as yet un-named) pattern:

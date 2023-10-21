@@ -38,7 +38,7 @@ from .pattern import Pattern, map_layers, map_targets, chain_elements
 from .library import (
     ILibraryView, ILibrary,
     LibraryView, Library, LazyLibrary,
-    AbstractView,
+    AbstractView, TreeView, Tree,
     )
 from .ports import Port, PortList
 from .abstract import Abstract

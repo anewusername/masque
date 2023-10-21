@@ -8,7 +8,7 @@ import logging
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..library import ILibrary
+from ..library import ILibrary, TreeView
 from ..error import BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -190,7 +190,7 @@ class Builder(PortList):
 
     def plug(
             self,
-            other: Abstract | str | Pattern,
+            other: Abstract | str | Pattern | TreeView,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
@@ -201,11 +201,16 @@ class Builder(PortList):
             ) -> Self:
         """
         Wrapper around `Pattern.plug` which allows a string for `other`.
+
         The `Builder`'s library is used to dereference the string (or `Abstract`, if
-        one is passed with `append=True`).
+        one is passed with `append=True`). If a `TreeView` is passed, it is first
+        added into `self.library`.
 
         Args:
-            other: An `Abstract`, string, or `Pattern` describing the device to be instatiated.
+            other: An `Abstract`, string, `Pattern`, or `TreeView` describing the
+                device to be instatiated. If it is a `TreeView`, it is first
+                added into `self.library`, after which the topcell is plugged;
+                an equivalent statement is `self.plug(self.library << other, ...)`.
             map_in: dict of `{'self_port': 'other_port'}` mappings, specifying
                 port connections between the two devices.
             map_out: dict of `{'old_name': 'new_name'}` mappings, specifying
@@ -243,6 +248,10 @@ class Builder(PortList):
             logger.error('Skipping plug() since device is dead')
             return self
 
+        if not isinstance(other, (str, Abstract, Pattern)):
+            # We got a Tree; add it into self.library and grab an Abstract for it
+            other = self.library << other
+
         if isinstance(other, str):
             other = self.library.abstract(other)
         if append and isinstance(other, Abstract):
@@ -261,7 +270,7 @@ class Builder(PortList):
 
     def place(
             self,
-            other: Abstract | str | Pattern,
+            other: Abstract | str | Pattern | TreeView,
             *,
             offset: ArrayLike = (0, 0),
             rotation: float = 0,
@@ -272,12 +281,17 @@ class Builder(PortList):
             append: bool = False,
             ) -> Self:
         """
-        Wrapper around `Pattern.place` which allows a string for `other`.
+        Wrapper around `Pattern.place` which allows a string or `TreeView` for `other`.
+
         The `Builder`'s library is used to dereference the string (or `Abstract`, if
-        one is passed with `append=True`).
+        one is passed with `append=True`). If a `TreeView` is passed, it is first
+        added into `self.library`.
 
         Args:
-            other: An `Abstract`, string, or `Pattern` describing the device to be instatiated.
+            other: An `Abstract`, string, `Pattern`, or `TreeView` describing the
+                device to be instatiated. If it is a `TreeView`, it is first
+                added into `self.library`, after which the topcell is plugged;
+                an equivalent statement is `self.plug(self.library << other, ...)`.
             offset: Offset at which to place the instance. Default (0, 0).
             rotation: Rotation applied to the instance before placement. Default 0.
             pivot: Rotation is applied around this pivot point (default (0, 0)).
@@ -305,6 +319,10 @@ class Builder(PortList):
         if self._dead:
             logger.error('Skipping place() since device is dead')
             return self
+
+        if not isinstance(other, (str, Abstract, Pattern)):
+            # We got a Tree; add it into self.library and grab an Abstract for it
+            other = self.library << other
 
         if isinstance(other, str):
             other = self.library.abstract(other)
