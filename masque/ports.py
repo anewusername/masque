@@ -68,6 +68,24 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
                 raise PortError('Rotation must be a scalar')
             self._rotation = val % (2 * pi)
 
+    @property
+    def x(self) -> float:
+        """ Alias for offset[0] """
+        return self.offset[0]
+
+    @x.setter
+    def x(self, val: float) -> None:
+        self.offset[0] = val
+
+    @property
+    def y(self) -> float:
+        """ Alias for offset[1] """
+        return self.offset[1]
+
+    @y.setter
+    def y(self, val: float) -> None:
+        self.offset[1] = val
+
     def get_bounds(self):
         return numpy.vstack((self.offset, self.offset))
 
