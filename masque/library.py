@@ -50,7 +50,7 @@ class visitor_function_t(Protocol):
             hierarchy: tuple[str | None, ...],
             memo: dict,
             transform: NDArray[numpy.float64] | Literal[False],
-            ) -> Pattern:
+            ) -> 'Pattern':
         ...
 
 
