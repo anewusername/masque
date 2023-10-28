@@ -244,8 +244,12 @@ class Arc(Shape):
                 removable = (numpy.cumsum(arc_lengths[next_to_keep + 1:]) <= max_arclen)
                 start = next_to_keep + 1
             if keep[-1] != thetas.size - 1:
-                keep.append(thetas.size -1)
-            return thetas[keep]
+                keep.append(thetas.size - 1)
+
+            thetas = thetas[keep]
+            if inner:
+                thetas = thetas[::-1]
+            return thetas
 
         wh = self.width / 2.0
         if wh == r0 or wh == r1:
