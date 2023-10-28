@@ -4,6 +4,7 @@ Simplified Pattern assembly (`Builder`)
 from typing import Self, Sequence, Mapping
 import copy
 import logging
+from functools import wraps
 
 from numpy.typing import ArrayLike
 
@@ -187,6 +188,26 @@ class Builder(PortList):
         pat = Pattern.interface(source, in_prefix=in_prefix, out_prefix=out_prefix, port_map=port_map)
         new = Builder(library=library, pattern=pat, name=name)
         return new
+
+    @wraps(Pattern.label)
+    def label(self, *args, **kwargs) -> Self:
+        self.pattern.label(*args, **kwargs)
+
+    @wraps(Pattern.ref)
+    def ref(self, *args, **kwargs) -> Self:
+        self.pattern.ref(*args, **kwargs)
+
+    @wraps(Pattern.polygon)
+    def polygon(self, *args, **kwargs) -> Self:
+        self.pattern.polygon(*args, **kwargs)
+
+    @wraps(Pattern.rect)
+    def rect(self, *args, **kwargs) -> Self:
+        self.pattern.rect(*args, **kwargs)
+
+    @wraps(Pattern.path)
+    def path(self, *args, **kwargs) -> Self:
+        self.pattern.path(*args, **kwargs)
 
     def plug(
             self,
