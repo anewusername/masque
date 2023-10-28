@@ -235,14 +235,16 @@ class Arc(Shape):
             n_pts = numpy.ceil(2 * pi * max(self.radii) / max_arclen).astype(int)
             arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1])
 
-            keep = []
+            keep = [0]
             removable = (numpy.cumsum(arc_lengths) <= max_arclen)
-            start = 0
+            start = 1
             while start < arc_lengths.size:
                 next_to_keep = start + numpy.where(removable)[0][-1]    # TODO: any chance we haven't sampled finely enough?
                 keep.append(next_to_keep)
                 removable = (numpy.cumsum(arc_lengths[next_to_keep + 1:]) <= max_arclen)
                 start = next_to_keep + 1
+            if keep[-1] != thetas.size - 1:
+                keep.append(thetas.size -1)
             return thetas[keep]
 
         wh = self.width / 2.0
