@@ -508,10 +508,13 @@ class Pather(Builder):
         if 'bound_type' in kwargs:
             bound_types.add(kwargs['bound_type'])
             bound = kwargs['bound']
+            del kwargs['bound_type']
+            del kwargs['bound']
         for bt in ('emin', 'emax', 'pmin', 'pmax', 'xmin', 'xmax', 'ymin', 'ymax', 'min_past_furthest'):
             if bt in kwargs:
                 bound_types.add(bt)
                 bound = kwargs[bt]
+                del kwargs[bt]
 
         if not bound_types:
             raise BuildError('No bound type specified for mpath')
@@ -528,11 +531,11 @@ class Pather(Builder):
         if len(ports) == 1 and not force_container:
             # Not a bus, so having a container just adds noise to the layout
             port_name = tuple(portspec)[0]
-            return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names)
+            return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names, **kwargs)
         else:
             bld = Pather.interface(source=ports, library=self.library, tools=self.tools)
             for port_name, length in extensions.items():
-                bld.path(port_name, ccw, length, tool_port_names=tool_port_names)
+                bld.path(port_name, ccw, length, tool_port_names=tool_port_names, **kwargs)
             name = self.library.get_name(base_name)
             self.library[name] = bld.pattern
             return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
