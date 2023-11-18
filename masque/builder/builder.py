@@ -192,22 +192,27 @@ class Builder(PortList):
     @wraps(Pattern.label)
     def label(self, *args, **kwargs) -> Self:
         self.pattern.label(*args, **kwargs)
+        return self
 
     @wraps(Pattern.ref)
     def ref(self, *args, **kwargs) -> Self:
         self.pattern.ref(*args, **kwargs)
+        return self
 
     @wraps(Pattern.polygon)
     def polygon(self, *args, **kwargs) -> Self:
         self.pattern.polygon(*args, **kwargs)
+        return self
 
     @wraps(Pattern.rect)
     def rect(self, *args, **kwargs) -> Self:
         self.pattern.rect(*args, **kwargs)
+        return self
 
     @wraps(Pattern.path)
     def path(self, *args, **kwargs) -> Self:
         self.pattern.path(*args, **kwargs)
+        return self
 
     def plug(
             self,
