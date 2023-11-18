@@ -1,4 +1,4 @@
-from typing import Callable, Self, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Any
 from abc import ABCMeta, abstractmethod
 
 import numpy
@@ -32,12 +32,12 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
     """
     __slots__ = ()      # Children should use AutoSlots or set slots themselves
 
-    def __copy__(self) -> Self:
-        cls = self.__class__
-        new = cls.__new__(cls)
-        for name in self.__slots__:     # type: str
-            object.__setattr__(new, name, getattr(self, name))
-        return new
+    #def __copy__(self) -> Self:
+    #    cls = self.__class__
+    #    new = cls.__new__(cls)
+    #    for name in self.__slots__:     # type: str
+    #        object.__setattr__(new, name, getattr(self, name))
+    #    return new
 
     #
     # Methods (abstract)
