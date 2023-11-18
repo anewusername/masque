@@ -5,6 +5,7 @@
 from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar, MutableMapping
 import copy
 import logging
+import functools
 from itertools import chain
 from collections import defaultdict
 
@@ -17,7 +18,8 @@ from .ref import Ref
 from .abstract import Abstract
 from .shapes import Shape, Polygon, Path, DEFAULT_POLY_NUM_VERTICES
 from .label import Label
-from .utils import rotation_matrix_2d, annotations_t, layer_t
+from .utils import rotation_matrix_2d, annotations_t, layer_t, annotations_eq, annotations_lt, layer2key
+from .utils import ports_eq, ports_lt
 from .error import PatternError, PortError
 from .traits import AnnotatableImpl, Scalable, Mirrorable, Rotatable, Positionable, Repeatable, Bounded
 from .ports import Port, PortList
@@ -26,6 +28,7 @@ from .ports import Port, PortList
 logger = logging.getLogger(__name__)
 
 
+@functools.total_ordering
 class Pattern(PortList, AnnotatableImpl, Mirrorable):
     """
       2D layout consisting of some set of shapes, labels, and references to other
@@ -191,6 +194,108 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 #            ports=copy.deepcopy(self.ports),
 #            )
 #        return new
+
+    def __lt__(self, other: 'Pattern') -> bool:
+        self_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
+        other_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
+        self_tgtkeys = tuple(sorted((target is None, target) for target in self_nonempty_targets))
+        other_tgtkeys = tuple(sorted((target is None, target) for target in other_nonempty_targets))
+
+        if self_tgtkeys != other_tgtkeys:
+            return self_tgtkeys < other_tgtkeys
+
+        for _, target in self_tgtkeys:
+            refs_ours = tuple(sorted(self.refs[target]))
+            refs_theirs = tuple(sorted(other.refs[target]))
+            if refs_ours != refs_theirs:
+                return refs_ours < refs_theirs
+
+        self_nonempty_layers = [ll for ll, elems in self.shapes.items() if elems]
+        other_nonempty_layers = [ll for ll, elems in self.shapes.items() if elems]
+        self_layerkeys = tuple(sorted(layer2key(ll) for ll in self_nonempty_layers))
+        other_layerkeys = tuple(sorted(layer2key(ll) for ll in other_nonempty_layers))
+
+        if self_layerkeys != other_layerkeys:
+            return self_layerkeys < other_layerkeys
+
+        for _, _, layer in self_layerkeys:
+            shapes_ours = tuple(sorted(self.shapes[layer]))
+            shapes_theirs = tuple(sorted(self.shapes[layer]))
+            if shapes_ours != shapes_theirs:
+                return shapes_ours < shapes_theirs
+
+        self_nonempty_txtlayers = [ll for ll, elems in self.labels.items() if elems]
+        other_nonempty_txtlayers = [ll for ll, elems in self.labels.items() if elems]
+        self_txtlayerkeys = tuple(sorted(layer2key(ll) for ll in self_nonempty_txtlayers))
+        other_txtlayerkeys = tuple(sorted(layer2key(ll) for ll in other_nonempty_txtlayers))
+
+        if self_txtlayerkeys != other_txtlayerkeys:
+            return self_txtlayerkeys < other_txtlayerkeys
+
+        for _, _, layer in self_layerkeys:
+            labels_ours = tuple(sorted(self.labels[layer]))
+            labels_theirs = tuple(sorted(self.labels[layer]))
+            if labels_ours != labels_theirs:
+                return labels_ours < labels_theirs
+
+        if not annotations_eq(self.annotations, other.annotations):
+            return annotations_lt(self.annotations, other.annotations)
+
+        if not ports_eq(self.ports, other.ports):
+            return ports_lt(self.ports, other.ports)
+
+        return False
+
+    def __eq__(self, other: Any) -> bool:
+        self_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
+        other_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
+        self_tgtkeys = tuple(sorted((target is None, target) for target in self_nonempty_targets))
+        other_tgtkeys = tuple(sorted((target is None, target) for target in other_nonempty_targets))
+
+        if self_tgtkeys != other_tgtkeys:
+            return False
+
+        for _, target in self_tgtkeys:
+            refs_ours = tuple(sorted(self.refs[target]))
+            refs_theirs = tuple(sorted(other.refs[target]))
+            if refs_ours != refs_theirs:
+                return False
+
+        self_nonempty_layers = [ll for ll, elems in self.shapes.items() if elems]
+        other_nonempty_layers = [ll for ll, elems in self.shapes.items() if elems]
+        self_layerkeys = tuple(sorted(layer2key(ll) for ll in self_nonempty_layers))
+        other_layerkeys = tuple(sorted(layer2key(ll) for ll in other_nonempty_layers))
+
+        if self_layerkeys != other_layerkeys:
+            return False
+
+        for _, _, layer in self_layerkeys:
+            shapes_ours = tuple(sorted(self.shapes[layer]))
+            shapes_theirs = tuple(sorted(self.shapes[layer]))
+            if shapes_ours != shapes_theirs:
+                return False
+
+        self_nonempty_txtlayers = [ll for ll, elems in self.labels.items() if elems]
+        other_nonempty_txtlayers = [ll for ll, elems in self.labels.items() if elems]
+        self_txtlayerkeys = tuple(sorted(layer2key(ll) for ll in self_nonempty_txtlayers))
+        other_txtlayerkeys = tuple(sorted(layer2key(ll) for ll in other_nonempty_txtlayers))
+
+        if self_txtlayerkeys != other_txtlayerkeys:
+            return False
+
+        for _, _, layer in self_layerkeys:
+            labels_ours = tuple(sorted(self.labels[layer]))
+            labels_theirs = tuple(sorted(self.labels[layer]))
+            if labels_ours != labels_theirs:
+                return False
+
+        if not annotations_eq(self.annotations, other.annotations):
+            return False
+
+        if not ports_eq(self.ports, other.ports):
+            return False
+
+        return True
 
     def append(self, other_pattern: 'Pattern') -> Self:
         """

@@ -1,5 +1,6 @@
 from typing import Sequence, Any, cast
 import copy
+import functools
 
 import numpy
 from numpy import pi
@@ -8,10 +9,11 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d
+from ..utils import is_scalar, rotation_matrix_2d, annotations_lt, annotations_eq, rep2key
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 
 
+@functools.total_ordering
 class Polygon(Shape):
     """
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
@@ -112,6 +114,27 @@ class Polygon(Shape):
         new._vertices = self._vertices.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) != type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and numpy.array_equal(self.vertices, other.vertices)
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) != type(other):
+            return repr(type(self)) < repr(type(other))
+        other = cast(Polygon, other)
+        if not numpy.array_equal(self.vertices, other.vertices):
+            return tuple(tuple(xy) for xy in self.vertices) < tuple(tuple(xy) for xy in other.vertices)
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     @staticmethod
     def square(

@@ -1,15 +1,17 @@
-from typing import Self
+from typing import Self, Any
 import copy
+import functools
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
 
 from .repetition import Repetition
-from .utils import rotation_matrix_2d, annotations_t
+from .utils import rotation_matrix_2d, annotations_t, annotations_eq, annotations_lt, rep2key
 from .traits import PositionableImpl, Copyable, Pivotable, RepeatableImpl, Bounded
 from .traits import AnnotatableImpl
 
 
+@functools.total_ordering
 class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl, Bounded, Pivotable, Copyable):
     """
     A text annotation with a position (but no size; it is not drawn)
@@ -63,6 +65,23 @@ class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl, Bounded, Pivotabl
         new = copy.copy(self)
         new._offset = self._offset.copy()
         return new
+
+    def __lt__(self, other: 'Label') -> bool:
+        if self.string != other.string:
+            return self.string < other.string
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            self.string == other.string
+            and numpy.array_equal(self.offset, other.offset)
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
 
     def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
