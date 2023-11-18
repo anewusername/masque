@@ -1,7 +1,8 @@
-from typing import Iterable, KeysView, ValuesView, overload, Self, Mapping, NoReturn
+from typing import Iterable, KeysView, ValuesView, overload, Self, Mapping, NoReturn, Any
 import warnings
 import traceback
 import logging
+import functools
 from collections import Counter
 from abc import ABCMeta, abstractmethod
 from itertools import chain
@@ -18,6 +19,7 @@ from .error import PortError
 logger = logging.getLogger(__name__)
 
 
+@functools.total_ordering
 class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     """
     A point at which a `Device` can be snapped to another `Device`.
@@ -120,6 +122,27 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         else:
             rot = str(numpy.rad2deg(self.rotation))
         return f'<{self.offset}, {rot}, [{self.ptype}]>'
+
+    def __lt__(self, other: 'Port') -> bool:
+        if self.ptype != other.ptype:
+            return self.ptype < other.ptype
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.rotation != other.rotation:
+            if self.rotation is None:
+                return True
+            if other.rotation is None:
+                return False
+            return self.rotation < other.rotation
+        return False
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and self.ptype == other.ptype
+            and numpy.array_equal(self.offset, other.offset)
+            and self.rotation == other.rotation
+            )
 
 
 class PortList(metaclass=ABCMeta):

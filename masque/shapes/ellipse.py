@@ -1,6 +1,7 @@
-from typing import Any, Self
+from typing import Any, Self, cast
 import copy
 import math
+import functools
 
 import numpy
 from numpy import pi
@@ -9,9 +10,10 @@ from numpy.typing import ArrayLike, NDArray
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d, annotations_t
+from ..utils import is_scalar, rotation_matrix_2d, annotations_t, annotations_lt, annotations_eq, rep2key
 
 
+@functools.total_ordering
 class Ellipse(Shape):
     """
     An ellipse, which has a position, two radii, and a rotation.
@@ -116,6 +118,32 @@ class Ellipse(Shape):
         new._radii = self._radii.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and numpy.array_equal(self.radii, other.radii)
+            and self.rotation == other.rotation
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
+        other = cast(Ellipse, other)
+        if not numpy.array_equal(self.radii, other.radii):
+            return tuple(self.radii) < tuple(other.radii)
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.rotation != other.rotation:
+            return self.rotation < other.rotation
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     def to_polygons(
             self,

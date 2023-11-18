@@ -1,5 +1,6 @@
-from typing import Any
+from typing import Any, cast
 import copy
+import functools
 
 import numpy
 from numpy import pi
@@ -8,9 +9,10 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, annotations_t
+from ..utils import is_scalar, annotations_t, annotations_lt, annotations_eq, rep2key
 
 
+@functools.total_ordering
 class Arc(Shape):
     """
     An elliptical arc, formed by cutting off an elliptical ring with two rays which exit from its
@@ -186,6 +188,38 @@ class Arc(Shape):
         new._angles = self._angles.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and numpy.array_equal(self.radii, other.radii)
+            and numpy.array_equal(self.angles, other.angles)
+            and self.width == other.width
+            and self.rotation == other.rotation
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
+        other = cast(Arc, other)
+        if self.width != other.width:
+            return self.width < other.width
+        if not numpy.array_equal(self.radii, other.radii):
+            return tuple(self.radii) < tuple(other.radii)
+        if not numpy.array_equal(self.angles, other.angles):
+            return tuple(self.angles) < tuple(other.angles)
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.rotation != other.rotation:
+            return self.rotation < other.rotation
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     def to_polygons(
             self,

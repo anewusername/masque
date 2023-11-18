@@ -43,6 +43,14 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
     # Methods (abstract)
     #
     @abstractmethod
+    def __eq__(self, other: Any) -> bool:
+        pass
+
+    @abstractmethod
+    def __lt__(self, other: 'Shape') -> bool:
+        pass
+
+    @abstractmethod
     def to_polygons(
             self,
             num_vertices: int | None = None,

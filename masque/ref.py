@@ -2,14 +2,15 @@
  Ref provides basic support for nesting Pattern objects within each other.
  It carries offset, rotation, mirroring, and scaling data for each individual instance.
 """
-from typing import Mapping, TYPE_CHECKING, Self
+from typing import Mapping, TYPE_CHECKING, Self, Any
 import copy
+import functools
 
 import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from .utils import annotations_t, rotation_matrix_2d
+from .utils import annotations_t, rotation_matrix_2d, annotations_eq, annotations_lt, rep2key
 from .repetition import Repetition
 from .traits import (
     PositionableImpl, RotatableImpl, ScalableImpl,
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from . import Pattern
 
 
+@functools.total_ordering
 class Ref(
         PositionableImpl, RotatableImpl, ScalableImpl, Mirrorable,
         PivotableImpl, Copyable, RepeatableImpl, AnnotatableImpl,
@@ -98,6 +100,29 @@ class Ref(
         #new.repetition = copy.deepcopy(self.repetition, memo)
         #new.annotations = copy.deepcopy(self.annotations, memo)
         return new
+
+    def __lt__(self, other: 'Ref') -> bool:
+        if (self.offset != other.offset).any():
+            return tuple(self.offset) < tuple(other.offset)
+        if self.mirrored != other.mirrored:
+            return self.mirrored < other.mirrored
+        if self.rotation != other.rotation:
+            return self.rotation < other.rotation
+        if self.scale != other.scale:
+            return self.scale < other.scale
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            numpy.array_equal(self.offset, other.offset)
+            and self.mirrored == other.mirrored
+            and self.rotation == other.rotation
+            and self.scale == other.scale
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
 
     def as_pattern(
             self,

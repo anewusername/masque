@@ -1,4 +1,6 @@
+from typing import Any, cast
 import copy
+import functools
 
 import numpy
 from numpy import pi
@@ -7,9 +9,10 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, annotations_t
+from ..utils import is_scalar, annotations_t, annotations_lt, annotations_eq, rep2key
 
 
+@functools.total_ordering
 class Circle(Shape):
     """
     A circle, which has a position and radius.
@@ -66,6 +69,29 @@ class Circle(Shape):
         new._offset = self._offset.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and self.radius == other.radius
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
+        other = cast(Circle, other)
+        if not self.radius == other.radius:
+            return self.radius < other.radius
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     def to_polygons(
             self,

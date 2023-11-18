@@ -430,7 +430,6 @@ class Pather(Builder):
             **kwargs,
             )
 
-
     def path_into(
             self,
             portspec_src: str,
@@ -501,7 +500,7 @@ class Pather(Builder):
 
         angle = (port_dst.rotation - port_src.rotation) % (2 * pi)
 
-        src_ne = port_src.rotation % (2 * pi) > (3 * pi /4)     # path from src will go north or east
+        src_ne = port_src.rotation % (2 * pi) > (3 * pi / 4)     # path from src will go north or east
 
         def get_jog(ccw: SupportsBool, length: float) -> float:
             tool = self.tools.get(portspec_src, self.tools[None])
@@ -547,7 +546,7 @@ class Pather(Builder):
                 self.path_to(portspec_src, not ccw2, y=yd - jog, **src_args)
                 self.path_to(portspec_src, ccw2, x=xd, **dst_args)
         elif numpy.isclose(angle, 0):
-            raise BuildError(f'Don\'t know how to route a U-bend at this time!')
+            raise BuildError('Don\'t know how to route a U-bend at this time!')
         else:
             raise BuildError(f'Don\'t know how to route ports with relative angle {angle}')
 

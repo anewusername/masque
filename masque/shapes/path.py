@@ -1,5 +1,6 @@
 from typing import Sequence, Any, cast
 import copy
+import functools
 from enum import Enum
 
 import numpy
@@ -9,10 +10,11 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, normalized_shape_tuple, Polygon, Circle
 from ..error import PatternError
 from ..repetition import Repetition
-from ..utils import is_scalar, rotation_matrix_2d
+from ..utils import is_scalar, rotation_matrix_2d, annotations_lt, annotations_eq, rep2key
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
 
 
+@functools.total_ordering
 class PathCap(Enum):
     Flush = 0       # Path ends at final vertices
     Circle = 1      # Path extends past final vertices with a semicircle of radius width/2
@@ -20,7 +22,11 @@ class PathCap(Enum):
     SquareCustom = 4  # Path extends past final vertices with a rectangle of length
 #                     #     defined by path.cap_extensions
 
+    def __lt__(self, other: Any) -> bool:
+        return self.value == other.value
 
+
+@functools.total_ordering
 class Path(Shape):
     """
     A path, consisting of a bunch of vertices (Nx2 ndarray), a width, an end-cap shape,
@@ -200,6 +206,40 @@ class Path(Shape):
         new._cap_extensions = copy.deepcopy(self._cap_extensions, memo)
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and numpy.array_equal(self.vertices, other.vertices)
+            and self.width == other.width
+            and self.cap == other.cap
+            and numpy.array_equal(self.cap_extensions, other.cap_extensions)        # type: ignore
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
+        other = cast(Path, other)
+        if self.width != other.width:
+            return self.width < other.width
+        if self.cap != other.cap:
+            return self.cap < other.cap
+        if not numpy.array_equal(self.cap_extensions, other.cap_extensions):        # type: ignore
+            if other.cap_extensions is None:
+                return False
+            if self.cap_extensions is None:
+                return True
+            return tuple(self.cap_extensions) < tuple(other.cap_extensions)
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     @staticmethod
     def travel(

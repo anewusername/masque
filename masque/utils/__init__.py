@@ -12,6 +12,7 @@ from .vertices import (
     remove_duplicate_vertices, remove_colinear_vertices, poly_contains_points
     )
 from .transform import rotation_matrix_2d, normalize_mirror, rotate_offsets_around
+from .comparisons import annotation2key, annotations_lt, annotations_eq, layer2key, ports_lt, ports_eq, rep2key
 
 from . import ports2data
 

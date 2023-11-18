@@ -1,5 +1,6 @@
-from typing import Self
+from typing import Self, Any, cast
 import copy
+import functools
 
 import numpy
 from numpy import pi, nan
@@ -9,13 +10,14 @@ from . import Shape, Polygon, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, get_bit, annotations_t
+from ..utils import is_scalar, get_bit, annotations_t, annotations_lt, annotations_eq, rep2key
 
 # Loaded on use:
 # from freetype import Face
 # from matplotlib.path import Path
 
 
+@functools.total_ordering
 class Text(RotatableImpl, Shape):
     """
     Text (to be printed e.g. as a set of polygons).
@@ -95,6 +97,38 @@ class Text(RotatableImpl, Shape):
         new._offset = self._offset.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and numpy.array_equal(self.offset, other.offset)
+            and self.string == other.string
+            and self.height == other.height
+            and self.font_path == other.font_path
+            and self.rotation == other.rotation
+            and self.repetition == other.repetition
+            and annotations_eq(self.annotations, other.annotations)
+            )
+
+    def __lt__(self, other: Shape) -> bool:
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
+        other = cast(Text, other)
+        if not self.height == other.height:
+            return self.height < other.height
+        if not self.string == other.string:
+            return self.string < other.string
+        if not self.font_path == other.font_path:
+            return self.font_path < other.font_path
+        if not numpy.array_equal(self.offset, other.offset):
+            return tuple(self.offset) < tuple(other.offset)
+        if self.rotation != other.rotation:
+            return self.rotation < other.rotation
+        if self.repetition != other.repetition:
+            return rep2key(self.repetition) < rep2key(other.repetition)
+        return annotations_lt(self.annotations, other.annotations)
 
     def to_polygons(
             self,
