@@ -87,7 +87,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
     __slots__ = (
         'shapes', 'labels', 'refs', '_ports',
         # inherited
-        '_offset', '_annotations',
+        '_annotations',
         )
 
     shapes: defaultdict[layer_t, list[Shape]]
