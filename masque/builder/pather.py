@@ -15,7 +15,7 @@ from ..library import ILibrary, SINGLE_USE_PREFIX
 from ..error import PortError, BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
-from ..utils import SupportsBool
+from ..utils import SupportsBool, rotation_matrix_2d
 from .tools import Tool
 from .utils import ell
 from .builder import Builder
@@ -430,6 +430,92 @@ class Pather(Builder):
             **kwargs,
             )
 
+
+    def path_into(
+            self,
+            portspec_src: str,
+            portspec_dst: str,
+            *,
+            tool_port_names: tuple[str, str] = ('A', 'B'),
+            out_ptype: str = 'unk',
+            plug_destination: bool = True,
+            **kwargs,
+            ) -> Self:
+        if self._dead:
+            logger.error('Skipping path_into() since device is dead')
+            return self
+
+        port_src = self.pattern[portspec_src]
+        port_dst = self.pattern[portspec_dst]
+
+        if port_src.rotation is None:
+            raise PortError(f'Port {portspec_src} has no rotation and cannot be used for path_into()')
+        if port_dst.rotation is None:
+            raise PortError(f'Port {portspec_dst} has no rotation and cannot be used for path_into()')
+
+        if not numpy.isclose(port_src.rotation % (pi / 2), 0):
+            raise BuildError('path_to was asked to route from non-manhattan port')
+        if not numpy.isclose(port_dst.rotation % (pi / 2), 0):
+            raise BuildError('path_to was asked to route to non-manhattan port')
+
+        src_is_horizontal = numpy.isclose(port_src.rotation % pi, 0)
+        dst_is_horizontal = numpy.isclose(port_dst.rotation % pi, 0)
+        xs, ys = port_src.offset
+        xd, yd = port_dst.offset
+
+        angle = (port_dst.rotation - port_src.rotation) % (2 * pi)
+
+        src_ne = port_src.rotation % (2 * pi) > (3 * pi /4)     # path from src will go north or east
+
+        def get_jog(ccw: SupportsBool, length: float) -> float:
+            tool = self.tools.get(portspec_src, self.tools[None])
+            in_ptype = 'unk'   # Could use port_src.ptype, but we're assuming this is after one bend already...
+            tree2 = tool.path(ccw, length, in_ptype=in_ptype, port_names=('A', 'B'), out_ptype=out_ptype, **kwargs)
+            top2 = tree2.top_pattern()
+            jog = rotation_matrix_2d(top2['A'].rotation) @ (top2['B'].offset - top2['A'].offset)
+            return jog[1]
+
+        dst_extra_args = {'out_ptype': out_ptype}
+        if plug_destination:
+            dst_extra_args['plug_into'] = portspec_dst
+
+        src_args = {**kwargs, 'tool_port_names': tool_port_names}
+        dst_args = {**src_args, **dst_extra_args}
+        if src_is_horizontal and not dst_is_horizontal:
+            # single bend should suffice
+            self.path_to(portspec_src, angle > pi, x=xd, **src_args)
+            self.path_to(portspec_src, None, y=yd, **dst_args)
+        elif dst_is_horizontal and not src_is_horizontal:
+            # single bend should suffice
+            self.path_to(portspec_src, angle > pi, y=yd, **src_args)
+            self.path_to(portspec_src, None, x=xd, **dst_args)
+        elif numpy.isclose(angle, pi):
+            if src_is_horizontal and ys == yd:
+                # straight connector
+                self.path_to(portspec_src, None, x=xd, **dst_args)
+            elif not src_is_horizontal and xs == xd:
+                # straight connector
+                self.path_to(portspec_src, None, y=yd, **dst_args)
+            elif src_is_horizontal:
+                # figure out how much x our y-segment (2nd) takes up, then path based on that
+                y_len = numpy.abs(yd - ys)
+                ccw2 = src_ne != (yd > ys)
+                jog = get_jog(ccw2, y_len) * numpy.sign(xd - xs)
+                self.path_to(portspec_src, not ccw2, x=xd - jog, **src_args)
+                self.path_to(portspec_src, ccw2, y=yd, **dst_args)
+            else:
+                # figure out how much y our x-segment (2nd) takes up, then path based on that
+                x_len = numpy.abs(xd - xs)
+                ccw2 = src_ne != (xd < xs)
+                jog = get_jog(ccw2, x_len) * numpy.sign(yd - ys)
+                self.path_to(portspec_src, not ccw2, y=yd - jog, **src_args)
+                self.path_to(portspec_src, ccw2, x=xd, **dst_args)
+        elif numpy.isclose(angle, 0):
+            raise BuildError(f'Don\'t know how to route a U-bend at this time!')
+        else:
+            raise BuildError(f'Don\'t know how to route ports with relative angle {angle}')
+
+        return self
 
     def mpath(
             self,
