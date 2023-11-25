@@ -287,6 +287,7 @@ class Pather(Builder):
             length: float,
             *,
             tool_port_names: tuple[str, str] = ('A', 'B'),
+            plug_into: str | None = None,
             **kwargs,
             ) -> Self:
         """
@@ -307,6 +308,8 @@ class Pather(Builder):
             tool_port_names: The names of the ports on the generated pattern. It is unlikely
                 that you will need to change these. The first port is the input (to be
                 connected to `portspec`).
+            plug_into: If not None, attempts to plug the wire's output port into the provided
+                port on `self`.
 
         Returns:
             self
@@ -323,7 +326,11 @@ class Pather(Builder):
         in_ptype = self.pattern[portspec].ptype
         tree = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
         abstract = self.library << tree
-        return self.plug(abstract, {portspec: tool_port_names[0]})
+        if plug_into is not None:
+            output = {plug_into: tool_port_names[1]}
+        else:
+            output = {}
+        return self.plug(abstract, {portspec: tool_port_names[0], **output})
 
     def path_to(
             self,
@@ -334,6 +341,7 @@ class Pather(Builder):
             x: float | None = None,
             y: float | None = None,
             tool_port_names: tuple[str, str] = ('A', 'B'),
+            plug_into: str | None = None,
             **kwargs,
             ) -> Self:
         """
@@ -362,6 +370,8 @@ class Pather(Builder):
             tool_port_names: The names of the ports on the generated pattern. It is unlikely
                 that you will need to change these. The first port is the input (to be
                 connected to `portspec`).
+            plug_into: If not None, attempts to plug the wire's output port into the provided
+                port on `self`.
 
         Returns:
             self
@@ -411,7 +421,15 @@ class Pather(Builder):
                 raise BuildError(f'path_to routing to behind source port: y0={y0:g} to {position:g}')
             length = numpy.abs(position - y0)
 
-        return self.path(portspec, ccw, length, tool_port_names=tool_port_names, **kwargs)
+        return self.path(
+            portspec,
+            ccw,
+            length,
+            tool_port_names=tool_port_names,
+            plug_into=plug_into,
+            **kwargs,
+            )
+
 
     def mpath(
             self,
