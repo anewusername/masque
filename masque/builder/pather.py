@@ -481,35 +481,36 @@ class Pather(Builder):
             jog = rotation_matrix_2d(top2['A'].rotation) @ (top2['B'].offset - top2['A'].offset)
             return jog[1]
 
+        all_dst_args = {**kwargs, **dst_args}
         if src_is_horizontal and not dst_is_horizontal:
             # single bend should suffice
             self.path_to(portspec_src, angle > pi, x=xd, **kwargs)
-            self.path_to(portspec_src, None, y=yd, **kwargs, **dst_args)
+            self.path_to(portspec_src, None, y=yd, **all_dst_args)
         elif dst_is_horizontal and not src_is_horizontal:
             # single bend should suffice
             self.path_to(portspec_src, angle > pi, y=yd, **kwargs)
-            self.path_to(portspec_src, None, x=xd, **kwargs, **dst_args)
+            self.path_to(portspec_src, None, x=xd, **all_dst_args)
         elif numpy.isclose(angle, pi):
             if src_is_horizontal and ys == yd:
                 # straight connector
-                self.path_to(portspec_src, None, x=xd, **kwargs, **dst_args)
+                self.path_to(portspec_src, None, x=xd, **all_dst_args)
             elif not src_is_horizontal and xs == xd:
                 # straight connector
-                self.path_to(portspec_src, None, y=yd, **kwargs, **dst_args)
+                self.path_to(portspec_src, None, y=yd, **all_dst_args)
             elif src_is_horizontal:
                 # figure out how much x our y-segment (2nd) takes up, then path based on that
                 y_len = numpy.abs(yd - ys)
                 ccw2 = src_ne != (yd > ys)
                 jog = get_jog(ccw2, y_len) * numpy.sign(xd - xs)
                 self.path_to(portspec_src, not ccw2, x=xd - jog, **kwargs)
-                self.path_to(portspec_src, ccw2, y=yd, **kwargs, **dst_args)
+                self.path_to(portspec_src, ccw2, y=yd, **all_dst_args)
             else:
                 # figure out how much y our x-segment (2nd) takes up, then path based on that
                 x_len = numpy.abs(xd - xs)
                 ccw2 = src_ne != (xd < xs)
                 jog = get_jog(ccw2, x_len) * numpy.sign(yd - ys)
                 self.path_to(portspec_src, not ccw2, y=yd - jog, **kwargs)
-                self.path_to(portspec_src, ccw2, x=xd, **kwargs, **dst_args)
+                self.path_to(portspec_src, ccw2, x=xd, **all_dst_args)
         elif numpy.isclose(angle, 0):
             raise BuildError(f'Don\'t know how to route a U-bend at this time!')
         else:
