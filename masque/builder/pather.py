@@ -483,13 +483,13 @@ class Pather(Builder):
 
         if src_is_horizontal and not dst_is_horizontal:
             # single bend should suffice
-            self.path_to(portspec_src, angle < pi, y=yd, **kwargs)
-            self.path_to(portspec_src, None, x=xd, **kwargs, **dst_args)
+            self.path_to(portspec_src, angle > pi, x=xd, **kwargs)
+            self.path_to(portspec_src, None, y=yd, **kwargs, **dst_args)
         elif dst_is_horizontal and not src_is_horizontal:
             # single bend should suffice
-            self.path_to(portspec_src, angle < pi, x=xd, **kwargs)
-            self.path_to(portspec_src, None, y=yd, **kwargs, **dst_args)
-        elif numpy.isclose(angle, 0):
+            self.path_to(portspec_src, angle > pi, y=yd, **kwargs)
+            self.path_to(portspec_src, None, x=xd, **kwargs, **dst_args)
+        elif numpy.isclose(angle, pi):
             if src_is_horizontal and ys == yd:
                 # straight connector
                 self.path_to(portspec_src, None, x=xd, **kwargs, **dst_args)
@@ -510,7 +510,7 @@ class Pather(Builder):
                 jog = get_jog(ccw2, x_len) * numpy.sign(yd - ys)
                 self.path_to(portspec_src, not ccw2, y=yd - jog, **kwargs)
                 self.path_to(portspec_src, ccw2, x=xd, **kwargs, **dst_args)
-        elif numpy.isclose(angle, pi):
+        elif numpy.isclose(angle, 0):
             raise BuildError(f'Don\'t know how to route a U-bend at this time!')
         else:
             raise BuildError(f'Don\'t know how to route ports with relative angle {angle}')
