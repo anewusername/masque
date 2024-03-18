@@ -62,7 +62,8 @@ def maxrects_bssf(
 
         ''' Place the rect '''
         # Best short-side fit (bssf) to pick a region
-        bssf_scores = ((regions[:, 2:] - regions[:, :2]) - rect_size).min(axis=1).astype(float)
+        region_sizes = regions[:, 2:] - regions[:, :2]
+        bssf_scores = (region_sizes - rect_size).min(axis=1).astype(float)
         bssf_scores[bssf_scores < 0] = numpy.inf        # doesn't fit!
         rr = bssf_scores.argmin()
         if numpy.isinf(bssf_scores[rr]):
@@ -152,7 +153,8 @@ def guillotine_bssf_sas(
     for rect_ind, rect_size in enumerate(rect_sizes):
         ''' Place the rect '''
         # Best short-side fit (bssf) to pick a region
-        bssf_scores = ((regions[:, 2:] - regions[:, :2]) - rect_size).min(axis=1).astype(float)
+        region_sizes = regions[:, 2:] - regions[:, :2]
+        bssf_scores = (region_sizes - rect_size).min(axis=1).astype(float)
         bssf_scores[bssf_scores < 0] = numpy.inf        # doesn't fit!
         rr = bssf_scores.argmin()
         if numpy.isinf(bssf_scores[rr]):
@@ -166,7 +168,7 @@ def guillotine_bssf_sas(
         loc = regions[rr, :2]
         rect_locs[rect_ind] = loc
 
-        region_size = regions[rr, 2:] - loc
+        region_size = region_sizes[rr]
         split_horiz = region_size[0] < region_size[1]
 
         new_region0 = regions[rr].copy()
