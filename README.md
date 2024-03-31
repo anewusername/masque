@@ -8,6 +8,7 @@ to output to multiple formats.
 
 - [Source repository](https://mpxd.net/code/jan/masque)
 - [PyPI](https://pypi.org/project/masque)
+- [Github mirror](https://github.com/anewusername/masque)
 
 
 ## Installation
