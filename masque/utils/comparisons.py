@@ -1,7 +1,7 @@
 from typing import Any
 
 from .types import annotations_t, layer_t
-from ..import Port
+from ..ports import Port
 from ..repetition import Repetition
 
 
