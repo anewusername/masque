@@ -8,12 +8,68 @@ import logging
 import tempfile
 import shutil
 from contextlib import contextmanager
+from pprint import pformat
+from itertools import chain
 
-from .. import Pattern, PatternError
+from .. import Pattern, PatternError, Library, LibraryError
 from ..shapes import Polygon, Path
 
 
 logger = logging.getLogger(__name__)
+
+
+def preflight(
+        lib: Library,
+        sort: bool = True,
+        allow_dangling_refs: bool | None = None,
+        allow_named_layers: bool = True,
+        prune_empty_patterns: bool = False,
+        ) -> Library:
+    """
+    Run a standard set of useful operations and checks, usually done immediately prior
+    to writing to a file (or immediately after reading).
+
+    Args:
+        sort: Whether to sort the patterns based on their names, and sort the pattern contents.
+            Default True. Useful for reproducible builds.
+        allow_dangling_refs: If `None` (default), warns about any refs to patterns that are not
+            in the provided library. If `True`, no check is performed; if `False`, a `LibraryError`
+            is raised instead.
+        allow_named_layers: If `False`, raises a `PatternError` if any layer is referred to by
+            a string instead of a number (or tuple).
+        prune_empty_patterns: Runs `Library.prune_empty()`, recursively deleting any empty patterns.
+
+    Returns:
+        `lib` or an equivalent sorted library
+    """
+    if sort:
+        lib = Library(dict(sorted(
+            (nn: pp.sort()) for nn, pp in lib.items()
+            )))
+
+    if not allow_dangling_refs:
+        refs = lib.referenced_patterns()
+        dangling = refs - set(lib.keys())
+        msg = 'Dangling refs in found: ' + pformat(dangling)
+        if allow_dangling_refs is None:
+            logger.warning(msg)
+        else:
+            raise LibraryError(msg)
+
+    if not allow_named_layers:
+        named_layers = defaultdict(set)
+        for name, pat in lib.items():
+            for layer in chain(pat.shapes.keys(), pat.labels.keys()):
+                if isinstance(layer, str):
+                    named_layers[name].add(layer)
+        raise PatternError('Non-numeric layers found:' + pformat(named_layers))
+
+    if prune_empty_patterns:
+        pruned = lib.prune_empty()
+        logger.info(f'Preflight pruned {len(pruned)} empty patterns')
+        logger.debug('Pruned: ' + pformat(pruned))
+
+    return lib
 
 
 def mangle_name(name: str) -> str:

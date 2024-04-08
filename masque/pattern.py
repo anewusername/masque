@@ -297,6 +297,31 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         return True
 
+    def sort(self) -> Self:
+        """
+        Sort the element dicts (shapes, labels, refs) and their contained lists.
+        This is primarily useful for making builds more reproducible.
+
+        Returns:
+            self
+        """
+        self.refs = dict(sorted(
+            (tgt, sorted(rrs)) for tgt, rrs in self.refs.items()
+            ))
+        self.labels = dict(sorted(
+            (layer, sorted(lls)) for layer, lls in self.labels.items(),
+            key=lambda kk, vv: layer2key(ll),
+            ))
+        self.shapes = dict(sorted(
+            (layer, sorted(sss)) for layer, sss in self.shapes.items(),
+            key=lambda kk, vv: layer2key(ll),
+            ))
+
+        self.ports = dict(sorted(self.ports.items()))
+        self.annotations = dict(sorted(self.annotations.items()))
+
+        return self
+
     def append(self, other_pattern: 'Pattern') -> Self:
         """
         Appends all shapes, labels and refs from other_pattern to self's shapes,
