@@ -191,7 +191,7 @@ class Arc(Shape):
 
     def __eq__(self, other: Any) -> bool:
         return (
-            type(self) != type(other)
+            type(self) is type(other)
             and numpy.array_equal(self.offset, other.offset)
             and numpy.array_equal(self.radii, other.radii)
             and numpy.array_equal(self.angles, other.angles)
@@ -202,8 +202,10 @@ class Arc(Shape):
             )
 
     def __lt__(self, other: Shape) -> bool:
-        if type(self) != type(other):
-            return repr(type(self)) < repr(type(other))
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
         other = cast(Arc, other)
         if self.width != other.width:
             return self.width < other.width

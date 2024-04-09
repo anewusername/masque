@@ -135,7 +135,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
 
     def __eq__(self, other: Any) -> bool:
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.ptype == other.ptype
             and numpy.array_equal(self.offset, other.offset)
             and self.rotation == other.rotation

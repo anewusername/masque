@@ -72,7 +72,7 @@ class Circle(Shape):
 
     def __eq__(self, other: Any) -> bool:
         return (
-            type(self) != type(other)
+            type(self) is type(other)
             and numpy.array_equal(self.offset, other.offset)
             and self.radius == other.radius
             and self.repetition == other.repetition
@@ -80,8 +80,10 @@ class Circle(Shape):
             )
 
     def __lt__(self, other: Shape) -> bool:
-        if type(self) != type(other):
-            return repr(type(self)) < repr(type(other))
+        if type(self) is not type(other):
+            if repr(type(self)) != repr(type(other)):
+                return repr(type(self)) < repr(type(other))
+            return id(type(self)) < id(type(other))
         other = cast(Circle, other)
         if not self.radius == other.radius:
             return self.radius < other.radius

@@ -280,7 +280,7 @@ class Grid(Repetition):
         return (f'<Grid {self.a_count}x{self.b_count} ({self.a_vector}{bv})>')
 
     def __eq__(self, other: Any) -> bool:
-        if type(other) != type(self):
+        if type(other) is not type(self):
             return False
         if self.a_count != other.a_count or self.b_count != other.b_count:
             return False
@@ -295,7 +295,7 @@ class Grid(Repetition):
         return True
 
     def __le__(self, other: Repetition) -> bool:
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return repr(type(self)) < repr(type(other))
         other = cast(Grid, other)
         if self.a_count != other.a_count:
@@ -353,12 +353,12 @@ class Arbitrary(Repetition):
         return (f'<Arbitrary {len(self.displacements)}pts >')
 
     def __eq__(self, other: Any) -> bool:
-        if not type(other) != type(self):
+        if not type(other) is not type(self):
             return False
         return numpy.array_equal(self.displacements, other.displacements)
 
     def __le__(self, other: Repetition) -> bool:
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return repr(type(self)) < repr(type(other))
         other = cast(Arbitrary, other)
         if self.displacements.size != other.displacements.size:

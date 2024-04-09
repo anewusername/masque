@@ -247,6 +247,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         return False
 
     def __eq__(self, other: Any) -> bool:
+        if type(self) is not type(other):
+            return False
+
         self_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
         other_nonempty_targets = [target for target, reflist in self.refs.items() if reflist]
         self_tgtkeys = tuple(sorted((target is None, target) for target in self_nonempty_targets))
@@ -305,16 +308,16 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        self.refs = dict(sorted(
+        self.refs = defaultdict(list, sorted(
             (tgt, sorted(rrs)) for tgt, rrs in self.refs.items()
             ))
-        self.labels = dict(sorted(
-            (layer, sorted(lls)) for layer, lls in self.labels.items(),
-            key=lambda kk, vv: layer2key(ll),
+        self.labels = defaultdict(list, sorted(
+            ((layer, sorted(lls)) for layer, lls in self.labels.items()),
+            key=lambda tt: layer2key(tt[0]),
             ))
-        self.shapes = dict(sorted(
-            (layer, sorted(sss)) for layer, sss in self.shapes.items(),
-            key=lambda kk, vv: layer2key(ll),
+        self.shapes = defaultdict(list, sorted(
+            ((layer, sorted(sss)) for layer, sss in self.shapes.items()),
+            key=lambda tt: layer2key(tt[0]),
             ))
 
         self.ports = dict(sorted(self.ports.items()))
@@ -1217,7 +1220,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
           ports specified by `map_out`.
 
         Examples:
-        =========
+        ======list, ===
         - `my_pat.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
             instantiates `subdevice` into `my_pat`, plugging ports 'A' and 'B'
             of `my_pat` into ports 'C' and 'B' of `subdevice`. The connected ports

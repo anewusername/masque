@@ -1,12 +1,13 @@
 """
 Helper functions for file reading and writing
 """
-from typing import IO, Iterator
+from typing import IO, Iterator, Mapping
 import re
 import pathlib
 import logging
 import tempfile
 import shutil
+from collections import defaultdict
 from contextlib import contextmanager
 from pprint import pformat
 from itertools import chain
@@ -24,6 +25,7 @@ def preflight(
         allow_dangling_refs: bool | None = None,
         allow_named_layers: bool = True,
         prune_empty_patterns: bool = False,
+        wrap_repeated_shapes: bool = False,
         ) -> Library:
     """
     Run a standard set of useful operations and checks, usually done immediately prior
@@ -38,36 +40,44 @@ def preflight(
         allow_named_layers: If `False`, raises a `PatternError` if any layer is referred to by
             a string instead of a number (or tuple).
         prune_empty_patterns: Runs `Library.prune_empty()`, recursively deleting any empty patterns.
+        wrap_repeated_shapes: Runs `Library.wrap_repeated_shapes()`, turning repeated shapes into
+            repeated refs containing non-repeated shapes.
 
     Returns:
         `lib` or an equivalent sorted library
     """
     if sort:
         lib = Library(dict(sorted(
-            (nn: pp.sort()) for nn, pp in lib.items()
+            (nn, pp.sort()) for nn, pp in lib.items()
             )))
 
     if not allow_dangling_refs:
         refs = lib.referenced_patterns()
         dangling = refs - set(lib.keys())
-        msg = 'Dangling refs in found: ' + pformat(dangling)
-        if allow_dangling_refs is None:
-            logger.warning(msg)
-        else:
-            raise LibraryError(msg)
+        if dangling:
+            msg = 'Dangling refs in found: ' + pformat(dangling)
+            if allow_dangling_refs is None:
+                logger.warning(msg)
+            else:
+                raise LibraryError(msg)
 
     if not allow_named_layers:
-        named_layers = defaultdict(set)
+        named_layers: Mapping[str, set] = defaultdict(set)
         for name, pat in lib.items():
             for layer in chain(pat.shapes.keys(), pat.labels.keys()):
                 if isinstance(layer, str):
                     named_layers[name].add(layer)
-        raise PatternError('Non-numeric layers found:' + pformat(named_layers))
+        named_layers = dict(named_layers)
+        if named_layers:
+            raise PatternError('Non-numeric layers found:' + pformat(named_layers))
 
     if prune_empty_patterns:
         pruned = lib.prune_empty()
         logger.info(f'Preflight pruned {len(pruned)} empty patterns')
         logger.debug('Pruned: ' + pformat(pruned))
+
+    if wrap_repeated_shapes:
+        lib.wrap_repeated_shapes()
 
     return lib
 
