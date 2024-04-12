@@ -300,23 +300,33 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         return True
 
-    def sort(self) -> Self:
+    def sort(self, sort_elements: bool = True) -> Self:
         """
-        Sort the element dicts (shapes, labels, refs) and their contained lists.
+        Sort the element dicts (shapes, labels, refs) and (optionally) their contained lists.
         This is primarily useful for making builds more reproducible.
+
+        Args:
+            sort_elements: Whether to sort all the shapes/labels/refs within each layer/target.
 
         Returns:
             self
         """
+        if sort_elements:
+            def maybe_sort(xx):
+                return sorted(xx)
+        else:
+            def maybe_sort(xx):
+                return xx
+
         self.refs = defaultdict(list, sorted(
-            (tgt, sorted(rrs)) for tgt, rrs in self.refs.items()
+            (tgt, maybe_sort(rrs)) for tgt, rrs in self.refs.items()
             ))
         self.labels = defaultdict(list, sorted(
-            ((layer, sorted(lls)) for layer, lls in self.labels.items()),
+            ((layer, maybe_sort(lls)) for layer, lls in self.labels.items()),
             key=lambda tt: layer2key(tt[0]),
             ))
         self.shapes = defaultdict(list, sorted(
-            ((layer, sorted(sss)) for layer, sss in self.shapes.items()),
+            ((layer, maybe_sort(sss)) for layer, sss in self.shapes.items()),
             key=lambda tt: layer2key(tt[0]),
             ))
 

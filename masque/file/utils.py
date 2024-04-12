@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def preflight(
         lib: Library,
         sort: bool = True,
+        sort_elements: bool = False,
         allow_dangling_refs: bool | None = None,
         allow_named_layers: bool = True,
         prune_empty_patterns: bool = False,
@@ -32,8 +33,9 @@ def preflight(
     to writing to a file (or immediately after reading).
 
     Args:
-        sort: Whether to sort the patterns based on their names, and sort the pattern contents.
+        sort: Whether to sort the patterns based on their names, and optionaly sort the pattern contents.
             Default True. Useful for reproducible builds.
+        sort_elements: Whether to sort the pattern contents. Requires sort=True to run.
         allow_dangling_refs: If `None` (default), warns about any refs to patterns that are not
             in the provided library. If `True`, no check is performed; if `False`, a `LibraryError`
             is raised instead.
@@ -48,7 +50,7 @@ def preflight(
     """
     if sort:
         lib = Library(dict(sorted(
-            (nn, pp.sort()) for nn, pp in lib.items()
+            (nn, pp.sort(sort_elements=sort_elements)) for nn, pp in lib.items()
             )))
 
     if not allow_dangling_refs:
