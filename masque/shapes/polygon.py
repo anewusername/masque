@@ -131,7 +131,13 @@ class Polygon(Shape):
             return id(type(self)) < id(type(other))
         other = cast(Polygon, other)
         if not numpy.array_equal(self.vertices, other.vertices):
-            return tuple(tuple(xy) for xy in self.vertices) < tuple(tuple(xy) for xy in other.vertices)
+            min_len = min(self.vertices.shape[0], other.vertices.shape[0])
+            eq_mask = self.vertices[:min_len] != other.vertices[:min_len]
+            eq_lt = self.vertices[:min_len] < other.vertices[:min_len]
+            eq_lt_masked = eq_lt[eq_mask]
+            if eq_lt_masked.size > 0:
+                return eq_lt_masked.flat[0]
+            return self.vertices.shape[0] < other.vertices.shape[0]
         if not numpy.array_equal(self.offset, other.offset):
             return tuple(self.offset) < tuple(other.offset)
         if self.repetition != other.repetition:
