@@ -24,6 +24,7 @@ import copy
 from pprint import pformat
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
+from functools import lru_cache
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
@@ -351,9 +352,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         ii = 0
         suffixed_name = sanitized_name
         while suffixed_name in self or suffixed_name == '':
-            suffix = base64.b64encode(struct.pack('>Q', ii), altchars=b'$?').decode('ASCII')
-
-            suffixed_name = sanitized_name + '$' + suffix[:-1].lstrip('A')
+            suffixed_name = sanitized_name + b64suffix(ii)
             ii += 1
 
         if len(suffixed_name) > max_length:
@@ -1231,3 +1230,10 @@ class AbstractView(Mapping[str, Abstract]):
 
     def __len__(self) -> int:
         return self.library.__len__()
+
+
+@lru_cache(maxsize=8_000)
+def b64suffix(ii: int) -> str:
+    """Turn an integer into a base64-equivalent suffix."""
+    suffix = base64.b64encode(struct.pack('>Q', ii), altchars=b'$?').decode('ASCII')
+    return '$' + suffix[:-1].lstrip('A')
