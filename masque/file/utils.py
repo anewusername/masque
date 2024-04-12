@@ -57,7 +57,7 @@ def preflight(
         refs = lib.referenced_patterns()
         dangling = refs - set(lib.keys())
         if dangling:
-            msg = 'Dangling refs in found: ' + pformat(dangling)
+            msg = 'Dangling refs found: ' + pformat(dangling)
             if allow_dangling_refs is None:
                 logger.warning(msg)
             else:
@@ -75,8 +75,11 @@ def preflight(
 
     if prune_empty_patterns:
         pruned = lib.prune_empty()
-        logger.info(f'Preflight pruned {len(pruned)} empty patterns')
-        logger.debug('Pruned: ' + pformat(pruned))
+        if pruned:
+            logger.info(f'Preflight pruned {len(pruned)} empty patterns')
+            logger.debug('Pruned: ' + pformat(pruned))
+        else:
+            logger.debug('Preflight found no empty patterns')
 
     if wrap_repeated_shapes:
         lib.wrap_repeated_shapes()
