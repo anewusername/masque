@@ -86,6 +86,9 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     def y(self, val: float) -> None:
         self.offset[1] = val
 
+    def copy(self) -> Self:
+        return self.deepcopy()
+
     def get_bounds(self):
         return numpy.vstack((self.offset, self.offset))
 
