@@ -441,6 +441,39 @@ class Pather(Builder):
             plug_destination: bool = True,
             **kwargs,
             ) -> Self:
+        """
+        Create a "wire"/"waveguide" and traveling between the ports `portspec_src` and
+        `portspec_dst`, and `plug` it into both (or just the source port).
+
+        Only unambiguous scenarios are allowed:
+            - Straight connector between facing ports
+            - Single 90 degree bend
+            - Jog between facing ports
+                (jog is done as late as possible, i.e. only 2 L-shaped segments are used)
+
+        By default, the destination's `pytpe` will be used as the `out_ptype` for the
+        wire, and the `portspec_dst` will be plugged (i.e. removed).
+
+        Args:
+            portspec_src: The name of the starting port into which the wire will be plugged.
+            portspec_dst: The name of the destination port.
+            tool_port_names: The names of the ports on the generated pattern. It is unlikely
+                that you will need to change these. The first port is the input (to be
+                connected to `portspec`).
+            out_ptype: Passed to the pathing tool in order to specify the desired port type
+                to be generated at the destination end. If `None` (default), the destination
+                port's `ptype` will be used.
+
+        Returns:
+            self
+
+        Raises:
+            PortError if either port does not have a specified rotation.
+            BuildError if and invalid port config is encountered:
+                - Non-manhattan ports
+                - U-bend
+                - Destination too close to (or behind) source
+        """
         if self._dead:
             logger.error('Skipping path_into() since device is dead')
             return self
@@ -457,9 +490,9 @@ class Pather(Builder):
             raise PortError(f'Port {portspec_dst} has no rotation and cannot be used for path_into()')
 
         if not numpy.isclose(port_src.rotation % (pi / 2), 0):
-            raise BuildError('path_to was asked to route from non-manhattan port')
+            raise BuildError('path_into was asked to route from non-manhattan port')
         if not numpy.isclose(port_dst.rotation % (pi / 2), 0):
-            raise BuildError('path_to was asked to route to non-manhattan port')
+            raise BuildError('path_into was asked to route to non-manhattan port')
 
         src_is_horizontal = numpy.isclose(port_src.rotation % pi, 0)
         dst_is_horizontal = numpy.isclose(port_dst.rotation % pi, 0)
@@ -647,7 +680,7 @@ class Pather(Builder):
             self.library[name] = bld.pattern
             return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
 
-    # TODO def path_join() and def bus_join()?
+    # TODO def bus_join()?
 
     def flatten(self) -> Self:
         """
