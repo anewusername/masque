@@ -436,6 +436,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                             corners = (rotation_matrix_2d(ref.rotation) @ ubounds.T).T
                             bounds = numpy.vstack((numpy.min(corners, axis=0),
                                                    numpy.max(corners, axis=0))) * ref.scale + [ref.offset]
+                            if ref.repetition is not None:
+                                bounds += ref.repetition.get_bounds()
 
                     else:
                         # Non-manhattan rotation, have to figure out bounds by rotating the pattern
