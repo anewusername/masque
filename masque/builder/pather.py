@@ -437,7 +437,7 @@ class Pather(Builder):
             portspec_dst: str,
             *,
             tool_port_names: tuple[str, str] = ('A', 'B'),
-            out_ptype: str = 'unk',
+            out_ptype: str | None = None,
             plug_destination: bool = True,
             **kwargs,
             ) -> Self:
@@ -447,6 +447,9 @@ class Pather(Builder):
 
         port_src = self.pattern[portspec_src]
         port_dst = self.pattern[portspec_dst]
+
+        if out_ptype is None:
+            out_ptype = port_dst.ptype
 
         if port_src.rotation is None:
             raise PortError(f'Port {portspec_src} has no rotation and cannot be used for path_into()')
