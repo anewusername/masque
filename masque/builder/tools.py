@@ -294,7 +294,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             ipat, iport_theirs, _iport_ours = data.in_transition
             pat.plug(ipat, {port_names[1]: iport_theirs})
         if not numpy.isclose(data.straight_length, 0):
-            straight = tree <= {SINGLE_USE_PREFIX + 'straight': gen_straight(data.straight_length)}
+            straight = tree <= {SINGLE_USE_PREFIX + 'straight': gen_straight(data.straight_length, **kwargs)}
             pat.plug(straight, {port_names[1]: sport_in})
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
