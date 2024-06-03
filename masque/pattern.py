@@ -1165,7 +1165,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             map_out[vi] = None
 
         if isinstance(other, Pattern):
-            assert append
+            assert append, 'Got a name (not an abstract) but was asked to reference (not append)'
 
         self.place(
             other,
