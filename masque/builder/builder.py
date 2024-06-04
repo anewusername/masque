@@ -209,10 +209,11 @@ class Builder(PortList):
         self.pattern.rect(*args, **kwargs)
         return self
 
-    @wraps(Pattern.path)
-    def path(self, *args, **kwargs) -> Self:
-        self.pattern.path(*args, **kwargs)
-        return self
+    # Note: We're a superclass of `Pather`, where path() means something different...
+    #@wraps(Pattern.path)
+    #def path(self, *args, **kwargs) -> Self:
+    #    self.pattern.path(*args, **kwargs)
+    #    return self
 
     def plug(
             self,
