@@ -233,3 +233,5 @@ my_pattern.ref(_make_my_subpattern(), offset=..., ...)
 * Tests tests tests
 * check renderpather
 * pather and renderpather examples
+* context manager for retool
+* allow a specific mismatch when connecting ports
