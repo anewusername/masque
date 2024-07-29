@@ -50,7 +50,7 @@ def writefile(
     bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
-        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')
+        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
     else:
         bounds_min, bounds_max = bounds
 
@@ -117,7 +117,7 @@ def writefile_inverted(
     bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
-        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox')
+        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
     else:
         bounds_min, bounds_max = bounds
 
