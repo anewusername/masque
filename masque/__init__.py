@@ -28,22 +28,62 @@
     can accept a `Mapping[str, Pattern]` and wrap it in a `LibraryView` internally.
 """
 
-from .utils import layer_t, annotations_t, SupportsBool
-from .error import MasqueError, PatternError, LibraryError, BuildError
-from .shapes import Shape, Polygon, Path, Circle, Arc, Ellipse
-from .label import Label
-from .ref import Ref
-from .pattern import Pattern, map_layers, map_targets, chain_elements
+from .utils import (
+    layer_t as layer_t,
+    annotations_t as annotations_t,
+    SupportsBool as SupportsBool,
+    )
+from .error import (
+    MasqueError as MasqueError,
+    PatternError as PatternError,
+    LibraryError as LibraryError,
+    BuildError as BuildError,
+    )
+from .shapes import (
+    Shape as Shape,
+    Polygon as Polygon,
+    Path as Path,
+    Circle as Circle,
+    Arc as Arc,
+    Ellipse as Ellipse,
+    )
+from .label import Label as Label
+from .ref import Ref as Ref
+from .pattern import (
+    Pattern as Pattern,
+    map_layers as map_layers,
+    map_targets as map_targets,
+    chain_elements as chain_elements,
+    )
 
 from .library import (
-    ILibraryView, ILibrary,
-    LibraryView, Library, LazyLibrary,
-    AbstractView, TreeView, Tree,
+    ILibraryView as ILibraryView,
+    ILibrary as ILibrary,
+    LibraryView as LibraryView,
+    Library as Library,
+    LazyLibrary as LazyLibrary,
+    AbstractView as AbstractView,
+    TreeView as TreeView,
+    Tree as Tree,
     )
-from .ports import Port, PortList
-from .abstract import Abstract
-from .builder import Builder, Tool, Pather, RenderPather, RenderStep, BasicTool, PathTool
-from .utils import ports2data, oneshot
+from .ports import (
+    Port as Port,
+    PortList as PortList,
+    )
+from .abstract import Abstract as Abstract
+from .builder import (
+    Builder as Builder,
+    Tool as Tool,
+    Pather as Pather,
+    RenderPather as RenderPather,
+    RenderStep as RenderStep,
+    BasicTool as BasicTool,
+    PathTool as PathTool,
+    )
+from .utils import (
+    ports2data as ports2data,
+    oneshot as oneshot,
+    )
 
 
 __author__ = 'Jan Petykiewicz'
