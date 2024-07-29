@@ -99,6 +99,7 @@ def main():
     print('\nAdded aref_test')
 
     folder = Path('./layouts/')
+    folder.mkdir(exist_ok=True)
     print(f'...writing files to {folder}...')
 
     gds1 = folder / 'rep.gds.gz'
