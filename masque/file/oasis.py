@@ -453,6 +453,8 @@ def read(
 
         for placement in cell.placements:
             target, ref = _placement_to_ref(placement, lib)
+            if isinstance(target, int):
+                target = lib.cellnames[target].nstring.string
             pat.refs[target].append(ref)
 
         mlib[cell_name] = pat
