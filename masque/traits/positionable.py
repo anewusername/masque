@@ -81,12 +81,11 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
 
     @offset.setter
     def offset(self, val: ArrayLike) -> None:
-        if not isinstance(val, numpy.ndarray) or val.dtype != numpy.float64:
-            val = numpy.array(val, dtype=float)
+        val = numpy.array(val, dtype=float)
 
         if val.size != 2:
             raise MasqueError('Offset must be convertible to size-2 ndarray')
-        self._offset = val.flatten()        # type: ignore
+        self._offset = val.flatten()
 
     #
     # Methods

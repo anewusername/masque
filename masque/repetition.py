@@ -156,12 +156,11 @@ class Grid(Repetition):
 
     @a_vector.setter
     def a_vector(self, val: ArrayLike) -> None:
-        if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float)
+        val = numpy.array(val, dtype=float)
 
         if val.size != 2:
             raise PatternError('a_vector must be convertible to size-2 ndarray')
-        self._a_vector = val.flatten().astype(float)
+        self._a_vector = val.flatten()
 
     # b_vector property
     @property
@@ -170,8 +169,7 @@ class Grid(Repetition):
 
     @b_vector.setter
     def b_vector(self, val: ArrayLike) -> None:
-        if not isinstance(val, numpy.ndarray):
-            val = numpy.array(val, dtype=float, copy=True)
+        val = numpy.array(val, dtype=float)
 
         if val.size != 2:
             raise PatternError('b_vector must be convertible to size-2 ndarray')

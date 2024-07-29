@@ -15,9 +15,9 @@ def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> 
             (i.e. the last vertex will be removed if it is the same as the first)
 
     Returns:
-        `vertices` with no consecutive duplicates.
+        `vertices` with no consecutive duplicates. This may be a view into the original array.
     """
-    vertices = numpy.array(vertices)
+    vertices = numpy.asarray(vertices)
     duplicates = (vertices == numpy.roll(vertices, 1, axis=0)).all(axis=1)
     if not closed_path:
         duplicates[0] = False
@@ -35,7 +35,7 @@ def remove_colinear_vertices(vertices: ArrayLike, closed_path: bool = True) -> N
            closed path. If `False`, the path is assumed to be open. Default `True`.
 
     Returns:
-        `vertices` with colinear (superflous) vertices removed.
+        `vertices` with colinear (superflous) vertices removed. May be a view into the original array.
     """
     vertices = remove_duplicate_vertices(vertices)
 

@@ -112,7 +112,7 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
     """ `[x_offset, y_offset]` """
 
     def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
-        pivot = numpy.array(pivot, dtype=float)
+        pivot = numpy.asarray(pivot, dtype=float)
         cast(Positionable, self).translate(-pivot)
         cast(Rotatable, self).rotate(rotation)
         self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      # type: ignore # mypy#3004

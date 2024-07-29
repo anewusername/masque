@@ -49,7 +49,7 @@ class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl, Bounded, Pivotabl
             annotations: annotations_t | None = None,
             ) -> None:
         self.string = string
-        self.offset = numpy.array(offset, dtype=float, copy=True)
+        self.offset = numpy.array(offset, dtype=float)
         self.repetition = repetition
         self.annotations = annotations if annotations is not None else {}
 
@@ -94,7 +94,7 @@ class Label(PositionableImpl, RepeatableImpl, AnnotatableImpl, Bounded, Pivotabl
         Returns:
             self
         """
-        pivot = numpy.array(pivot, dtype=float)
+        pivot = numpy.asarray(pivot, dtype=float)
         self.translate(-pivot)
         self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)
         self.translate(+pivot)

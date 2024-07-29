@@ -212,9 +212,9 @@ def _read_block(block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace) -> 
     for element in block:
         if isinstance(element, LWPolyline | Polyline):
             if isinstance(element, LWPolyline):
-                points = numpy.array(element.get_points())
+                points = numpy.asarray(element.get_points())
             elif isinstance(element, Polyline):
-                points = numpy.array(element.points())[:, :2]
+                points = numpy.asarray(element.points())[:, :2]
             attr = element.dxfattribs()
             layer = attr.get('layer', DEFAULT_LAYER)
 
@@ -241,7 +241,7 @@ def _read_block(block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace) -> 
 
         elif isinstance(element, Text):
             args = dict(
-                offset=numpy.array(element.get_placement()[1])[:2],
+                offset=numpy.asarray(element.get_placement()[1])[:2],
                 layer=element.dxfattribs().get('layer', DEFAULT_LAYER),
                 )
             string = element.dxfattribs().get('text', '')
@@ -262,7 +262,7 @@ def _read_block(block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace) -> 
             mirrored, extra_angle = normalize_mirror((yscale < 0, xscale < 0))
             rotation = numpy.deg2rad(attr.get('rotation', 0)) + extra_angle
 
-            offset = numpy.array(attr.get('insert', (0, 0, 0)))[:2]
+            offset = numpy.asarray(attr.get('insert', (0, 0, 0)))[:2]
 
             args = dict(
                 target=attr.get('name', None),

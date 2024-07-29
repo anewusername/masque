@@ -690,7 +690,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        pivot = numpy.array(pivot)
+        pivot = numpy.asarray(pivot, dtype=float)
         self.translate_elements(-pivot)
         self.rotate_elements(rotation)
         self.rotate_element_centers(rotation)
@@ -1023,7 +1023,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if self.has_refs() and library is None:
             raise PatternError('Must provide a library when visualizing a pattern with refs')
 
-        offset = numpy.array(offset, dtype=float)
+        offset = numpy.asarray(offset, dtype=float)
 
         if not overdraw:
             figure = pyplot.figure()

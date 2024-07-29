@@ -20,8 +20,8 @@ class Polygon(Shape):
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
        implicitly-closed boundary, and an offset.
 
-    Note that the setter for `Polygon.vertices` may (but may not) create a copy of the
-      passed vertex coordinates. See `numpy.asarray() for details.
+    Note that the setter for `Polygon.vertices` may creates a copy of the
+      passed vertex coordinates.
 
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
     """
@@ -40,8 +40,7 @@ class Polygon(Shape):
         """
         Vertices of the polygon (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`)
 
-        When setting, note that a copy of the provided vertices may or may not be made,
-        following the rules from `numpy.asarray()`.
+        When setting, note that a copy of the provided vertices will be made,
         """
         return self._vertices
 

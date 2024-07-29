@@ -472,7 +472,7 @@ class Arc(Shape):
                 a1 += sign * 2 * pi
 
             a.append((a0, a1))
-        return numpy.array(a)
+        return numpy.array(a, dtype=float)
 
     def __repr__(self) -> str:
         angles = f' a°{numpy.rad2deg(self.angles)}'

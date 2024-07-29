@@ -60,7 +60,7 @@ class Mirrorable(metaclass=ABCMeta):
 #    def mirrored(self, val: Sequence[bool]) -> None:
 #        if is_scalar(val):
 #            raise MasqueError('Mirrored must be a 2-element list of booleans')
-#        self._mirrored = numpy.array(val, dtype=bool, copy=True)
+#        self._mirrored = numpy.array(val, dtype=bool)
 #
 #    #
 #    # Methods

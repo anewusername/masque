@@ -33,8 +33,7 @@ class Path(Shape):
     A path, consisting of a bunch of vertices (Nx2 ndarray), a width, an end-cap shape,
         and an offset.
 
-    Note that the setter for `Path.vertices` may (but may not) create a copy of the
-      passed vertex coordinates. See `numpy.asarray()` for details.
+    Note that the setter for `Path.vertices` will create a copy of the passed vertex coordinates.
 
     A normalized_form(...) is available, but can be quite slow with lots of vertices.
     """
@@ -118,8 +117,7 @@ class Path(Shape):
         """
         Vertices of the path (Nx2 ndarray: `[[x0, y0], [x1, y1], ...]`
 
-        When setting, note that a copy of the provided vertices may or may not be made,
-        following the rules from `numpy.asarray()`.
+        When setting, note that a copy of the provided vertices will be made.
         """
         return self._vertices
 

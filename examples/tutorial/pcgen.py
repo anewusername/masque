@@ -233,8 +233,8 @@ def ln_shift_defect(
 
     # Shift holes
     # Expand shifts as necessary
-    tmp_a = numpy.array(shifts_a)
-    tmp_r = numpy.array(shifts_r)
+    tmp_a = numpy.asarray(shifts_a)
+    tmp_r = numpy.asarray(shifts_r)
     n_shifted = max(tmp_a.size, tmp_r.size)
 
     shifts_a = numpy.ones(n_shifted)

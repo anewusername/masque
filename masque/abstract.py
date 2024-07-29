@@ -97,7 +97,7 @@ class Abstract(PortList):
         Returns:
             self
         """
-        pivot = numpy.array(pivot)
+        pivot = numpy.asarray(pivot, dtype=float)
         self.translate_ports(-pivot)
         self.rotate_ports(rotation)
         self.rotate_port_offsets(rotation)

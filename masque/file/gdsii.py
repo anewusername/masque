@@ -357,7 +357,7 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
             if isinstance(rep, Grid):
                 b_vector = rep.b_vector if rep.b_vector is not None else numpy.zeros(2)
                 b_count = rep.b_count if rep.b_count is not None else 1
-                xy = numpy.array(ref.offset) + numpy.array([
+                xy = numpy.asarray(ref.offset) + numpy.array([
                     [0.0, 0.0],
                     rep.a_vector * rep.a_count,
                     b_vector * b_count,
