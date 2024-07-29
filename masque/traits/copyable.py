@@ -1,9 +1,8 @@
 from typing import Self
-from abc import ABCMeta
 import copy
 
 
-class Copyable(metaclass=ABCMeta):
+class Copyable:
     """
     Trait class which adds .copy() and .deepcopy()
     """
