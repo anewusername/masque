@@ -431,22 +431,22 @@ class Path(Shape):
         return self
 
     def remove_duplicate_vertices(self) -> 'Path':
-        '''
+        """
         Removes all consecutive duplicate (repeated) vertices.
 
         Returns:
             self
-        '''
+        """
         self.vertices = remove_duplicate_vertices(self.vertices, closed_path=False)
         return self
 
     def remove_colinear_vertices(self) -> 'Path':
-        '''
+        """
         Removes consecutive co-linear vertices.
 
         Returns:
             self
-        '''
+        """
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=False)
         return self
 

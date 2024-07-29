@@ -415,22 +415,22 @@ class Polygon(Shape):
         return self
 
     def remove_duplicate_vertices(self) -> 'Polygon':
-        '''
+        """
         Removes all consecutive duplicate (repeated) vertices.
 
         Returns:
             self
-        '''
+        """
         self.vertices = remove_duplicate_vertices(self.vertices, closed_path=True)
         return self
 
     def remove_colinear_vertices(self) -> 'Polygon':
-        '''
+        """
         Removes consecutive co-linear vertices.
 
         Returns:
             self
-        '''
+        """
         self.vertices = remove_colinear_vertices(self.vertices, closed_path=True)
         return self
 

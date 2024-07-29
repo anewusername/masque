@@ -308,7 +308,7 @@ class Arc(Shape):
         return [poly]
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:
-        '''
+        """
         Equation for rotated ellipse is
             `x = x0 + a * cos(t) * cos(rot) - b * sin(t) * sin(phi)`
             `y = y0 + a * cos(t) * sin(rot) + b * sin(t) * cos(rot)`
@@ -319,7 +319,7 @@ class Arc(Shape):
           where -+ is for x, y cases, so that's where the extrema are.
 
         If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
-        '''
+        """
         a_ranges = self._angles_to_parameters()
 
         mins = []
@@ -424,13 +424,13 @@ class Arc(Shape):
                     ))
 
     def get_cap_edges(self) -> NDArray[numpy.float64]:
-        '''
+        """
         Returns:
             ```
             [[[x0, y0], [x1, y1]],   array of 4 points, specifying the two cuts which
              [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
             ```
-        '''
+        """
         a_ranges = self._angles_to_parameters()
 
         mins = []
@@ -454,11 +454,11 @@ class Arc(Shape):
         return numpy.array([mins, maxs]) + self.offset
 
     def _angles_to_parameters(self) -> NDArray[numpy.float64]:
-        '''
+        """
         Returns:
             "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
                    `[[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]`
-        '''
+        """
         a = []
         for sgn in (-1, +1):
             wh = sgn * self.width / 2
