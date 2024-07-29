@@ -119,10 +119,10 @@ class Circle(Shape):
         return numpy.vstack((self.offset - self.radius,
                              self.offset + self.radius))
 
-    def rotate(self, theta: float) -> 'Circle':
+    def rotate(self, theta: float) -> 'Circle':      # noqa: ARG002  (theta unused)
         return self
 
-    def mirror(self, axis: int = 0) -> 'Circle':
+    def mirror(self, axis: int = 0) -> 'Circle':     # noqa: ARG002  (axis unused)
         self.offset *= -1
         return self
 

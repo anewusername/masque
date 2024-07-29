@@ -132,8 +132,8 @@ class Text(RotatableImpl, Shape):
 
     def to_polygons(
             self,
-            num_vertices: int | None = None,      # unused
-            max_arclen: float | None = None,      # unused
+            num_vertices: int | None = None,      # unused  # noqa: ARG002
+            max_arclen: float | None = None,      # unused  # noqa: ARG002
             ) -> list[Polygon]:
         all_polygons = []
         total_advance = 0.0

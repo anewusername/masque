@@ -223,8 +223,8 @@ class Tool:
             self,
             batch: Sequence[RenderStep],
             *,
-            port_names: Sequence[str] = ('A', 'B'),
-            **kwargs,
+            port_names: Sequence[str] = ('A', 'B'),     # noqa: ARG002 (unused)
+            **kwargs,                                   # noqa: ARG002 (unused)
             ) -> ILibrary:
         """
         Render the provided `batch` of `RenderStep`s into geometry, returning a tree
@@ -313,7 +313,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
             *,
             in_ptype: str | None = None,
             out_ptype: str | None = None,
-            **kwargs,
+            **kwargs,               # noqa: ARG002 (unused)
             ) -> tuple[Port, LData]:
         # TODO check all the math for L-shaped bends
         if ccw is not None:
@@ -455,7 +455,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             in_ptype: str | None = None,
             out_ptype: str | None = None,
             port_names: tuple[str, str] = ('A', 'B'),
-            **kwargs,
+            **kwargs,                           # noqa: ARG002 (unused)
             ) -> Library:
         out_port, dxy = self.planL(
             ccw,
@@ -486,9 +486,9 @@ class PathTool(Tool, metaclass=ABCMeta):
             ccw: SupportsBool | None,
             length: float,
             *,
-            in_ptype: str | None = None,
+            in_ptype: str | None = None,        # noqa: ARG002 (unused)
             out_ptype: str | None = None,
-            **kwargs,
+            **kwargs,                           # noqa: ARG002 (unused)
             ) -> tuple[Port, NDArray[numpy.float64]]:
         # TODO check all the math for L-shaped bends
 
@@ -522,7 +522,7 @@ class PathTool(Tool, metaclass=ABCMeta):
             batch: Sequence[RenderStep],
             *,
             port_names: Sequence[str] = ('A', 'B'),
-            **kwargs,
+            **kwargs,                           # noqa: ARG002 (unused)
             ) -> ILibrary:
 
         path_vertices = [batch[0].start_port.offset]
