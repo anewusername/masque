@@ -606,10 +606,10 @@ def load_libraryfile(
             stream = io.BufferedReader(gz_stream)       # type: ignore
     else:       # noqa: PLR5501
         if use_mmap:
-            base_stream = open(path, mode='rb', buffering=0)
+            base_stream = path.open(mode='rb', buffering=0)                         # noqa: SIM115
             stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)    # type: ignore
         else:
-            stream = open(path, mode='rb')
+            stream = path.open(mode='rb')          # noqa: SIM115
     return load_library(stream, full_load=full_load, postprocess=postprocess)
 
 

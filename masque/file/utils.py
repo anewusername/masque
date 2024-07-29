@@ -129,7 +129,7 @@ def clean_pattern_vertices(pat: Pattern) -> Pattern:
 
 
 def is_gzipped(path: pathlib.Path) -> bool:
-    with open(path, 'rb') as stream:
+    with path.open('rb') as stream:
         magic_bytes = stream.read(2)
         return magic_bytes == b'\x1f\x8b'
 
