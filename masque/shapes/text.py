@@ -191,6 +191,11 @@ class Text(RotatableImpl, Shape):
 
         return bounds
 
+    def __repr__(self) -> str:
+        rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
+        mirrored = ' m{:d}' if self.mirrored else ''
+        return f'<TextShape "{self.string}" o{self.offset} h{self.height:g}{rotation}{mirrored}>'
+
 
 def get_char_as_polygons(
         font_path: str,
@@ -278,8 +283,3 @@ def get_char_as_polygons(
         polygons = path.to_polygons()
 
     return polygons, advance
-
-    def __repr__(self) -> str:
-        rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
-        mirrored = ' m{:d}' if self.mirrored else ''
-        return f'<TextShape "{self.string}" o{self.offset} h{self.height:g}{rotation}{mirrored}>'
