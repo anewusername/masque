@@ -294,14 +294,14 @@ class PortList(metaclass=ABCMeta):
         Raises:
             `PortError` if the ports are not properly aligned.
         """
-        a_names, b_names = list(zip(*connections.items()))
+        a_names, b_names = list(zip(*connections.items(), strict=True))
         a_ports = [self.ports[pp] for pp in a_names]
         b_ports = [self.ports[pp] for pp in b_names]
 
         a_types = [pp.ptype for pp in a_ports]
         b_types = [pp.ptype for pp in b_ports]
-        type_conflicts = numpy.array([at != bt and at != 'unk' and bt != 'unk'
-                                      for at, bt in zip(a_types, b_types)])
+        type_conflicts = numpy.array([at != bt and 'unk' not in (at, bt)
+                                      for at, bt in zip(a_types, b_types, strict=True)])
 
         if type_conflicts.any():
             msg = 'Ports have conflicting types:\n'
@@ -502,8 +502,8 @@ class PortList(metaclass=ABCMeta):
             o_offsets[:, 1] *= -1
             o_rotations *= -1
 
-        type_conflicts = numpy.array([st != ot and st != 'unk' and ot != 'unk'
-                                      for st, ot in zip(s_types, o_types)])
+        type_conflicts = numpy.array([st != ot and 'unk' not in (st, ot)
+                                      for st, ot in zip(s_types, o_types, strict=True)])
         if type_conflicts.any():
             msg = 'Ports have conflicting types:\n'
             for nn, (k, v) in enumerate(map_in.items()):

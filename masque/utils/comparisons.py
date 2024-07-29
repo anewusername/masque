@@ -29,7 +29,7 @@ def annotations_lt(aa: annotations_t, bb: annotations_t) -> bool:
         if len(va) != len(vb):
             return len(va) < len(vb)
 
-        for aaa, bbb in zip(va, vb):
+        for aaa, bbb in zip(va, vb, strict=True):
             if aaa != bbb:
                 return annotation2key(aaa) < annotation2key(bbb)
     return False
@@ -55,7 +55,7 @@ def annotations_eq(aa: annotations_t, bb: annotations_t) -> bool:
         if len(va) != len(vb):
             return False
 
-        for aaa, bbb in zip(va, vb):
+        for aaa, bbb in zip(va, vb, strict=True):
             if aaa != bbb:
                 return False
 

@@ -236,7 +236,7 @@ def pack_patterns(
     locations, reject_inds = packer(sizes, containers, presort=presort, allow_rejects=allow_rejects)
 
     pat = Pattern()
-    for pp, oo, loc in zip(patterns, offsets, locations):
+    for pp, oo, loc in zip(patterns, offsets, locations, strict=True):
         pat.ref(pp, offset=oo + loc)
 
     rejects = [patterns[ii] for ii in reject_inds]

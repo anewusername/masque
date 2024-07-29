@@ -135,7 +135,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
 
             vertex_lists = []
             p_verts = polygon.vertices + polygon.offset
-            for v, v_next in zip(p_verts, numpy.roll(p_verts, -1, axis=0)):
+            for v, v_next in zip(p_verts, numpy.roll(p_verts, -1, axis=0), strict=True):
                 dv = v_next - v
 
                 # Find x-index bounds for the line      # TODO: fix this and err_xmin/xmax for grids smaller than the line / shape

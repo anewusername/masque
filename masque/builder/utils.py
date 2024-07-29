@@ -202,7 +202,7 @@ def ell(
         if extension < 0:
             ext_floor = -numpy.floor(extension)
             raise BuildError(f'Position is too close by at least {ext_floor}. Total extensions would be\n\t'
-                             + '\n\t'.join(f'{key}: {off}' for key, off in zip(ports.keys(), offsets)))
+                             + '\n\t'.join(f'{key}: {off}' for key, off in zip(ports.keys(), offsets, strict=True)))
 
-    result = dict(zip(ports.keys(), offsets))
+    result = dict(zip(ports.keys(), offsets, strict=True))
     return result

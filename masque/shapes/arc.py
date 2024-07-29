@@ -324,7 +324,7 @@ class Arc(Shape):
 
         mins = []
         maxs = []
-        for a, sgn in zip(a_ranges, (-1, +1)):
+        for a, sgn in zip(a_ranges, (-1, +1), strict=True):
             wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
@@ -435,7 +435,7 @@ class Arc(Shape):
 
         mins = []
         maxs = []
-        for a, sgn in zip(a_ranges, (-1, +1)):
+        for a, sgn in zip(a_ranges, (-1, +1), strict=True):
             wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
