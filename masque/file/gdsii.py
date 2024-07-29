@@ -597,7 +597,7 @@ def load_libraryfile(
     path = pathlib.Path(filename)
     stream: IO[bytes]
     if is_gzipped(path):
-        if mmap:
+        if use_mmap:
             logger.info('Asked to mmap a gzipped file, reading into memory instead...')
             gz_stream = gzip.open(path, mode='rb')
             stream = io.BytesIO(gz_stream.read())       # type: ignore
@@ -605,7 +605,7 @@ def load_libraryfile(
             gz_stream = gzip.open(path, mode='rb')
             stream = io.BufferedReader(gz_stream)       # type: ignore
     else:       # noqa: PLR5501
-        if mmap:
+        if use_mmap:
             base_stream = open(path, mode='rb', buffering=0)
             stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)    # type: ignore
         else:
