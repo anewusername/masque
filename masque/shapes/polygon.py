@@ -331,10 +331,7 @@ class Polygon(Shape):
         Returns:
             A Polygon object containing the requested octagon
         """
-        if regular:
-            s = 1 + numpy.sqrt(2)
-        else:
-            s = 2
+        s = (1 + numpy.sqrt(2)) if regular else 2
 
         norm_oct = numpy.array([
             [-1, -s],

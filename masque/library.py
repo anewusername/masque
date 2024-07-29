@@ -1038,10 +1038,7 @@ class Library(ILibrary):
         if key in self.mapping:
             raise LibraryError(f'"{key}" already exists in the library. Overwriting is not allowed!')
 
-        if callable(value):
-            value = value()
-        else:
-            value = value
+        value = value() if callable(value) else value
         self.mapping[key] = value
 
     def __delitem__(self, key: str) -> None:
