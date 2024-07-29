@@ -266,11 +266,12 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             mins, maxs = bounds
             keep_x = numpy.logical_and(grx > mins[0], grx < maxs[0])
             keep_y = numpy.logical_and(gry > mins[1], gry < maxs[1])
-            for k in (keep_x, keep_y):
-                for s in (1, 2):
-                    k[s:] += k[:-s]
-                    k[:-s] += k[s:]
-                k = k > 0
+            # Flood left & rightwards by 2 cells
+            for kk in (keep_x, keep_y):
+                for ss in (1, 2):
+                    kk[ss:] += kk[:-ss]
+                    kk[:-ss] += kk[ss:]
+                kk[:] = kk > 0
 
             gx = grx[keep_x]
             gy = gry[keep_y]
