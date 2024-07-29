@@ -17,14 +17,11 @@ Classes include:
 from typing import Self, TYPE_CHECKING, cast, TypeAlias, Protocol, Literal
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence, Callable
 import logging
-import base64
-import struct
 import re
 import copy
 from pprint import pformat
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
-from functools import lru_cache
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
@@ -349,8 +346,11 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         else:
             sanitized_name = name
 
-        ii = 0
         suffixed_name = sanitized_name
+        if sanitized_name in self:
+            ii = sum(1 for nn in self.keys() if nn.startswith(sanitized_name))
+        else:
+            ii = 0
         while suffixed_name in self or suffixed_name == '':
             suffixed_name = sanitized_name + b64suffix(ii)
             ii += 1
@@ -1229,8 +1229,18 @@ class AbstractView(Mapping[str, Abstract]):
         return self.library.__len__()
 
 
-@lru_cache(maxsize=8_000)
 def b64suffix(ii: int) -> str:
-    """Turn an integer into a base64-equivalent suffix."""
-    suffix = base64.b64encode(struct.pack('>Q', ii), altchars=b'$?').decode('ASCII')
-    return '$' + suffix[:-1].lstrip('A')
+    """
+    Turn an integer into a base64-equivalent suffix.
+
+    This could be done with base64.b64encode, but this way is faster for many small `ii`.
+    """
+    def i2a(nn: int) -> str:
+        return 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$?'[nn]
+
+    parts = ['$', i2a(ii % 64)]
+    ii >>= 6
+    while ii:
+        parts.append(i2a(ii % 64))
+        ii >>= 6
+    return ''.join(parts)
