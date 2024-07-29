@@ -616,7 +616,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             `[[x_min, y_min], [x_max, y_max]]`
         """
-        bounds = self.get_bounds(library)
+        bounds = self.get_bounds(library, recurse=recurse)
         assert bounds is not None
         return bounds
 
