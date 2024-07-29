@@ -230,7 +230,8 @@ def get_char_as_polygons(
     outline = slot.outline
 
     start = 0
-    all_verts_list, all_codes = [], []
+    all_verts_list = []
+    all_codes = []
     for end in outline.contours:
         points = outline.points[start:end + 1]
         points.append(points[0])

@@ -332,9 +332,9 @@ class Arbitrary(Repetition):
 
     @displacements.setter
     def displacements(self, val: ArrayLike) -> None:
-        vala: NDArray[numpy.float64] = numpy.array(val, dtype=float)
-        vala = numpy.sort(vala.view([('', vala.dtype)] * vala.shape[1]), 0).view(vala.dtype)    # sort rows
-        self._displacements = vala
+        vala = numpy.array(val, dtype=float)
+        order = numpy.lexsort(vala.T[::-1])     # sortrows
+        self._displacements = vala[order]
 
     def __init__(
             self,
