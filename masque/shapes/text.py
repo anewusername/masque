@@ -221,7 +221,7 @@ def get_char_as_polygons(
         'advance' distance (distance from the start of this glyph to the start of the next one)
     """
     if len(char) != 1:
-        raise Exception('get_char_as_polygons called with non-char')
+        raise PatternError('get_char_as_polygons called with non-char')
 
     face = Face(font_path)
     face.set_char_size(resolution)

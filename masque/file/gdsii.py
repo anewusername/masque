@@ -409,8 +409,8 @@ def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -
     for key, vals in annotations.items():
         try:
             i = int(key)
-        except ValueError:
-            raise PatternError(f'Annotation key {key} is not convertable to an integer')
+        except ValueError as err:
+            raise PatternError(f'Annotation key {key} is not convertable to an integer') from err
         if not (0 < i < 126):
             raise PatternError(f'Annotation key {key} converts to {i} (must be in the range [1,125])')
 

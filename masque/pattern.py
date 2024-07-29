@@ -1016,10 +1016,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         try:
             from matplotlib import pyplot       # type: ignore
             import matplotlib.collections       # type: ignore
-        except ImportError as err:
-            logger.error('Pattern.visualize() depends on matplotlib!')
-            logger.error('Make sure to install masque with the [visualize] option to pull in the needed dependencies.')
-            raise err
+        except ImportError:
+            logger.exception('Pattern.visualize() depends on matplotlib!\n'
+                + 'Make sure to install masque with the [visualize] option to pull in the needed dependencies.')
+            raise
 
         if self.has_refs() and library is None:
             raise PatternError('Must provide a library when visualizing a pattern with refs')

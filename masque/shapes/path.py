@@ -105,11 +105,11 @@ class Path(Shape):
         custom_caps = (PathCap.SquareCustom,)
         if self.cap in custom_caps:
             if vals is None:
-                raise Exception('Tried to set cap extensions to None on path with custom cap type')
+                raise PatternError('Tried to set cap extensions to None on path with custom cap type')
             self._cap_extensions = numpy.array(vals, dtype=float)
         else:
             if vals is not None:
-                raise Exception('Tried to set custom cap extensions on path with non-custom cap type')
+                raise PatternError('Tried to set custom cap extensions on path with non-custom cap type')
             self._cap_extensions = vals
 
     # vertices property

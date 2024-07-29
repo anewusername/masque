@@ -298,7 +298,7 @@ def read(
                 cap_start = path_cap_map[element.get_extension_start()[0]]
                 cap_end   = path_cap_map[element.get_extension_end()[0]]
                 if cap_start != cap_end:
-                    raise Exception('masque does not support multiple cap types on a single path.')      # TODO handle multiple cap types
+                    raise PatternError('masque does not support multiple cap types on a single path.')      # TODO handle multiple cap types
                 cap = cap_start
 
                 path_args: dict[str, Any] = {}
