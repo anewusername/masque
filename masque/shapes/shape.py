@@ -1,4 +1,5 @@
-from typing import Callable, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 from abc import ABCMeta, abstractmethod
 
 import numpy

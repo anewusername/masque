@@ -2,7 +2,8 @@
   Object representing a one multi-layer lithographic layout.
   A single level of hierarchical references is included.
 """
-from typing import Callable, Sequence, cast, Mapping, Self, Any, Iterable, TypeVar, MutableMapping
+from typing import cast, Self, Any, TypeVar
+from collections.abc import Sequence, Mapping, MutableMapping, Iterable, Callable
 import copy
 import logging
 import functools

@@ -1,4 +1,5 @@
-from typing import Callable, TypeVar, Generic
+from typing import TypeVar, Generic
+from collections.abc import Callable
 from functools import lru_cache
 
 

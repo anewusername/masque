@@ -1,4 +1,5 @@
-from typing import Sequence, Callable, Any
+from typing import Any
+from collections.abc import Sequence, Callable
 from pprint import pformat
 
 import numpy

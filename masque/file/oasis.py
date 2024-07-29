@@ -14,7 +14,8 @@ Note that OASIS references follow the same convention as `masque`,
 Notes:
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import Any, Callable, Iterable, IO, Mapping, cast, Sequence
+from typing import Any, IO, cast
+from collections.abc import Sequence, Iterable, Mapping, Callable
 import logging
 import pathlib
 import gzip

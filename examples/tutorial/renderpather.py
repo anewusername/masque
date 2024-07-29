@@ -1,7 +1,7 @@
 """
 Manual wire routing tutorial: RenderPather an PathTool
 """
-from typing import Callable
+from collections.abc import Callable
 from masque import RenderPather, Library, Pattern, Port, layer_t, map_layers
 from masque.builder.tools import PathTool
 from masque.file.gdsii import writefile

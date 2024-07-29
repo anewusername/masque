@@ -1,7 +1,8 @@
 """
 Pather with batched (multi-step) rendering
 """
-from typing import Self, Sequence, Mapping, MutableMapping
+from typing import Self
+from collections.abc import Sequence, Mapping, MutableMapping
 import copy
 import logging
 from collections import defaultdict

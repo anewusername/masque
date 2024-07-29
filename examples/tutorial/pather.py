@@ -1,7 +1,7 @@
 """
 Manual wire routing tutorial: Pather and BasicTool
 """
-from typing import Callable
+from collections.abc import Callable
 from numpy import pi
 from masque import Pather, RenderPather, Library, Pattern, Port, layer_t, map_layers
 from masque.builder.tools import BasicTool, PathTool

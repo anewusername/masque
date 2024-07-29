@@ -1,4 +1,5 @@
-from typing import Sequence, Any, cast
+from typing import Any, cast
+from collections.abc import Sequence
 import copy
 import functools
 from enum import Enum

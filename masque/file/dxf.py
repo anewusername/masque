@@ -6,7 +6,8 @@ Notes:
  * ezdxf sets creation time, write time, $VERSIONGUID, and $FINGERPRINTGUID
     to unique values, so byte-for-byte reproducibility is not achievable for now
 """
-from typing import Any, Callable, Mapping, cast, TextIO, IO
+from typing import Any, cast, TextIO, IO
+from collections.abc import Mapping, Callable
 import io
 import logging
 import pathlib

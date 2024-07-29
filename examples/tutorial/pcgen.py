@@ -2,7 +2,7 @@
 Routines for creating normalized 2D lattices and common photonic crystal
  cavity designs.
 """
-from typing import Sequence
+from collection.abc import Sequence
 
 import numpy
 from numpy.typing import ArrayLike, NDArray

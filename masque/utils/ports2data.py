@@ -6,7 +6,7 @@ and retrieving it (`data_to_ports`).
 the port locations. This particular approach is just a sensible default; feel free to
 to write equivalent functions for your own format or alternate storage methods.
 """
-from typing import Sequence, Mapping
+from collections.abc import Sequence, Mapping
 import logging
 from itertools import chain
 

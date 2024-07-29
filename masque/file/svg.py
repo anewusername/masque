@@ -1,7 +1,7 @@
 """
 SVG file format readers and writers
 """
-from typing import Mapping
+from collections.abc import Mapping
 import warnings
 
 import numpy

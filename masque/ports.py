@@ -1,4 +1,5 @@
-from typing import Iterable, KeysView, ValuesView, overload, Self, Mapping, NoReturn, Any
+from typing import overload, Self, NoReturn, Any
+from collections.abc import Iterable, KeysView, ValuesView, Mapping
 import warnings
 import traceback
 import logging

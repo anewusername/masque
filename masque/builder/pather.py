@@ -1,7 +1,8 @@
 """
 Manual wire/waveguide routing (`Pather`)
 """
-from typing import Self, Sequence, MutableMapping, Mapping
+from typing import Self
+from collections.abc import Sequence, MutableMapping, Mapping
 import copy
 import logging
 from pprint import pformat

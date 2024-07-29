@@ -1,7 +1,8 @@
 """
 Helper functions for file reading and writing
 """
-from typing import IO, Iterator, Mapping
+from typing import IO
+from collections.abc import Iterator, Mapping
 import re
 import pathlib
 import logging

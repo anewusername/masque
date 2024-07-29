@@ -1,7 +1,8 @@
 """
 Simplified Pattern assembly (`Builder`)
 """
-from typing import Self, Sequence, Mapping
+from typing import Self
+from collections.abc import Sequence, Mapping
 import copy
 import logging
 from functools import wraps

@@ -2,7 +2,8 @@
  Ref provides basic support for nesting Pattern objects within each other.
  It carries offset, rotation, mirroring, and scaling data for each individual instance.
 """
-from typing import Mapping, TYPE_CHECKING, Self, Any
+from typing import TYPE_CHECKING, Self, Any
+from collections.abc import Mapping
 import copy
 import functools
 

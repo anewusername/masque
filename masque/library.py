@@ -15,7 +15,7 @@ Classes include:
     library. Generated with `ILibraryView.abstract_view()`.
 """
 from typing import Callable, Self, Type, TYPE_CHECKING, cast, TypeAlias, Protocol, Literal
-from typing import Iterator, Mapping, MutableMapping, Sequence
+from collections.abc import Iterator, Mapping, MutableMapping, Sequence, Callable
 import logging
 import base64
 import struct

@@ -1,4 +1,5 @@
-from typing import Mapping, Sequence, SupportsFloat, cast, TYPE_CHECKING
+from typing import SupportsFloat, cast, TYPE_CHECKING
+from collections.abc import Mapping, Sequence
 from pprint import pformat
 
 import numpy

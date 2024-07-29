@@ -1,4 +1,4 @@
-from typing import Sequence, Mapping
+from collections.abc import Sequence, Mapping
 
 import numpy
 from numpy import pi

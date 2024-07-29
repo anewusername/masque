@@ -1,7 +1,7 @@
 """
 Geometric transforms
 """
-from typing import Sequence
+from collections.abc import Sequence
 from functools import lru_cache
 
 import numpy

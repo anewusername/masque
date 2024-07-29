@@ -1,7 +1,7 @@
 """
 2D bin-packing
 """
-from typing import Sequence, Callable, Mapping
+from collections.abc import Sequence, Mapping, Callable
 
 import numpy
 from numpy.typing import NDArray, ArrayLike

@@ -19,7 +19,8 @@ Notes:
  * GDS creation/modification/access times are set to 1900-01-01 for reproducibility.
  * Gzip modification time is set to 0 (start of current epoch, usually 1970-01-01)
 """
-from typing import Callable, Iterable, Mapping, IO, cast, Any
+from typing import IO, cast, Any
+from collections.abc import Iterable, Mapping, Callable
 import io
 import mmap
 import logging
