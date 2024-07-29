@@ -181,7 +181,7 @@ class PortList(metaclass=ABCMeta):
         """
         if isinstance(key, str):
             return self.ports[key]
-        else:
+        else:                                       # noqa: RET505
             return {k: self.ports[k] for k in key}
 
     def __contains__(self, key: str) -> NoReturn:

@@ -220,11 +220,11 @@ def _read_block(block) -> tuple[str, Pattern]:
 
             if points.shape[1] == 2:
                 raise PatternError('Invalid or unimplemented polygon?')
-                #shape = Polygon()
-            elif points.shape[1] > 2:
+
+            if points.shape[1] > 2:
                 if (points[0, 2] != points[:, 2]).any():
                     raise PatternError('PolyLine has non-constant width (not yet representable in masque!)')
-                elif points.shape[1] == 4 and (points[:, 3] != 0).any():
+                if points.shape[1] == 4 and (points[:, 3] != 0).any():
                     raise PatternError('LWPolyLine has bulge (not yet representable in masque!)')
 
                 width = points[0, 2]

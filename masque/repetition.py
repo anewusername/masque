@@ -101,8 +101,7 @@ class Grid(Repetition):
         if b_vector is None:
             if b_count > 1:
                 raise PatternError('Repetition has b_count > 1 but no b_vector')
-            else:
-                b_vector = numpy.array([0.0, 0.0])
+            b_vector = numpy.array([0.0, 0.0])
 
         if a_count < 1:
             raise PatternError(f'Repetition has too-small a_count: {a_count}')

@@ -70,8 +70,7 @@ def maxrects_bssf(
             if allow_rejects:
                 rejected_inds.add(rect_ind)
                 continue
-            else:
-                raise MasqueError(f'Failed to find a suitable location for rectangle {rect_ind}')
+            raise MasqueError(f'Failed to find a suitable location for rectangle {rect_ind}')
 
         # Read out location
         loc = regions[rr, :2]
@@ -161,8 +160,7 @@ def guillotine_bssf_sas(
             if allow_rejects:
                 rejected_inds.add(rect_ind)
                 continue
-            else:
-                raise MasqueError(f'Failed to find a suitable location for rectangle {rect_ind}')
+            raise MasqueError(f'Failed to find a suitable location for rectangle {rect_ind}')
 
         # Read out location
         loc = regions[rr, :2]

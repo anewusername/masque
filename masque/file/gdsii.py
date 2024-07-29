@@ -604,7 +604,7 @@ def load_libraryfile(
         else:
             gz_stream = gzip.open(path, mode='rb')
             stream = io.BufferedReader(gz_stream)       # type: ignore
-    else:
+    else:       # noqa: PLR5501
         if mmap:
             base_stream = open(path, mode='rb', buffering=0)
             stream = mmap.mmap(base_stream.fileno(), 0, access=mmap.ACCESS_READ)    # type: ignore

@@ -658,7 +658,7 @@ class Pather(Builder):
 
         if not bound_types:
             raise BuildError('No bound type specified for mpath')
-        elif len(bound_types) > 1:
+        if len(bound_types) > 1:
             raise BuildError(f'Too many bound types specified for mpath: {bound_types}')
         bound_type = tuple(bound_types)[0]
 
@@ -672,13 +672,13 @@ class Pather(Builder):
             # Not a bus, so having a container just adds noise to the layout
             port_name = tuple(portspec)[0]
             return self.path(port_name, ccw, extensions[port_name], tool_port_names=tool_port_names, **kwargs)
-        else:
-            bld = Pather.interface(source=ports, library=self.library, tools=self.tools)
-            for port_name, length in extensions.items():
-                bld.path(port_name, ccw, length, tool_port_names=tool_port_names, **kwargs)
-            name = self.library.get_name(base_name)
-            self.library[name] = bld.pattern
-            return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports.keys()})       # TODO safe to use 'in_'?
+
+        bld = Pather.interface(source=ports, library=self.library, tools=self.tools)
+        for port_name, length in extensions.items():
+            bld.path(port_name, ccw, length, tool_port_names=tool_port_names, **kwargs)
+        name = self.library.get_name(base_name)
+        self.library[name] = bld.pattern
+        return self.plug(Abstract(name, bld.pattern.ports), {sp: 'in_' + sp for sp in ports})       # TODO safe to use 'in_'?
 
     # TODO def bus_join()?
 

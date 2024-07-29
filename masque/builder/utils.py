@@ -113,7 +113,7 @@ def ell(
     is_horizontal = numpy.isclose(rotations[0] % pi, 0)
     if bound_type in ('ymin', 'ymax') and is_horizontal:
         raise BuildError(f'Asked for {bound_type} position but ports are pointing along the x-axis!')
-    elif bound_type in ('xmin', 'xmax') and not is_horizontal:
+    if bound_type in ('xmin', 'xmax') and not is_horizontal:
         raise BuildError(f'Asked for {bound_type} position but ports are pointing along the y-axis!')
 
     direction = rotations[0] + pi                        # direction we want to travel in (+pi relative to port)

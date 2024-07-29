@@ -561,7 +561,7 @@ class RenderPather(PortList):
 
         if not bound_types:
             raise BuildError('No bound type specified for mpath')
-        elif len(bound_types) > 1:
+        if len(bound_types) > 1:
             raise BuildError(f'Too many bound types specified for mpath: {bound_types}')
         bound_type = tuple(bound_types)[0]
 

@@ -253,7 +253,7 @@ class Polygon(Shape):
                 lx = 2 * (xmax - xctr)
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
-        else:
+        else:                        # noqa: PLR5501
             if xctr is not None:
                 pass
             elif xmax is None:
@@ -283,7 +283,7 @@ class Polygon(Shape):
                 ly = 2 * (ymax - yctr)
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
-        else:
+        else:                        # noqa: PLR5501
             if yctr is not None:
                 pass
             elif ymax is None:

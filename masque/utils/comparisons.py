@@ -12,7 +12,7 @@ def annotation2key(aaa: int | float | str) -> tuple[bool, Any]:
 def annotations_lt(aa: annotations_t, bb: annotations_t) -> bool:
     if aa is None:
         return bb is not None
-    elif bb is None:
+    elif bb is None:            # noqa: RET505
         return False
 
     if len(aa) != len(bb):
@@ -38,7 +38,7 @@ def annotations_lt(aa: annotations_t, bb: annotations_t) -> bool:
 def annotations_eq(aa: annotations_t, bb: annotations_t) -> bool:
     if aa is None:
         return bb is None
-    elif bb is None:
+    elif bb is None:            # noqa: RET505
         return False
 
     if len(aa) != len(bb):
