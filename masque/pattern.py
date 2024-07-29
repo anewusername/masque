@@ -595,8 +595,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         if (cbounds[1] < cbounds[0]).any():
             return None
-        else:
-            return cbounds
+        return cbounds
 
     def get_bounds_nonempty(
             self,
