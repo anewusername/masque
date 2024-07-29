@@ -296,7 +296,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         if not annotations_eq(self.annotations, other.annotations):
             return False
 
-        if not ports_eq(self.ports, other.ports):
+        if not ports_eq(self.ports, other.ports):   # noqa: SIM103
             return False
 
         return True

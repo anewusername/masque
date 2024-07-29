@@ -289,7 +289,7 @@ class Grid(Repetition):
             return True
         if self.b_vector is None or other.b_vector is None:
             return False
-        if any(self.b_vector[ii] != other.b_vector[ii] for ii in range(2)):
+        if any(self.b_vector[ii] != other.b_vector[ii] for ii in range(2)):     # noqa: SIM103
             return False
         return True
 
