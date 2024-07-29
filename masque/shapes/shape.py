@@ -165,7 +165,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
 
                 m = dv[1] / dv[0]
 
-                def get_grid_inds(xes: ArrayLike) -> NDArray[numpy.float64]:
+                def get_grid_inds(xes: ArrayLike, m: float = m, v: NDArray = v) -> NDArray[numpy.float64]:
                     ys = m * (xes - v[0]) + v[1]
 
                     # (inds - 1) is the index of the y-grid line below the edge's intersection with the x-grid
