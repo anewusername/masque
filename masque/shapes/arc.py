@@ -286,7 +286,7 @@ class Arc(Shape):
             return thetas
 
         wh = self.width / 2.0
-        if wh == r0 or wh == r1:
+        if wh in (r0, r1):
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
             thetas_inner = get_thetas(inner=True)
