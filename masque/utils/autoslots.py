@@ -12,7 +12,7 @@ class AutoSlots(ABCMeta):
     classes, they can have empty `__slots__` and their attribute type annotations
     can be used to generate a full `__slots__` for the concrete class.
     """
-    def __new__(cls, name, bases, dctn):
+    def __new__(cls, name, bases, dctn):        # noqa: ANN001,ANN204
         parents = set()
         for base in bases:
             parents |= set(base.mro())

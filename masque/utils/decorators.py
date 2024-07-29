@@ -11,7 +11,7 @@ def oneshot(func: Callable) -> Callable:
     expired = False
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):       # noqa: ANN202
         nonlocal expired
         if expired:
             raise OneShotError(func.__name__)

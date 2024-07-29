@@ -313,10 +313,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         if sort_elements:
-            def maybe_sort(xx):
+            def maybe_sort(xx):         # noqa:ANN001,ANN202
                 return sorted(xx)
         else:
-            def maybe_sort(xx):
+            def maybe_sort(xx):         # noqa:ANN001,ANN202
                 return xx
 
         self.refs = defaultdict(list, sorted(
