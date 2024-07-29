@@ -248,7 +248,7 @@ class RenderPather(PortList):
             other_tgt = self.library[other.name]
 
         # get rid of plugged ports
-        for kk in map_in.keys():
+        for kk in map_in:
             if kk in self.paths:
                 self.paths[kk].append(RenderStep('P', None, self.ports[kk].copy(), self.ports[kk].copy(), None))
 

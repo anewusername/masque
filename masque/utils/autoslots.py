@@ -17,11 +17,11 @@ class AutoSlots(ABCMeta):
         for base in bases:
             parents |= set(base.mro())
 
-        slots = tuple(dctn.get('__slots__', tuple()))
+        slots = tuple(dctn.get('__slots__', ()))
         for parent in parents:
             if not hasattr(parent, '__annotations__'):
                 continue
-            slots += tuple(getattr(parent, '__annotations__').keys())
+            slots += tuple(parent.__annotations__.keys())
 
         dctn['__slots__'] = slots
         return super().__new__(cls, name, bases, dctn)

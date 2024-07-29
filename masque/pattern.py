@@ -472,10 +472,10 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         self.polygonize()
         for layer in self.shapes:
-            self.shapes[layer] = list(chain.from_iterable((
+            self.shapes[layer] = list(chain.from_iterable(
                 ss.manhattanize(grid_x, grid_y)
                 for ss in self.shapes[layer]
-                )))
+                ))
         return self
 
     def as_polygons(self, library: Mapping[str, 'Pattern']) -> list[NDArray[numpy.float64]]:

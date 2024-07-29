@@ -150,7 +150,7 @@ def data_to_ports_flat(
     Returns:
         The updated `pattern`. Port labels are not removed.
     """
-    labels = list(chain.from_iterable((pattern.labels[layer] for layer in layers)))
+    labels = list(chain.from_iterable(pattern.labels[layer] for layer in layers))
     if not labels:
         return pattern
 

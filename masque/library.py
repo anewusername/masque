@@ -176,7 +176,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             tops = tuple(self.keys())
 
         if skip is None:
-            skip = set([None])
+            skip = {None}
 
         if isinstance(tops, str):
             tops = (tops,)
@@ -213,7 +213,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep = cast(set[str], self.referenced_patterns(tops) - set((None,)))
+        keep = cast(set[str], self.referenced_patterns(tops) - {None})
         keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
@@ -665,7 +665,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         duplicates = set(self.keys()) & set(other.keys())
 
         if not duplicates:
-            for key in other.keys():
+            for key in other:
                 self._merge(key, other, key)
             return {}
 
@@ -912,7 +912,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep = cast(set[str], self.referenced_patterns(tops) - set((None,)))
+        keep = cast(set[str], self.referenced_patterns(tops) - {None})
         keep |= set(tops)
 
         new = type(self)()
@@ -934,7 +934,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             A set containing the names of all deleted patterns
         """
         trimmed = set()
-        while empty := set(name for name, pat in self.items() if pat.is_empty()):
+        while empty := {name for name, pat in self.items() if pat.is_empty()}:
             for name in empty:
                 del self[name]
 

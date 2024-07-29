@@ -239,7 +239,7 @@ class PortList(metaclass=ABCMeta):
             if duplicates:
                 raise PortError(f'Unrenamed ports would be overwritten: {duplicates}')
 
-        renamed = {mapping[k]: self.ports.pop(k) for k in mapping.keys()}
+        renamed = {vv: self.ports.pop(kk) for kk, vv in mapping.items()}
         if None in renamed:
             del renamed[None]
 
