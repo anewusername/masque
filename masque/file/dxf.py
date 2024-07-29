@@ -16,6 +16,7 @@ import gzip
 import numpy
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
+from ezdxf.entities import LWPolyline, Polyline, Text, Insert
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, Label
@@ -39,7 +40,7 @@ def write(
         top_name: str,
         stream: TextIO,
         *,
-        dxf_version='AC1024',
+        dxf_version: str = 'AC1024',
         ) -> None:
     """
     Write a `Pattern` to a DXF file, by first calling `.polygonize()` to change the shapes
@@ -205,16 +206,15 @@ def read(
     return mlib, library_info
 
 
-def _read_block(block) -> tuple[str, Pattern]:
+def _read_block(block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace) -> tuple[str, Pattern]:
     name = block.name
     pat = Pattern()
     for element in block:
-        eltype = element.dxftype()
-        if eltype in ('POLYLINE', 'LWPOLYLINE'):
-            if eltype == 'LWPOLYLINE':
-                points = numpy.array(tuple(element.lwpoints))
-            else:
-                points = numpy.array(tuple(element.points()))
+        if isinstance(element, LWPolyline | Polyline):
+            if isinstance(element, LWPolyline):
+                points = numpy.array(element.get_points())
+            elif isinstance(element, Polyline):
+                points = numpy.array(element.points())[:, :2]
             attr = element.dxfattribs()
             layer = attr.get('layer', DEFAULT_LAYER)
 
@@ -239,9 +239,9 @@ def _read_block(block) -> tuple[str, Pattern]:
 
             pat.shapes[layer].append(shape)
 
-        elif eltype in ('TEXT',):
+        elif isinstance(element, Text):
             args = dict(
-                offset=numpy.array(element.get_pos()[1])[:2],
+                offset=numpy.array(element.get_placement()[1])[:2],
                 layer=element.dxfattribs().get('layer', DEFAULT_LAYER),
                 )
             string = element.dxfattribs().get('text', '')
@@ -252,7 +252,7 @@ def _read_block(block) -> tuple[str, Pattern]:
             pat.label(string=string, **args)
 #            else:
 #                pat.shapes[args['layer']].append(Text(string=string, height=height, font_path=????))
-        elif eltype in ('INSERT',):
+        elif isinstance(element, Insert):
             attr = element.dxfattribs()
             xscale = attr.get('xscale', 1)
             yscale = attr.get('yscale', 1)
@@ -337,10 +337,10 @@ def _mrefs_to_drefs(
 def _shapes_to_elements(
         block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace,
         shapes: dict[layer_t, list[Shape]],
-        polygonize_paths: bool = False,
         ) -> None:
     # Add `LWPolyline`s for each shape.
     #   Could set do paths with width setting, but need to consider endcaps.
+    # TODO: can DXF do paths?
     for layer, sseq in shapes.items():
         attribs = dict(layer=_mlayer2dxf(layer))
         for shape in sseq:
