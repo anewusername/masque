@@ -953,7 +953,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         Returns:
             self
         """
-        flattened: dict[str | None, 'Pattern | None'] = {}
+        flattened: dict[str | None, Pattern | None] = {}
 
         def flatten_single(name: str | None) -> None:
             if name is None:
