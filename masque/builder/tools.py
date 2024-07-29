@@ -405,7 +405,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
                     ipat, iport_theirs, _iport_ours = in_transition
                     pat.plug(ipat, {port_names[1]: iport_theirs})
                 if not numpy.isclose(straight_length, 0):
-                    straight_pat = gen_straight(straight_length)
+                    straight_pat = gen_straight(straight_length, **kwargs)
                     if append:
                         pat.plug(straight_pat, {port_names[1]: sport_in}, append=True)
                     else:
