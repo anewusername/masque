@@ -155,8 +155,8 @@ def poly2path(vertices: ArrayLike) -> str:
         SVG path-string.
     """
     verts = numpy.array(vertices, copy=False)
-    commands = 'M{:g},{:g} '.format(verts[0][0], verts[0][1])
+    commands = 'M{:g},{:g} '.format(verts[0][0], verts[0][1])      # noqa: UP032
     for vertex in verts[1:]:
-        commands += 'L{:g},{:g}'.format(vertex[0], vertex[1])
+        commands += 'L{:g},{:g}'.format(vertex[0], vertex[1])      # noqa: UP032
     commands += ' Z   '
     return commands
