@@ -460,7 +460,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if transform is None or transform is True:
             transform = numpy.zeros(4)
         elif transform is not False:
-            transform = numpy.array(transform, dtype=float, copy=False)
+            transform = numpy.asarray(transform, dtype=float)
 
         original_pattern = pattern
 

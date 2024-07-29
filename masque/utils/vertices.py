@@ -73,8 +73,8 @@ def poly_contains_points(
     Returns:
         ndarray of booleans, [point0_is_in_shape, point1_is_in_shape, ...]
     """
-    points = numpy.array(points, copy=False)
-    vertices = numpy.array(vertices, copy=False)
+    points = numpy.asarray(points, dtype=float)
+    vertices = numpy.asarray(vertices, dtype=float)
 
     if points.size == 0:
         return numpy.zeros(0, dtype=numpy.int8)

@@ -38,8 +38,8 @@ def maxrects_bssf(
     Raises:
         MasqueError if `allow_rejects` is `True` but some `rects` could not be placed.
     """
-    regions = numpy.array(containers, copy=False, dtype=float)
-    rect_sizes = numpy.array(rects, copy=False, dtype=float)
+    regions = numpy.asarray(containers, dtype=float)
+    rect_sizes = numpy.asarray(rects, dtype=float)
     rect_locs = numpy.zeros_like(rect_sizes)
     rejected_inds = set()
 
@@ -139,8 +139,8 @@ def guillotine_bssf_sas(
     Raises:
         MasqueError if `allow_rejects` is `True` but some `rects` could not be placed.
     """
-    regions = numpy.array(containers, copy=False, dtype=float)
-    rect_sizes = numpy.array(rects, copy=False, dtype=float)
+    regions = numpy.asarray(containers, dtype=float)
+    rect_sizes = numpy.asarray(rects, dtype=float)
     rect_locs = numpy.zeros_like(rect_sizes)
     rejected_inds = set()
 
@@ -227,7 +227,7 @@ def pack_patterns(
         MasqueError if `allow_rejects` is `True` but some `rects` could not be placed.
     """
 
-    half_spacing = numpy.array(spacing, copy=False, dtype=float) / 2
+    half_spacing = numpy.asarray(spacing, dtype=float) / 2
 
     bounds = [library[pp].get_bounds() for pp in patterns]
     sizes = [bb[1] - bb[0] + spacing if bb is not None else spacing for bb in bounds]
