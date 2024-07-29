@@ -693,9 +693,9 @@ def properties_to_annotations(
 
         assert proprec.values is not None
         for value in proprec.values:
-            if isinstance(value, (float, int)):
+            if isinstance(value, float | int):
                 values.append(value)
-            elif isinstance(value, (NString, AString)):
+            elif isinstance(value, NString | AString):
                 values.append(value.string)
             elif isinstance(value, PropStringReference):
                 values.append(propstrings[value.ref].string)  # dereference

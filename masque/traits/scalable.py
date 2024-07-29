@@ -48,7 +48,7 @@ class ScalableImpl(Scalable, metaclass=ABCMeta):
         return self._scale
 
     @scale.setter
-    def scale(self, val: float):
+    def scale(self, val: float) -> None:
         if not is_scalar(val):
             raise MasqueError('Scale must be a scalar')
         if not val > 0:

@@ -138,7 +138,7 @@ class Builder(PortList):
 
     @classmethod
     def interface(
-            cls,
+            cls: type['Builder'],
             source: PortList | Mapping[str, Port] | str,
             *,
             library: ILibrary | None = None,
@@ -276,7 +276,7 @@ class Builder(PortList):
             logger.error('Skipping plug() since device is dead')
             return self
 
-        if not isinstance(other, (str, Abstract, Pattern)):
+        if not isinstance(other, str | Abstract | Pattern):
             # We got a Tree; add it into self.library and grab an Abstract for it
             other = self.library << other
 
@@ -348,7 +348,7 @@ class Builder(PortList):
             logger.error('Skipping place() since device is dead')
             return self
 
-        if not isinstance(other, (str, Abstract, Pattern)):
+        if not isinstance(other, str | Abstract | Pattern):
             # We got a Tree; add it into self.library and grab an Abstract for it
             other = self.library << other
 

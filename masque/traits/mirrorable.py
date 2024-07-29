@@ -44,7 +44,7 @@ class Mirrorable(metaclass=ABCMeta):
 #    """
 #    __slots__ = ()
 #
-#    _mirrored: numpy.ndarray        # ndarray[bool]
+#    _mirrored: NDArray[numpy.bool]
 #    """ Whether to mirror the instance across the x and/or y axes. """
 #
 #    #
@@ -52,12 +52,12 @@ class Mirrorable(metaclass=ABCMeta):
 #    #
 #    # Mirrored property
 #    @property
-#    def mirrored(self) -> numpy.ndarray:        # ndarray[bool]
+#    def mirrored(self) -> NDArray[numpy.bool]:
 #        """ Whether to mirror across the [x, y] axes, respectively """
 #        return self._mirrored
 #
 #    @mirrored.setter
-#    def mirrored(self, val: Sequence[bool]):
+#    def mirrored(self, val: Sequence[bool]) -> None:
 #        if is_scalar(val):
 #            raise MasqueError('Mirrored must be a 2-element list of booleans')
 #        self._mirrored = numpy.array(val, dtype=bool, copy=True)

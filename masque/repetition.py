@@ -2,7 +2,7 @@
     Repetitions provide support for efficiently representing multiple identical
      instances of an object .
 """
-from typing import Any, Type, Self, TypeVar, cast
+from typing import Any, Self, TypeVar, cast
 import copy
 import functools
 from abc import ABCMeta, abstractmethod
@@ -116,7 +116,7 @@ class Grid(Repetition):
 
     @classmethod
     def aligned(
-            cls: Type[GG],
+            cls: type[GG],
             x: float,
             y: float,
             x_count: int,

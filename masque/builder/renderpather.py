@@ -128,7 +128,7 @@ class RenderPather(PortList):
 
     @classmethod
     def interface(
-            cls,
+            cls: type['RenderPather'],
             source: PortList | Mapping[str, Port] | str,
             *,
             library: ILibrary | None = None,

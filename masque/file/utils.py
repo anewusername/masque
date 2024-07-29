@@ -117,7 +117,7 @@ def clean_pattern_vertices(pat: Pattern) -> Pattern:
     for shapes in pat.shapes.values():
         remove_inds = []
         for ii, shape in enumerate(shapes):
-            if not isinstance(shape, (Polygon, Path)):
+            if not isinstance(shape, Polygon | Path):
                 continue
             try:
                 shape.clean_vertices()

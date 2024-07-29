@@ -1325,7 +1325,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
     @classmethod
     def interface(
-            cls,
+            cls: type['Pattern'],
             source: PortList | Mapping[str, Port],
             *,
             in_prefix: str = 'in_',

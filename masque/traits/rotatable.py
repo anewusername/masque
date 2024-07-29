@@ -54,7 +54,7 @@ class RotatableImpl(Rotatable, metaclass=ABCMeta):
         return self._rotation
 
     @rotation.setter
-    def rotation(self, val: float):
+    def rotation(self, val: float) -> None:
         if not numpy.size(val) == 1:
             raise MasqueError('Rotation must be a scalar')
         self._rotation = val % (2 * pi)

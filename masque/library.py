@@ -14,7 +14,7 @@ Classes include:
 - `AbstractView`: Provides a way to use []-indexing to generate abstracts for patterns in the linked
     library. Generated with `ILibraryView.abstract_view()`.
 """
-from typing import Callable, Self, Type, TYPE_CHECKING, cast, TypeAlias, Protocol, Literal
+from typing import Self, TYPE_CHECKING, cast, TypeAlias, Protocol, Literal
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence, Callable
 import logging
 import base64
@@ -285,7 +285,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        flattened: dict[str, 'Pattern | None'] = {}
+        flattened: dict[str, Pattern | None] = {}
 
         def flatten_single(name: str) -> None:
             flattened[name] = None
@@ -735,7 +735,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
     def dedup(
             self,
             norm_value: int = int(1e6),
-            exclude_types: tuple[Type] = (Polygon,),
+            exclude_types: tuple[type] = (Polygon,),
             label2name: Callable[[tuple], str] | None = None,
             threshold: int = 2,
             ) -> Self:
@@ -773,7 +773,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
             exclude_types = ()
 
         if label2name is None:
-            def label2name(label):
+            def label2name(label: tuple) -> str:        # noqa: ARG001
                 return self.get_name(SINGLE_USE_PREFIX + 'shape')
 
         shape_counts: MutableMapping[tuple, int] = defaultdict(int)
@@ -863,7 +863,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         from .pattern import Pattern
 
         if name_func is None:
-            def name_func(_pat, _shape):
+            def name_func(_pat: Pattern, _shape: Shape | Label) -> str:
                 return self.get_name(SINGLE_USE_PREFIX + 'rep')
 
         for pat in tuple(self.values()):
@@ -1054,7 +1054,7 @@ class Library(ILibrary):
         return f'<Library ({type(self.mapping)}) with keys\n' + pformat(list(self.keys())) + '>'
 
     @classmethod
-    def mktree(cls, name: str) -> tuple[Self, 'Pattern']:
+    def mktree(cls: type[Self], name: str) -> tuple[Self, 'Pattern']:
         """
         Create a new Library and immediately add a pattern
 

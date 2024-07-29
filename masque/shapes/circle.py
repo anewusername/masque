@@ -130,7 +130,7 @@ class Circle(Shape):
         self.radius *= c
         return self
 
-    def normalized_form(self, norm_value) -> normalized_shape_tuple:
+    def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
         rotation = 0.0
         magnitude = self.radius / norm_value
         return ((type(self),),

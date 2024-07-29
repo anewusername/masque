@@ -34,7 +34,7 @@ class Repeatable(metaclass=ABCMeta):
 
 #    @repetition.setter
 #    @abstractmethod
-#    def repetition(self, repetition: 'Repetition | None'):
+#    def repetition(self, repetition: 'Repetition | None') -> None:
 #        pass
 
     #
@@ -75,7 +75,7 @@ class RepeatableImpl(Repeatable, Bounded, metaclass=ABCMeta):
         return self._repetition
 
     @repetition.setter
-    def repetition(self, repetition: 'Repetition | None'):
+    def repetition(self, repetition: 'Repetition | None') -> None:
         from ..repetition import Repetition
         if repetition is not None and not isinstance(repetition, Repetition):
             raise MasqueError(f'{repetition} is not a valid Repetition object!')

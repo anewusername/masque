@@ -63,7 +63,7 @@ class LayerableImpl(Layerable, metaclass=ABCMeta):
         return self._layer
 
     @layer.setter
-    def layer(self, val: layer_t):
+    def layer(self, val: layer_t) -> None:
         self._layer = val
 
     #

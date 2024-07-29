@@ -175,7 +175,7 @@ class Pather(Builder):
 
     @classmethod
     def from_builder(
-            cls,
+            cls: type['Pather'],
             builder: Builder,
             *,
             tools: Tool | MutableMapping[str | None, Tool] | None = None,
@@ -195,7 +195,7 @@ class Pather(Builder):
 
     @classmethod
     def interface(
-            cls,
+            cls: type['Pather'],
             source: PortList | Mapping[str, Port] | str,
             *,
             library: ILibrary | None = None,

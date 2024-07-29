@@ -93,7 +93,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
     def copy(self) -> Self:
         return self.deepcopy()
 
-    def get_bounds(self):
+    def get_bounds(self) -> NDArray[numpy.float64]:
         return numpy.vstack((self.offset, self.offset))
 
     def set_ptype(self, ptype: str) -> Self:
