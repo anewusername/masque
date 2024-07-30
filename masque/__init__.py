@@ -88,5 +88,5 @@ from .utils import (
 
 __author__ = 'Jan Petykiewicz'
 
-__version__ = '3.1'
+__version__ = '3.2'
 version = __version__       # legacy
