@@ -24,6 +24,7 @@ from .transform import (
     rotation_matrix_2d as rotation_matrix_2d,
     normalize_mirror as normalize_mirror,
     rotate_offsets_around as rotate_offsets_around,
+    apply_transforms as apply_transforms,
     )
 from .comparisons import (
     annotation2key as annotation2key,

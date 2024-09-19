@@ -22,12 +22,13 @@ import copy
 from pprint import pformat
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
+from graphlib import TopologicalSorter
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
 
 from .error import LibraryError, PatternError
-from .utils import rotation_matrix_2d, layer_t
+from .utils import layer_t, apply_transforms
 from .shapes import Shape, Polygon
 from .label import Label
 from .abstract import Abstract
@@ -474,24 +475,21 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 raise LibraryError(f'.dfs() called on pattern with circular reference to "{target}"')
 
             for ref in pattern.refs[target]:
+                ref_transforms: list[bool] | NDArray[numpy.float64]
                 if transform is not False:
-                    sign = numpy.ones(2)
-                    if transform[3]:
-                        sign[1] = -1
-                    xy = numpy.dot(rotation_matrix_2d(transform[2]), ref.offset * sign)
-                    ref_transform = transform + (xy[0], xy[1], ref.rotation, ref.mirrored)
-                    ref_transform[3] %= 2
+                    ref_transforms = apply_transforms(transform, ref.as_transforms())
                 else:
-                    ref_transform = False
+                    ref_transforms = [False]
 
-                self.dfs(
-                    pattern=self[target],
-                    visit_before=visit_before,
-                    visit_after=visit_after,
-                    hierarchy=hierarchy + (target,),
-                    transform=ref_transform,
-                    memo=memo,
-                    )
+                for ref_transform in ref_transforms:
+                    self.dfs(
+                        pattern=self[target],
+                        visit_before=visit_before,
+                        visit_after=visit_after,
+                        hierarchy=hierarchy + (target,),
+                        transform=ref_transform,
+                        memo=memo,
+                        )
 
         if visit_after is not None:
             pattern = visit_after(pattern, hierarchy=hierarchy, memo=memo, transform=transform)
@@ -509,6 +507,143 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             cast(ILibrary, self)[name] = pattern
 
         return self
+
+    def child_graph(self) -> dict[str, set[str | None]]:
+        """
+          Return a mapping from pattern name to a set of all child patterns
+        (patterns it references).
+
+        Returns:
+            Mapping from pattern name to a set of all pattern names it references.
+        """
+        graph = {name: set(pat.refs.keys()) for name, pat in self.items()}
+        return graph
+
+    def parent_graph(self) -> dict[str, set[str]]:
+        """
+          Return a mapping from pattern name to a set of all parent patterns
+        (patterns which reference it).
+
+        Returns:
+            Mapping from pattern name to a set of all patterns which reference it.
+        """
+        igraph: dict[str, set[str]] = {name: set() for name in self}
+        for name, pat in self.items():
+            for child, reflist in pat.refs.items():
+                if reflist and child is not None:
+                    igraph[child].add(name)
+        return igraph
+
+    def child_order(self) -> list[str]:
+        """
+          Return a topologically sorted list of all contained pattern names.
+        Child (referenced) patterns will appear before their parents.
+
+        Return:
+            Topologically sorted list of pattern names.
+        """
+        return list(TopologicalSorter(self.child_graph()).static_order())
+
+    def find_refs_local(
+            self,
+            name: str,
+            parent_graph: dict[str, set[str]] | None = None,
+            ) -> dict[str, list[NDArray[numpy.float64]]]:
+        """
+          Find the location and orientation of all refs pointing to `name`.
+        Refs with a `repetition` are resolved into multiple instances (locations).
+
+        Args:
+            name: Name of the referenced pattern.
+            parent_graph: Mapping from pattern name to the set of patterns which
+                reference it. Default (`None`) calls `self.parent_graph()`.
+                The provided graph may be for a superset of `self` (i.e. it may
+                contain additional patterns which are not present in self; they
+                will be ignored).
+
+        Returns:
+            Mapping of {parent_name: transform_list}, where transform_list
+                is an Nx4 ndarray with rows
+                `(x_offset, y_offset, rotation_ccw_rad, mirror_across_x)`.
+        """
+        instances = defaultdict(list)
+        if parent_graph is None:
+            parent_graph = self.parent_graph()
+        for parent in parent_graph[name]:
+            if parent not in self:          # parent_graph may be a for a superset of self
+                continue
+            for ref in self[parent].refs[name]:
+                instances[parent].append(ref.as_transforms())
+
+        return instances
+
+    def find_refs_global(
+            self,
+            name: str,
+            order: list[str] | None = None,
+            parent_graph: dict[str, set[str]] | None = None,
+            ) -> dict[tuple[str, ...], NDArray[numpy.float64]]:
+        """
+          Find the absolute (top-level) location and orientation of all refs (including
+        repetitions) pointing to `name`.
+
+        Args:
+            name: Name of the referenced pattern.
+            order: List of pattern names in which children are guaranteed
+                to appear before their parents (i.e. topologically sorted).
+                Default (`None`) calls `self.child_order()`.
+            parent_graph: Passed to `find_refs_local`.
+                Mapping from pattern name to the set of patterns which
+                reference it. Default (`None`) calls `self.parent_graph()`.
+                The provided graph may be for a superset of `self` (i.e. it may
+                contain additional patterns which are not present in self; they
+                will be ignored).
+
+        Returns:
+            Mapping of `{hierarchy: transform_list}`, where `hierarchy` is a tuple of the form
+                `(toplevel_pattern, lvl1_pattern, ..., name)` and `transform_list` is an Nx4 ndarray
+                with rows `(x_offset, y_offset, rotation_ccw_rad, mirror_across_x)`.
+        """
+        if name not in self:
+            return {}
+        if order is None:
+            order = self.child_order()
+        if parent_graph is None:
+            parent_graph = self.parent_graph()
+
+        self_keys = set(self.keys())
+
+        transforms: dict[str, list[tuple[
+                tuple[str, ...],
+                NDArray[numpy.float64]
+                ]]]
+        transforms = defaultdict(list)
+        for parent, vals in self.find_refs_local(name, parent_graph=parent_graph).items():
+            transforms[parent] = [((name,), numpy.concatenate(vals))]
+
+        for next_name in order:
+            if next_name not in transforms:
+                continue
+            if not parent_graph[next_name] & self_keys:
+                continue
+
+            outers = self.find_refs_local(next_name, parent_graph=parent_graph)
+            inners = transforms.pop(next_name)
+            for parent, outer in outers.items():
+                for path, inner in inners:
+                    combined = apply_transforms(numpy.concatenate(outer), inner)
+                    transforms[parent].append((
+                        (next_name,) + path,
+                        combined,
+                        ))
+        result = {}
+        for parent, targets in transforms.items():
+            for path, instances in targets:
+                full_path = (parent,) + path
+                assert full_path not in result
+                result[full_path] = instances
+        return result
+
 
 
 class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):

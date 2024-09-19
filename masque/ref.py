@@ -183,6 +183,16 @@ class Ref(
             self.rotation += pi
         return self
 
+    def as_transforms(self) -> NDArray[numpy.float64]:
+        xys = self.offset[None, :]
+        if self.repetition is not None:
+            xys = xys + self.repetition.displacements
+        transforms = numpy.empty((xys.shape[0], 4))
+        transforms[:, :2] = xys
+        transforms[:, 2] = self.rotation
+        transforms[:, 3] = self.mirrored
+        return transforms
+
     def get_bounds_single(
             self,
             pattern: 'Pattern',
