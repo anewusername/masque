@@ -233,7 +233,7 @@ class Arc(Shape):
         r0, r1 = self.radii
 
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
-        a_ranges = self._angles_to_parameters()
+        a_ranges = cast(tuple[tuple[float, float], tuple[float, float]], self._angles_to_parameters())
 
         # Approximate perimeter via numerical integration
 

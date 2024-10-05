@@ -542,7 +542,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         Return:
             Topologically sorted list of pattern names.
         """
-        return list(TopologicalSorter(self.child_graph()).static_order())
+        return cast(list[str], list(TopologicalSorter(self.child_graph()).static_order()))
 
     def find_refs_local(
             self,
