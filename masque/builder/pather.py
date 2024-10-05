@@ -2,9 +2,10 @@
 Manual wire/waveguide routing (`Pather`)
 """
 from typing import Self
-from collections.abc import Sequence, MutableMapping, Mapping
+from collections.abc import Sequence, MutableMapping, Mapping, Iterator
 import copy
 import logging
+from contextlib import contextmanager
 from pprint import pformat
 
 import numpy
@@ -280,6 +281,37 @@ class Pather(Builder):
             for key in keys:
                 self.tools[key] = tool
         return self
+
+    @contextmanager
+    def toolctx(
+            self,
+            tool: Tool,
+            keys: str | Sequence[str | None] | None = None,
+            ) -> Iterator[Self]:
+        """
+          Context manager for temporarily `retool`-ing and reverting the `retool`
+        upon exiting the context.
+
+        Args:
+            tool: The new `Tool` to use for the given ports.
+            keys: Which ports the tool should apply to. `None` indicates the default tool,
+                used when there is no matching entry in `self.tools` for the port in question.
+
+        Returns:
+            self
+        """
+        if keys is None or isinstance(keys, str):
+            keys = [keys]
+        saved_tools = {kk: self.tools.get(kk, None) for kk in keys}      # If not in self.tools, save `None`
+        try:
+            yield self.retool(tool=tool, keys=keys)
+        finally:
+            for kk, tt in saved_tools.items():
+                if tt is None:
+                    # delete if present
+                    self.tools.pop(kk, None)
+                else:
+                    self.tools[kk] = tt
 
     def path(
             self,

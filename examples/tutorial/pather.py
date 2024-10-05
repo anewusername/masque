@@ -265,6 +265,12 @@ def main() -> None:
     # when using pather.retool().
     pather.path_to('VCC', None, -50_000, out_ptype='m1wire')
 
+    # Now extend GND out to x=-50_000, using M2 for a portion of the path.
+    # We can use `pather.toolctx()` to temporarily retool, instead of calling `retool()` twice.
+    with pather.toolctx(M2_tool, keys=['GND']):
+        pather.path_to('GND', None, -40_000)
+    pather.path_to('GND', None, -50_000)
+
     # Save the pather's pattern into our library
     library['Pather_and_BasicTool'] = pather.pattern
 
