@@ -244,30 +244,31 @@ class Arc(Shape):
         #t0 = ellipeinc(a0 - pi / 2, m)
         #perimeter2 = r0 * (t1 - t0)
 
-        def get_arclens(n_pts: int, a0: float, a1: float) -> tuple[NDArray[numpy.float64], NDArray[numpy.float64]]:
+        def get_arclens(n_pts: int, a0: float, a1: float, dr: float) -> tuple[NDArray[numpy.float64], NDArray[numpy.float64]]:
             """ Get `n_pts` arclengths """
             t, dt = numpy.linspace(a0, a1, n_pts, retstep=True)  # NOTE: could probably use an adaptive number of points
-            r0sin = r0 * numpy.sin(t)
-            r1cos = r1 * numpy.cos(t)
+            r0sin = (r0 + dr) * numpy.sin(t)
+            r1cos = (r1 + dr) * numpy.cos(t)
             arc_dl = numpy.sqrt(r0sin * r0sin + r1cos * r1cos)
             #arc_lengths = numpy.diff(t) * (arc_dl[1:] + arc_dl[:-1]) / 2
             arc_lengths = (arc_dl[1:] + arc_dl[:-1]) * numpy.abs(dt) / 2
             return arc_lengths, t
 
+        wh = self.width / 2.0
         if num_vertices is not None:
-            n_pts = numpy.ceil(max(self.radii) / min(self.radii) * num_vertices * 100).astype(int)
-            perimeter_inner = get_arclens(n_pts, *a_ranges[0])[0].sum()
-            perimeter_outer = get_arclens(n_pts, *a_ranges[1])[0].sum()
+            n_pts = numpy.ceil(max(self.radii + wh) / min(self.radii) * num_vertices * 100).astype(int)
+            perimeter_inner = get_arclens(n_pts, *a_ranges[0], dr=-wh)[0].sum()
+            perimeter_outer = get_arclens(n_pts, *a_ranges[1], dr= wh)[0].sum()
             implied_arclen = (perimeter_outer + perimeter_inner + self.width * 2) / num_vertices
             max_arclen = min(implied_arclen, max_arclen if max_arclen is not None else numpy.inf)
         assert max_arclen is not None
 
         def get_thetas(inner: bool) -> NDArray[numpy.float64]:
             """ Figure out the parameter values at which we should place vertices to meet the arclength constraint"""
-            #dr = -self.width / 2.0 * (-1 if inner else 1)
+            dr = -wh if inner else wh
 
-            n_pts = numpy.ceil(2 * pi * max(self.radii) / max_arclen).astype(int)
-            arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1])
+            n_pts = numpy.ceil(2 * pi * max(self.radii + dr) / max_arclen).astype(int)
+            arc_lengths, thetas = get_arclens(n_pts, *a_ranges[0 if inner else 1], dr=dr)
 
             keep = [0]
             removable = (numpy.cumsum(arc_lengths) <= max_arclen)
@@ -285,7 +286,6 @@ class Arc(Shape):
                 thetas = thetas[::-1]
             return thetas
 
-        wh = self.width / 2.0
         if wh in (r0, r1):
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
@@ -455,17 +455,18 @@ class Arc(Shape):
 
     def _angles_to_parameters(self) -> NDArray[numpy.float64]:
         """
+        Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
+
         Returns:
             "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
                    `[[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]`
         """
         a = []
         for sgn in (-1, +1):
-            wh = sgn * self.width / 2
+            wh = sgn * self.width / 2.0
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
-            # create paremeter 'a' for parametrized ellipse
             a0, a1 = (numpy.arctan2(rx * numpy.sin(a), ry * numpy.cos(a)) for a in self.angles)
             sign = numpy.sign(self.angles[1] - self.angles[0])
             if sign != numpy.sign(a1 - a0):
