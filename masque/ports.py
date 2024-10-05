@@ -467,7 +467,7 @@ class PortList(metaclass=ABCMeta):
           specifying port connections, find the transform which will correctly
           align the specified o_ports onto their respective s_ports.
 
-        Args:t
+        Args:
             s_ports: A list of stationary ports
             o_ports: A list of ports which are to be moved/mirrored.
             map_in: dict of `{'s_port': 'o_port'}` mappings, specifying
@@ -523,8 +523,8 @@ class PortList(metaclass=ABCMeta):
         if not numpy.allclose(rotations[:1], rotations):
             rot_deg = numpy.rad2deg(rotations)
             msg = 'Port orientations do not match:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
-                msg += f'{k} | {rot_deg[nn]:g} | {v}\n'
+            for nn, (kk, vv) in enumerate(map_in.items()):
+                msg += f'{kk} | {rot_deg[nn]:g} | {vv}\n'
             raise PortError(msg)
 
         pivot = o_offsets[0].copy()
@@ -532,8 +532,8 @@ class PortList(metaclass=ABCMeta):
         translations = s_offsets - o_offsets
         if not numpy.allclose(translations[:1], translations):
             msg = 'Port translations do not match:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
-                msg += f'{k} | {translations[nn]} | {v}\n'
+            for nn, (kk, vv) in enumerate(map_in.items()):
+                msg += f'{kk} | {translations[nn]} | {vv}\n'
             raise PortError(msg)
 
         return translations[0], rotations[0], o_offsets[0]
