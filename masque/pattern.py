@@ -1225,6 +1225,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             inherit_name: bool = True,
             set_rotation: bool | None = None,
             append: bool = False,
+            ok_connections: Iterable[tuple[str, str]] = (),
             ) -> Self:
         """
         Instantiate or append a pattern into the current pattern, connecting
@@ -1270,6 +1271,11 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             append: If `True`, `other` is appended instead of being referenced.
                 Note that this does not flatten  `other`, so its refs will still
                 be refs (now inside `self`).
+            ok_connections: Set of "allowed" ptype combinations. Identical
+                ptypes are always allowed to connect, as is `'unk'` with
+                any other ptypte. Non-allowed ptype connections will emit a
+                warning. Order is ignored, i.e. `(a, b)` is equivalent to
+                `(b, a)`.
 
         Returns:
             self
@@ -1300,6 +1306,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             map_in,
             mirrored=mirrored,
             set_rotation=set_rotation,
+            ok_connections=ok_connections,
             )
 
         # get rid of plugged ports

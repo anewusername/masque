@@ -2,7 +2,7 @@
 Simplified Pattern assembly (`Builder`)
 """
 from typing import Self
-from collections.abc import Sequence, Mapping
+from collections.abc import Iterable, Sequence, Mapping
 import copy
 import logging
 from functools import wraps
@@ -226,6 +226,7 @@ class Builder(PortList):
             inherit_name: bool = True,
             set_rotation: bool | None = None,
             append: bool = False,
+            ok_connections: Iterable[tuple[str, str]] = (),
             ) -> Self:
         """
         Wrapper around `Pattern.plug` which allows a string for `other`.
@@ -260,6 +261,11 @@ class Builder(PortList):
             append: If `True`, `other` is appended instead of being referenced.
                 Note that this does not flatten  `other`, so its refs will still
                 be refs (now inside `self`).
+            ok_connections: Set of "allowed" ptype combinations. Identical
+                ptypes are always allowed to connect, as is `'unk'` with
+                any other ptypte. Non-allowed ptype connections will emit a
+                warning. Order is ignored, i.e. `(a, b)` is equivalent to
+                `(b, a)`.
 
         Returns:
             self
@@ -293,6 +299,7 @@ class Builder(PortList):
             inherit_name=inherit_name,
             set_rotation=set_rotation,
             append=append,
+            ok_connections=ok_connections,
             )
         return self
 
