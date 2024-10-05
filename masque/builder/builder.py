@@ -2,7 +2,7 @@
 Simplified Pattern assembly (`Builder`)
 """
 from typing import Self
-from collections.abc import Sequence, Mapping
+from collections.abc import Iterable, Sequence, Mapping
 import copy
 import logging
 from functools import wraps

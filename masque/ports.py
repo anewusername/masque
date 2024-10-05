@@ -515,7 +515,7 @@ class PortList(metaclass=ABCMeta):
             o_offsets[:, 1] *= -1
             o_rotations *= -1
 
-        ok_pairs = {tuple(sorted(pair)) for pair in ok_connections if pair[0] != pair[1])}
+        ok_pairs = {tuple(sorted(pair)) for pair in ok_connections if pair[0] != pair[1]}
         type_conflicts = numpy.array([(st != ot) and ('unk' not in (st, ot)) and (tuple(sorted((st, ot))) not in ok_pairs)
                                       for st, ot in zip(s_types, o_types, strict=True)])
         if type_conflicts.any():
