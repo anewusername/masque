@@ -309,7 +309,7 @@ class Pather(Builder):
             for kk, tt in saved_tools.items():
                 if tt is None:
                     # delete if present
-                    self.tools.pop(tt, None)
+                    self.tools.pop(kk, None)
                 else:
                     self.tools[kk] = tt
 
