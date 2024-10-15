@@ -20,7 +20,7 @@ class Polygon(Shape):
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
        implicitly-closed boundary, and an offset.
 
-    Note that the setter for `Polygon.vertices` may creates a copy of the
+    Note that the setter for `Polygon.vertices` creates a copy of the
       passed vertex coordinates.
 
     A `normalized_form(...)` is available, but can be quite slow with lots of vertices.
