@@ -379,8 +379,9 @@ class Polygon(Shape):
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
         # Note: this function is going to be pretty slow for many-vertexed polygons, relative to
         #   other shapes
-        offset = self.vertices.mean(axis=0) + self.offset
-        zeroed_vertices = self.vertices - offset
+        meanv = self.vertices.mean(axis=0)
+        zeroed_vertices = self.vertices - meanv
+        offset = meanv + self.offset
 
         scale = zeroed_vertices.std()
         normed_vertices = zeroed_vertices / scale
