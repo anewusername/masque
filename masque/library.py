@@ -1068,20 +1068,22 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         Returns:
             A set containing the names of all deleted patterns
         """
+        parent_graph = self.parent_graph()
+        empty = {name for name, pat in self.items() if pat.is_empty()}
         trimmed = set()
-        while empty := {name for name, pat in self.items() if pat.is_empty()}:
+        while empty:
+            parents = set()
             for name in empty:
                 del self[name]
-
-            for pat in self.values():
-                for name in empty:
-                    # Second pass to skip looking at refs in empty patterns
-                    if name in pat.refs:
-                        del pat.refs[name]
+                for parent in parent_graph[name]:
+                    del self[parent].refs[name]
+                parents |= parent_graph[name]
 
             trimmed |= empty
             if not repeat:
                 break
+
+            empty = {parent for parent in parents if self[parent].is_empty()}
         return trimmed
 
     def delete(
