@@ -32,13 +32,13 @@ def bezier(
     umul[~t_half0] = 1
     udiv[t_half0] = 1
 
-    hh = numpy.ones((tt.size, 1))
-    qq = nodes[None, 0] * hh
+    hh = numpy.ones((tt.size,))
+    qq = nodes[None, 0] * hh[:, None]
     for kk in range(1, nn):
         hh *= umul * (nn + 1 - kk) * weights[kk]
         hh /= kk * udiv * weights[kk - 1] + hh
-        qq *= 1.0 - hh
-        qq += hh * nodes[None, kk]
+        qq *= 1.0 - hh[:, None]
+        qq += hh[:, None] * nodes[None, kk]
     return qq
 
 
