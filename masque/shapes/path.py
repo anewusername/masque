@@ -307,8 +307,8 @@ class Path(Shape):
         bs = v[1:-1] - v[:-2] + perp[1:] - perp[:-1]
         ds = v[1:-1] - v[:-2] - perp[1:] + perp[:-1]
 
-        rp = numpy.linalg.solve(As, bs)[:, 0, None]
-        rn = numpy.linalg.solve(As, ds)[:, 0, None]
+        rp = numpy.linalg.solve(As, bs[:, :, None])[:, 0]
+        rn = numpy.linalg.solve(As, ds[:, :, None])[:, 0]
 
         intersection_p = v[:-2] + rp * dv[:-1] + perp[:-1]
         intersection_n = v[:-2] + rn * dv[:-1] - perp[:-1]
