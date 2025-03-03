@@ -246,13 +246,13 @@ class Arc(Shape):
 
         def get_arclens(n_pts: int, a0: float, a1: float, dr: float) -> tuple[NDArray[numpy.float64], NDArray[numpy.float64]]:
             """ Get `n_pts` arclengths """
-            t, dt = numpy.linspace(a0, a1, n_pts, retstep=True)  # NOTE: could probably use an adaptive number of points
-            r0sin = (r0 + dr) * numpy.sin(t)
-            r1cos = (r1 + dr) * numpy.cos(t)
+            tt, dt = numpy.linspace(a0, a1, n_pts, retstep=True)  # NOTE: could probably use an adaptive number of points
+            r0sin = (r0 + dr) * numpy.sin(tt)
+            r1cos = (r1 + dr) * numpy.cos(tt)
             arc_dl = numpy.sqrt(r0sin * r0sin + r1cos * r1cos)
-            #arc_lengths = numpy.diff(t) * (arc_dl[1:] + arc_dl[:-1]) / 2
+            #arc_lengths = numpy.diff(tt) * (arc_dl[1:] + arc_dl[:-1]) / 2
             arc_lengths = (arc_dl[1:] + arc_dl[:-1]) * numpy.abs(dt) / 2
-            return arc_lengths, t
+            return arc_lengths, tt
 
         wh = self.width / 2.0
         if num_vertices is not None:
@@ -325,7 +325,7 @@ class Arc(Shape):
 
         mins = []
         maxs = []
-        for a, sgn in zip(a_ranges, (-1, +1), strict=True):
+        for aa, sgn in zip(a_ranges, (-1, +1), strict=True):
             wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
@@ -336,13 +336,13 @@ class Arc(Shape):
                 maxs.append([0, 0])
                 continue
 
-            a0, a1 = a
+            a0, a1 = aa
             a0_offset = a0 - (a0 % (2 * pi))
 
             sin_r = numpy.sin(self.rotation)
             cos_r = numpy.cos(self.rotation)
-            sin_a = numpy.sin(a)
-            cos_a = numpy.cos(a)
+            sin_a = numpy.sin(aa)
+            cos_a = numpy.cos(aa)
 
             # Cutoff angles
             xpt = (-self.rotation) % (2 * pi) + a0_offset
@@ -436,15 +436,15 @@ class Arc(Shape):
 
         mins = []
         maxs = []
-        for a, sgn in zip(a_ranges, (-1, +1), strict=True):
+        for aa, sgn in zip(a_ranges, (-1, +1), strict=True):
             wh = sgn * self.width / 2
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
             sin_r = numpy.sin(self.rotation)
             cos_r = numpy.cos(self.rotation)
-            sin_a = numpy.sin(a)
-            cos_a = numpy.cos(a)
+            sin_a = numpy.sin(aa)
+            cos_a = numpy.cos(aa)
 
             # arc endpoints
             xn, xp = sorted(rx * cos_r * cos_a - ry * sin_r * sin_a)
@@ -462,19 +462,19 @@ class Arc(Shape):
             "Eccentric anomaly" parameter ranges for the inner and outer edges, in the form
                    `[[a_min_inner, a_max_inner], [a_min_outer, a_max_outer]]`
         """
-        a = []
+        aa = []
         for sgn in (-1, +1):
             wh = sgn * self.width / 2.0
             rx = self.radius_x + wh
             ry = self.radius_y + wh
 
-            a0, a1 = (numpy.arctan2(rx * numpy.sin(a), ry * numpy.cos(a)) for a in self.angles)
+            a0, a1 = (numpy.arctan2(rx * numpy.sin(ai), ry * numpy.cos(ai)) for ai in self.angles)
             sign = numpy.sign(self.angles[1] - self.angles[0])
             if sign != numpy.sign(a1 - a0):
                 a1 += sign * 2 * pi
 
-            a.append((a0, a1))
-        return numpy.array(a, dtype=float)
+            aa.append((a0, a1))
+        return numpy.array(aa, dtype=float)
 
     def __repr__(self) -> str:
         angles = f' a°{numpy.rad2deg(self.angles)}'
