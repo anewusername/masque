@@ -233,7 +233,7 @@ class Arc(Shape):
         r0, r1 = self.radii
 
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
-        a_ranges = cast(tuple[tuple[float, float], tuple[float, float]], self._angles_to_parameters())
+        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
 
         # Approximate perimeter via numerical integration
 
@@ -286,6 +286,7 @@ class Arc(Shape):
                 thetas = thetas[::-1]
             return thetas
 
+        thetas_inner: NDArray[numpy.float64]
         if wh in (r0, r1):
             thetas_inner = numpy.zeros(1)      # Don't generate multiple vertices if we're at the origin
         else:
@@ -320,7 +321,7 @@ class Arc(Shape):
 
         If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
         """
-        a_ranges = self._angles_to_parameters()
+        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
 
         mins = []
         maxs = []
@@ -431,7 +432,7 @@ class Arc(Shape):
              [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
             ```
         """
-        a_ranges = self._angles_to_parameters()
+        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
 
         mins = []
         maxs = []
@@ -479,3 +480,5 @@ class Arc(Shape):
         angles = f' a°{numpy.rad2deg(self.angles)}'
         rotation = f' r°{numpy.rad2deg(self.rotation):g}' if self.rotation != 0 else ''
         return f'<Arc o{self.offset} r{self.radii}{angles} w{self.width:g}{rotation}>'
+
+_array2x2_t = tuple[tuple[float, float], tuple[float, float]]

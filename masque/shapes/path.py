@@ -271,7 +271,7 @@ class Path(Shape):
         # TODO: Path.travel() needs testing
         direction = numpy.array([1, 0])
 
-        verts = [numpy.zeros(2)]
+        verts: list[NDArray[numpy.float64]] = [numpy.zeros(2)]
         for angle, distance in travel_pairs:
             direction = numpy.dot(rotation_matrix_2d(angle), direction.T).T
             verts.append(verts[-1] + direction * distance)

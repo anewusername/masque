@@ -21,7 +21,7 @@ def ell(
         *,
         spacing: float | ArrayLike | None = None,
         set_rotation: float | None = None,
-        ) -> dict[str, float]:
+        ) -> dict[str, numpy.float64]:
     """
     Calculate extension for each port in order to build a 90-degree bend with the provided
     channel spacing:
