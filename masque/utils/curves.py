@@ -22,9 +22,10 @@ def bezier(
     Returns:
         `[[x0, y0], [x1, y1], ...]` corresponding to `[tt0, tt1, ...]`
     """
+    nodes = numpy.asarray(nodes)
+    tt = numpy.asarray(tt)
     nn = nodes.shape[0]
-    if weights is None:
-        weights = numpy.ones(nn)
+    weights = numpy.ones(nn) if weights is None else numpy.asarray(weights)
 
     t_half0 = tt <= 0.5
     umul = tt / (1 - tt)
