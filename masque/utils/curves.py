@@ -44,7 +44,10 @@ def bezier(
 
 
 
-def euler_bend(switchover_angle: float) -> NDArray[numpy.float64]:
+def euler_bend(
+        switchover_angle: float,
+        num_points: int = 200,
+        ) -> NDArray[numpy.float64]:
     """
     Generate a 90 degree Euler bend (AKA Clothoid bend or Cornu spiral).
 
@@ -52,42 +55,44 @@ def euler_bend(switchover_angle: float) -> NDArray[numpy.float64]:
         switchover_angle: After this angle, the bend will transition into a circular arc
             (and transition back to an Euler spiral on the far side). If this is set to
             `>= pi / 4`, no circular arc will be added.
+        num_points: Number of points in the curve
 
     Returns:
         `[[x0, y0], ...]` for the curve
     """
-    # Switchover angle
-    # AKA: Clothoid bend, Cornu spiral
-    theta_max = numpy.sqrt(2 * switchover_angle)
+    ll_max = numpy.sqrt(2 * switchover_angle)        # total length of (one) spiral portion
+    ll_tot = 2 * ll_max + (pi / 2 - 2 * switchover_angle)
+    num_points_spiral = numpy.floor(ll_max / ll_tot * num_points).astype(int)
+    num_points_arc = num_points - 2 * num_points_spiral
 
-    def gen_curve(theta_max: float):
+    def gen_spiral(ll_max: float):
         xx = []
         yy = []
-        for theta in numpy.linspace(0, theta_max, 100):
-            qq = numpy.linspace(0, theta, 1000)
+        for ll in numpy.linspace(0, ll_max, num_points_spiral):
+            qq = numpy.linspace(0, ll, 1000)        # integrate to current arclength
             xx.append(numpy.trapz( numpy.cos(qq * qq / 2), qq))
             yy.append(numpy.trapz(-numpy.sin(qq * qq / 2), qq))
         xy_part = numpy.stack((xx, yy), axis=1)
         return xy_part
 
-    xy_part = gen_curve(theta_max)
-    xy_parts = [xy_part]
+    xy_spiral = gen_spiral(ll_max)
+    xy_parts = [xy_spiral]
 
     if switchover_angle < pi / 4:
         # Build a circular segment to join the two euler portions
-        rmin = 1.0 / theta_max
+        rmin = 1.0 / ll_max
         half_angle = pi / 4 - switchover_angle
-        qq = numpy.linspace(half_angle * 2, 0, 10) + switchover_angle
+        qq = numpy.linspace(half_angle * 2, 0, num_points_arc + 1) + switchover_angle
         xc = rmin * numpy.cos(qq)
-        yc = rmin * numpy.sin(qq) + xy_part[-1, 1]
-        xc += xy_part[-1, 0] - xc[0]
-        yc += xy_part[-1, 1] - yc[0]
-        xy_parts.append(numpy.stack((xc, yc), axis=1))
+        yc = rmin * numpy.sin(qq) + xy_spiral[-1, 1]
+        xc += xy_spiral[-1, 0] - xc[0]
+        yc += xy_spiral[-1, 1] - yc[0]
+        xy_parts.append(numpy.stack((xc[1:], yc[1:]), axis=1))
 
     endpoint_xy = xy_parts[-1][-1, :]
-    second_curve = xy_part[::-1, ::-1] + endpoint_xy - xy_part[-1, ::-1]
+    second_spiral = xy_spiral[::-1, ::-1] + endpoint_xy - xy_spiral[-1, ::-1]
 
-    xy_parts.append(second_curve)
+    xy_parts.append(second_spiral)
     xy = numpy.concatenate(xy_parts)
 
     # Remove any 2x-duplicate points
