@@ -27,19 +27,17 @@ def bezier(
     nn = nodes.shape[0]
     weights = numpy.ones(nn) if weights is None else numpy.asarray(weights)
 
-    t_half0 = tt <= 0.5
-    umul = tt / (1 - tt)
-    udiv = 1 / umul
-    umul[~t_half0] = 1
-    udiv[t_half0] = 1
+    with numpy.errstate(divide='ignore'):
+        umul = (tt / (1 - tt)).clip(max=1)
+        udiv = ((1 - tt) / tt).clip(max=1)
 
     hh = numpy.ones((tt.size,))
-    qq = nodes[None, 0] * hh[:, None]
+    qq = nodes[None, 0, :] * hh[:, None]
     for kk in range(1, nn):
-        hh *= umul * (nn + 1 - kk) * weights[kk]
+        hh *= umul * (nn - kk) * weights[kk]
         hh /= kk * udiv * weights[kk - 1] + hh
         qq *= 1.0 - hh[:, None]
-        qq += hh[:, None] * nodes[None, kk]
+        qq += hh[:, None] * nodes[None, kk, :]
     return qq
 
 
