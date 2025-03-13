@@ -25,6 +25,8 @@ from .transform import (
     normalize_mirror as normalize_mirror,
     rotate_offsets_around as rotate_offsets_around,
     apply_transforms as apply_transforms,
+    R90 as R90,
+    R180 as R180,
     )
 from .comparisons import (
     annotation2key as annotation2key,

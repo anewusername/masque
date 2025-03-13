@@ -9,6 +9,11 @@ from numpy.typing import NDArray, ArrayLike
 from numpy import pi
 
 
+# Constants for shorthand rotations
+R90 = pi / 2
+R180 = pi
+
+
 @lru_cache
 def rotation_matrix_2d(theta: float) -> NDArray[numpy.float64]:
     """

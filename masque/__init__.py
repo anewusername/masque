@@ -83,6 +83,8 @@ from .builder import (
 from .utils import (
     ports2data as ports2data,
     oneshot as oneshot,
+    R90 as R90,
+    R180 as R180,
     )
 
 
