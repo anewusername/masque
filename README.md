@@ -172,6 +172,7 @@ my_pattern.place(abstract, ...)
 
 # or
 my_pattern.place(library << make_tree(...), ...)
+```
 
 
 ### Quickly add geometry, labels, or refs:
