@@ -68,7 +68,7 @@ def euler_bend(
     num_points_spiral = numpy.floor(ll_max / ll_tot * num_points).astype(int)
     num_points_arc = num_points - 2 * num_points_spiral
 
-    def gen_spiral(ll_max: float):
+    def gen_spiral(ll_max: float) -> NDArray[numpy.float64]:
         xx = []
         yy = []
         for ll in numpy.linspace(0, ll_max, num_points_spiral):
