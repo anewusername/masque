@@ -2,6 +2,11 @@ import numpy
 from numpy.typing import ArrayLike, NDArray
 from numpy import pi
 
+try:
+    from numpy import trapezoid
+except ImportError:
+    from numpy import trapz as trapezoid
+
 
 def bezier(
         nodes: ArrayLike,
@@ -68,8 +73,8 @@ def euler_bend(
         yy = []
         for ll in numpy.linspace(0, ll_max, num_points_spiral):
             qq = numpy.linspace(0, ll, 1000)        # integrate to current arclength
-            xx.append(numpy.trapz( numpy.cos(qq * qq / 2), qq))
-            yy.append(numpy.trapz(-numpy.sin(qq * qq / 2), qq))
+            xx.append(trapezoid( numpy.cos(qq * qq / 2), qq))
+            yy.append(trapezoid(-numpy.sin(qq * qq / 2), qq))
         xy_part = numpy.stack((xx, yy), axis=1)
         return xy_part
 
