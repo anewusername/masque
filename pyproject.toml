@@ -78,7 +78,6 @@ lint.ignore = [
     "ANN002",   # *args
     "ANN003",   # **kwargs
     "ANN401",   # Any
-    "ANN101",   # self: Self
     "SIM108",   # single-line if / else assignment
     "RET504",   # x=y+z; return x
     "PIE790",   # unnecessary pass
