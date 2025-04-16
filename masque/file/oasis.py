@@ -190,7 +190,7 @@ def writefile(
     with tmpfile(path) as base_stream:
         streams: tuple[Any, ...] = (base_stream,)
         if path.suffix == '.gz':
-            stream = cast(IO[bytes], gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
+            stream = cast('IO[bytes]', gzip.GzipFile(filename='', mtime=0, fileobj=base_stream, mode='wb'))
             streams += (stream,)
         else:
             stream = base_stream
@@ -551,7 +551,7 @@ def _shapes_to_elements(
                 circle = fatrec.Circle(
                     layer=layer,
                     datatype=datatype,
-                    radius=cast(int, radius),
+                    radius=cast('int', radius),
                     x=offset[0],
                     y=offset[1],
                     properties=properties,
@@ -568,8 +568,8 @@ def _shapes_to_elements(
                 path = fatrec.Path(
                     layer=layer,
                     datatype=datatype,
-                    point_list=cast(Sequence[Sequence[int]], deltas),
-                    half_width=cast(int, half_width),
+                    point_list=cast('Sequence[Sequence[int]]', deltas),
+                    half_width=cast('int', half_width),
                     x=xy[0],
                     y=xy[1],
                     extension_start=extension_start,       # TODO implement multiple cap types?
@@ -587,7 +587,7 @@ def _shapes_to_elements(
                         datatype=datatype,
                         x=xy[0],
                         y=xy[1],
-                        point_list=cast(list[list[int]], points),
+                        point_list=cast('list[list[int]]', points),
                         properties=properties,
                         repetition=repetition,
                         ))
@@ -651,10 +651,10 @@ def repetition_masq2fata(
         a_count = rint_cast(rep.a_count)
         b_count = rint_cast(rep.b_count) if rep.b_count is not None else None
         frep = fatamorgana.GridRepetition(
-            a_vector=cast(list[int], a_vector),
-            b_vector=cast(list[int] | None, b_vector),
-            a_count=cast(int, a_count),
-            b_count=cast(int | None, b_count),
+            a_vector=cast('list[int]', a_vector),
+            b_vector=cast('list[int] | None', b_vector),
+            a_count=cast('int', a_count),
+            b_count=cast('int | None', b_count),
             )
         offset = (0, 0)
     elif isinstance(rep, Arbitrary):

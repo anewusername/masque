@@ -1,5 +1,4 @@
-from typing import Any, cast
-from collections.abc import Sequence
+from typing import Any, cast, TYPE_CHECKING
 import copy
 import functools
 
@@ -12,6 +11,9 @@ from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, annotations_lt, annotations_eq, rep2key
 from ..utils import remove_colinear_vertices, remove_duplicate_vertices, annotations_t
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 @functools.total_ordering
@@ -129,7 +131,7 @@ class Polygon(Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Polygon, other)
+        other = cast('Polygon', other)
         if not numpy.array_equal(self.vertices, other.vertices):
             min_len = min(self.vertices.shape[0], other.vertices.shape[0])
             eq_mask = self.vertices[:min_len] != other.vertices[:min_len]
@@ -395,7 +397,7 @@ class Polygon(Shape):
         x_min = rotated_vertices[:, 0].argmin()
         if not is_scalar(x_min):
             y_min = rotated_vertices[x_min, 1].argmin()
-            x_min = cast(Sequence, x_min)[y_min]
+            x_min = cast('Sequence', x_min)[y_min]
         reordered_vertices = numpy.roll(rotated_vertices, -x_min, axis=0)
 
         # TODO: normalize mirroring?

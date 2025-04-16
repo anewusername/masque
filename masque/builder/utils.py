@@ -169,11 +169,11 @@ def ell(
                       'emax', 'max_extension',
                       'min_past_furthest',):
         if numpy.size(bound) == 2:
-            bound = cast(Sequence[float], bound)
+            bound = cast('Sequence[float]', bound)
             rot_bound = (rot_matrix @ ((bound[0], 0),
                                        (0, bound[1])))[0, :]
         else:
-            bound = cast(float, bound)
+            bound = cast('float', bound)
             rot_bound = numpy.array(bound)
 
         if rot_bound < 0:
@@ -185,10 +185,10 @@ def ell(
             offsets += rot_bound.min() - offsets.max()
     else:
         if numpy.size(bound) == 2:
-            bound = cast(Sequence[float], bound)
+            bound = cast('Sequence[float]', bound)
             rot_bound = (rot_matrix @ bound)[0]
         else:
-            bound = cast(float, bound)
+            bound = cast('float', bound)
             neg = (direction + pi / 4) % (2 * pi) > pi
             rot_bound = -bound if neg else bound
 

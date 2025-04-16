@@ -115,7 +115,7 @@ class Text(RotatableImpl, Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Text, other)
+        other = cast('Text', other)
         if not self.height == other.height:
             return self.height < other.height
         if not self.string == other.string:

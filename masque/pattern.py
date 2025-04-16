@@ -491,7 +491,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         """
         pat = self.deepcopy().polygonize().flatten(library=library)
         polys = [
-            cast(Polygon, shape).vertices + cast(Polygon, shape).offset
+            cast('Polygon', shape).vertices + cast('Polygon', shape).offset
             for shape in chain_elements(pat.shapes)
             ]
         return polys
@@ -533,7 +533,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         n_elems = sum(1 for _ in chain_elements(self.shapes, self.labels))
         ebounds = numpy.full((n_elems, 2, 2), nan)
         for ee, entry in enumerate(chain_elements(self.shapes, self.labels)):
-            maybe_ebounds = cast(Bounded, entry).get_bounds()
+            maybe_ebounds = cast('Bounded', entry).get_bounds()
             if maybe_ebounds is not None:
                 ebounds[ee] = maybe_ebounds
         mask = ~numpy.isnan(ebounds[:, 0, 0])
@@ -631,7 +631,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.labels, self.refs), self.ports.values()):
-            cast(Positionable, entry).translate(offset)
+            cast('Positionable', entry).translate(offset)
         return self
 
     def scale_elements(self, c: float) -> Self:
@@ -645,7 +645,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain_elements(self.shapes, self.refs):
-            cast(Scalable, entry).scale_by(c)
+            cast('Scalable', entry).scale_by(c)
         return self
 
     def scale_by(self, c: float, scale_refs: bool = True) -> Self:
@@ -664,18 +664,18 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain_elements(self.shapes, self.refs):
-            cast(Positionable, entry).offset *= c
+            cast('Positionable', entry).offset *= c
             if scale_refs or not isinstance(entry, Ref):
-                cast(Scalable, entry).scale_by(c)
+                cast('Scalable', entry).scale_by(c)
 
-            rep = cast(Repeatable, entry).repetition
+            rep = cast('Repeatable', entry).repetition
             if rep:
                 rep.scale_by(c)
 
         for label in chain_elements(self.labels):
-            cast(Positionable, label).offset *= c
+            cast('Positionable', label).offset *= c
 
-            rep = cast(Repeatable, label).repetition
+            rep = cast('Repeatable', label).repetition
             if rep:
                 rep.scale_by(c)
 
@@ -712,8 +712,8 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.refs, self.labels), self.ports.values()):
-            old_offset = cast(Positionable, entry).offset
-            cast(Positionable, entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
+            old_offset = cast('Positionable', entry).offset
+            cast('Positionable', entry).offset = numpy.dot(rotation_matrix_2d(rotation), old_offset)
         return self
 
     def rotate_elements(self, rotation: float) -> Self:
@@ -727,7 +727,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.refs), self.ports.values()):
-            cast(Rotatable, entry).rotate(rotation)
+            cast('Rotatable', entry).rotate(rotation)
         return self
 
     def mirror_element_centers(self, across_axis: int = 0) -> Self:
@@ -742,7 +742,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.refs, self.labels), self.ports.values()):
-            cast(Positionable, entry).offset[across_axis - 1] *= -1
+            cast('Positionable', entry).offset[across_axis - 1] *= -1
         return self
 
     def mirror_elements(self, across_axis: int = 0) -> Self:
@@ -758,7 +758,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.refs), self.ports.values()):
-            cast(Mirrorable, entry).mirror(across_axis)
+            cast('Mirrorable', entry).mirror(across_axis)
         return self
 
     def mirror(self, across_axis: int = 0) -> Self:

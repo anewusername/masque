@@ -84,7 +84,7 @@ class Circle(Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Circle, other)
+        other = cast('Circle', other)
         if not self.radius == other.radius:
             return self.radius < other.radius
         if not numpy.array_equal(self.offset, other.offset):

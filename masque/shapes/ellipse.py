@@ -134,7 +134,7 @@ class Ellipse(Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Ellipse, other)
+        other = cast('Ellipse', other)
         if not numpy.array_equal(self.radii, other.radii):
             return tuple(self.radii) < tuple(other.radii)
         if not numpy.array_equal(self.offset, other.offset):

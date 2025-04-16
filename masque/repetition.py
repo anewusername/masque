@@ -294,7 +294,7 @@ class Grid(Repetition):
     def __le__(self, other: Repetition) -> bool:
         if type(self) is not type(other):
             return repr(type(self)) < repr(type(other))
-        other = cast(Grid, other)
+        other = cast('Grid', other)
         if self.a_count != other.a_count:
             return self.a_count < other.a_count
         if self.b_count != other.b_count:
@@ -357,7 +357,7 @@ class Arbitrary(Repetition):
     def __le__(self, other: Repetition) -> bool:
         if type(self) is not type(other):
             return repr(type(self)) < repr(type(other))
-        other = cast(Arbitrary, other)
+        other = cast('Arbitrary', other)
         if self.displacements.size != other.displacements.size:
             return self.displacements.size < other.displacements.size
 

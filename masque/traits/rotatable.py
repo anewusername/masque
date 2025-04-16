@@ -1,14 +1,15 @@
-from typing import Self, cast, Any
+from typing import Self, cast, Any, TYPE_CHECKING
 from abc import ABCMeta, abstractmethod
 
 import numpy
 from numpy import pi
 from numpy.typing import ArrayLike
 
-from .positionable import Positionable
 from ..error import MasqueError
 from ..utils import rotation_matrix_2d
 
+if TYPE_CHECKING:
+    from .positionable import Positionable
 
 _empty_slots = ()     # Workaround to get mypy to ignore intentionally empty slots for superclass
 
@@ -113,9 +114,9 @@ class PivotableImpl(Pivotable, metaclass=ABCMeta):
 
     def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         pivot = numpy.asarray(pivot, dtype=float)
-        cast(Positionable, self).translate(-pivot)
-        cast(Rotatable, self).rotate(rotation)
+        cast('Positionable', self).translate(-pivot)
+        cast('Rotatable', self).rotate(rotation)
         self.offset = numpy.dot(rotation_matrix_2d(rotation), self.offset)      # type: ignore # mypy#3004
-        cast(Positionable, self).translate(+pivot)
+        cast('Positionable', self).translate(+pivot)
         return self
 

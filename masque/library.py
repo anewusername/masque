@@ -211,7 +211,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep = cast(set[str], self.referenced_patterns(tops) - {None})
+        keep = cast('set[str]', self.referenced_patterns(tops) - {None})
         keep |= set(tops)
 
         filtered = {kk: vv for kk, vv in self.items() if kk in keep}
@@ -314,7 +314,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             flatten_single(top)
 
         assert None not in flattened.values()
-        return cast(dict[str, 'Pattern'], flattened)
+        return cast('dict[str, Pattern]', flattened)
 
     def get_name(
             self,
@@ -504,7 +504,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                 raise LibraryError('visit_* functions returned a new `Pattern` object'
                                    ' but no top-level name was provided in `hierarchy`')
 
-            cast(ILibrary, self)[name] = pattern
+            cast('ILibrary', self)[name] = pattern
 
         return self
 
@@ -542,7 +542,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         Return:
             Topologically sorted list of pattern names.
         """
-        return cast(list[str], list(TopologicalSorter(self.child_graph()).static_order()))
+        return cast('list[str]', list(TopologicalSorter(self.child_graph()).static_order()))
 
     def find_refs_local(
             self,
@@ -827,7 +827,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         for old_name in temp:
             new_name = rename_map.get(old_name, old_name)
             pat = self[new_name]
-            pat.refs = map_targets(pat.refs, lambda tt: cast(dict[str | None, str | None], rename_map).get(tt, tt))
+            pat.refs = map_targets(pat.refs, lambda tt: cast('dict[str | None, str | None]', rename_map).get(tt, tt))
 
         return rename_map
 
@@ -1047,7 +1047,7 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
         if isinstance(tops, str):
             tops = (tops,)
 
-        keep = cast(set[str], self.referenced_patterns(tops) - {None})
+        keep = cast('set[str]', self.referenced_patterns(tops) - {None})
         keep |= set(tops)
 
         new = type(self)()

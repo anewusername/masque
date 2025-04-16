@@ -206,7 +206,7 @@ class Arc(Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Arc, other)
+        other = cast('Arc', other)
         if self.width != other.width:
             return self.width < other.width
         if not numpy.array_equal(self.radii, other.radii):
@@ -233,7 +233,7 @@ class Arc(Shape):
         r0, r1 = self.radii
 
         # Convert from polar angle to ellipse parameter (for [rx*cos(t), ry*sin(t)] representation)
-        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
+        a_ranges = cast('_array2x2_t', self._angles_to_parameters())
 
         # Approximate perimeter via numerical integration
 
@@ -321,7 +321,7 @@ class Arc(Shape):
 
         If the extrema are innaccessible due to arc constraints, check the arc endpoints instead.
         """
-        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
+        a_ranges = cast('_array2x2_t', self._angles_to_parameters())
 
         mins = []
         maxs = []
@@ -432,7 +432,7 @@ class Arc(Shape):
              [[x2, y2], [x3, y3]]],    would create this arc from its corresponding ellipse.
             ```
         """
-        a_ranges = cast(_array2x2_t, self._angles_to_parameters())
+        a_ranges = cast('_array2x2_t', self._angles_to_parameters())
 
         mins = []
         maxs = []

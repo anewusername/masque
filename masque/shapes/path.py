@@ -223,7 +223,7 @@ class Path(Shape):
             if repr(type(self)) != repr(type(other)):
                 return repr(type(self)) < repr(type(other))
             return id(type(self)) < id(type(other))
-        other = cast(Path, other)
+        other = cast('Path', other)
         if self.width != other.width:
             return self.width < other.width
         if self.cap != other.cap:
@@ -405,7 +405,7 @@ class Path(Shape):
         x_min = rotated_vertices[:, 0].argmin()
         if not is_scalar(x_min):
             y_min = rotated_vertices[x_min, 1].argmin()
-            x_min = cast(Sequence, x_min)[y_min]
+            x_min = cast('Sequence', x_min)[y_min]
         reordered_vertices = numpy.roll(rotated_vertices, -x_min, axis=0)
 
         width0 = self.width / norm_value
