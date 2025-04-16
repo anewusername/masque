@@ -648,21 +648,25 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             cast(Scalable, entry).scale_by(c)
         return self
 
-    def scale_by(self, c: float) -> Self:
+    def scale_by(self, c: float, scale_refs: bool = True) -> Self:
         """
         Scale this Pattern by the given value
-         (all shapes and refs and their offsets are scaled,
-          as are all label and port offsets)
+        All shapes and (optionally) refs and their offsets are scaled,
+          as are all label and port offsets.
 
         Args:
             c: factor to scale by
+            scale_refs: Whether to scale refs. Ref offsets are always scaled,
+                but it may be desirable to not scale the ref itself (e.g. if
+                the target cell was also scaled).
 
         Returns:
             self
         """
         for entry in chain_elements(self.shapes, self.refs):
             cast(Positionable, entry).offset *= c
-            cast(Scalable, entry).scale_by(c)
+            if scale_refs or not isinstance(entry, Ref):
+                cast(Scalable, entry).scale_by(c)
 
             rep = cast(Repeatable, entry).repetition
             if rep:
