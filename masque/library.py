@@ -944,8 +944,8 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
 
             shape_table: dict[tuple, list] = defaultdict(list)
             for layer, sseq in pat.shapes.items():
-                for i, shape in enumerate(sseq):
-                    if any(isinstance(shape, t) for t in exclude_types):
+                for ii, shape in enumerate(sseq):
+                    if any(isinstance(shape, tt) for tt in exclude_types):
                         continue
 
                     base_label, values, _func = shape.normalized_form(norm_value)
@@ -954,16 +954,16 @@ class ILibrary(ILibraryView, MutableMapping[str, 'Pattern'], metaclass=ABCMeta):
                     if label not in shape_pats:
                         continue
 
-                    shape_table[label].append((i, values))
+                    shape_table[label].append((ii, values))
 
             #  For repeated shapes, create a `Pattern` holding a normalized shape object,
             # and add `pat.refs` entries for each occurrence in pat. Also, note down that
             # we should delete the `pat.shapes` entries for which we made `Ref`s.
             shapes_to_remove = []
-            for label in shape_table:
+            for label, shape_entries in shape_table.items():
                 layer = label[-1]
                 target = label2name(label)
-                for ii, values in shape_table[label]:
+                for ii, values in shape_entries:
                     offset, scale, rotation, mirror_x = values
                     pat.ref(target=target, offset=offset, scale=scale,
                             rotation=rotation, mirrored=(mirror_x, False))
