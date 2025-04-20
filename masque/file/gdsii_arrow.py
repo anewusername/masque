@@ -184,6 +184,8 @@ def read_cell(
         layer = (bnd['layer'].as_py(), bnd['dtype'].as_py())
         args = dict(
             vertices = bnd['xy'].values.to_numpy().reshape((-1, 2))[:-1],
+            raw = raw_mode,
+            offset = numpy.zeros(2),
             )
 
         if (props := bnd['properties']).is_valid:
@@ -196,6 +198,8 @@ def read_cell(
         layer = (gpath['layer'].as_py(), gpath['dtype'].as_py())
         args = dict(
             vertices = gpath['xy'].values.to_numpy().reshape((-1, 2)),
+            offset = numpy.zeros(2),
+            raw = raw_mode,
             )
 
         if (gcap := gpath['path_type']).is_valid:
