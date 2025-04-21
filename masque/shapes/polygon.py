@@ -107,7 +107,8 @@ class Polygon(Shape):
             self.offset = offset
             self.repetition = repetition
             self.annotations = annotations if annotations is not None else {}
-        self.rotate(rotation)
+        if rotation:
+            self.rotate(rotation)
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Polygon':
         memo = {} if memo is None else memo
