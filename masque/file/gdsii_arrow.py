@@ -60,6 +60,24 @@ def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
     return numpy.rint(val).astype(numpy.int32)
 
 
+def _read_to_arrow(
+        filename: str | pathlib.Path,
+        *args,
+        **kwargs,
+        ) -> pyarrow.Array:
+    path = pathlib.Path(filename)
+    path.resolve()
+    ptr_array = ffi.new('struct ArrowArray[]', 1)
+    ptr_schema = ffi.new('struct ArrowSchema[]', 1)
+    clib.read_path(str(path).encode(), ptr_array, ptr_schema)
+
+    iptr_schema = int(ffi.cast('uintptr_t', ptr_schema))
+    iptr_array = int(ffi.cast('uintptr_t', ptr_array))
+    arrow_arr = pyarrow.Array._import_from_c(iptr_array, iptr_schema)
+
+    return arrow_arr
+
+
 def readfile(
         filename: str | pathlib.Path,
         *args,
@@ -75,15 +93,7 @@ def readfile(
         *args: passed to `read()`
         **kwargs: passed to `read()`
     """
-    path = pathlib.Path(filename)
-    path.resolve()
-    ptr_array = ffi.new('struct ArrowArray[]', 1)
-    ptr_schema = ffi.new('struct ArrowSchema[]', 1)
-    clib.read_path(str(path).encode(), ptr_array, ptr_schema)
-
-    iptr_schema = int(ffi.cast('uintptr_t', ptr_schema))
-    iptr_array = int(ffi.cast('uintptr_t', ptr_array))
-    arrow_arr = pyarrow.Array._import_from_c(iptr_array, iptr_schema)
+    arrow_arr = _read_to_arrow(filename)
     assert len(arrow_arr) == 1
 
     results = read_arrow(arrow_arr[0])
