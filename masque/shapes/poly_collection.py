@@ -121,7 +121,7 @@ class PolyCollection(Shape):
                     return eq_lt_masked.flat[0]
                 return vv.shape[0] < oo.shape[0]
         if len(self.vertex_lists) != len(other.vertex_lists):
-            return len(self.vertex_lists) < len(other.vertex_lists):
+            return len(self.vertex_lists) < len(other.vertex_lists)
         if not numpy.array_equal(self.offset, other.offset):
             return tuple(self.offset) < tuple(other.offset)
         if self.repetition != other.repetition:
@@ -156,8 +156,8 @@ class PolyCollection(Shape):
             ) for vv in self.vertex_lists]
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:         # TODO note shape get_bounds doesn't include repetition
-        mins = [numpy.min(vv, axis=0) for vv self.vertex_lists]
-        maxs = [numpy.max(vv, axis=0) for vv self.vertex_lists]
+        mins = [numpy.min(vv, axis=0) for vv in self.vertex_lists]
+        maxs = [numpy.max(vv, axis=0) for vv in self.vertex_lists]
         return numpy.vstack((self.offset + numpy.min(self.vertex_lists, axis=0),
                              self.offset + numpy.max(self.vertex_lists, axis=0)))
 
