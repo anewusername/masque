@@ -21,6 +21,7 @@ Notes:
 """
 from typing import IO, cast, Any
 from collections.abc import Iterable, Mapping, Callable
+from types import MappingProxyType
 import io
 import mmap
 import logging
@@ -51,6 +52,8 @@ path_cap_map = {
     2: Path.Cap.Square,
     4: Path.Cap.SquareCustom,
     }
+
+RO_EMPTY_DICT: Mapping[int, bytes] = MappingProxyType({})
 
 
 def rint_cast(val: ArrayLike) -> NDArray[numpy.int32]:
@@ -399,11 +402,15 @@ def _mrefs_to_grefs(refs: dict[str | None, list[Ref]]) -> list[klamath.library.R
     return grefs
 
 
-def _properties_to_annotations(properties: dict[int, bytes]) -> annotations_t:
+def _properties_to_annotations(properties: Mapping[int, bytes]) -> annotations_t:
+    if not properties:
+        return None
     return {str(k): [v.decode()] for k, v in properties.items()}
 
 
-def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> dict[int, bytes]:
+def _annotations_to_properties(annotations: annotations_t, max_len: int = 126) -> Mapping[int, bytes]:
+    if annotations is None:
+        return RO_EMPTY_DICT
     cum_len = 0
     props = {}
     for key, vals in annotations.items():

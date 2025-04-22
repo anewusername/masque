@@ -671,6 +671,8 @@ def repetition_masq2fata(
 
 def annotations_to_properties(annotations: annotations_t) -> list[fatrec.Property]:
     #TODO determine is_standard based on key?
+    if annotations is None:
+        return []
     properties = []
     for key, values in annotations.items():
         vals = [AString(v) if isinstance(v, str) else v
