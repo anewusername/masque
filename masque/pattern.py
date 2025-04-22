@@ -332,7 +332,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             ))
 
         self.ports = dict(sorted(self.ports.items()))
-        self.annotations = dict(sorted(self.annotations.items()))
+        self.annotations = dict(sorted(self.annotations.items())) if self.annotations is not None else None
 
         return self
 
@@ -354,10 +354,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         for layer, lseq in other_pattern.labels.items():
             self.labels[layer].extend(lseq)
 
-        annotation_conflicts = set(self.annotations.keys()) & set(other_pattern.annotations.keys())
-        if annotation_conflicts:
-            raise PatternError(f'Annotation keys overlap: {annotation_conflicts}')
-        self.annotations.update(other_pattern.annotations)
+        if other_pattern.annotations is not None:
+            if self.annotations is None:
+                self.annotations = {}
+            annotation_conflicts = set(self.annotations.keys()) & set(other_pattern.annotations.keys())
+            if annotation_conflicts:
+                raise PatternError(f'Annotation keys overlap: {annotation_conflicts}')
+            self.annotations.update(other_pattern.annotations)
 
         port_conflicts = set(self.ports.keys()) & set(other_pattern.ports.keys())
         if port_conflicts:
@@ -415,7 +418,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         elif default_keep:
             pat.refs = copy.copy(self.refs)
 
-        if annotations is not None:
+        if annotations is not None and self.annotations is not None:
             pat.annotations = {k: v for k, v in self.annotations.items() if annotations(k, v)}
         elif default_keep:
             pat.annotations = copy.copy(self.annotations)
