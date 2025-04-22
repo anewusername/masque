@@ -5,7 +5,7 @@ from typing import Protocol
 
 
 layer_t = int | tuple[int, int] | str
-annotations_t = dict[str, list[int | float | str]]
+annotations_t = dict[str, list[int | float | str]] | None
 
 
 class SupportsBool(Protocol):
