@@ -31,6 +31,7 @@ from pprint import pformat
 
 import numpy
 from numpy.typing import ArrayLike, NDArray
+from numpy.testing import assert_equal
 import pyarrow
 from pyarrow.cffi import ffi
 
@@ -44,7 +45,7 @@ from ..library import LazyLibrary, Library, ILibrary, ILibraryView
 
 logger = logging.getLogger(__name__)
 
-clib = ffi.dlopen('/home/jan/projects/klamath-rs/target/debug/libklamath_rs_ext.so')
+clib = ffi.dlopen('/home/jan/projects/klamath-rs/target/release/libklamath_rs_ext.so')
 ffi.cdef('void read_path(char* path, struct ArrowArray* array, struct ArrowSchema* schema);')
 
 
@@ -127,10 +128,41 @@ def read_arrow(
     """
     library_info = _read_header(libarr)
 
+    layer_names_np = libarr['layers'].values.to_numpy().view('i2').reshape((-1, 2))
+    layer_tups = [tuple(pair) for pair in layer_names_np]
+
+    cell_ids = libarr['cells'].values.field('id').to_numpy()
+    cell_names = libarr['cell_names'].as_py()
+
+    bnd = libarr['cells'].values.field('boundaries')
+    boundary = dict(
+        offsets = bnd.offsets.to_numpy(),
+        xy_arr = bnd.values.field('xy').values.to_numpy().reshape((-1, 2)),
+        xy_off = bnd.values.field('xy').offsets.to_numpy() // 2,
+        layer_tups = layer_tups,
+        layer_inds = bnd.values.field('layer').to_numpy(),
+        prop_off = bnd.values.field('properties').offsets.to_numpy(),
+        prop_key = bnd.values.field('properties').values.field('key').to_numpy(),
+        prop_val = bnd.values.field('properties').values.field('value').to_pylist(),
+        )
+
+    pth = libarr['cells'].values.field('boundaries')
+    path = dict(
+        offsets = pth.offsets.to_numpy(),
+        xy_arr = pth.values.field('xy').values.to_numpy().reshape((-1, 2)),
+        xy_off = pth.values.field('xy').offsets.to_numpy() // 2,
+        layer_tups = layer_tups,
+        layer_inds = pth.values.field('layer').to_numpy(),
+        prop_off = pth.values.field('properties').offsets.to_numpy(),
+        prop_key = pth.values.field('properties').values.field('key').to_numpy(),
+        prop_val = pth.values.field('properties').values.field('value').to_pylist(),
+        )
+
+
     mlib = Library()
-    for cell in libarr['cells']:
-        name = libarr['cell_names'][cell['id'].as_py()].as_py()
-        pat = read_cell(cell, libarr['cell_names'], raw_mode=raw_mode)
+    for cc, cell in enumerate(libarr['cells']):
+        name = cell_names[cell_ids[cc]]
+        pat = read_cell(cc, cell, libarr['cell_names'], raw_mode=raw_mode, boundary=boundary)
         mlib[name] = pat
 
     return mlib, library_info
@@ -149,8 +181,10 @@ def _read_header(libarr: pyarrow.Array) -> dict[str, Any]:
 
 
 def read_cell(
+        cc: int,
         cellarr: pyarrow.Array,
         cell_names: pyarrow.Array,
+        boundary: dict[str, NDArray],
         raw_mode: bool = True,
         ) -> Pattern:
     """
@@ -190,22 +224,10 @@ def read_cell(
         ref = Ref(**args)
         pat.refs[target].append(ref)
 
-    for bnd in cellarr['boundaries']:
-        layer = (bnd['layer'].as_py(), bnd['dtype'].as_py())
-        args = dict(
-            vertices = bnd['xy'].values.to_numpy().reshape((-1, 2))[:-1],
-            raw = raw_mode,
-            offset = numpy.zeros(2),
-            )
-
-        if (props := bnd['properties']).is_valid:
-            args['annotations'] = _properties_to_annotations(props)
-
-        poly = Polygon(**args)
-        pat.shapes[layer].append(poly)
+    _boundaries_to_polygons(pat, cellarr)
 
     for gpath in cellarr['paths']:
-        layer = (gpath['layer'].as_py(), gpath['dtype'].as_py())
+        layer = (gpath['layer'].as_py(),)
         args = dict(
             vertices = gpath['xy'].values.to_numpy().reshape((-1, 2)),
             offset = numpy.zeros(2),
@@ -236,7 +258,7 @@ def read_cell(
         pat.shapes[layer].append(mpath)
 
     for gtext in cellarr['texts']:
-        layer = (gtext['layer'].as_py(), gtext['dtype'].as_py())
+        layer = (gtext['layer'].as_py(),)
         args = dict(
             offset = (gtext['x'].as_py(), gtext['y'].as_py()),
             string = gtext['string'].as_py(),
@@ -249,6 +271,59 @@ def read_cell(
         pat.labels[layer].append(mlabel)
 
     return pat
+
+
+def _paths_to_paths(pat: Pattern, paths: dict[str, Any], cc: int) -> None:
+    elem_off = elem['offsets']      # which elements belong to each cell
+    xy_val = elem['xy_arr']
+    layer_tups = elem['layer_tups']
+    layer_inds = elem['layer_inds']
+    prop_key = elem['prop_key']
+    prop_val = elem['prop_val']
+
+    elem_count = elem_off[cc + 1] - elem_off[cc]
+    elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
+    xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
+    prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+
+    zeros = numpy.zeros((elem_count, 2))
+    for ee in range(elem_count):
+        layer = layer_tups[layer_inds[ee]]
+        vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1]]
+
+        prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
+        if prop_ii < prop_ff:
+            ann = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+            args = dict(annotations = ann)
+
+        path = Polygon(vertices=vertices, offset=zeros[ee], raw=raw_mode)
+        pat.shapes[layer].append(path)
+
+
+def _boundaries_to_polygons(pat: Pattern, elem: dict[str, Any], cc: int) -> None:
+    elem_off = elem['offsets']      # which elements belong to each cell
+    xy_val = elem['xy_arr']
+    layer_tups = elem['layer_tups']
+    layer_inds = elem['layer_inds']
+    prop_key = elem['prop_key']
+    prop_val = elem['prop_val']
+
+    elem_slc = slice(elem_off[cc], elem_off[cc + 1] + 1)
+    xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
+    prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+
+    zeros = numpy.zeros((len(xy_offs) - 1, 2))
+    for ee in range(len(xy_offs) - 1):
+        layer = layer_tups[layer_inds[ee]]
+        vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
+
+        prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
+        if prop_ii < prop_ff:
+            ann = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+            args = dict(annotations = ann)
+
+        poly = Polygon(vertices=vertices, offset=zeros[ee], raw=raw_mode)
+        pat.shapes[layer].append(poly)
 
 
 def _properties_to_annotations(properties: pyarrow.Array) -> annotations_t:
