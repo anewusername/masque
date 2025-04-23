@@ -134,35 +134,76 @@ def read_arrow(
     cell_ids = libarr['cells'].values.field('id').to_numpy()
     cell_names = libarr['cell_names'].as_py()
 
-    bnd = libarr['cells'].values.field('boundaries')
-    boundary = dict(
-        offsets = bnd.offsets.to_numpy(),
-        xy_arr = bnd.values.field('xy').values.to_numpy().reshape((-1, 2)),
-        xy_off = bnd.values.field('xy').offsets.to_numpy() // 2,
-        layer_tups = layer_tups,
-        layer_inds = bnd.values.field('layer').to_numpy(),
-        prop_off = bnd.values.field('properties').offsets.to_numpy(),
-        prop_key = bnd.values.field('properties').values.field('key').to_numpy(),
-        prop_val = bnd.values.field('properties').values.field('value').to_pylist(),
+    def get_geom(libarr: pyarrow.Array, geom_type: str) -> dict[str, Any]:
+        el = libarr['cells'].values.field(geom_type)
+        elem = dict(
+            offsets = el.offsets.to_numpy(),
+            xy_arr = el.values.field('xy').values.to_numpy().reshape((-1, 2)),
+            xy_off = el.values.field('xy').offsets.to_numpy() // 2,
+            layer_inds = el.values.field('layer').to_numpy(),
+            prop_off = el.values.field('properties').offsets.to_numpy(),
+            prop_key = el.values.field('properties').values.field('key').to_numpy(),
+            prop_val = el.values.field('properties').values.field('value').to_pylist(),
+            )
+        return elem
+
+    rf = libarr['cells'].values.field('refs')
+    refs = dict(
+        offsets = rf.offsets.to_numpy(),
+        targets = rf.values.field('target').to_numpy(),
+        xy = rf.values.field('xy').to_numpy().view('i4').reshape((-1, 2)),
+        invert_y = rf.values.field('invert_y').fill_null(False).to_numpy(zero_copy_only=False),
+        angle_rad = numpy.rad2deg(rf.values.field('angle_deg').fill_null(0).to_numpy()),
+        scale = rf.values.field('mag').fill_null(1).to_numpy(),
+        rep_valid = rf.values.field('repetition').is_valid().to_numpy(zero_copy_only=False),
+        rep_xy0 = rf.values.field('repetition').field('xy0').fill_null(0).to_numpy().view('i4').reshape((-1, 2)),
+        rep_xy1 = rf.values.field('repetition').field('xy1').fill_null(0).to_numpy().view('i4').reshape((-1, 2)),
+        rep_counts = rf.values.field('repetition').field('counts').fill_null(0).to_numpy().view('i2').reshape((-1, 2)),
+        prop_off = rf.values.field('properties').offsets.to_numpy(),
+        prop_key = rf.values.field('properties').values.field('key').to_numpy(),
+        prop_val = rf.values.field('properties').values.field('value').to_pylist(),
         )
 
-    pth = libarr['cells'].values.field('boundaries')
-    path = dict(
-        offsets = pth.offsets.to_numpy(),
-        xy_arr = pth.values.field('xy').values.to_numpy().reshape((-1, 2)),
-        xy_off = pth.values.field('xy').offsets.to_numpy() // 2,
-        layer_tups = layer_tups,
-        layer_inds = pth.values.field('layer').to_numpy(),
-        prop_off = pth.values.field('properties').offsets.to_numpy(),
-        prop_key = pth.values.field('properties').values.field('key').to_numpy(),
-        prop_val = pth.values.field('properties').values.field('value').to_pylist(),
+    txt = libarr['cells'].values.field('texts')
+    texts = dict(
+        offsets = txt.offsets.to_numpy(),
+        layer_inds = txt.values.field('layer').to_numpy(),
+        xy = txt.values.field('xy').to_numpy().view('i4').reshape((-1, 2)),
+        string = txt.values.field('string').to_pylist(),
+        prop_off = txt.values.field('properties').offsets.to_numpy(),
+        prop_key = txt.values.field('properties').values.field('key').to_numpy(),
+        prop_val = txt.values.field('properties').values.field('value').to_pylist(),
         )
 
+    elements = dict(
+        boundaries = get_geom(libarr, 'boundaries'),
+        paths = get_geom(libarr, 'paths'),
+        boxes = get_geom(libarr, 'boxes'),
+        nodes = get_geom(libarr, 'nodes'),
+        texts = texts,
+        refs = refs,
+        )
+
+    paths = libarr['cells'].values.field('paths')
+    elements['paths'].update(dict(
+        width = paths.values.field('width').to_numpy(),
+        path_type = paths.values.field('path_type').to_numpy(),
+        extensions = numpy.stack((
+            paths.values.field('extension_start').to_numpy(zero_copy_only=False),
+            paths.values.field('extension_end').to_numpy(zero_copy_only=False),
+            ), axis=-1),
+        ))
+
+    global_args = dict(
+        cell_names = cell_names,
+        layer_tups = layer_tups,
+        raw_mode = raw_mode,
+        )
 
     mlib = Library()
     for cc, cell in enumerate(libarr['cells']):
         name = cell_names[cell_ids[cc]]
-        pat = read_cell(cc, cell, libarr['cell_names'], raw_mode=raw_mode, boundary=boundary)
+        pat = read_cell(cc, cell, libarr['cell_names'], global_args=global_args, elements=elements)
         mlib[name] = pat
 
     return mlib, library_info
@@ -184,8 +225,8 @@ def read_cell(
         cc: int,
         cellarr: pyarrow.Array,
         cell_names: pyarrow.Array,
-        boundary: dict[str, NDArray],
-        raw_mode: bool = True,
+        elements: dict[str, Any],
+        global_args: dict[str, Any],
         ) -> Pattern:
     """
     TODO
@@ -202,81 +243,96 @@ def read_cell(
     """
     pat = Pattern()
 
-    for refarr in cellarr['refs']:
-        target = cell_names[refarr['target'].as_py()].as_py()
-        args = dict(
-            offset = (refarr['x'].as_py(), refarr['y'].as_py()),
-            )
-        if (mirr := refarr['invert_y']).is_valid:
-            args['mirrored'] = mirr.as_py()
-        if (rot := refarr['angle_deg']).is_valid:
-            args['rotation'] = numpy.deg2rad(rot.as_py())
-        if (mag := refarr['mag']).is_valid:
-            args['scale'] = mag.as_py()
-        if (rep := refarr['repetition']).is_valid:
-            repetition = Grid(
-                a_vector = (rep['x0'].as_py(), rep['y0'].as_py()),
-                b_vector = (rep['x1'].as_py(), rep['y1'].as_py()),
-                a_count = rep['count0'].as_py(),
-                b_count = rep['count1'].as_py(),
-                )
-            args['repetition'] = repetition
-        ref = Ref(**args)
-        pat.refs[target].append(ref)
-
-    _boundaries_to_polygons(pat, cellarr)
-
-    for gpath in cellarr['paths']:
-        layer = (gpath['layer'].as_py(),)
-        args = dict(
-            vertices = gpath['xy'].values.to_numpy().reshape((-1, 2)),
-            offset = numpy.zeros(2),
-            raw = raw_mode,
-            )
-
-        if (gcap := gpath['path_type']).is_valid:
-            mcap = path_cap_map[gcap.as_py()]
-            args['cap'] = mcap
-            if mcap == Path.Cap.SquareCustom:
-                extensions = [0, 0]
-                if (ext0 := gpath['extension_start']).is_valid:
-                    extensions[0] = ext0.as_py()
-                if (ext1 := gpath['extension_end']).is_valid:
-                    extensions[1] = ext1.as_py()
-
-                args['extensions'] = extensions
-
-        if (width := gpath['width']).is_valid:
-            args['width'] = width.as_py()
-        else:
-            args['width'] = 0
-
-        if (props := gpath['properties']).is_valid:
-            args['annotations'] = _properties_to_annotations(props)
-
-        mpath = Path(**args)
-        pat.shapes[layer].append(mpath)
-
-    for gtext in cellarr['texts']:
-        layer = (gtext['layer'].as_py(),)
-        args = dict(
-            offset = (gtext['x'].as_py(), gtext['y'].as_py()),
-            string = gtext['string'].as_py(),
-            )
-
-        if (props := gtext['properties']).is_valid:
-            args['annotations'] = _properties_to_annotations(props)
-
-        mlabel = Label(**args)
-        pat.labels[layer].append(mlabel)
+    _boundaries_to_polygons(pat, global_args, elements['boundaries'], cc)
+    _gpaths_to_mpaths(pat, global_args, elements['paths'], cc)
+    _grefs_to_mrefs(pat, global_args, elements['refs'], cc)
+    _texts_to_labels(pat, global_args, elements['texts'], cc)
 
     return pat
 
 
-def _paths_to_paths(pat: Pattern, paths: dict[str, Any], cc: int) -> None:
+def _grefs_to_mrefs(
+        pat: Pattern,
+        global_args: dict[str, Any],
+        elem: dict[str, Any],
+        cc: int,
+        ) -> None:
+    cell_names = global_args['cell_names']
+    elem_off = elem['offsets']      # which elements belong to each cell
+    xy = elem['xy']
+    prop_key = elem['prop_key']
+    prop_val = elem['prop_val']
+    targets = elem['targets']
+
+    rep_valid = elem['rep_valid']
+
+    elem_count = elem_off[cc + 1] - elem_off[cc]
+    elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
+    prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+
+    for ee in range(elem_count):
+        target = cell_names[targets[ee]]
+        offset = xy[ee]
+        mirr = elem['invert_y'][ee]
+        rot = elem['angle_rad'][ee]
+        mag = elem['scale'][ee]
+
+        rep: None | Grid = None
+        if rep_valid[ee]:
+            a_vector = elem['rep_xy0'][ee]
+            b_vector = elem['rep_xy1'][ee]
+            a_count, b_count = elem['rep_counts'][ee]
+            rep = Grid(a_vector=a_vector, b_vector=b_vector, a_count=a_count, b_count=b_count)
+
+        annotations: None | dict[int, str] = None
+        prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
+        if prop_ii < prop_ff:
+            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+
+        ref = Ref(offset=offset, mirrored=mirr, rotation=rot, scale=mag, repetition=rep, annotations=annotations)
+        pat.refs[target].append(ref)
+
+
+def _texts_to_labels(
+        pat: Pattern,
+        global_args: dict[str, Any],
+        elem: dict[str, Any],
+        cc: int,
+        ) -> None:
+    elem_off = elem['offsets']      # which elements belong to each cell
+    xy = elem['xy']
+    layer_tups = global_args['layer_tups']
+    layer_inds = elem['layer_inds']
+    prop_key = elem['prop_key']
+    prop_val = elem['prop_val']
+
+    elem_count = elem_off[cc + 1] - elem_off[cc]
+    elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
+    prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+
+    for ee in range(elem_count):
+        layer = layer_tups[layer_inds[ee]]
+        offset = xy[ee]
+        string = elem['string'][ee]
+
+        annotations: None | dict[int, str] = None
+        prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
+        if prop_ii < prop_ff:
+            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+
+        mlabel = Label(string=string, offset=offset, annotations=annotations)
+        pat.labels[layer].append(mlabel)
+
+
+def _gpaths_to_mpaths(
+        pat: Pattern,
+        global_args: dict[str, Any],
+        elem: dict[str, Any],
+        cc: int,
+        ) -> None:
     elem_off = elem['offsets']      # which elements belong to each cell
     xy_val = elem['xy_arr']
-    layer_tups = elem['layer_tups']
+    layer_tups = global_args['layer_tups']
     layer_inds = elem['layer_inds']
     prop_key = elem['prop_key']
     prop_val = elem['prop_val']
@@ -287,42 +343,59 @@ def _paths_to_paths(pat: Pattern, paths: dict[str, Any], cc: int) -> None:
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
 
     zeros = numpy.zeros((elem_count, 2))
+    raw_mode = global_args['raw_mode']
     for ee in range(elem_count):
+        elem_ind = elem_off[cc] + ee
         layer = layer_tups[layer_inds[ee]]
         vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1]]
+        width = elem['width'][elem_ind]
+        cap_int = elem['path_type'][elem_ind]
+        cap = path_cap_map[cap_int]
+        if cap_int == 4:
+            cap_extensions = elem['extensions'][elem_ind]
+        else:
+            cap_extensions = None
 
+        annotations: None | dict[int, str] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
         if prop_ii < prop_ff:
-            ann = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
-            args = dict(annotations = ann)
+            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
 
-        path = Polygon(vertices=vertices, offset=zeros[ee], raw=raw_mode)
+        path = Path(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode,
+            width=width, cap=cap,cap_extensions=cap_extensions)
         pat.shapes[layer].append(path)
 
 
-def _boundaries_to_polygons(pat: Pattern, elem: dict[str, Any], cc: int) -> None:
+def _boundaries_to_polygons(
+        pat: Pattern,
+        global_args: dict[str, Any],
+        elem: dict[str, Any],
+        cc: int,
+        ) -> None:
     elem_off = elem['offsets']      # which elements belong to each cell
     xy_val = elem['xy_arr']
-    layer_tups = elem['layer_tups']
+    layer_tups = global_args['layer_tups']
     layer_inds = elem['layer_inds']
     prop_key = elem['prop_key']
     prop_val = elem['prop_val']
 
-    elem_slc = slice(elem_off[cc], elem_off[cc + 1] + 1)
+    elem_count = elem_off[cc + 1] - elem_off[cc]
+    elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
 
-    zeros = numpy.zeros((len(xy_offs) - 1, 2))
-    for ee in range(len(xy_offs) - 1):
+    zeros = numpy.zeros((elem_count, 2))
+    raw_mode = global_args['raw_mode']
+    for ee in range(elem_count):
         layer = layer_tups[layer_inds[ee]]
         vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
 
+        annotations: None | dict[int, str] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
         if prop_ii < prop_ff:
-            ann = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
-            args = dict(annotations = ann)
+            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
 
-        poly = Polygon(vertices=vertices, offset=zeros[ee], raw=raw_mode)
+        poly = Polygon(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode)
         pat.shapes[layer].append(poly)
 
 
