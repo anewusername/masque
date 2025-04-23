@@ -5,7 +5,7 @@ from numpy import pi
 try:
     from numpy import trapezoid
 except ImportError:
-    from numpy import trapz as trapezoid
+    from numpy import trapz as trapezoid        # type:ignore
 
 
 def bezier(
