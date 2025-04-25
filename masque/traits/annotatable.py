@@ -45,6 +45,6 @@ class AnnotatableImpl(Annotatable, metaclass=ABCMeta):
 
     @annotations.setter
     def annotations(self, annotations: annotations_t) -> None:
-        if not isinstance(annotations, dict):
-            raise MasqueError(f'annotations expected dict, got {type(annotations)}')
+        if not isinstance(annotations, dict) and annotations is not None:
+            raise MasqueError(f'annotations expected dict or None, got {type(annotations)}')
         self._annotations = annotations
