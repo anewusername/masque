@@ -40,7 +40,7 @@ from pyarrow.cffi import ffi
 
 from .utils import is_gzipped, tmpfile
 from .. import Pattern, Ref, PatternError, LibraryError, Label, Shape
-from ..shapes import Polygon, Path
+from ..shapes import Polygon, Path, PolyCollection
 from ..repetition import Grid
 from ..utils import layer_t, annotations_t
 from ..library import LazyLibrary, Library, ILibrary, ILibraryView
@@ -370,22 +370,46 @@ def _boundaries_to_polygons(
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
+    xy_counts = xy_offs[1:] - xy_offs[:-1]
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+    prop_counts = prop_offs[1:] - prop_offs[:-1]
     elem_layer_inds = layer_inds[elem_slc]
+
+    order = numpy.argsort(elem_layer_inds, stable=True)
+    unilayer_inds, unilayer_first, unilayer_count = numpy.unique(elem_layer_inds, return_indices=True, return_counts=True)
 
     zeros = numpy.zeros((elem_count, 2))
     raw_mode = global_args['raw_mode']
-    for ee in range(elem_count):
-        layer = layer_tups[elem_layer_inds[ee]]
-        vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
+    for layer_ind, ff, cc in zip(unilayer_inds, unilayer_first, unilayer_count, strict=True):
+        ee_inds = order[ff:ff + cc]
+        layer = layer_tups[layer_ind]
+        propless_mask = prop_counts[ee_inds] == 0
+        if propless_mask.sum() == 1:
+            propless_mask[:] = 0        # Never make a 1-element collection
 
-        annotations: None | dict[int, str] = None
-        prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
-        if prop_ii < prop_ff:
-            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+        propless_vert_counts = xy_counts[ee_inds[propless_mask]] - 1        # -1 to drop closing point
+        vertex_lists = numpy.empty((propless_vert_counts.sum(), 2), dtype=numpy.float64)
+        vertex_offsets = numpy.cumsum(propless_vert_counts) - propless_vert_counts[0]
 
-        poly = Polygon(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode)
-        pat.shapes[layer].append(poly)
+        for ii, ee in enumerate(ee_inds[propless_mask]):
+            vo = vertex_offsets[ii]
+            vertex_lists[vo:vo + propless_vert_counts[ii]] = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]
+
+        polys = PolyCollection(vertex_lists=vertex_lists, vertex_offsets=vertex_offsets, offset=zeros[ee])
+        pat.shapes[layer].append(polys)
+
+        # Handle single polygons
+        for ee in ee_inds[~propless_mask]:
+            layer = layer_tups[elem_layer_inds[ee]]
+            vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
+
+            annotations: None | dict[int, str] = None
+            prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
+            if prop_ii < prop_ff:
+                annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+
+            poly = Polygon(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode)
+            pat.shapes[layer].append(poly)
 
 
 #def _properties_to_annotations(properties: pyarrow.Array) -> annotations_t:
