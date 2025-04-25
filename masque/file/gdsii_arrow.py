@@ -204,7 +204,7 @@ def read_arrow(
         )
 
     mlib = Library()
-    for cc, cell in enumerate(libarr['cells']):
+    for cc in range(len(libarr['cells'])):
         name = cell_names[cell_ids[cc]]
         pat = Pattern()
         _boundaries_to_polygons(pat, global_args, elements['boundaries'], cc)
