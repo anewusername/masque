@@ -267,10 +267,10 @@ def _grefs_to_mrefs(
             a_count, b_count = elem_rep_counts[ee]
             rep = Grid(a_vector=a_vector, b_vector=b_vector, a_count=a_count, b_count=b_count)
 
-        annotations: None | dict[int, str] = None
+        annotations: None | dict[str, list[int | float | str]] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
         if prop_ii < prop_ff:
-            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+            annotations = {str(prop_key[off]): [prop_val[off]] for off in range(prop_ii, prop_ff)}
 
         ref = Ref(offset=offset, mirrored=mirr, rotation=rot, scale=mag, repetition=rep, annotations=annotations)
         pat.refs[target].append(ref)
@@ -300,10 +300,10 @@ def _texts_to_labels(
         offset = xy[ee]
         string = elem_strings[ee]
 
-        annotations: None | dict[int, str] = None
+        annotations: None | dict[str, list[int | float | str]] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
         if prop_ii < prop_ff:
-            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+            annotations = {str(prop_key[off]): [prop_val[off]] for off in range(prop_ii, prop_ff)}
 
         mlabel = Label(string=string, offset=offset, annotations=annotations)
         pat.labels[layer].append(mlabel)
@@ -344,10 +344,10 @@ def _gpaths_to_mpaths(
         else:
             cap_extensions = None
 
-        annotations: None | dict[int, str] = None
+        annotations: None | dict[str, list[int | float | str]] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
         if prop_ii < prop_ff:
-            annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+            annotations = {str(prop_key[off]): [prop_val[off]] for off in range(prop_ii, prop_ff)}
 
         path = Path(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode,
             width=width, cap=cap,cap_extensions=cap_extensions)
@@ -403,10 +403,10 @@ def _boundaries_to_polygons(
             layer = layer_tups[elem_layer_inds[ee]]
             vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
 
-            annotations: None | dict[int, str] = None
+            annotations: None | dict[str, list[int | float | str]] = None
             prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
             if prop_ii < prop_ff:
-                annotations = {prop_key[off]: prop_val[off] for off in range(prop_ii, prop_ff)}
+                annotations = {str(prop_key[off]): prop_val[off] for off in range(prop_ii, prop_ff)}
 
             poly = Polygon(vertices=vertices, offset=zeros[ee], annotations=annotations, raw=raw_mode)
             pat.shapes[layer].append(poly)
