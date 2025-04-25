@@ -48,7 +48,7 @@ class Circle(Shape):
             *,
             offset: ArrayLike = (0.0, 0.0),
             repetition: Repetition | None = None,
-            annotations: annotations_t | None = None,
+            annotations: annotations_t = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -56,12 +56,12 @@ class Circle(Shape):
             self._radius = radius
             self._offset = offset
             self._repetition = repetition
-            self._annotations = annotations if annotations is not None else {}
+            self._annotations = annotations
         else:
             self.radius = radius
             self.offset = offset
             self.repetition = repetition
-            self.annotations = annotations if annotations is not None else {}
+            self.annotations = annotations
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Circle':
         memo = {} if memo is None else memo

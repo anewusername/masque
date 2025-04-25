@@ -71,7 +71,7 @@ class Text(RotatableImpl, Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             repetition: Repetition | None = None,
-            annotations: annotations_t | None = None,
+            annotations: annotations_t = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -81,14 +81,14 @@ class Text(RotatableImpl, Shape):
             self._height = height
             self._rotation = rotation
             self._repetition = repetition
-            self._annotations = annotations if annotations is not None else {}
+            self._annotations = annotations
         else:
             self.offset = offset
             self.string = string
             self.height = height
             self.rotation = rotation
             self.repetition = repetition
-            self.annotations = annotations if annotations is not None else {}
+            self.annotations = annotations
         self.font_path = font_path
 
     def __deepcopy__(self, memo: dict | None = None) -> Self:

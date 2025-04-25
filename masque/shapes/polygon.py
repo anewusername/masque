@@ -92,7 +92,7 @@ class Polygon(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0.0,
             repetition: Repetition | None = None,
-            annotations: annotations_t | None = None,
+            annotations: annotations_t = None,
             raw: bool = False,
             ) -> None:
         if raw:
@@ -101,12 +101,12 @@ class Polygon(Shape):
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
-            self._annotations = annotations if annotations is not None else {}
+            self._annotations = annotations
         else:
             self.vertices = vertices
             self.offset = offset
             self.repetition = repetition
-            self.annotations = annotations if annotations is not None else {}
+            self.annotations = annotations
         if rotation:
             self.rotate(rotation)
 
