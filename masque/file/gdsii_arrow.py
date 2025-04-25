@@ -206,7 +206,11 @@ def read_arrow(
     mlib = Library()
     for cc, cell in enumerate(libarr['cells']):
         name = cell_names[cell_ids[cc]]
-        pat = read_cell(cc, cell, libarr['cell_names'], global_args=global_args, elements=elements)
+        pat = Pattern()
+        _boundaries_to_polygons(pat, global_args, elements['boundaries'], cc)
+        _gpaths_to_mpaths(pat, global_args, elements['paths'], cc)
+        _grefs_to_mrefs(pat, global_args, elements['refs'], cc)
+        _texts_to_labels(pat, global_args, elements['texts'], cc)
         mlib[name] = pat
 
     return mlib, library_info
@@ -222,36 +226,6 @@ def _read_header(libarr: pyarrow.Array) -> dict[str, Any]:
         logical_units_per_unit = libarr['user_units_per_db_unit'],
         )
     return library_info
-
-
-def read_cell(
-        cc: int,
-        cellarr: pyarrow.Array,
-        cell_names: pyarrow.Array,
-        elements: dict[str, Any],
-        global_args: dict[str, Any],
-        ) -> Pattern:
-    """
-    TODO
-    Read elements from a GDS structure and build a Pattern from them.
-
-    Args:
-        stream: Seekable stream, positioned at a record boundary.
-                Will be read until an ENDSTR record is consumed.
-        name: Name of the resulting Pattern
-        raw_mode: If True, bypass per-shape data validation. Default True.
-
-    Returns:
-        A pattern containing the elements that were read.
-    """
-    pat = Pattern()
-
-    _boundaries_to_polygons(pat, global_args, elements['boundaries'], cc)
-    _gpaths_to_mpaths(pat, global_args, elements['paths'], cc)
-    _grefs_to_mrefs(pat, global_args, elements['refs'], cc)
-    _texts_to_labels(pat, global_args, elements['texts'], cc)
-
-    return pat
 
 
 def _grefs_to_mrefs(
@@ -272,19 +246,25 @@ def _grefs_to_mrefs(
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+    elem_invert_y = elem['invert_y'][elem_slc]
+    elem_angle_rad = elem['angle_rad'][elem_slc]
+    elem_scale = elem['scale'][elem_slc]
+    elem_rep_xy0 = elem['rep_xy0'][elem_slc]
+    elem_rep_xy1 = elem['rep_xy1'][elem_slc]
+    elem_rep_counts = elem['rep_counts'][elem_slc]
 
     for ee in range(elem_count):
         target = cell_names[targets[ee]]
         offset = xy[ee]
-        mirr = elem['invert_y'][ee]
-        rot = elem['angle_rad'][ee]
-        mag = elem['scale'][ee]
+        mirr = elem_invert_y[ee]
+        rot = elem_angle_rad[ee]
+        mag = elem_scale[ee]
 
         rep: None | Grid = None
         if rep_valid[ee]:
-            a_vector = elem['rep_xy0'][ee]
-            b_vector = elem['rep_xy1'][ee]
-            a_count, b_count = elem['rep_counts'][ee]
+            a_vector = elem_rep_xy0[ee]
+            b_vector = elem_rep_xy1[ee]
+            a_count, b_count = elem_rep_counts[ee]
             rep = Grid(a_vector=a_vector, b_vector=b_vector, a_count=a_count, b_count=b_count)
 
         annotations: None | dict[int, str] = None
@@ -312,11 +292,13 @@ def _texts_to_labels(
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+    elem_layer_inds = layer_inds[elem_slc]
+    elem_strings = elem['string'][elem_slc]
 
     for ee in range(elem_count):
-        layer = layer_tups[layer_inds[ee]]
+        layer = layer_tups[elem_layer_inds[ee]]
         offset = xy[ee]
-        string = elem['string'][ee]
+        string = elem_string[ee]
 
         annotations: None | dict[int, str] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
@@ -344,18 +326,21 @@ def _gpaths_to_mpaths(
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+    elem_layer_inds = layer_inds[elem_slc]
+    elem_widths = elem['width'][elem_slc]
+    elem_path_types = elem['path_type'][elem_slc]
+    elem_extensions = elem['extensions'][elem_slc]
 
     zeros = numpy.zeros((elem_count, 2))
     raw_mode = global_args['raw_mode']
     for ee in range(elem_count):
-        elem_ind = elem_off[cc] + ee
-        layer = layer_tups[layer_inds[ee]]
+        layer = layer_tups[elem_layer_inds[ee]]
         vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1]]
-        width = elem['width'][elem_ind]
-        cap_int = elem['path_type'][elem_ind]
+        width = elem_widths[ee]
+        cap_int = elem_path_types[ee]
         cap = path_cap_map[cap_int]
         if cap_int == 4:
-            cap_extensions = elem['extensions'][elem_ind]
+            cap_extensions = elem_extensions[ee]
         else:
             cap_extensions = None
 
@@ -377,8 +362,8 @@ def _boundaries_to_polygons(
         ) -> None:
     elem_off = elem['offsets']      # which elements belong to each cell
     xy_val = elem['xy_arr']
-    layer_tups = global_args['layer_tups']
     layer_inds = elem['layer_inds']
+    layer_tups = global_args['layer_tups']
     prop_key = elem['prop_key']
     prop_val = elem['prop_val']
 
@@ -386,11 +371,12 @@ def _boundaries_to_polygons(
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
+    elem_layer_inds = layer_inds[elem_slc]
 
     zeros = numpy.zeros((elem_count, 2))
     raw_mode = global_args['raw_mode']
     for ee in range(elem_count):
-        layer = layer_tups[layer_inds[ee]]
+        layer = layer_tups[elem_layer_inds[ee]]
         vertices = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]    # -1 to drop closing point
 
         annotations: None | dict[int, str] = None
@@ -402,8 +388,8 @@ def _boundaries_to_polygons(
         pat.shapes[layer].append(poly)
 
 
-def _properties_to_annotations(properties: pyarrow.Array) -> annotations_t:
-    return {prop['key'].as_py(): prop['value'].as_py() for prop in properties}
+#def _properties_to_annotations(properties: pyarrow.Array) -> annotations_t:
+#    return {prop['key'].as_py(): prop['value'].as_py() for prop in properties}
 
 
 def check_valid_names(
