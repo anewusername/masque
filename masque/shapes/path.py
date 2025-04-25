@@ -170,7 +170,7 @@ class Path(Shape):
             offset: ArrayLike = (0.0, 0.0),
             rotation: float = 0,
             repetition: Repetition | None = None,
-            annotations: annotations_t | None = None,
+            annotations: annotations_t = None,
             raw: bool = False,
             ) -> None:
         self._cap_extensions = None     # Since .cap setter might access it
@@ -182,7 +182,7 @@ class Path(Shape):
             self._vertices = vertices
             self._offset = offset
             self._repetition = repetition
-            self._annotations = annotations if annotations is not None else {}
+            self._annotations = annotations
             self._width = width
             self._cap = cap
             self._cap_extensions = cap_extensions
@@ -190,7 +190,7 @@ class Path(Shape):
             self.vertices = vertices
             self.offset = offset
             self.repetition = repetition
-            self.annotations = annotations if annotations is not None else {}
+            self.annotations = annotations
             self.width = width
             self.cap = cap
             self.cap_extensions = cap_extensions
