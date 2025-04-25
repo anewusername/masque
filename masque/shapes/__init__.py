@@ -10,6 +10,7 @@ from .shape import (
     )
 
 from .polygon import Polygon as Polygon
+from .poly_collection import PolyCollection as PolyCollection
 from .circle import Circle as Circle
 from .ellipse import Ellipse as Ellipse
 from .arc import Arc as Arc

@@ -55,7 +55,11 @@ class PolyCollection(Shape):
         """
         Iterator which provides slices which index vertex_lists
         """
-        for ii, ff in chain(self._vertex_offsets, (self._vertex_lists.shape[0],)):
+        for ii, ff in zip(
+                self._vertex_offsets,
+                chain(self._vertex_offsets, (self._vertex_lists.shape[0],)),
+                strict=True,
+                ):
             yield slice(ii, ff)
 
     @property
@@ -144,7 +148,7 @@ class PolyCollection(Shape):
         return [Polygon(
             vertices = vv,
             offset = self.offset,
-            repetition = self.repetition.copy(),
+            repetition = copy.deepcopy(self.repetition),
             annotations = copy.deepcopy(self.annotations),
             ) for vv in self.polygon_vertices]
 
@@ -155,7 +159,7 @@ class PolyCollection(Shape):
     def rotate(self, theta: float) -> Self:
         if theta != 0:
             rot = rotation_matrix_2d(theta)
-            self._vertex_lists = numpy.einsum('ij,kj->ki', rot, self._vertex_lists_)
+            self._vertex_lists = numpy.einsum('ij,kj->ki', rot, self._vertex_lists)
         return self
 
     def mirror(self, axis: int = 0) -> Self:
@@ -163,7 +167,7 @@ class PolyCollection(Shape):
         return self
 
     def scale_by(self, c: float) -> Self:
-        self.vertex_lists *= c
+        self._vertex_lists *= c
         return self
 
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
