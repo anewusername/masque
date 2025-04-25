@@ -246,12 +246,12 @@ def _grefs_to_mrefs(
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
-    elem_invert_y = elem['invert_y'][elem_slc]
-    elem_angle_rad = elem['angle_rad'][elem_slc]
-    elem_scale = elem['scale'][elem_slc]
-    elem_rep_xy0 = elem['rep_xy0'][elem_slc]
-    elem_rep_xy1 = elem['rep_xy1'][elem_slc]
-    elem_rep_counts = elem['rep_counts'][elem_slc]
+    elem_invert_y = elem['invert_y'][elem_slc][:elem_count]
+    elem_angle_rad = elem['angle_rad'][elem_slc][:elem_count]
+    elem_scale = elem['scale'][elem_slc][:elem_count]
+    elem_rep_xy0 = elem['rep_xy0'][elem_slc][:elem_count]
+    elem_rep_xy1 = elem['rep_xy1'][elem_slc][:elem_count]
+    elem_rep_counts = elem['rep_counts'][elem_slc][:elem_count]
 
     for ee in range(elem_count):
         target = cell_names[targets[ee]]
@@ -292,8 +292,8 @@ def _texts_to_labels(
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
-    elem_layer_inds = layer_inds[elem_slc]
-    elem_strings = elem['string'][elem_slc]
+    elem_layer_inds = layer_inds[elem_slc][:elem_count]
+    elem_strings = elem['string'][elem_slc][:elem_count]
 
     for ee in range(elem_count):
         layer = layer_tups[elem_layer_inds[ee]]
@@ -326,10 +326,10 @@ def _gpaths_to_mpaths(
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     xy_offs = elem['xy_off'][elem_slc]      # which xy coords belong to each element
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
-    elem_layer_inds = layer_inds[elem_slc]
-    elem_widths = elem['width'][elem_slc]
-    elem_path_types = elem['path_type'][elem_slc]
-    elem_extensions = elem['extensions'][elem_slc]
+    elem_layer_inds = layer_inds[elem_slc][:elem_count]
+    elem_widths = elem['width'][elem_slc][:elem_count]
+    elem_path_types = elem['path_type'][elem_slc][:elem_count]
+    elem_extensions = elem['extensions'][elem_slc][:elem_count]
 
     zeros = numpy.zeros((elem_count, 2))
     raw_mode = global_args['raw_mode']
@@ -373,10 +373,10 @@ def _boundaries_to_polygons(
     xy_counts = xy_offs[1:] - xy_offs[:-1]
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
     prop_counts = prop_offs[1:] - prop_offs[:-1]
-    elem_layer_inds = layer_inds[elem_slc]
+    elem_layer_inds = layer_inds[elem_slc][:elem_count]
 
     order = numpy.argsort(elem_layer_inds, stable=True)
-    unilayer_inds, unilayer_first, unilayer_count = numpy.unique(elem_layer_inds, return_indices=True, return_counts=True)
+    unilayer_inds, unilayer_first, unilayer_count = numpy.unique(elem_layer_inds, return_index=True, return_counts=True)
 
     zeros = numpy.zeros((elem_count, 2))
     raw_mode = global_args['raw_mode']
@@ -384,19 +384,21 @@ def _boundaries_to_polygons(
         ee_inds = order[ff:ff + cc]
         layer = layer_tups[layer_ind]
         propless_mask = prop_counts[ee_inds] == 0
-        if propless_mask.sum() == 1:
+
+        poly_count_on_layer = propless_mask.sum()
+        if poly_count_on_layer == 1:
             propless_mask[:] = 0        # Never make a 1-element collection
+        elif poly_count_on_layer > 1:
+            propless_vert_counts = xy_counts[ee_inds[propless_mask]] - 1        # -1 to drop closing point
+            vertex_lists = numpy.empty((propless_vert_counts.sum(), 2), dtype=numpy.float64)
+            vertex_offsets = numpy.cumsum(numpy.concatenate([[0], propless_vert_counts]))
 
-        propless_vert_counts = xy_counts[ee_inds[propless_mask]] - 1        # -1 to drop closing point
-        vertex_lists = numpy.empty((propless_vert_counts.sum(), 2), dtype=numpy.float64)
-        vertex_offsets = numpy.cumsum(propless_vert_counts) - propless_vert_counts[0]
+            for ii, ee in enumerate(ee_inds[propless_mask]):
+                vo = vertex_offsets[ii]
+                vertex_lists[vo:vo + propless_vert_counts[ii]] = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]
 
-        for ii, ee in enumerate(ee_inds[propless_mask]):
-            vo = vertex_offsets[ii]
-            vertex_lists[vo:vo + propless_vert_counts[ii]] = xy_val[xy_offs[ee]:xy_offs[ee + 1] - 1]
-
-        polys = PolyCollection(vertex_lists=vertex_lists, vertex_offsets=vertex_offsets, offset=zeros[ee])
-        pat.shapes[layer].append(polys)
+            polys = PolyCollection(vertex_lists=vertex_lists, vertex_offsets=vertex_offsets, offset=zeros[ee])
+            pat.shapes[layer].append(polys)
 
         # Handle single polygons
         for ee in ee_inds[~propless_mask]:
