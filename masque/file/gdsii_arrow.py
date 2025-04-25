@@ -298,7 +298,7 @@ def _texts_to_labels(
     for ee in range(elem_count):
         layer = layer_tups[elem_layer_inds[ee]]
         offset = xy[ee]
-        string = elem_string[ee]
+        string = elem_strings[ee]
 
         annotations: None | dict[int, str] = None
         prop_ii, prop_ff = prop_offs[ee], prop_offs[ee + 1]
