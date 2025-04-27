@@ -241,8 +241,6 @@ def _grefs_to_mrefs(
     prop_val = elem['prop_val']
     targets = elem['targets']
 
-    rep_valid = elem['rep_valid']
-
     elem_count = elem_off[cc + 1] - elem_off[cc]
     elem_slc = slice(elem_off[cc], elem_off[cc] + elem_count + 1)   # +1 to capture ending location for last elem
     prop_offs = elem['prop_off'][elem_slc]  # which props belong to each element
@@ -252,6 +250,8 @@ def _grefs_to_mrefs(
     elem_rep_xy0 = elem['rep_xy0'][elem_slc][:elem_count]
     elem_rep_xy1 = elem['rep_xy1'][elem_slc][:elem_count]
     elem_rep_counts = elem['rep_counts'][elem_slc][:elem_count]
+    rep_valid = elem['rep_valid'][elem_slc][:elem_count]
+
 
     for ee in range(elem_count):
         target = cell_names[targets[ee]]
