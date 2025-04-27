@@ -189,11 +189,11 @@ def read_arrow(
 
     paths = libarr['cells'].values.field('paths')
     elements['paths'].update(dict(
-        width = paths.values.field('width').to_numpy(),
-        path_type = paths.values.field('path_type').to_numpy(),
+        width = paths.values.field('width').fill_null(0).to_numpy(),
+        path_type = paths.values.field('path_type').fill_null(0).to_numpy(),
         extensions = numpy.stack((
-            paths.values.field('extension_start').to_numpy(zero_copy_only=False),
-            paths.values.field('extension_end').to_numpy(zero_copy_only=False),
+            paths.values.field('extension_start').fill_null(0).to_numpy(),
+            paths.values.field('extension_end').fill_null(0).to_numpy(),
             ), axis=-1),
         ))
 
