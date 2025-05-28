@@ -541,7 +541,7 @@ class Pather(Builder):
             tree2 = tool.path(ccw, length, in_ptype=in_ptype, port_names=('A', 'B'), out_ptype=out_ptype, **kwargs)
             top2 = tree2.top_pattern()
             jog = rotation_matrix_2d(top2['A'].rotation) @ (top2['B'].offset - top2['A'].offset)
-            return jog[1]
+            return jog[1] * [-1, 1][int(bool(ccw))]
 
         dst_extra_args = {'out_ptype': out_ptype}
         if plug_destination:
