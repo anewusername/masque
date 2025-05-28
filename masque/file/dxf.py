@@ -214,7 +214,7 @@ def _read_block(block: ezdxf.layouts.BlockLayout | ezdxf.layouts.Modelspace) -> 
             if isinstance(element, LWPolyline):
                 points = numpy.asarray(element.get_points())
             elif isinstance(element, Polyline):
-                points = numpy.asarray(element.points())[:, :2]
+                points = numpy.asarray([pp.xyz for pp in element.points()])
             attr = element.dxfattribs()
             layer = attr.get('layer', DEFAULT_LAYER)
 
