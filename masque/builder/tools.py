@@ -290,7 +290,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
 
         gen_straight, sport_in, sport_out = self.straight
         tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
-        pat.add_port_pair(names=port_names)
+        pat.add_port_pair(names=port_names, ptype=in_ptype)
         if data.in_transition:
             ipat, iport_theirs, _iport_ours = data.in_transition
             pat.plug(ipat, {port_names[1]: iport_theirs})
