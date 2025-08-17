@@ -89,3 +89,7 @@ lint.ignore = [
     "TRY003",   # Long exception message
     ]
 
+[tool.pytest.ini_options]
+addopts = "-rsXx"
+testpaths = ["masque"]
+
