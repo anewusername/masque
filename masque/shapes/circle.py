@@ -123,7 +123,7 @@ class Circle(Shape):
         return self
 
     def mirror(self, axis: int = 0) -> 'Circle':     # noqa: ARG002  (axis unused)
-        self.offset *= -1
+        self.offset[axis - 1] *= -1
         return self
 
     def scale_by(self, c: float) -> 'Circle':
