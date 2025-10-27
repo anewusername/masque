@@ -248,11 +248,11 @@ class Polygon(Shape):
             elif xmax is None:
                 assert xmin is not None
                 assert xctr is not None
-                lx = 2 * (xctr - xmin)
+                lx = 2.0 * (xctr - xmin)
             elif xmin is None:
                 assert xctr is not None
                 assert xmax is not None
-                lx = 2 * (xmax - xctr)
+                lx = 2.0 * (xmax - xctr)
             else:
                 raise PatternError('Two of xmin, xctr, xmax, lx must be None!')
         else:                        # noqa: PLR5501
@@ -278,11 +278,11 @@ class Polygon(Shape):
             elif ymax is None:
                 assert ymin is not None
                 assert yctr is not None
-                ly = 2 * (yctr - ymin)
+                ly = 2.0 * (yctr - ymin)
             elif ymin is None:
                 assert yctr is not None
                 assert ymax is not None
-                ly = 2 * (ymax - yctr)
+                ly = 2.0 * (ymax - yctr)
             else:
                 raise PatternError('Two of ymin, yctr, ymax, ly must be None!')
         else:                        # noqa: PLR5501
