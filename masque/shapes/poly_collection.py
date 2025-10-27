@@ -37,14 +37,14 @@ class PolyCollection(Shape):
     """ 1D NDArray specifying the starting offset for each polygon """
 
     @property
-    def vertex_lists(self) -> Any:        # mypy#3004   NDArray[numpy.float64]:
+    def vertex_lists(self) -> NDArray[numpy.float64]:
         """
         Vertices of the polygons, ((N+M+...) x 2). Use with `vertex_offsets`.
         """
         return self._vertex_lists
 
     @property
-    def vertex_offsets(self) -> Any:        # mypy#3004   NDArray[numpy.intp]:
+    def vertex_offsets(self) -> NDArray[numpy.intp]:
         """
         Starting offset (in `vertex_lists`) for each polygon
         """
