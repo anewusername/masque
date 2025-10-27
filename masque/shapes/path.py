@@ -212,10 +212,10 @@ class Path(Shape):
             self.width = width
             self.cap = cap
             self.cap_extensions = cap_extensions
-        if numpy.any(offset):
-            self.translate(offset)
         if rotation:
             self.rotate(rotation)
+        if numpy.any(offset):
+            self.translate(offset)
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Path':
         memo = {} if memo is None else memo

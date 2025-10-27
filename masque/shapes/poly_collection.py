@@ -112,10 +112,10 @@ class PolyCollection(Shape):
             self._vertex_offsets = numpy.asarray(vertex_offsets, dtype=numpy.intp)
             self.repetition = repetition
             self.annotations = annotations
-        if numpy.any(offset):
-            self.translate(offset)
         if rotation:
             self.rotate(rotation)
+        if numpy.any(offset):
+            self.translate(offset)
 
     def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
