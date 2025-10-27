@@ -7,7 +7,7 @@ from numpy.typing import NDArray, ArrayLike
 
 from ..traits import (
     Rotatable, Mirrorable, Copyable, Scalable,
-    PositionableImpl, PivotableImpl, RepeatableImpl, AnnotatableImpl,
+    Positionable, PivotableImpl, RepeatableImpl, AnnotatableImpl,
     )
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ normalized_shape_tuple = tuple[
 DEFAULT_POLY_NUM_VERTICES = 24
 
 
-class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
+class Shape(Positionable, Rotatable, Mirrorable, Copyable, Scalable,
             PivotableImpl, RepeatableImpl, AnnotatableImpl, metaclass=ABCMeta):
     """
     Class specifying functions common to all shapes.
@@ -134,7 +134,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             mins, maxs = bounds
 
             vertex_lists = []
-            p_verts = polygon.vertices + polygon.offset
+            p_verts = polygon.vertices
             for v, v_next in zip(p_verts, numpy.roll(p_verts, -1, axis=0), strict=True):
                 dv = v_next - v
 
@@ -282,7 +282,7 @@ class Shape(PositionableImpl, Rotatable, Mirrorable, Copyable, Scalable,
             offset = (numpy.where(keep_x)[0][0],
                       numpy.where(keep_y)[0][0])
 
-            rastered = float_raster.raster((polygon.vertices + polygon.offset).T, gx, gy)
+            rastered = float_raster.raster((polygon.vertices).T, gx, gy)
             binary_rastered = (numpy.abs(rastered) >= 0.5)
             supersampled = binary_rastered.repeat(2, axis=0).repeat(2, axis=1)
 

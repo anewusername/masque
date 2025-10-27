@@ -1,4 +1,4 @@
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING, Self
 import copy
 import functools
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class Polygon(Shape):
     """
     A polygon, consisting of a bunch of vertices (Nx2 ndarray) which specify an
-       implicitly-closed boundary, and an offset.
+       implicitly-closed boundary.
 
     Note that the setter for `Polygon.vertices` creates a copy of the
       passed vertex coordinates.
@@ -30,7 +30,7 @@ class Polygon(Shape):
     __slots__ = (
         '_vertices',
         # Inherited
-        '_offset', '_repetition', '_annotations',
+        '_repetition', '_annotations',
         )
 
     _vertices: NDArray[numpy.float64]
@@ -85,6 +85,28 @@ class Polygon(Shape):
             raise PatternError('Wrong number of vertices')
         self.vertices[:, 1] = val
 
+    # Offset property for `Positionable`
+    @property
+    def offset(self) -> NDArray[numpy.float64]:
+        """
+        [x, y] offset
+        """
+        return numpy.zeros(2)
+
+    @offset.setter
+    def offset(self, val: ArrayLike) -> None:
+        if numpy.any(val):
+            raise PatternError('Path offset is forced to (0, 0)')
+
+    def set_offset(self, val: ArrayLike) -> Self:
+        if numpy.any(val):
+            raise PatternError('Path offset is forced to (0, 0)')
+        return self
+
+    def translate(self, offset: ArrayLike) -> Self:
+        self._vertices += numpy.atleast_2d(offset)
+        return self
+
     def __init__(
             self,
             vertices: ArrayLike,
@@ -99,21 +121,20 @@ class Polygon(Shape):
             assert isinstance(vertices, numpy.ndarray)
             assert isinstance(offset, numpy.ndarray)
             self._vertices = vertices
-            self._offset = offset
             self._repetition = repetition
             self._annotations = annotations
         else:
             self.vertices = vertices
-            self.offset = offset
             self.repetition = repetition
             self.annotations = annotations
+        if numpy.any(offset):
+            self.translate(offset)
         if rotation:
             self.rotate(rotation)
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Polygon':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        new._offset = self._offset.copy()
         new._vertices = self._vertices.copy()
         new._annotations = copy.deepcopy(self._annotations)
         return new
@@ -121,7 +142,6 @@ class Polygon(Shape):
     def __eq__(self, other: Any) -> bool:
         return (
             type(self) is type(other)
-            and numpy.array_equal(self.offset, other.offset)
             and numpy.array_equal(self.vertices, other.vertices)
             and self.repetition == other.repetition
             and annotations_eq(self.annotations, other.annotations)
@@ -141,8 +161,6 @@ class Polygon(Shape):
             if eq_lt_masked.size > 0:
                 return eq_lt_masked.flat[0]
             return self.vertices.shape[0] < other.vertices.shape[0]
-        if not numpy.array_equal(self.offset, other.offset):
-            return tuple(self.offset) < tuple(other.offset)
         if self.repetition != other.repetition:
             return rep2key(self.repetition) < rep2key(other.repetition)
         return annotations_lt(self.annotations, other.annotations)
@@ -363,8 +381,8 @@ class Polygon(Shape):
         return [copy.deepcopy(self)]
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:         # TODO note shape get_bounds doesn't include repetition
-        return numpy.vstack((self.offset + numpy.min(self.vertices, axis=0),
-                             self.offset + numpy.max(self.vertices, axis=0)))
+        return numpy.vstack((numpy.min(self.vertices, axis=0),
+                             numpy.max(self.vertices, axis=0)))
 
     def rotate(self, theta: float) -> 'Polygon':
         if theta != 0:
@@ -384,7 +402,7 @@ class Polygon(Shape):
         #   other shapes
         meanv = self.vertices.mean(axis=0)
         zeroed_vertices = self.vertices - meanv
-        offset = meanv + self.offset
+        offset = meanv
 
         scale = zeroed_vertices.std()
         normed_vertices = zeroed_vertices / scale
@@ -438,5 +456,5 @@ class Polygon(Shape):
         return self
 
     def __repr__(self) -> str:
-        centroid = self.offset + self.vertices.mean(axis=0)
+        centroid = self.vertices.mean(axis=0)
         return f'<Polygon centroid {centroid} v{len(self.vertices)}>'

@@ -10,10 +10,11 @@ from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, annotations_t, annotations_lt, annotations_eq, rep2key
+from ..traits import PositionableImpl
 
 
 @functools.total_ordering
-class Circle(Shape):
+class Circle(PositionableImpl, Shape):
     """
     A circle, which has a position and radius.
     """

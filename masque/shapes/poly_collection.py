@@ -10,6 +10,7 @@ from numpy.typing import NDArray, ArrayLike
 
 from . import Shape, normalized_shape_tuple
 from .polygon import Polygon
+from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import rotation_matrix_2d, annotations_lt, annotations_eq, rep2key, annotations_t
 
@@ -27,7 +28,7 @@ class PolyCollection(Shape):
         '_vertex_lists',
         '_vertex_offsets',
         # Inherited
-        '_offset', '_repetition', '_annotations',
+        '_repetition', '_annotations',
         )
 
     _vertex_lists: NDArray[numpy.float64]
@@ -67,6 +68,27 @@ class PolyCollection(Shape):
         for slc in self.vertex_slices:
             yield self._vertex_lists[slc]
 
+    # Offset property for `Positionable`
+    @property
+    def offset(self) -> NDArray[numpy.float64]:
+        """
+        [x, y] offset
+        """
+        return numpy.zeros(2)
+
+    @offset.setter
+    def offset(self, val: ArrayLike) -> None:
+        raise PatternError('PolyCollection offset is forced to (0, 0)')
+
+    def set_offset(self, val: ArrayLike) -> Self:
+        if numpy.any(val):
+            raise PatternError('Path offset is forced to (0, 0)')
+        return self
+
+    def translate(self, offset: ArrayLike) -> Self:
+        self._vertex_lists += numpy.atleast_2d(offset)
+        return self
+
     def __init__(
             self,
             vertex_lists: ArrayLike,
@@ -81,25 +103,23 @@ class PolyCollection(Shape):
         if raw:
             assert isinstance(vertex_lists, numpy.ndarray)
             assert isinstance(vertex_offsets, numpy.ndarray)
-            assert isinstance(offset, numpy.ndarray)
             self._vertex_lists = vertex_lists
             self._vertex_offsets = vertex_offsets
-            self._offset = offset
             self._repetition = repetition
             self._annotations = annotations
         else:
             self._vertex_lists = numpy.asarray(vertex_lists, dtype=float)
             self._vertex_offsets = numpy.asarray(vertex_offsets, dtype=numpy.intp)
-            self.offset = offset
             self.repetition = repetition
             self.annotations = annotations
+        if numpy.any(offset):
+            self.translate(offset)
         if rotation:
             self.rotate(rotation)
 
     def __deepcopy__(self, memo: dict | None = None) -> Self:
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        new._offset = self._offset.copy()
         new._vertex_lists = self._vertex_lists.copy()
         new._vertex_offsets = self._vertex_offsets.copy()
         new._annotations = copy.deepcopy(self._annotations)
@@ -108,7 +128,6 @@ class PolyCollection(Shape):
     def __eq__(self, other: Any) -> bool:
         return (
             type(self) is type(other)
-            and numpy.array_equal(self.offset, other.offset)
             and numpy.array_equal(self._vertex_lists, other._vertex_lists)
             and numpy.array_equal(self._vertex_offsets, other._vertex_offsets)
             and self.repetition == other.repetition
@@ -134,8 +153,6 @@ class PolyCollection(Shape):
                 return vv.shape[0] < oo.shape[0]
         if len(self.vertex_lists) != len(other.vertex_lists):
             return len(self.vertex_lists) < len(other.vertex_lists)
-        if not numpy.array_equal(self.offset, other.offset):
-            return tuple(self.offset) < tuple(other.offset)
         if self.repetition != other.repetition:
             return rep2key(self.repetition) < rep2key(other.repetition)
         return annotations_lt(self.annotations, other.annotations)
@@ -147,14 +164,13 @@ class PolyCollection(Shape):
             ) -> list['Polygon']:
         return [Polygon(
             vertices = vv,
-            offset = self.offset,
             repetition = copy.deepcopy(self.repetition),
             annotations = copy.deepcopy(self.annotations),
             ) for vv in self.polygon_vertices]
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:         # TODO note shape get_bounds doesn't include repetition
-        return numpy.vstack((self.offset + numpy.min(self._vertex_lists, axis=0),
-                             self.offset + numpy.max(self._vertex_lists, axis=0)))
+        return numpy.vstack((numpy.min(self._vertex_lists, axis=0),
+                             numpy.max(self._vertex_lists, axis=0)))
 
     def rotate(self, theta: float) -> Self:
         if theta != 0:
@@ -175,7 +191,7 @@ class PolyCollection(Shape):
         #   other shapes
         meanv = self._vertex_lists.mean(axis=0)
         zeroed_vertices = self._vertex_lists - [meanv]
-        offset = meanv + self.offset
+        offset = meanv
 
         scale = zeroed_vertices.std()
         normed_vertices = zeroed_vertices / scale
@@ -203,5 +219,5 @@ class PolyCollection(Shape):
                 )
 
     def __repr__(self) -> str:
-        centroid = self.offset + self.vertex_lists.mean(axis=0)
+        centroid = self.vertex_lists.mean(axis=0)
         return f'<PolyCollection centroid {centroid} p{len(self.vertex_offsets)}>'
