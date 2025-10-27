@@ -119,7 +119,6 @@ class Polygon(Shape):
             ) -> None:
         if raw:
             assert isinstance(vertices, numpy.ndarray)
-            assert isinstance(offset, numpy.ndarray)
             self._vertices = vertices
             self._repetition = repetition
             self._annotations = annotations
@@ -127,10 +126,10 @@ class Polygon(Shape):
             self.vertices = vertices
             self.repetition = repetition
             self.annotations = annotations
-        if numpy.any(offset):
-            self.translate(offset)
         if rotation:
             self.rotate(rotation)
+        if numpy.any(offset):
+            self.translate(offset)
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Polygon':
         memo = {} if memo is None else memo
