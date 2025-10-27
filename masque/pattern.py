@@ -584,7 +584,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                             bounds = numpy.vstack((numpy.min(corners, axis=0),
                                                    numpy.max(corners, axis=0))) * ref.scale + [ref.offset]
                             if ref.repetition is not None:
-                                bounds += ref.repetition.get_bounds()
+                                bounds += ref.repetition.get_bounds_nonempty()
 
                     else:
                         # Non-manhattan rotation, have to figure out bounds by rotating the pattern

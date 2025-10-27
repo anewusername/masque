@@ -11,7 +11,7 @@ import numpy
 from numpy import pi
 from numpy.typing import NDArray, ArrayLike
 
-from .utils import annotations_t, rotation_matrix_2d, annotations_eq, annotations_lt, rep2key
+from .utils import annotations_t, rotation_matrix_2d, annotations_eq, annotations_lt, rep2key, SupportsBool
 from .repetition import Repetition
 from .traits import (
     PositionableImpl, RotatableImpl, ScalableImpl,
@@ -50,11 +50,11 @@ class Ref(
 
     # Mirrored property
     @property
-    def mirrored(self) -> bool:     # mypy#3004, setter should be SupportsBool
+    def mirrored(self) -> bool:
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: bool) -> None:
+    def mirrored(self, val: SupportsBool) -> None:
         self._mirrored = bool(val)
 
     def __init__(

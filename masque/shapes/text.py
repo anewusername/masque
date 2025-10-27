@@ -10,7 +10,7 @@ from . import Shape, Polygon, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
 from ..traits import RotatableImpl
-from ..utils import is_scalar, get_bit, annotations_t, annotations_lt, annotations_eq, rep2key
+from ..utils import is_scalar, get_bit, annotations_t, annotations_lt, annotations_eq, rep2key, SupportsBool
 
 # Loaded on use:
 # from freetype import Face
@@ -55,11 +55,11 @@ class Text(RotatableImpl, Shape):
         self._height = val
 
     @property
-    def mirrored(self) -> bool:     # mypy#3004, should be bool
+    def mirrored(self) -> bool:
         return self._mirrored
 
     @mirrored.setter
-    def mirrored(self, val: bool) -> None:
+    def mirrored(self, val: SupportsBool) -> None:
         self._mirrored = bool(val)
 
     def __init__(
@@ -201,7 +201,7 @@ def get_char_as_polygons(
         font_path: str,
         char: str,
         resolution: float = 48 * 64,
-        ) -> tuple[list[list[list[float]]], float]:
+        ) -> tuple[list[NDArray[numpy.float64]], float]:
     from freetype import Face           # type: ignore
     from matplotlib.path import Path    # type: ignore
 
@@ -276,11 +276,12 @@ def get_char_as_polygons(
 
     advance = slot.advance.x / resolution
 
+    polygons: list[NDArray[numpy.float64]]
     if len(all_verts) == 0:
         polygons = []
     else:
         path = Path(all_verts, all_codes)
         path.should_simplify = False
-        polygons = path.to_polygons()
+        polygons = [numpy.asarray(poly) for poly in path.to_polygons()]
 
     return polygons, advance

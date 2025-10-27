@@ -64,7 +64,7 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         return self._rotation
 
     @rotation.setter
-    def rotation(self, val: float) -> None:
+    def rotation(self, val: float | None) -> None:
         if val is None:
             self._rotation = None
         else:

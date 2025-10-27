@@ -73,7 +73,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
     #
     # offset property
     @property
-    def offset(self) -> Any:  # mypy#3004  NDArray[numpy.float64]:
+    def offset(self) -> NDArray[numpy.float64]:
         """
         [x, y] offset
         """
@@ -95,7 +95,7 @@ class PositionableImpl(Positionable, metaclass=ABCMeta):
         return self
 
     def translate(self, offset: ArrayLike) -> Self:
-        self._offset += offset   # type: ignore         # NDArray += ArrayLike should be fine??
+        self._offset += numpy.asarray(offset)
         return self
 
 

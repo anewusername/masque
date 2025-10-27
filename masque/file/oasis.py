@@ -661,7 +661,7 @@ def repetition_masq2fata(
         diffs = numpy.diff(rep.displacements, axis=0)
         diff_ints = rint_cast(diffs)
         frep = fatamorgana.ArbitraryRepetition(diff_ints[:, 0], diff_ints[:, 1])        # type: ignore
-        offset = rep.displacements[0, :]
+        offset = tuple(rep.displacements[0, :])
     else:
         assert rep is None
         frep = None
