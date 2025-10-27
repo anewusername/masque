@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, cast, Self
 from collections.abc import Sequence
 import copy
 import functools
@@ -30,8 +30,7 @@ class PathCap(Enum):
 @functools.total_ordering
 class Path(Shape):
     """
-    A path, consisting of a bunch of vertices (Nx2 ndarray), a width, an end-cap shape,
-        and an offset.
+    A path, consisting of a bunch of vertices (Nx2 ndarray), a width, and an end-cap shape.
 
     Note that the setter for `Path.vertices` will create a copy of the passed vertex coordinates.
 
@@ -40,7 +39,7 @@ class Path(Shape):
     __slots__ = (
         '_vertices', '_width', '_cap', '_cap_extensions',
         # Inherited
-        '_offset', '_repetition', '_annotations',
+        '_repetition', '_annotations',
         )
     _vertices: NDArray[numpy.float64]
     _width: float
@@ -160,6 +159,28 @@ class Path(Shape):
             raise PatternError('Wrong number of vertices')
         self.vertices[:, 1] = val
 
+    # Offset property for `Positionable`
+    @property
+    def offset(self) -> NDArray[numpy.float64]:
+        """
+        [x, y] offset
+        """
+        return numpy.zeros(2)
+
+    @offset.setter
+    def offset(self, val: ArrayLike) -> None:
+        if numpy.any(val):
+            raise PatternError('Path offset is forced to (0, 0)')
+
+    def set_offset(self, val: ArrayLike) -> Self:
+        if numpy.any(val):
+            raise PatternError('Path offset is forced to (0, 0)')
+        return self
+
+    def translate(self, offset: ArrayLike) -> Self:
+        self._vertices += numpy.atleast_2d(offset)
+        return self
+
     def __init__(
             self,
             vertices: ArrayLike,
@@ -177,10 +198,8 @@ class Path(Shape):
 
         if raw:
             assert isinstance(vertices, numpy.ndarray)
-            assert isinstance(offset, numpy.ndarray)
             assert isinstance(cap_extensions, numpy.ndarray) or cap_extensions is None
             self._vertices = vertices
-            self._offset = offset
             self._repetition = repetition
             self._annotations = annotations
             self._width = width
@@ -188,18 +207,19 @@ class Path(Shape):
             self._cap_extensions = cap_extensions
         else:
             self.vertices = vertices
-            self.offset = offset
             self.repetition = repetition
             self.annotations = annotations
             self.width = width
             self.cap = cap
             self.cap_extensions = cap_extensions
-        self.rotate(rotation)
+        if numpy.any(offset):
+            self.translate(offset)
+        if rotation:
+            self.rotate(rotation)
 
     def __deepcopy__(self, memo: dict | None = None) -> 'Path':
         memo = {} if memo is None else memo
         new = copy.copy(self)
-        new._offset = self._offset.copy()
         new._vertices = self._vertices.copy()
         new._cap = copy.deepcopy(self._cap, memo)
         new._cap_extensions = copy.deepcopy(self._cap_extensions, memo)
@@ -209,7 +229,6 @@ class Path(Shape):
     def __eq__(self, other: Any) -> bool:
         return (
             type(self) is type(other)
-            and numpy.array_equal(self.offset, other.offset)
             and numpy.array_equal(self.vertices, other.vertices)
             and self.width == other.width
             and self.cap == other.cap
@@ -234,8 +253,6 @@ class Path(Shape):
             if self.cap_extensions is None:
                 return True
             return tuple(self.cap_extensions) < tuple(other.cap_extensions)
-        if not numpy.array_equal(self.offset, other.offset):
-            return tuple(self.offset) < tuple(other.offset)
         if self.repetition != other.repetition:
             return rep2key(self.repetition) < rep2key(other.repetition)
         return annotations_lt(self.annotations, other.annotations)
@@ -292,7 +309,7 @@ class Path(Shape):
 
         if self.width == 0:
             verts = numpy.vstack((v, v[::-1]))
-            return [Polygon(offset=self.offset, vertices=verts)]
+            return [Polygon(vertices=verts)]
 
         perp = dvdir[:, ::-1] * [[1, -1]] * self.width / 2
 
@@ -343,7 +360,7 @@ class Path(Shape):
         o1.append(v[-1] - perp[-1])
         verts = numpy.vstack((o0, o1[::-1]))
 
-        polys = [Polygon(offset=self.offset, vertices=verts)]
+        polys = [Polygon(vertices=verts)]
 
         if self.cap == PathCap.Circle:
             #for vert in v:         # not sure if every vertex, or just ends?
@@ -355,8 +372,8 @@ class Path(Shape):
 
     def get_bounds_single(self) -> NDArray[numpy.float64]:
         if self.cap == PathCap.Circle:
-            bounds = self.offset + numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
-                                                 numpy.max(self.vertices, axis=0) + self.width / 2))
+            bounds = numpy.vstack((numpy.min(self.vertices, axis=0) - self.width / 2,
+                                   numpy.max(self.vertices, axis=0) + self.width / 2))
         elif self.cap in (
                 PathCap.Flush,
                 PathCap.Square,
@@ -390,7 +407,7 @@ class Path(Shape):
     def normalized_form(self, norm_value: float) -> normalized_shape_tuple:
         # Note: this function is going to be pretty slow for many-vertexed paths, relative to
         #   other shapes
-        offset = self.vertices.mean(axis=0) + self.offset
+        offset = self.vertices.mean(axis=0)
         zeroed_vertices = self.vertices - offset
 
         scale = zeroed_vertices.std()
@@ -460,5 +477,5 @@ class Path(Shape):
         return extensions
 
     def __repr__(self) -> str:
-        centroid = self.offset + self.vertices.mean(axis=0)
+        centroid = self.vertices.mean(axis=0)
         return f'<Path centroid {centroid} v{len(self.vertices)} w{self.width} c{self.cap}>'

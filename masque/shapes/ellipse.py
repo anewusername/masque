@@ -11,10 +11,11 @@ from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, rotation_matrix_2d, annotations_t, annotations_lt, annotations_eq, rep2key
+from ..traits import PositionableImpl
 
 
 @functools.total_ordering
-class Ellipse(Shape):
+class Ellipse(PositionableImpl, Shape):
     """
     An ellipse, which has a position, two radii, and a rotation.
     The rotation gives the angle from x-axis, counterclockwise, to the first (x) radius.

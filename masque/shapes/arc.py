@@ -10,10 +10,11 @@ from . import Shape, Polygon, normalized_shape_tuple, DEFAULT_POLY_NUM_VERTICES
 from ..error import PatternError
 from ..repetition import Repetition
 from ..utils import is_scalar, annotations_t, annotations_lt, annotations_eq, rep2key
+from ..traits import PositionableImpl
 
 
 @functools.total_ordering
-class Arc(Shape):
+class Arc(PositionableImpl, Shape):
     """
     An elliptical arc, formed by cutting off an elliptical ring with two rays which exit from its
      center. It has a position, two radii, a start and stop angle, a rotation, and a width.

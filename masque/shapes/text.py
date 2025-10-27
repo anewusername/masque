@@ -9,7 +9,7 @@ from numpy.typing import NDArray, ArrayLike
 from . import Shape, Polygon, normalized_shape_tuple
 from ..error import PatternError
 from ..repetition import Repetition
-from ..traits import RotatableImpl
+from ..traits import PositionableImpl, RotatableImpl
 from ..utils import is_scalar, get_bit, annotations_t, annotations_lt, annotations_eq, rep2key, SupportsBool
 
 # Loaded on use:
@@ -18,7 +18,7 @@ from ..utils import is_scalar, get_bit, annotations_t, annotations_lt, annotatio
 
 
 @functools.total_ordering
-class Text(RotatableImpl, Shape):
+class Text(PositionableImpl, RotatableImpl, Shape):
     """
     Text (to be printed e.g. as a set of polygons).
     This is distinct from non-printed Label objects.
