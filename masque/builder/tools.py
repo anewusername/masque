@@ -251,7 +251,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
     for generating straight paths, and a table of pre-rendered `transitions` for converting
     from non-native ptypes.
     """
-    straight: tuple[Callable[[float], Pattern], str, str]
+    straight: tuple[Callable[[float], Pattern] | Callable[[float], Library], str, str]
     """ `create_straight(length: float), in_port_name, out_port_name` """
 
     bend: abstract_tuple_t             # Assumed to be clockwise
@@ -295,7 +295,11 @@ class BasicTool(Tool, metaclass=ABCMeta):
             ipat, iport_theirs, _iport_ours = data.in_transition
             pat.plug(ipat, {port_names[1]: iport_theirs})
         if not numpy.isclose(data.straight_length, 0):
-            straight = tree <= {SINGLE_USE_PREFIX + 'straight': gen_straight(data.straight_length, **kwargs)}
+            straight_pat_or_tree = gen_straight(data.straight_length, **kwargs)
+            if isinstance(straight_pat_or_tree, Pattern):
+                straight = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat_or_tree}
+            else:
+                straight = tree <= straight_pat_or_tree
             pat.plug(straight, {port_names[1]: sport_in})
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
@@ -405,12 +409,24 @@ class BasicTool(Tool, metaclass=ABCMeta):
                     ipat, iport_theirs, _iport_ours = in_transition
                     pat.plug(ipat, {port_names[1]: iport_theirs})
                 if not numpy.isclose(straight_length, 0):
-                    straight_pat = gen_straight(straight_length, **kwargs)
-                    if append:
-                        pat.plug(straight_pat, {port_names[1]: sport_in}, append=True)
+                    straight_pat_or_tree = gen_straight(straight_length, **kwargs)
+                    pmap = {port_names[1]: sport_in}
+                    if isinstance(straight_pat_or_tree, Pattern):
+                        straight_pat = straight_pat_or_tree
+                        if append:
+                            pat.plug(straight_pat, pmap, append=True)
+                        else:
+                            straight_name = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
+                            pat.plug(straight_name, pmap)
                     else:
-                        straight = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
-                        pat.plug(straight, {port_names[1]: sport_in}, append=True)
+                        straight_tree = straight_pat_or_tree
+                        if append:
+                            top = straight_tree.top()
+                            straight_tree.flatten(top)
+                            pat.plug(straight_tree[top], pmap, append=True)
+                        else:
+                            straight = tree <= straight_pat_or_tree
+                            pat.plug(straight, pmap)
                 if ccw is not None:
                     bend, bport_in, bport_out = self.bend
                     pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
