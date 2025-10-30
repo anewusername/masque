@@ -25,11 +25,13 @@ class BuildError(MasqueError):
     """
     pass
 
+
 class PortError(MasqueError):
     """
-    Exception raised by builder-related functions
+    Exception raised by port-related functions
     """
     pass
+
 
 class OneShotError(MasqueError):
     """

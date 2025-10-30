@@ -305,11 +305,11 @@ class PortList(metaclass=ABCMeta):
 
         if type_conflicts.any():
             msg = 'Ports have conflicting types:\n'
-            for nn, (k, v) in enumerate(connections.items()):
+            for nn, (kk, vv) in enumerate(connections.items()):
                 if type_conflicts[nn]:
-                    msg += f'{k} | {a_types[nn]}:{b_types[nn]} | {v}\n'
             msg = ''.join(traceback.format_stack()) + '\n' + msg
             warnings.warn(msg, stacklevel=2)
+                    msg += f'{kk} | {a_types[nn]}:{b_types[nn]} | {vv}\n'
 
         a_offsets = numpy.array([pp.offset for pp in a_ports])
         b_offsets = numpy.array([pp.offset for pp in b_ports])
@@ -326,17 +326,17 @@ class PortList(metaclass=ABCMeta):
             if not numpy.allclose(rotations, 0):
                 rot_deg = numpy.rad2deg(rotations)
                 msg = 'Port orientations do not match:\n'
-                for nn, (k, v) in enumerate(connections.items()):
+                for nn, (kk, vv) in enumerate(connections.items()):
                     if not numpy.isclose(rot_deg[nn], 0):
-                        msg += f'{k} | {rot_deg[nn]:g} | {v}\n'
+                        msg += f'{kk} | {rot_deg[nn]:g} | {vv}\n'
                 raise PortError(msg)
 
         translations = a_offsets - b_offsets
         if not numpy.allclose(translations, 0):
             msg = 'Port translations do not match:\n'
-            for nn, (k, v) in enumerate(connections.items()):
+            for nn, (kk, vv) in enumerate(connections.items()):
                 if not numpy.allclose(translations[nn], 0):
-                    msg += f'{k} | {translations[nn]} | {v}\n'
+                    msg += f'{kk} | {translations[nn]} | {vv}\n'
             raise PortError(msg)
 
         for pp in chain(a_names, b_names):
@@ -406,7 +406,7 @@ class PortList(metaclass=ABCMeta):
 
         map_out_counts = Counter(map_out.values())
         map_out_counts[None] = 0
-        conflicts_out = {k for k, v in map_out_counts.items() if v > 1}
+        conflicts_out = {kk for kk, vv in map_out_counts.items() if vv > 1}
         if conflicts_out:
             raise PortError(f'Duplicate targets in `map_out`: {conflicts_out}')
 
@@ -438,7 +438,7 @@ class PortList(metaclass=ABCMeta):
                 `set_rotation` must remain `None`.
             ok_connections: Set of "allowed" ptype combinations. Identical
                 ptypes are always allowed to connect, as is `'unk'` with
-                any other ptypte. Non-allowed ptype connections will emit a
+                any other ptypte. Non-allowed ptype connections will log a
                 warning. Order is ignored, i.e. `(a, b)` is equivalent to
                 `(b, a)`.
 
@@ -489,7 +489,7 @@ class PortList(metaclass=ABCMeta):
                 `set_rotation` must remain `None`.
             ok_connections: Set of "allowed" ptype combinations. Identical
                 ptypes are always allowed to connect, as is `'unk'` with
-                any other ptypte. Non-allowed ptype connections will emit a
+                any other ptypte. Non-allowed ptype connections will log a
                 warning. Order is ignored, i.e. `(a, b)` is equivalent to
                 `(b, a)`.
 
@@ -520,11 +520,11 @@ class PortList(metaclass=ABCMeta):
                                       for st, ot in zip(s_types, o_types, strict=True)])
         if type_conflicts.any():
             msg = 'Ports have conflicting types:\n'
-            for nn, (k, v) in enumerate(map_in.items()):
+            for nn, (kk, vv) in enumerate(map_in.items()):
                 if type_conflicts[nn]:
-                    msg += f'{k} | {s_types[nn]}:{o_types[nn]} | {v}\n'
             msg = ''.join(traceback.format_stack()) + '\n' + msg
             warnings.warn(msg, stacklevel=2)
+                    msg += f'{kk} | {s_types[nn]}:{o_types[nn]} | {vv}\n'
 
         rotations = numpy.mod(s_rotations - o_rotations - pi, 2 * pi)
         if not has_rot.any():
