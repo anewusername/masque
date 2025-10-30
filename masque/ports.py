@@ -544,8 +544,11 @@ class PortList(metaclass=ABCMeta):
         translations = s_offsets - o_offsets
         if not numpy.allclose(translations[:1], translations):
             msg = 'Port translations do not match:\n'
+            common_translation = numpy.min(translations, axis=0)
+            msg += f'Common: {common_translation} \n'
+            msg += 'Deltas:\n'
             for nn, (kk, vv) in enumerate(map_in.items()):
-                msg += f'{kk} | {translations[nn]} | {vv}\n'
+                msg += f'{kk} | {translations[nn] - common_translation} | {vv}\n'
             raise PortError(msg)
 
         return translations[0], rotations[0], o_offsets[0]
