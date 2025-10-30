@@ -2,7 +2,7 @@
 SVG file format readers and writers
 """
 from collections.abc import Mapping
-import warnings
+import logging
 
 import numpy
 from numpy.typing import ArrayLike
@@ -10,6 +10,9 @@ import svgwrite     # type: ignore
 
 from .utils import mangle_name
 from .. import Pattern
+
+
+logger = logging.getLogger(__name__)
 
 
 def writefile(
@@ -50,7 +53,7 @@ def writefile(
     bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
-        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
+        logger.warning('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
     else:
         bounds_min, bounds_max = bounds
 
@@ -117,7 +120,7 @@ def writefile_inverted(
     bounds = pattern.get_bounds(library=library)
     if bounds is None:
         bounds_min, bounds_max = numpy.array([[-1, -1], [1, 1]])
-        warnings.warn('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
+        logger.warning('Pattern had no bounds (empty?); setting arbitrary viewbox', stacklevel=1)
     else:
         bounds_min, bounds_max = bounds
 
