@@ -1,4 +1,4 @@
-from typing import Self, Any
+from typing import Self
 from abc import ABCMeta, abstractmethod
 
 import numpy
