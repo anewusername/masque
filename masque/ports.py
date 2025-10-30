@@ -1,7 +1,5 @@
 from typing import overload, Self, NoReturn, Any
 from collections.abc import Iterable, KeysView, ValuesView, Mapping
-import warnings
-import traceback
 import logging
 import functools
 from collections import Counter
@@ -14,7 +12,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from .traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
 from .utils import rotate_offsets_around
-from .error import PortError
+from .error import PortError, format_stacktrace
 
 
 logger = logging.getLogger(__name__)
@@ -307,9 +305,9 @@ class PortList(metaclass=ABCMeta):
             msg = 'Ports have conflicting types:\n'
             for nn, (kk, vv) in enumerate(connections.items()):
                 if type_conflicts[nn]:
-            msg = ''.join(traceback.format_stack()) + '\n' + msg
-            warnings.warn(msg, stacklevel=2)
                     msg += f'{kk} | {a_types[nn]}:{b_types[nn]} | {vv}\n'
+            msg += '\nStack trace:\n' + format_stacktrace()
+            logger.warning(msg)
 
         a_offsets = numpy.array([pp.offset for pp in a_ports])
         b_offsets = numpy.array([pp.offset for pp in b_ports])
@@ -522,9 +520,9 @@ class PortList(metaclass=ABCMeta):
             msg = 'Ports have conflicting types:\n'
             for nn, (kk, vv) in enumerate(map_in.items()):
                 if type_conflicts[nn]:
-            msg = ''.join(traceback.format_stack()) + '\n' + msg
-            warnings.warn(msg, stacklevel=2)
                     msg += f'{kk} | {s_types[nn]}:{o_types[nn]} | {vv}\n'
+            msg += '\nStack trace:\n' + format_stacktrace()
+            logger.warning(msg)
 
         rotations = numpy.mod(s_rotations - o_rotations - pi, 2 * pi)
         if not has_rot.any():
