@@ -52,7 +52,7 @@ def format_stacktrace(
         stacklevel: int = 1,
         *,
         skip_file_prefixes: tuple[str, ...] = (MASQUE_DIR,),
-        low_file_prefixes: tuple[str, ...] = ('<runpy', '<string>'),
+        low_file_prefixes: tuple[str, ...] = ('<frozen', '<runpy', '<string>'),
         low_file_suffixes: tuple[str, ...] = ('IPython/utils/py3compat.py', ),
         ) -> str:
     """
