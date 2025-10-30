@@ -53,7 +53,7 @@ def format_stacktrace(
         *,
         skip_file_prefixes: tuple[str, ...] = (MASQUE_DIR,),
         low_file_prefixes: tuple[str, ...] = ('<frozen', '<runpy', '<string>'),
-        low_file_suffixes: tuple[str, ...] = ('IPython/utils/py3compat.py', ),
+        low_file_suffixes: tuple[str, ...] = ('IPython/utils/py3compat.py', 'concurrent/futures/process.py'),
         ) -> str:
     """
     Utility function for making nicer stack traces (e.g. excluding <frozen runpy> and similar)
