@@ -401,15 +401,15 @@ class BasicTool(Tool, metaclass=ABCMeta):
 
         gen_straight, sport_in, _sport_out = self.straight
         for step in batch:
-            straight_length, ccw, in_transition, out_transition = step.data
+            data = step.data
             assert step.tool == self
 
             if step.opcode == 'L':
-                if in_transition:
-                    ipat, iport_theirs, _iport_ours = in_transition
+                if data.in_transition:
+                    ipat, iport_theirs, _iport_ours = data.in_transition
                     pat.plug(ipat, {port_names[1]: iport_theirs})
-                if not numpy.isclose(straight_length, 0):
-                    straight_pat_or_tree = gen_straight(straight_length, **kwargs)
+                if not numpy.isclose(data.straight_length, 0):
+                    straight_pat_or_tree = gen_straight(data.straight_length, **kwargs)
                     pmap = {port_names[1]: sport_in}
                     if isinstance(straight_pat_or_tree, Pattern):
                         straight_pat = straight_pat_or_tree
@@ -427,11 +427,11 @@ class BasicTool(Tool, metaclass=ABCMeta):
                         else:
                             straight = tree <= straight_pat_or_tree
                             pat.plug(straight, pmap)
-                if ccw is not None:
+                if data.ccw is not None:
                     bend, bport_in, bport_out = self.bend
-                    pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(ccw))
-                if out_transition:
-                    opat, oport_theirs, oport_ours = out_transition
+                    pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(data.ccw))
+                if data.out_transition:
+                    opat, oport_theirs, oport_ours = data.out_transition
                     pat.plug(opat, {port_names[1]: oport_ours})
         return tree
 

@@ -19,13 +19,13 @@ from ..ports import PortList, Port
 from ..abstract import Abstract
 from ..utils import SupportsBool
 from .tools import Tool, RenderStep
-from .utils import ell
+from .pather_mixin import PatherMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class RenderPather(PortList):
+class RenderPather(PortList, PatherMixin):
     """
       `RenderPather` is an alternative to `Pather` which uses the `path`/`path_to`/`mpath`
     functions to plan out wire paths without incrementally generating the layout. Instead,
@@ -108,15 +108,11 @@ class RenderPather(PortList):
             if self.pattern.ports:
                 raise BuildError('Ports supplied for pattern with pre-existing ports!')
             if isinstance(ports, str):
-                if library is None:
-                    raise BuildError('Ports given as a string, but `library` was `None`!')
                 ports = library.abstract(ports).ports
 
             self.pattern.ports.update(copy.deepcopy(dict(ports)))
 
         if name is not None:
-            if library is None:
-                raise BuildError('Name was supplied, but no library was given!')
             library[name] = self.pattern
 
         if tools is None:
@@ -185,6 +181,10 @@ class RenderPather(PortList):
         pat = Pattern.interface(source, in_prefix=in_prefix, out_prefix=out_prefix, port_map=port_map)
         new = RenderPather(library=library, pattern=pat, name=name, tools=tools)
         return new
+
+    def __repr__(self) -> str:
+        s = f'<RenderPather {self.pattern} L({len(self.library)}) {pformat(self.tools)}>'
+        return s
 
     def plug(
             self,
@@ -345,28 +345,16 @@ class RenderPather(PortList):
 
         return self
 
-    def retool(
+    def plugged(
             self,
-            tool: Tool,
-            keys: str | Sequence[str | None] | None = None,
+            connections: dict[str, str],
             ) -> Self:
-        """
-        Update the `Tool` which will be used when generating `Pattern`s for the ports
-        given by `keys`.
-
-        Args:
-            tool: The new `Tool` to use for the given ports.
-            keys: Which ports the tool should apply to. `None` indicates the default tool,
-                used when there is no matching entry in `self.tools` for the port in question.
-
-        Returns:
-            self
-        """
-        if keys is None or isinstance(keys, str):
-            self.tools[keys] = tool
-        else:
-            for key in keys:
-                self.tools[key] = tool
+        for aa, bb in connections.items():
+            porta = self.ports[aa]
+            portb = self.ports[bb]
+            self.paths[aa].append(RenderStep('P', None, porta.copy(), porta.copy(), None))
+            self.paths[bb].append(RenderStep('P', None, portb.copy(), portb.copy(), None))
+        PortList.plugged(self, connections)
         return self
 
     def path(
@@ -374,6 +362,8 @@ class RenderPather(PortList):
             portspec: str,
             ccw: SupportsBool | None,
             length: float,
+            *,
+            plug_into: str | None = None,
             **kwargs,
             ) -> Self:
         """
@@ -393,6 +383,8 @@ class RenderPather(PortList):
                 and clockwise otherwise.
             length: The total distance from input to output, along the input's axis only.
                 (There may be a tool-dependent offset along the other axis.)
+            plug_into: If not None, attempts to plug the wire's output port into the provided
+                port on `self`.
 
         Returns:
             self
@@ -423,161 +415,9 @@ class RenderPather(PortList):
 
         self.pattern.ports[portspec] = out_port.copy()
 
-        return self
+        if plug_into is not None:
+            self.plugged({portspec: plug_into})
 
-    def path_to(
-            self,
-            portspec: str,
-            ccw: SupportsBool | None,
-            position: float | None = None,
-            *,
-            x: float | None = None,
-            y: float | None = None,
-            **kwargs,
-            ) -> Self:
-        """
-        Plan a "wire"/"waveguide" extending from the port `portspec`, with the aim
-        of ending exactly at a target position.
-
-        The wire will travel so that the output port will be placed at exactly the target
-        position along the input port's axis. There can be an unspecified (tool-dependent)
-        offset in the perpendicular direction. The output port will be rotated (or not)
-        based on the `ccw` parameter.
-
-        `RenderPather.render` must be called after all paths have been fully planned.
-
-        Args:
-            portspec: The name of the port into which the wire will be plugged.
-            ccw: If `None`, the output should be along the same axis as the input.
-                Otherwise, cast to bool and turn counterclockwise if True
-                and clockwise otherwise.
-            position: The final port position, along the input's axis only.
-                (There may be a tool-dependent offset along the other axis.)
-                Only one of `position`, `x`, and `y` may be specified.
-            x: The final port position along the x axis.
-                `portspec` must refer to a horizontal port if `x` is passed, otherwise a
-                BuildError will be raised.
-            y: The final port position along the y axis.
-                `portspec` must refer to a vertical port if `y` is passed, otherwise a
-                BuildError will be raised.
-
-        Returns:
-            self
-
-        Raises:
-            BuildError if `position`, `x`, or `y` is too close to fit the bend (if a bend
-                is present).
-            BuildError if `x` or `y` is specified but does not match the axis of `portspec`.
-            BuildError if more than one of `x`, `y`, and `position` is specified.
-        """
-        if self._dead:
-            logger.error('Skipping path_to() since device is dead')
-            return self
-
-        pos_count = sum(vv is not None for vv in (position, x, y))
-        if pos_count > 1:
-            raise BuildError('Only one of `position`, `x`, and `y` may be specified at once')
-        if pos_count < 1:
-            raise BuildError('One of `position`, `x`, and `y` must be specified')
-
-        port = self.pattern[portspec]
-        if port.rotation is None:
-            raise PortError(f'Port {portspec} has no rotation and cannot be used for path_to()')
-
-        if not numpy.isclose(port.rotation % (pi / 2), 0):
-            raise BuildError('path_to was asked to route from non-manhattan port')
-
-        is_horizontal = numpy.isclose(port.rotation % pi, 0)
-        if is_horizontal:
-            if y is not None:
-                raise BuildError('Asked to path to y-coordinate, but port is horizontal')
-            if position is None:
-                position = x
-        else:
-            if x is not None:
-                raise BuildError('Asked to path to x-coordinate, but port is vertical')
-            if position is None:
-                position = y
-
-        x0, y0 = port.offset
-        if is_horizontal:
-            if numpy.sign(numpy.cos(port.rotation)) == numpy.sign(position - x0):
-                raise BuildError(f'path_to routing to behind source port: x0={x0:g} to {position:g}')
-            length = numpy.abs(position - x0)
-        else:
-            if numpy.sign(numpy.sin(port.rotation)) == numpy.sign(position - y0):
-                raise BuildError(f'path_to routing to behind source port: y0={y0:g} to {position:g}')
-            length = numpy.abs(position - y0)
-
-        return self.path(portspec, ccw, length, **kwargs)
-
-    def mpath(
-            self,
-            portspec: str | Sequence[str],
-            ccw: SupportsBool | None,
-            *,
-            spacing: float | ArrayLike | None = None,
-            set_rotation: float | None = None,
-            **kwargs,
-            ) -> Self:
-        """
-        `mpath` is a superset of `path` and `path_to` which can act on bundles or buses
-        of "wires or "waveguides".
-
-        See `Pather.mpath` for details.
-
-        Args:
-            portspec: The names of the ports which are to be routed.
-            ccw: If `None`, the outputs should be along the same axis as the inputs.
-                Otherwise, cast to bool and turn 90 degrees counterclockwise if `True`
-                and clockwise otherwise.
-            spacing: Center-to-center distance between output ports along the input port's axis.
-                Must be provided if (and only if) `ccw` is not `None`.
-            set_rotation: If the provided ports have `rotation=None`, this can be used
-                to set a rotation for them.
-
-        Returns:
-            self
-
-        Raises:
-            BuildError if the implied length for any wire is too close to fit the bend
-                (if a bend is requested).
-            BuildError if `xmin`/`xmax` or `ymin`/`ymax` is specified but does not
-                match the axis of `portspec`.
-            BuildError if an incorrect bound type or spacing is specified.
-        """
-        if self._dead:
-            logger.error('Skipping mpath() since device is dead')
-            return self
-
-        bound_types = set()
-        if 'bound_type' in kwargs:
-            bound_types.add(kwargs['bound_type'])
-            bound = kwargs['bound']
-        for bt in ('emin', 'emax', 'pmin', 'pmax', 'xmin', 'xmax', 'ymin', 'ymax', 'min_past_furthest'):
-            if bt in kwargs:
-                bound_types.add(bt)
-                bound = kwargs[bt]
-
-        if not bound_types:
-            raise BuildError('No bound type specified for mpath')
-        if len(bound_types) > 1:
-            raise BuildError(f'Too many bound types specified for mpath: {bound_types}')
-        bound_type = tuple(bound_types)[0]
-
-        if isinstance(portspec, str):
-            portspec = [portspec]
-        ports = self.pattern[tuple(portspec)]
-
-        extensions = ell(ports, ccw, spacing=spacing, bound=bound, bound_type=bound_type, set_rotation=set_rotation)
-
-        if len(ports) == 1:
-            # Not a bus, so having a container just adds noise to the layout
-            port_name = tuple(portspec)[0]
-            self.path(port_name, ccw, extensions[port_name])
-        else:
-            for port_name, length in extensions.items():
-                self.path(port_name, ccw, length)
         return self
 
     def render(
@@ -695,9 +535,5 @@ class RenderPather(PortList):
         """
         self._dead = True
         return self
-
-    def __repr__(self) -> str:
-        s = f'<Pather {self.pattern} L({len(self.library)}) {pformat(self.tools)}>'
-        return s
 
 
