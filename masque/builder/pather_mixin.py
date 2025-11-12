@@ -1,19 +1,18 @@
-from typing import SupportsFloat, cast, TYPE_CHECKING, Iterator, Self
-from collections.abc import Sequence, Mapping, MutableMapping
+from typing import Self
+from collections.abc import Sequence, Iterator
 import logging
 from contextlib import contextmanager
 from abc import abstractmethod, ABCMeta
 
 import numpy
 from numpy import pi
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
 from ..library import ILibrary
 from ..error import PortError, BuildError
-from ..ports import PortList, Port
 from ..utils import rotation_matrix_2d, SupportsBool
-from ..abstract import Abstract
+#from ..abstract import Abstract
 from .tools import Tool
 from .utils import ell
 

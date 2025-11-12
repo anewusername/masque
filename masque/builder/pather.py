@@ -7,13 +7,9 @@ import copy
 import logging
 from pprint import pformat
 
-import numpy
-from numpy import pi
-from numpy.typing import ArrayLike
-
 from ..pattern import Pattern
 from ..library import ILibrary
-from ..error import PortError, BuildError
+from ..error import BuildError
 from ..ports import PortList, Port
 from ..utils import SupportsBool
 from .tools import Tool
