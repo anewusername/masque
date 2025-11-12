@@ -458,8 +458,8 @@ class Pather(Builder):
             portspec,
             ccw,
             length,
-            tool_port_names=tool_port_names,
-            plug_into=plug_into,
+            tool_port_names = tool_port_names,
+            plug_into = plug_into,
             **kwargs,
             )
 
@@ -678,15 +678,12 @@ class Pather(Builder):
 
         bound_types = set()
         if 'bound_type' in kwargs:
-            bound_types.add(kwargs['bound_type'])
-            bound = kwargs['bound']
-            del kwargs['bound_type']
-            del kwargs['bound']
+            bound_types.add(kwargs.pop('bound_type'))
+            bound = kwargs.pop('bound')
         for bt in ('emin', 'emax', 'pmin', 'pmax', 'xmin', 'xmax', 'ymin', 'ymax', 'min_past_furthest'):
             if bt in kwargs:
                 bound_types.add(bt)
-                bound = kwargs[bt]
-                del kwargs[bt]
+                bound = kwargs.pop('bt')
 
         if not bound_types:
             raise BuildError('No bound type specified for mpath')
