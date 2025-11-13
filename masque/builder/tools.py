@@ -443,28 +443,69 @@ class AutoTool(Tool, metaclass=ABCMeta):
     for generating straight paths, and a table of pre-rendered `transitions` for converting
     from non-native ptypes.
     """
-    straights: list[tuple[str, Callable[[float], Pattern] | Callable[[float], Library], str, str, tuple[float, float]]]
-    # TODO add min length?
 
-    bends: list[abstract_tuple_t]  # Assumed to be clockwise
-    """ `clockwise_bend_abstract, in_port_name, out_port_name` """
+    @dataclass(frozen=True, slots=True)
+    class Straight:
+        """ Description of a straight-path generator """
+        ptype: str
+        fn: Callable[[float], Pattern] | Callable[[float], Library]
+        in_port_name: str
+        out_port_name: str
+        length_range: tuple[float, float] = (0, numpy.inf)
 
-    transitions: dict[tuple[str, str], abstract_tuple_t]
-    """ `{(external_ptype, internal_ptype): (transition_abstract`, ptype_port_name, other_port_name), ...}` """
+    @dataclass(frozen=True, slots=True)
+    class Bend:
+        """ Description of a pre-rendered bend """
+        abstract: Abstract
+        in_port_name: str
+        out_port_name: str
+        clockwise: bool = True
 
-    default_out_ptype: str
-    """ Default value for out_ptype """
+        @property
+        def in_port(self) -> Port:
+            return self.abstract.ports[self.in_port_name]
+
+        @property
+        def out_port(self) -> Port:
+            return self.abstract.ports[self.out_port_name]
+
+    @dataclass(frozen=True, slots=True)
+    class Transition:
+        """ Description of a pre-rendered transition """
+        abstract: Abstract
+        their_port_name: str
+        our_port_name: str
+
+        @property
+        def our_port(self) -> Port:
+            return self.abstract.ports[self.our_port_name]
+
+        @property
+        def their_port(self) -> Port:
+            return self.abstract.ports[self.their_port_name]
 
     @dataclass(frozen=True, slots=True)
     class LData:
         """ Data for planL """
         straight_length: float
-        straight_tuple: tuple[str, Callable[[float], Pattern] | Callable[[float], Library], str, str]
+        straight: 'AutoTool.Straight'
         ccw: SupportsBool | None
-        bend_tuple: abstract_tuple_t | None
-        in_transition: abstract_tuple_t | None
-        b_transition: abstract_tuple_t | None
-        out_transition: abstract_tuple_t | None
+        bend: 'AutoTool.Bend | None'
+        in_transition: 'AutoTool.Transition | None'
+        b_transition: 'AutoTool.Transition | None'
+        out_transition: 'AutoTool.Transition | None'
+
+    straights: list[Straight]
+    """ List of straight-generators to choose from, in order of priority """
+
+    bends: list[Bend]
+    """ List of bends to choose from, in order of priority. """
+
+    transitions: dict[tuple[str, str], Transition]
+    """ `{(external_ptype, internal_ptype): Transition, ...}` """
+
+    default_out_ptype: str
+    """ Default value for out_ptype """
 
     def path(
             self,
@@ -483,45 +524,38 @@ class AutoTool(Tool, metaclass=ABCMeta):
             out_ptype = out_ptype,
             )
 
-        stype, gen_straight, sport_in, sport_out = data.straight_tuple
         tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
+        if data.in_transition:
+            pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
         if not numpy.isclose(data.straight_length, 0):
-            straight_pat_or_tree = gen_straight(data.straight_length, **kwargs)
+            straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
             if isinstance(straight_pat_or_tree, Pattern):
                 straight = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat_or_tree}
             else:
                 straight = tree <= straight_pat_or_tree
-            pat.plug(straight, {port_names[1]: sport_in})
+            pat.plug(straight, {port_names[1]: data.straight.in_port_name})
         if data.b_transition:
-            btpat, btport_bend, btport_straight = data.b_transition
-            pat.plug(btpat, {port_names[1]: btport_straight})
+            pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
         if data.ccw is not None:
-            assert data.bend_tuple is not None
-            bend, bport_in, bport_out = data.bend_tuple
-            pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(data.ccw))
+            assert data.bend is not None
+            pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
         if data.out_transition:
-            opat, oport_theirs, oport_ours = data.out_transition
-            pat.plug(opat, {port_names[1]: oport_ours})
+            pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
 
         return tree
 
     @staticmethod
-    def _bend2dxy(bend_tuple: abstract_tuple_t, ccw: SupportsBool | None) -> tuple[NDArray[numpy.float64], float]:
+    def _bend2dxy(bend: Bend, ccw: SupportsBool | None) -> tuple[NDArray[numpy.float64], float]:
         if ccw is None:
             return numpy.zeros(2), pi
-        bend, bport_in, bport_out = bend_tuple
 
-        angle_in = bend.ports[bport_in].rotation
-        angle_out = bend.ports[bport_out].rotation
+        angle_in = bend.in_port.rotation
+        angle_out = bend.out_port.rotation
         assert angle_in is not None
         assert angle_out is not None
 
-        bend_dxy = rotation_matrix_2d(-angle_in) @ (
-            bend.ports[bport_out].offset
-            - bend.ports[bport_in].offset
-            )
-
+        bend_dxy = rotation_matrix_2d(-angle_in) @ (bend.out_port.offset - bend.in_port.offset)
         bend_angle = angle_out - angle_in
 
         if bool(ccw):
@@ -530,29 +564,21 @@ class AutoTool(Tool, metaclass=ABCMeta):
         return bend_dxy, bend_angle
 
     @staticmethod
-    def _itransition2dxy(in_transition: abstract_tuple_t | None) -> NDArray[numpy.float64]:
+    def _itransition2dxy(in_transition: Transition | None) -> NDArray[numpy.float64]:
         if in_transition is None:
             return numpy.zeros(2)
-        ipat, iport_theirs, iport_ours = in_transition
-        irot = ipat.ports[iport_theirs].rotation
+        irot = in_transition.their_port.rotation
         assert irot is not None
-        itrans_dxy = rotation_matrix_2d(-irot) @ (
-            ipat.ports[iport_ours].offset
-            - ipat.ports[iport_theirs].offset
-            )
+        itrans_dxy = rotation_matrix_2d(-irot) @ (in_transition.our_port.offset - in_transition.their_port.offset)
         return itrans_dxy
 
     @staticmethod
-    def _otransition2dxy(out_transition: abstract_tuple_t | None, bend_angle: float) -> NDArray[numpy.float64]:
+    def _otransition2dxy(out_transition: Transition | None, bend_angle: float) -> NDArray[numpy.float64]:
         if out_transition is None:
             return numpy.zeros(2)
-        opat, oport_theirs, oport_ours = out_transition
-        orot = opat.ports[oport_ours].rotation
+        orot = out_transition.our_port.rotation
         assert orot is not None
-        otrans_dxy = rotation_matrix_2d(-orot + bend_angle) @ (
-            opat.ports[oport_theirs].offset
-            - opat.ports[oport_ours].offset
-            )
+        otrans_dxy = rotation_matrix_2d(pi - orot - bend_angle) @ (out_transition.their_port.offset - out_transition.our_port.offset)
         return otrans_dxy
 
     def planL(
@@ -564,31 +590,31 @@ class AutoTool(Tool, metaclass=ABCMeta):
             out_ptype: str | None = None,
             **kwargs,               # noqa: ARG002 (unused)
             ) -> tuple[Port, LData]:
-        # TODO check all the math for L-shaped bends
 
         success = False
-        for straight_tuple in self.straights:
-            stype = straight_tuple[0]
-            straight_bounds = straight_tuple[-1]
-            for bend_tuple in self.bends:
-                bend_dxy, bend_angle = self._bend2dxy(bend_tuple, ccw)
-                btypei = bend_tuple[0][bend_tuple[1]].ptype
-                btypeo = bend_tuple[0][bend_tuple[1]].ptype
+        for straight in self.straights:
+            for bend in self.bends:
+                bend_dxy, bend_angle = self._bend2dxy(bend, ccw)
 
-                in_transition = self.transitions.get(('unk' if in_ptype is None else in_ptype, stype), None)
+                in_ptype_pair = ('unk' if in_ptype is None else in_ptype, straight.ptype)
+                in_transition = self.transitions.get(in_ptype_pair, None)
                 itrans_dxy = self._itransition2dxy(in_transition)
 
-                out_transition = self.transitions.get(('unk' if out_ptype is None else out_ptype, stype if ccw is None else btypeo), None)
-                otrans_dxy = self._otransition2dxy(in_transition, bend_angle)
+                out_ptype_pair = (
+                    'unk' if out_ptype is None else out_ptype,
+                    straight.ptype if ccw is None else bend.out_port.ptype
+                    )
+                out_transition = self.transitions.get(out_ptype_pair, None)
+                otrans_dxy = self._otransition2dxy(out_transition, bend_angle)
 
                 b_transition = None
-                if ccw is not None and btypei != stype:
-                    b_transition = self.transitions.get((btypei, stype), None)
+                if ccw is not None and bend.in_port.ptype != straight.ptype:
+                    b_transition = self.transitions.get((bend.in_port.ptype, straight.ptype), None)
                 btrans_dxy = self._itransition2dxy(b_transition)
 
                 straight_length = length - bend_dxy[0] - itrans_dxy[0] - btrans_dxy[0] - otrans_dxy[0]
                 bend_run = bend_dxy[1] + itrans_dxy[1] + btrans_dxy[1] + otrans_dxy[1]
-                success = straight_bounds[0] <= straight_length < straight_bounds[1]
+                success = straight.length_range[0] <= straight_length < straight.length_range[1]
                 if success:
                     break
             if success:
@@ -602,15 +628,13 @@ class AutoTool(Tool, metaclass=ABCMeta):
                 )
 
         if out_transition is not None:
-            opat, oport_theirs, _ = out_transition
-            out_ptype_actual = opat.ports[oport_theirs].ptype
+            out_ptype_actual = out_transition.their_port.ptype
         elif ccw is not None:
-            bend, _, bport_out = bend_tuple
-            out_ptype_actual = bend.ports[bport_out].ptype
+            out_ptype_actual = bend.out_port.ptype
         else:
             out_ptype_actual = self.default_out_ptype
 
-        data = self.LData(straight_length, straight_tuple, ccw, bend_tuple, in_transition, b_transition, out_transition)
+        data = self.LData(straight_length, straight, ccw, bend, in_transition, b_transition, out_transition)
         out_port = Port((length, bend_run), rotation=bend_angle, ptype=out_ptype_actual)
         return out_port, data
 
@@ -627,16 +651,15 @@ class AutoTool(Tool, metaclass=ABCMeta):
         pat.add_port_pair(names=(port_names[0], port_names[1]))
 
         for step in batch:
-            _stype, gen_straight, sport_in, _sport_out = step.data.straight_tuple
+            data = step.data
             assert step.tool == self
 
             if step.opcode == 'L':
-                if step.data.in_transition:
-                    ipat, iport_theirs, _iport_ours = step.data.in_transition
-                    pat.plug(ipat, {port_names[1]: iport_theirs})
-                if not numpy.isclose(step.data.straight_length, 0):
-                    straight_pat_or_tree = gen_straight(step.data.straight_length, **kwargs)
-                    pmap = {port_names[1]: sport_in}
+                if data.in_transition:
+                    pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
+                if not numpy.isclose(data.straight_length, 0):
+                    straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
+                    pmap = {port_names[1]: data.straight.in_port_name}
                     if isinstance(straight_pat_or_tree, Pattern):
                         straight_pat = straight_pat_or_tree
                         if append:
@@ -653,17 +676,13 @@ class AutoTool(Tool, metaclass=ABCMeta):
                         else:
                             straight = tree <= straight_pat_or_tree
                             pat.plug(straight, pmap)
-                if step.data.b_transition:
-                    btpat, btport_bend, btport_straight = step.data.b_transition
-                    pat.plug(btpat, {port_names[1]: btport_straight})
-                if step.data.ccw is not None:
-                    bend, bport_in, bport_out = step.data.bend_tuple
-                    pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(step.data.ccw))
-                if step.data.out_transition:
-                    opat, oport_theirs, oport_ours = step.data.out_transition
-                    pat.plug(opat, {port_names[1]: oport_ours})
+                if data.b_transition:
+                    pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
+                if data.ccw is not None:
+                    pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
+                if data.out_transition:
+                    pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
         return tree
-
 
 
 @dataclass
