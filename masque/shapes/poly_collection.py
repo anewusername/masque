@@ -77,7 +77,7 @@ class PolyCollection(Shape):
         return numpy.zeros(2)
 
     @offset.setter
-    def offset(self, val: ArrayLike) -> None:
+    def offset(self, _val: ArrayLike) -> None:
         raise PatternError('PolyCollection offset is forced to (0, 0)')
 
     def set_offset(self, val: ArrayLike) -> Self:
