@@ -443,7 +443,8 @@ class AutoTool(Tool, metaclass=ABCMeta):
     for generating straight paths, and a table of pre-rendered `transitions` for converting
     from non-native ptypes.
     """
-    straights: list[tuple[str, Callable[[float], Pattern] | Callable[[float], Library], str, str]]
+    straights: list[tuple[str, Callable[[float], Pattern] | Callable[[float], Library], str, str, tuple[float, float]]]
+    # TODO add min length?
 
     bends: list[abstract_tuple_t]  # Assumed to be clockwise
     """ `clockwise_bend_abstract, in_port_name, out_port_name` """
@@ -565,9 +566,10 @@ class AutoTool(Tool, metaclass=ABCMeta):
             ) -> tuple[Port, LData]:
         # TODO check all the math for L-shaped bends
 
-
+        success = False
         for straight_tuple in self.straights:
             stype = straight_tuple[0]
+            straight_bounds = straight_tuple[-1]
             for bend_tuple in self.bends:
                 bend_dxy, bend_angle = self._bend2dxy(bend_tuple, ccw)
                 btypei = bend_tuple[0][bend_tuple[1]].ptype
@@ -586,9 +588,10 @@ class AutoTool(Tool, metaclass=ABCMeta):
 
                 straight_length = length - bend_dxy[0] - itrans_dxy[0] - btrans_dxy[0] - otrans_dxy[0]
                 bend_run = bend_dxy[1] + itrans_dxy[1] + btrans_dxy[1] + otrans_dxy[1]
-                if straight_length >= 0:
+                success = straight_bounds[0] <= straight_length < straight_bounds[1]
+                if success:
                     break
-            if straight_length >= 0:
+            if success:
                 break
         else:
             # Failed to break
