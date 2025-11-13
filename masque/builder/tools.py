@@ -492,6 +492,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         """ Data for planL """
         straight_length: float
         straight: 'AutoTool.Straight'
+        straight_kwargs: dict[str, Any]
         ccw: SupportsBool | None
         bend: 'AutoTool.Bend | None'
         in_transition: 'AutoTool.Transition | None'
@@ -605,7 +606,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         else:
             out_ptype_actual = self.default_out_ptype
 
-        data = self.LData(straight_length, straight, ccw, bend, in_transition, b_transition, out_transition)
+        data = self.LData(straight_length, straight, kwargs, ccw, bend, in_transition, b_transition, out_transition)
         out_port = Port((length, bend_run), rotation=bend_angle, ptype=out_ptype_actual)
         return out_port, data
 
@@ -615,15 +616,16 @@ class AutoTool(Tool, metaclass=ABCMeta):
             tree: ILibrary,
             port_names: tuple[str, str],
             append: bool,
+            straight_kwargs: dict[str, Any],
             ) -> ILibrary:
         """
         Render an L step into a preexisting tree
         """
-        pat = tree.top()
+        pat = tree.top_pattern()
         if data.in_transition:
             pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
         if not numpy.isclose(data.straight_length, 0):
-            straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
+            straight_pat_or_tree = data.straight.fn(data.straight_length, **(straight_kwargs | data.straight_kwargs))
             pmap = {port_names[1]: data.straight.in_port_name}
             if isinstance(straight_pat_or_tree, Pattern):
                 straight_pat = straight_pat_or_tree
@@ -668,7 +670,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
 
         tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
-        self._renderL(data=data, tree=tree, port_names=port_names, append=False)
+        self._renderL(data=data, tree=tree, port_names=port_names, append=False, straight_kwargs=kwargs)
         return tree
 
     def render(
@@ -686,7 +688,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         for step in batch:
             assert step.tool == self
             if step.opcode == 'L':
-                self._renderL(data=step.data, tree=tree, port_names=port_names, append=append)
+                self._renderL(data=step.data, tree=tree, port_names=port_names, append=append, straight_kwargs=kwargs)
         return tree
 
 
