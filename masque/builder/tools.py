@@ -516,44 +516,6 @@ class AutoTool(Tool, metaclass=ABCMeta):
             self.transitions.setdefault(ooii, self.transitions[iioo].reversed())
         return self
 
-    def path(
-            self,
-            ccw: SupportsBool | None,
-            length: float,
-            *,
-            in_ptype: str | None = None,
-            out_ptype: str | None = None,
-            port_names: tuple[str, str] = ('A', 'B'),
-            **kwargs,
-            ) -> Library:
-        _out_port, data = self.planL(
-            ccw,
-            length,
-            in_ptype = in_ptype,
-            out_ptype = out_ptype,
-            )
-
-        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
-        pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
-        if data.in_transition:
-            pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
-        if not numpy.isclose(data.straight_length, 0):
-            straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
-            if isinstance(straight_pat_or_tree, Pattern):
-                straight = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat_or_tree}
-            else:
-                straight = tree <= straight_pat_or_tree
-            pat.plug(straight, {port_names[1]: data.straight.in_port_name})
-        if data.b_transition:
-            pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
-        if data.ccw is not None:
-            assert data.bend is not None
-            pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
-        if data.out_transition:
-            pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
-
-        return tree
-
     @staticmethod
     def _bend2dxy(bend: Bend, ccw: SupportsBool | None) -> tuple[NDArray[numpy.float64], float]:
         if ccw is None:
@@ -647,6 +609,68 @@ class AutoTool(Tool, metaclass=ABCMeta):
         out_port = Port((length, bend_run), rotation=bend_angle, ptype=out_ptype_actual)
         return out_port, data
 
+    def _renderL(
+            self,
+            data: LData,
+            tree: ILibrary,
+            port_names: tuple[str, str],
+            append: bool,
+            ) -> ILibrary:
+        """
+        Render an L step into a preexisting tree
+        """
+        pat = tree.top()
+        if data.in_transition:
+            pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
+        if not numpy.isclose(data.straight_length, 0):
+            straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
+            pmap = {port_names[1]: data.straight.in_port_name}
+            if isinstance(straight_pat_or_tree, Pattern):
+                straight_pat = straight_pat_or_tree
+                if append:
+                    pat.plug(straight_pat, pmap, append=True)
+                else:
+                    straight_name = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
+                    pat.plug(straight_name, pmap)
+            else:
+                straight_tree = straight_pat_or_tree
+                if append:
+                    top = straight_tree.top()
+                    straight_tree.flatten(top)
+                    pat.plug(straight_tree[top], pmap, append=True)
+                else:
+                    straight = tree <= straight_pat_or_tree
+                    pat.plug(straight, pmap)
+        if data.b_transition:
+            pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
+        if data.ccw is not None:
+            pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
+        if data.out_transition:
+            pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
+        return tree
+
+    def path(
+            self,
+            ccw: SupportsBool | None,
+            length: float,
+            *,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
+            port_names: tuple[str, str] = ('A', 'B'),
+            **kwargs,
+            ) -> Library:
+        _out_port, data = self.planL(
+            ccw,
+            length,
+            in_ptype = in_ptype,
+            out_ptype = out_ptype,
+            )
+
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
+        pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
+        self._renderL(data=data, tree=tree, port_names=port_names, append=False)
+        return tree
+
     def render(
             self,
             batch: Sequence[RenderStep],
@@ -660,37 +684,9 @@ class AutoTool(Tool, metaclass=ABCMeta):
         pat.add_port_pair(names=(port_names[0], port_names[1]))
 
         for step in batch:
-            data = step.data
             assert step.tool == self
-
             if step.opcode == 'L':
-                if data.in_transition:
-                    pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
-                if not numpy.isclose(data.straight_length, 0):
-                    straight_pat_or_tree = data.straight.fn(data.straight_length, **kwargs)
-                    pmap = {port_names[1]: data.straight.in_port_name}
-                    if isinstance(straight_pat_or_tree, Pattern):
-                        straight_pat = straight_pat_or_tree
-                        if append:
-                            pat.plug(straight_pat, pmap, append=True)
-                        else:
-                            straight_name = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
-                            pat.plug(straight_name, pmap)
-                    else:
-                        straight_tree = straight_pat_or_tree
-                        if append:
-                            top = straight_tree.top()
-                            straight_tree.flatten(top)
-                            pat.plug(straight_tree[top], pmap, append=True)
-                        else:
-                            straight = tree <= straight_pat_or_tree
-                            pat.plug(straight, pmap)
-                if data.b_transition:
-                    pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
-                if data.ccw is not None:
-                    pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
-                if data.out_transition:
-                    pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
+                self._renderL(data=step.data, tree=tree, port_names=port_names, append=append)
         return tree
 
 
