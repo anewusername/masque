@@ -5,6 +5,7 @@ from .utils import ell as ell
 from .tools import (
     Tool as Tool,
     RenderStep as RenderStep,
-    BasicTool as BasicTool,
+    SimpleTool as SimpleTool,
+    AutoTool as AutoTool,
     PathTool as PathTool,
     )

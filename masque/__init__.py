@@ -77,7 +77,8 @@ from .builder import (
     Pather as Pather,
     RenderPather as RenderPather,
     RenderStep as RenderStep,
-    BasicTool as BasicTool,
+    SimpleTool as SimpleTool,
+    AutoTool as AutoTool,
     PathTool as PathTool,
     )
 from .utils import (
