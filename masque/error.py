@@ -89,7 +89,7 @@ def format_stacktrace(
     if selected := stack[first_ok:last_ok + 1]:
         pass
     elif selected := stack[:-stacklevel]:
-        pass
+        pass                      # noqa: SIM114     # separate elif for clarity
     else:
         selected = stack
     return ''.join(traceback.format_list(selected))
