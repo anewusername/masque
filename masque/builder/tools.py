@@ -340,7 +340,7 @@ class BasicTool(Tool, metaclass=ABCMeta):
                 bend_angle *= -1
         else:
             bend_dxy = numpy.zeros(2)
-            bend_angle = 0
+            bend_angle = pi
 
         in_transition = self.transitions.get('unk' if in_ptype is None else in_ptype, None)
         if in_transition is not None:
@@ -508,7 +508,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
     @staticmethod
     def _bend2dxy(bend_tuple: abstract_tuple_t, ccw: SupportsBool | None) -> tuple[NDArray[numpy.float64], float]:
         if ccw is None:
-            return numpy.zeros(2), 0.0
+            return numpy.zeros(2), pi
         bend, bport_in, bport_out = bend_tuple
 
         angle_in = bend.ports[bport_in].rotation
