@@ -3,7 +3,7 @@ Tools are objects which dynamically generate simple single-use devices (e.g. wir
 
 # TODO document all tools
 """
-from typing import Literal, Any
+from typing import Literal, Any, Self
 from collections.abc import Sequence, Callable
 from abc import ABCMeta  # , abstractmethod     # TODO any way to make Tool ok with implementing only one method?
 from dataclasses import dataclass
@@ -484,6 +484,9 @@ class AutoTool(Tool, metaclass=ABCMeta):
         def their_port(self) -> Port:
             return self.abstract.ports[self.their_port_name]
 
+        def reversed(self) -> Self:
+            return type(self)(self.abstract, self.their_port_name, self.our_port_name)
+
     @dataclass(frozen=True, slots=True)
     class LData:
         """ Data for planL """
@@ -506,6 +509,12 @@ class AutoTool(Tool, metaclass=ABCMeta):
 
     default_out_ptype: str
     """ Default value for out_ptype """
+
+    def add_complementary_transitions(self) -> Self:
+        for iioo in list(self.transitions.keys()):
+            ooii = (iioo[1], iioo[0])
+            self.transitions.setdefault(ooii, self.transitions[iioo].reversed())
+        return self
 
     def path(
             self,
