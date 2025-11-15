@@ -320,7 +320,6 @@ class SimpleTool(Tool, metaclass=ABCMeta):
             data: LData,
             tree: ILibrary,
             port_names: tuple[str, str],
-            append: bool,
             straight_kwargs: dict[str, Any],
             ) -> ILibrary:
         """
@@ -333,20 +332,12 @@ class SimpleTool(Tool, metaclass=ABCMeta):
             pmap = {port_names[1]: sport_in}
             if isinstance(straight_pat_or_tree, Pattern):
                 straight_pat = straight_pat_or_tree
-                if append:
-                    pat.plug(straight_pat, pmap, append=True)
-                else:
-                    straight_name = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
-                    pat.plug(straight_name, pmap)
+                pat.plug(straight_pat, pmap, append=True)
             else:
                 straight_tree = straight_pat_or_tree
-                if append:
-                    top = straight_tree.top()
-                    straight_tree.flatten(top)
-                    pat.plug(straight_tree[top], pmap, append=True)
-                else:
-                    straight = tree <= straight_pat_or_tree
-                    pat.plug(straight, pmap)
+                top = straight_tree.top()
+                straight_tree.flatten(top)
+                pat.plug(straight_tree[top], pmap, append=True)
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
             pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(data.ccw))
@@ -371,7 +362,7 @@ class SimpleTool(Tool, metaclass=ABCMeta):
 
         tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
-        self._renderL(data=data, tree=tree, port_names=port_names, append=False, straight_kwargs=kwargs)
+        self._renderL(data=data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
     def render(
@@ -379,7 +370,6 @@ class SimpleTool(Tool, metaclass=ABCMeta):
             batch: Sequence[RenderStep],
             *,
             port_names: tuple[str, str] = ('A', 'B'),
-            append: bool = True,
             **kwargs,
             ) -> ILibrary:
 
@@ -389,7 +379,7 @@ class SimpleTool(Tool, metaclass=ABCMeta):
         for step in batch:
             assert step.tool == self
             if step.opcode == 'L':
-                self._renderL(data=step.data, tree=tree, port_names=port_names, append=append, straight_kwargs=kwargs)
+                self._renderL(data=step.data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
 @dataclass
@@ -571,7 +561,6 @@ class AutoTool(Tool, metaclass=ABCMeta):
             data: LData,
             tree: ILibrary,
             port_names: tuple[str, str],
-            append: bool,
             straight_kwargs: dict[str, Any],
             ) -> ILibrary:
         """
@@ -584,21 +573,12 @@ class AutoTool(Tool, metaclass=ABCMeta):
             straight_pat_or_tree = data.straight.fn(data.straight_length, **(straight_kwargs | data.straight_kwargs))
             pmap = {port_names[1]: data.straight.in_port_name}
             if isinstance(straight_pat_or_tree, Pattern):
-                straight_pat = straight_pat_or_tree
-                if append:
-                    pat.plug(straight_pat, pmap, append=True)
-                else:
-                    straight_name = tree <= {SINGLE_USE_PREFIX + 'straight': straight_pat}
-                    pat.plug(straight_name, pmap)
+                pat.plug(straight_pat_or_tree, pmap, append=True)
             else:
                 straight_tree = straight_pat_or_tree
-                if append:
-                    top = straight_tree.top()
-                    straight_tree.flatten(top)
-                    pat.plug(straight_tree[top], pmap, append=True)
-                else:
-                    straight = tree <= straight_pat_or_tree
-                    pat.plug(straight, pmap)
+                top = straight_tree.top()
+                straight_tree.flatten(top)
+                pat.plug(straight_tree[top], pmap, append=True)
         if data.b_transition:
             pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
         if data.ccw is not None:
@@ -627,7 +607,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
 
         tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'path')
         pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
-        self._renderL(data=data, tree=tree, port_names=port_names, append=False, straight_kwargs=kwargs)
+        self._renderL(data=data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
     def render(
@@ -635,7 +615,6 @@ class AutoTool(Tool, metaclass=ABCMeta):
             batch: Sequence[RenderStep],
             *,
             port_names: tuple[str, str] = ('A', 'B'),
-            append: bool = True,
             **kwargs,
             ) -> ILibrary:
 
@@ -645,7 +624,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         for step in batch:
             assert step.tool == self
             if step.opcode == 'L':
-                self._renderL(data=step.data, tree=tree, port_names=port_names, append=append, straight_kwargs=kwargs)
+                self._renderL(data=step.data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
 
