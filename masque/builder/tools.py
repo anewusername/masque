@@ -400,6 +400,20 @@ class AutoTool(Tool, metaclass=ABCMeta):
         length_range: tuple[float, float] = (0, numpy.inf)
 
     @dataclass(frozen=True, slots=True)
+    class SBend:
+        """ Description of an s-bend generator """
+        ptype: str
+
+        fn: Callable[[float], Pattern] | Callable[[float], Library]
+        """
+        Generator function. `jog` (only argument) is assumed to be left (ccw) relative to travel
+        and may be negative for a jog i the opposite direction. Won't be called if jog=0.
+        """
+
+        in_port_name: str
+        out_port_name: str
+
+    @dataclass(frozen=True, slots=True)
     class Bend:
         """ Description of a pre-rendered bend """
         abstract: Abstract
@@ -445,11 +459,26 @@ class AutoTool(Tool, metaclass=ABCMeta):
         b_transition: 'AutoTool.Transition | None'
         out_transition: 'AutoTool.Transition | None'
 
+    @dataclass(frozen=True, slots=True)
+    class SData:
+        """ Data for planS """
+        straight_length: float
+        straight: 'AutoTool.Straight'
+        gen_kwargs: dict[str, Any]
+        jog_remaining: float
+        sbend: 'AutoTool.SBend'
+        in_transition: 'AutoTool.Transition | None'
+        b_transition: 'AutoTool.Transition | None'
+        out_transition: 'AutoTool.Transition | None'
+
     straights: list[Straight]
     """ List of straight-generators to choose from, in order of priority """
 
     bends: list[Bend]
-    """ List of bends to choose from, in order of priority. """
+    """ List of bends to choose from, in order of priority """
+
+    sbends: list[SBend]
+    """ List of S-bend generators to choose from, in order of priority """
 
     transitions: dict[tuple[str, str], Transition]
     """ `{(external_ptype, internal_ptype): Transition, ...}` """
@@ -480,6 +509,20 @@ class AutoTool(Tool, metaclass=ABCMeta):
             bend_dxy[1] *= -1
             bend_angle *= -1
         return bend_dxy, bend_angle
+
+    @staticmethod
+    def _sbend2dxy(sbend: SBend, jog: float) -> NDArray[numpy.float64]:
+        if numpy.isclose(jog, 0):
+            return numpy.zeros(2)
+
+        sbend_pat_or_tree = sbend.fn(jog)
+        sbpat = sbend_pat_or_tree if isinstance(sbend_pat_or_tree, Pattern) else sbend_pat_or_tree.top_pattern()
+
+        angle_in = sbpat[sbend.in_port_name].rotation
+        assert angle_in is not None
+
+        dxy = rotation_matrix_2d(-angle_in) @ (sbpat[sbend.out_port_name].offset - sbpat[sbend.in_port_name].offset)
+        return dxy
 
     @staticmethod
     def _itransition2dxy(in_transition: Transition | None) -> NDArray[numpy.float64]:
@@ -610,6 +653,122 @@ class AutoTool(Tool, metaclass=ABCMeta):
         self._renderL(data=data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
+    def planS(
+            self,
+            length: float,
+            jog: float,
+            *,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
+            **kwargs,
+            ) -> tuple[Port, Any]:
+
+        success = False
+        for straight in self.straights:
+            for sbend in self.sbends:
+                out_ptype_pair = (
+                    'unk' if out_ptype is None else out_ptype,
+                    straight.ptype if numpy.isclose(jog, 0) else sbend.ptype
+                    )
+                out_transition = self.transitions.get(out_ptype_pair, None)
+                otrans_dxy = self._otransition2dxy(out_transition, pi)
+
+                # Assume we'll need a straight segment with transitions, then discard them if they don't fit
+                # We do this before generating the s-bend because the transitions might have some dy component
+                in_ptype_pair = ('unk' if in_ptype is None else in_ptype, straight.ptype)
+                in_transition = self.transitions.get(in_ptype_pair, None)
+                itrans_dxy = self._itransition2dxy(in_transition)
+
+                b_transition = None
+                if not numpy.isclose(jog, 0) and sbend.ptype != straight.ptype:
+                    b_transition = self.transitions.get((sbend.ptype, straight.ptype), None)
+                btrans_dxy = self._itransition2dxy(b_transition)
+
+                if length > itrans_dxy[0] + btrans_dxy[0] + otrans_dxy[0]:
+                    # `if` guard to avoid unnecessary calls to `_sbend2dxy()`, which calls `sbend.fn()`
+                    # note some S-bends may have 0 length, so we can't be more restrictive
+                    jog_remaining = jog - itrans_dxy[1] - btrans_dxy[1] - otrans_dxy[1]
+                    sbend_dxy = self._sbend2dxy(sbend, jog_remaining)
+                    straight_length = length - sbend_dxy[0] - itrans_dxy[0] - btrans_dxy[0] - otrans_dxy[0]
+                    success = straight.length_range[0] <= straight_length < straight.length_range[1]
+                    if success:
+                        break
+
+                # Straight didn't work, see if just the s-bend is enough
+                if sbend.ptype != straight.ptype:
+                    # Need to use a different in-transition for sbend (vs straight)
+                    in_ptype_pair = ('unk' if in_ptype is None else in_ptype, sbend.ptype)
+                    in_transition = self.transitions.get(in_ptype_pair, None)
+                    itrans_dxy = self._itransition2dxy(in_transition)
+
+                jog_remaining = jog - itrans_dxy[1] - otrans_dxy[1]
+                sbend_dxy = self._sbend2dxy(sbend, jog_remaining)
+                success = numpy.isclose(length, sbend_dxy[0] + itrans_dxy[1] + otrans_dxy[1])
+                if success:
+                    b_transition = None
+                    straight_length = 0
+                    break
+            if success:
+                break
+        else:
+            # Failed to break
+            raise BuildError(
+                f'Asked to draw S-path with total length {length:,g}, shorter than required bends and transitions:\n'
+                f'sbend: {sbend_dxy[0]:,g}  in_trans: {itrans_dxy[0]:,g}\n'
+                f'out_trans: {otrans_dxy[0]:,g} bend_trans: {btrans_dxy[0]:,g}'
+                )
+
+        if out_transition is not None:
+            out_ptype_actual = out_transition.their_port.ptype
+        elif not numpy.isclose(jog_remaining, 0):
+            out_ptype_actual = sbend.ptype
+        else:
+            out_ptype_actual = self.default_out_ptype
+
+        data = self.SData(straight_length, straight, kwargs, jog_remaining, sbend, in_transition, b_transition, out_transition)
+        out_port = Port((length, jog), rotation=pi, ptype=out_ptype_actual)
+        return out_port, data
+
+    def _renderS(
+            self,
+            data: SData,
+            tree: ILibrary,
+            port_names: tuple[str, str],
+            gen_kwargs: dict[str, Any],
+            ) -> ILibrary:
+        """
+        Render an L step into a preexisting tree
+        """
+        pat = tree.top_pattern()
+        if data.in_transition:
+            pat.plug(data.in_transition.abstract, {port_names[1]: data.in_transition.their_port_name})
+        if not numpy.isclose(data.straight_length, 0):
+            straight_pat_or_tree = data.straight.fn(data.straight_length, **(gen_kwargs | data.gen_kwargs))
+            pmap = {port_names[1]: data.straight.in_port_name}
+            if isinstance(straight_pat_or_tree, Pattern):
+                straight_pat = straight_pat_or_tree
+                pat.plug(straight_pat, pmap, append=True)
+            else:
+                straight_tree = straight_pat_or_tree
+                top = straight_tree.top()
+                straight_tree.flatten(top)
+                pat.plug(straight_tree[top], pmap, append=True)
+        if data.b_transition:
+            pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
+        if not numpy.isclose(data.jog_remaining, 0):
+            sbend_pat_or_tree = data.sbend.fn(data.jog_remaining, **(gen_kwargs | data.gen_kwargs))
+            pmap = {port_names[1]: data.sbend.in_port_name}
+            if isinstance(sbend_pat_or_tree, Pattern):
+                pat.plug(sbend_pat_or_tree, pmap, append=True)
+            else:
+                sbend_tree = sbend_pat_or_tree
+                top = sbend_tree.top()
+                sbend_tree.flatten(top)
+                pat.plug(sbend_tree[top], pmap, append=True)
+        if data.out_transition:
+            pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
+        return tree
+
     def render(
             self,
             batch: Sequence[RenderStep],
@@ -625,6 +784,8 @@ class AutoTool(Tool, metaclass=ABCMeta):
             assert step.tool == self
             if step.opcode == 'L':
                 self._renderL(data=step.data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
+            elif step.opcode == 'S':
+                self._renderS(data=step.data, tree=tree, port_names=port_names, gen_kwargs=kwargs)
         return tree
 
 
