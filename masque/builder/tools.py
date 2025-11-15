@@ -308,7 +308,7 @@ class SimpleTool(Tool, metaclass=ABCMeta):
 
         if straight_length < 0:
             raise BuildError(
-                f'Asked to draw path with total length {length:,g}, shorter than required bends ({bend_dxy[0]:,})'
+                f'Asked to draw L-path with total length {length:,g}, shorter than required bends ({bend_dxy[0]:,})'
                 )
 
         data = self.LData(straight_length, kwargs, ccw)
@@ -550,7 +550,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         else:
             # Failed to break
             raise BuildError(
-                f'Asked to draw path with total length {length:,g}, shorter than required bends and transitions:\n'
+                f'Asked to draw L-path with total length {length:,g}, shorter than required bends and transitions:\n'
                 f'bend: {bend_dxy[0]:,g}  in_trans: {itrans_dxy[0]:,g}\n'
                 f'out_trans: {otrans_dxy[0]:,g} bend_trans: {btrans_dxy[0]:,g}'
                 )
@@ -740,7 +740,7 @@ class PathTool(Tool, metaclass=ABCMeta):
 
         if straight_length < 0:
             raise BuildError(
-                f'Asked to draw path with total length {length:,g}, shorter than required bend: {bend_dxy[0]:,g}'
+                f'Asked to draw L-path with total length {length:,g}, shorter than required bend: {bend_dxy[0]:,g}'
                 )
         data = numpy.array((length, bend_run))
         out_port = Port(data, rotation=bend_angle, ptype=self.ptype)
