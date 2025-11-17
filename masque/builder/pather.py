@@ -296,11 +296,11 @@ class Pather(Builder, PatherMixin):
         tool = self.tools.get(portspec, self.tools[None])
         in_ptype = self.pattern[portspec].ptype
         tree = tool.path(ccw, length, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
-        abstract = self.library << tree         # TODO this seems like a name, not an abstract
+        tname = self.library << tree
         if plug_into is not None:
             output = {plug_into: tool_port_names[1]}
         else:
             output = {}
-        self.plug(abstract, {portspec: tool_port_names[0], **output})
+        self.plug(tname, {portspec: tool_port_names[0], **output})
         return self
 
