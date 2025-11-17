@@ -135,7 +135,7 @@ class Tool:
             kwargs: Custom tool-specific parameters.
 
         Returns:
-            The calculated output `Port` for the wire.
+            The calculated output `Port` for the wire, assuming an input port at (0, 0) with rotation 0.
             Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
 
         Raises:
@@ -173,7 +173,7 @@ class Tool:
             kwargs: Custom tool-specific parameters.
 
         Returns:
-            The calculated output `Port` for the wire.
+            The calculated output `Port` for the wire, assuming an input port at (0, 0) with rotation 0.
             Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
 
         Raises:
@@ -211,7 +211,7 @@ class Tool:
             kwargs: Custom tool-specific parameters.
 
         Returns:
-            The calculated output `Port` for the wire.
+            The calculated output `Port` for the wire, assuming an input port at (0, 0) with rotation 0.
             Any tool-specifc data, to be stored in `RenderStep.data`, for use during rendering.
 
         Raises:
@@ -382,6 +382,7 @@ class SimpleTool(Tool, metaclass=ABCMeta):
                 self._renderL(data=step.data, tree=tree, port_names=port_names, straight_kwargs=kwargs)
         return tree
 
+
 @dataclass
 class AutoTool(Tool, metaclass=ABCMeta):
     """
@@ -407,7 +408,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
         fn: Callable[[float], Pattern] | Callable[[float], Library]
         """
         Generator function. `jog` (only argument) is assumed to be left (ccw) relative to travel
-        and may be negative for a jog i the opposite direction. Won't be called if jog=0.
+        and may be negative for a jog in the opposite direction. Won't be called if jog=0.
         """
 
         in_port_name: str
