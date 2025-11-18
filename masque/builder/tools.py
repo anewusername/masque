@@ -70,7 +70,7 @@ class Tool:
         Create a wire or waveguide that travels exactly `length` distance along the axis
         of its input port.
 
-        Used by `Pather`.
+        Used by `Pather` and `RenderPather`.
 
         The output port must be exactly `length` away along the input port's axis, but
         may be placed an additional (unspecified) distance away along the perpendicular

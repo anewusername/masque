@@ -266,7 +266,7 @@ class Pather(Builder, PatherMixin):
         Create a "wire"/"waveguide" and `plug` it into the port `portspec`, with the aim
         of traveling exactly `length` distance.
 
-        The wire will travel `length` distance along the port's axis, an an unspecified
+        The wire will travel `length` distance along the port's axis, and an unspecified
         (tool-dependent) distance in the perpendicular direction. The output port will
         be rotated (or not) based on the `ccw` parameter.
 
