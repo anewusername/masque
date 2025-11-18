@@ -48,6 +48,18 @@ class PatherMixin(metaclass=ABCMeta):
             ) -> Self:
         pass
 
+    @abstractmethod
+    def pathS(
+            self,
+            portspec: str,
+            length: float,
+            jog: float,
+            *,
+            plug_into: str | None = None,
+            **kwargs,
+            ) -> Self:
+        pass
+
     def retool(
             self,
             tool: Tool,
@@ -266,16 +278,6 @@ class PatherMixin(metaclass=ABCMeta):
 
         angle = (port_dst.rotation - port_src.rotation) % (2 * pi)
 
-        src_ne = port_src.rotation % (2 * pi) > (3 * pi / 4)     # path from src will go north or east
-
-        def get_jog(ccw: SupportsBool, length: float) -> float:
-            tool = self.tools.get(portspec_src, self.tools[None])
-            in_ptype = 'unk'   # Could use port_src.ptype, but we're assuming this is after one bend already...
-            tree2 = tool.path(ccw, length, in_ptype=in_ptype, port_names=('A', 'B'), out_ptype=out_ptype, **kwargs)
-            top2 = tree2.top_pattern()
-            jog = rotation_matrix_2d(top2['A'].rotation) @ (top2['B'].offset - top2['A'].offset)
-            return jog[1] * [-1, 1][int(bool(ccw))]
-
         dst_extra_args = {'out_ptype': out_ptype}
         if plug_destination:
             dst_extra_args['plug_into'] = portspec_dst
@@ -297,20 +299,10 @@ class PatherMixin(metaclass=ABCMeta):
             elif not src_is_horizontal and xs == xd:
                 # straight connector
                 self.path_to(portspec_src, None, y=yd, **dst_args)
-            elif src_is_horizontal:
-                # figure out how much x our y-segment (2nd) takes up, then path based on that
-                y_len = numpy.abs(yd - ys)
-                ccw2 = src_ne != (yd > ys)
-                jog = get_jog(ccw2, y_len) * numpy.sign(xd - xs)
-                self.path_to(portspec_src, not ccw2, x=xd - jog, **src_args)
-                self.path_to(portspec_src, ccw2, y=yd, **dst_args)
             else:
-                # figure out how much y our x-segment (2nd) takes up, then path based on that
-                x_len = numpy.abs(xd - xs)
-                ccw2 = src_ne != (xd < xs)
-                jog = get_jog(ccw2, x_len) * numpy.sign(yd - ys)
-                self.path_to(portspec_src, not ccw2, y=yd - jog, **src_args)
-                self.path_to(portspec_src, ccw2, x=xd, **dst_args)
+                # S-bend, delegate to implementations
+                (travel, jog), _ = port_src.measure_travel(port_dst)
+                self.pathS(portspec_src, -travel, jog, **dst_args)
         elif numpy.isclose(angle, 0):
             raise BuildError('Don\'t know how to route a U-bend yet (TODO)!')
         else:
