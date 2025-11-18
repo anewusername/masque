@@ -11,7 +11,7 @@ from numpy import pi
 from numpy.typing import ArrayLike, NDArray
 
 from .traits import PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable
-from .utils import rotate_offsets_around
+from .utils import rotate_offsets_around, rotation_matrix_2d
 from .error import PortError, format_stacktrace
 
 
@@ -142,6 +142,28 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
             and numpy.array_equal(self.offset, other.offset)
             and self.rotation == other.rotation
             )
+
+    def measure_travel(self, destination: 'Port') -> tuple[NDArray[numpy.float64], float | None]:
+        """
+        Find the (travel, jog) distances and rotation angle from the current port to the provided
+        `destination` port.
+
+        Travel is along the source port's axis (into the device interior), and jog is perpendicular,
+        with left of the travel direction corresponding to a positive jog.
+
+        Args:
+            (self): Source `Port`
+            destination: Destination `Port`
+
+        Returns
+            [travel, jog], rotation
+        """
+        angle_in = self.rotation
+        angle_out = destination.rotation
+        assert angle_in is not None
+        dxy = rotation_matrix_2d(-angle_in) @ (destination.offset - self.offset)
+        angle = ((angle_out - angle_in) % (2 * pi)) if angle_out is not None else None
+        return dxy, angle
 
 
 class PortList(metaclass=ABCMeta):
@@ -552,3 +574,4 @@ class PortList(metaclass=ABCMeta):
             raise PortError(msg)
 
         return translations[0], rotations[0], o_offsets[0]
+
