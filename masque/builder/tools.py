@@ -101,6 +101,48 @@ class Tool:
         """
         raise NotImplementedError(f'path() not implemented for {type(self)}')
 
+    def pathS(
+            self,
+            length: float,
+            jog: float,
+            *,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
+            port_names: tuple[str, str] = ('A', 'B'),
+            **kwargs,
+            ) -> Library:
+        """
+        Create a wire or waveguide that travels exactly `length` distance along the axis
+        of its input port, and `jog` distance on the perpendicular axis.
+        `jog` is positive when moving left of the direction of travel (from input to ouput port).
+
+        Used by `Pather` and `RenderPather`.
+
+        The output port should be rotated to face the input port (i.e. plugging the device
+        into a port will move that port but keep its orientation).
+
+        The input and output ports should be compatible with `in_ptype` and
+        `out_ptype`, respectively. They should also be named `port_names[0]` and
+        `port_names[1]`, respectively.
+
+        Args:
+            length: The total distance from input to output, along the input's axis only.
+            jog: The total distance from input to output, along the second axis. Positive indicates
+                a leftward shift when moving from input to output port.
+            in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
+            out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
+            port_names: The output pattern will have its input port named `port_names[0]` and
+                its output named `port_names[1]`.
+            kwargs: Custom tool-specific parameters.
+
+        Returns:
+            A pattern tree containing the requested S-shaped (or straight) wire or waveguide
+
+        Raises:
+            BuildError if an impossible or unsupported geometry is requested.
+        """
+        raise NotImplementedError(f'path() not implemented for {type(self)}')
+
     def planL(
             self,
             ccw: SupportsBool | None,
@@ -204,8 +246,8 @@ class Tool:
 
         Args:
             jog: The total offset from the input to output, along the perpendicular axis.
-                A positive number implies a rightwards shift (i.e. clockwise bend followed
-                by a counterclockwise bend)
+                A positive number implies a leftwards shift (i.e. counterclockwise bend
+                followed by a clockwise bend)
             in_ptype: The `ptype` of the port into which this wire's input will be `plug`ged.
             out_ptype: The `ptype` of the port into which this wire's output will be `plug`ged.
             kwargs: Custom tool-specific parameters.
@@ -413,6 +455,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
 
         in_port_name: str
         out_port_name: str
+        jog_range: tuple[float, float] = (0, numpy.inf)
 
     @dataclass(frozen=True, slots=True)
     class Bend:
@@ -446,7 +489,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
             return self.abstract.ports[self.their_port_name]
 
         def reversed(self) -> Self:
-            return type(self)(self.abstract, self.their_port_name, self.our_port_name)
+            return type(self)(self.abstract, self.our_port_name, self.their_port_name)
 
     @dataclass(frozen=True, slots=True)
     class LData:
@@ -497,15 +540,8 @@ class AutoTool(Tool, metaclass=ABCMeta):
     def _bend2dxy(bend: Bend, ccw: SupportsBool | None) -> tuple[NDArray[numpy.float64], float]:
         if ccw is None:
             return numpy.zeros(2), pi
-
-        angle_in = bend.in_port.rotation
-        angle_out = bend.out_port.rotation
-        assert angle_in is not None
-        assert angle_out is not None
-
-        bend_dxy = rotation_matrix_2d(-angle_in) @ (bend.out_port.offset - bend.in_port.offset)
-        bend_angle = angle_out - angle_in
-
+        bend_dxy, bend_angle = bend.in_port.measure_travel(bend.out_port)
+        assert bend_angle is not None
         if bool(ccw):
             bend_dxy[1] *= -1
             bend_angle *= -1
@@ -516,23 +552,17 @@ class AutoTool(Tool, metaclass=ABCMeta):
         if numpy.isclose(jog, 0):
             return numpy.zeros(2)
 
-        sbend_pat_or_tree = sbend.fn(jog)
+        sbend_pat_or_tree = sbend.fn(abs(jog))
         sbpat = sbend_pat_or_tree if isinstance(sbend_pat_or_tree, Pattern) else sbend_pat_or_tree.top_pattern()
-
-        angle_in = sbpat[sbend.in_port_name].rotation
-        assert angle_in is not None
-
-        dxy = rotation_matrix_2d(-angle_in) @ (sbpat[sbend.out_port_name].offset - sbpat[sbend.in_port_name].offset)
+        dxy, _ = sbpat[sbend.in_port_name].measure_travel(sbpat[sbend.out_port_name])
         return dxy
 
     @staticmethod
     def _itransition2dxy(in_transition: Transition | None) -> NDArray[numpy.float64]:
         if in_transition is None:
             return numpy.zeros(2)
-        irot = in_transition.their_port.rotation
-        assert irot is not None
-        itrans_dxy = rotation_matrix_2d(-irot) @ (in_transition.our_port.offset - in_transition.their_port.offset)
-        return itrans_dxy
+        dxy, _ = in_transition.their_port.measure_travel(in_transition.our_port)
+        return dxy
 
     @staticmethod
     def _otransition2dxy(out_transition: Transition | None, bend_angle: float) -> NDArray[numpy.float64]:
@@ -550,7 +580,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
             *,
             in_ptype: str | None = None,
             out_ptype: str | None = None,
-            **kwargs,               # noqa: ARG002 (unused)
+            **kwargs,
             ) -> tuple[Port, LData]:
 
         success = False
@@ -593,6 +623,8 @@ class AutoTool(Tool, metaclass=ABCMeta):
             out_ptype_actual = out_transition.their_port.ptype
         elif ccw is not None:
             out_ptype_actual = bend.out_port.ptype
+        elif not numpy.isclose(straight_length, 0):
+            out_ptype_actual = straight.ptype
         else:
             out_ptype_actual = self.default_out_ptype
 
@@ -703,26 +735,43 @@ class AutoTool(Tool, metaclass=ABCMeta):
                     itrans_dxy = self._itransition2dxy(in_transition)
 
                 jog_remaining = jog - itrans_dxy[1] - otrans_dxy[1]
-                sbend_dxy = self._sbend2dxy(sbend, jog_remaining)
-                success = numpy.isclose(length, sbend_dxy[0] + itrans_dxy[1] + otrans_dxy[1])
-                if success:
-                    b_transition = None
-                    straight_length = 0
-                    break
+                if sbend.jog_range[0] <= jog_remaining < sbend.jog_range[1]:
+                    sbend_dxy = self._sbend2dxy(sbend, jog_remaining)
+                    success = numpy.isclose(length, sbend_dxy[0] + itrans_dxy[1] + otrans_dxy[1])
+                    if success:
+                        b_transition = None
+                        straight_length = 0
+                        break
             if success:
                 break
-        else:
+
+        if not success:
+            try:
+                ccw0 = jog > 0
+                p_test0, ldata_test0 = self.planL(length / 2, ccw0, in_ptype=in_ptype)
+                p_test1, ldata_test1 = self.planL(jog - p_test0.y, not ccw0, in_ptype=p_test0.ptype, out_ptype=out_ptype)
+
+                dx = p_test1.x - length / 2
+                p0, ldata0 = self.planL(length - dx, ccw0, in_ptype=in_ptype)
+                p1, ldata1 = self.planL(jog - p0.y, not ccw0, in_ptype=p0.ptype, out_ptype=out_ptype)
+                success = True
+            except BuildError as err:
+                l2_err: BuildError | None = err
+            else:
+                l2_err = None
+
+        if not success:
             # Failed to break
             raise BuildError(
-                f'Asked to draw S-path with total length {length:,g}, shorter than required bends and transitions:\n'
-                f'sbend: {sbend_dxy[0]:,g}  in_trans: {itrans_dxy[0]:,g}\n'
-                f'out_trans: {otrans_dxy[0]:,g} bend_trans: {btrans_dxy[0]:,g}'
-                )
+                f'Failed to find a valid s-bend configuration for {length=:,g}, {jog=:,g}, {in_ptype=}, {out_ptype=}'
+                ) from l2_err
 
         if out_transition is not None:
             out_ptype_actual = out_transition.their_port.ptype
         elif not numpy.isclose(jog_remaining, 0):
             out_ptype_actual = sbend.ptype
+        elif not numpy.isclose(straight_length, 0):
+            out_ptype_actual = straight.ptype
         else:
             out_ptype_actual = self.default_out_ptype
 
@@ -757,17 +806,38 @@ class AutoTool(Tool, metaclass=ABCMeta):
         if data.b_transition:
             pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
         if not numpy.isclose(data.jog_remaining, 0):
-            sbend_pat_or_tree = data.sbend.fn(data.jog_remaining, **(gen_kwargs | data.gen_kwargs))
+            sbend_pat_or_tree = data.sbend.fn(abs(data.jog_remaining), **(gen_kwargs | data.gen_kwargs))
             pmap = {port_names[1]: data.sbend.in_port_name}
             if isinstance(sbend_pat_or_tree, Pattern):
-                pat.plug(sbend_pat_or_tree, pmap, append=True)
+                pat.plug(sbend_pat_or_tree, pmap, append=True, mirrored=data.jog_remaining < 0)
             else:
                 sbend_tree = sbend_pat_or_tree
                 top = sbend_tree.top()
                 sbend_tree.flatten(top)
-                pat.plug(sbend_tree[top], pmap, append=True)
+                pat.plug(sbend_tree[top], pmap, append=True, mirrored=data.jog_remaining < 0)
         if data.out_transition:
             pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
+        return tree
+
+    def pathS(
+            self,
+            length: float,
+            jog: float,
+            *,
+            in_ptype: str | None = None,
+            out_ptype: str | None = None,
+            port_names: tuple[str, str] = ('A', 'B'),
+            **kwargs,
+            ) -> Library:
+        _out_port, data = self.planS(
+            length,
+            jog,
+            in_ptype = in_ptype,
+            out_ptype = out_ptype,
+            )
+        tree, pat = Library.mktree(SINGLE_USE_PREFIX + 'pathS')
+        pat.add_port_pair(names=port_names, ptype='unk' if in_ptype is None else in_ptype)
+        self._renderS(data=data, tree=tree, port_names=port_names, gen_kwargs=kwargs)
         return tree
 
     def render(

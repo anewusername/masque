@@ -420,6 +420,81 @@ class RenderPather(PortList, PatherMixin):
 
         return self
 
+    def pathS(
+            self,
+            portspec: str,
+            length: float,
+            jog: float,
+            *,
+            plug_into: str | None = None,
+            **kwargs,
+            ) -> Self:
+        """
+        Create an S-shaped "wire"/"waveguide" and `plug` it into the port `portspec`, with the aim
+        of traveling exactly `length` distance with an offset `jog` along the other axis (+ve jog is
+        left of direction of travel).
+
+        The output port will have the same orientation as the source port (`portspec`).
+
+        `RenderPather.render` must be called after all paths have been fully planned.
+
+        This function attempts to use `tool.planS()`, but falls back to `tool.planL()` if the former
+        raises a NotImplementedError.
+
+        Args:
+            portspec: The name of the port into which the wire will be plugged.
+            jog: Total manhattan distance perpendicular to the direction of travel.
+                Positive values are to the left of the direction of travel.
+            length: The total manhattan distance from input to output, along the input's axis only.
+                (There may be a tool-dependent offset along the other axis.)
+            plug_into: If not None, attempts to plug the wire's output port into the provided
+                port on `self`.
+
+        Returns:
+            self
+
+        Raises:
+            BuildError if `distance` is too small to fit the s-bend (for nonzero jog).
+            LibraryError if no valid name could be picked for the pattern.
+        """
+        if self._dead:
+            logger.error('Skipping pathS() since device is dead')
+            return self
+
+        port = self.pattern[portspec]
+        in_ptype = port.ptype
+        port_rot = port.rotation
+        assert port_rot is not None         # TODO allow manually setting rotation for RenderPather.path()?
+
+        tool = self.tools.get(portspec, self.tools[None])
+
+        # check feasibility, get output port and data
+        try:
+            out_port, data = tool.planS(length, jog, in_ptype=in_ptype, **kwargs)
+        except NotImplementedError:
+            # Fall back to drawing two L-bends
+            ccw0 = jog > 0
+            kwargs_no_out = (kwargs | {'out_ptype': None})
+            t_port0, _ = tool.planL(    ccw0, length / 2, in_ptype=in_ptype, **kwargs_no_out)
+            (_, jog0), _ = Port((0, 0), 0).measure_travel(t_port0)
+            t_port1, _ = tool.planL(not ccw0, jog - jog0, in_ptype=t_port0.ptype, **kwargs)
+            (_, jog1), _ =  Port((0, 0), 0).measure_travel(t_port1)
+
+            self.path(portspec,     ccw0, length - jog1, **kwargs_no_out)
+            self.path(portspec, not ccw0, jog    - jog0, **kwargs)
+            return self
+
+        out_port.rotate_around((0, 0), pi + port_rot)
+        out_port.translate(port.offset)
+        step = RenderStep('S', tool, port.copy(), out_port.copy(), data)
+        self.paths[portspec].append(step)
+        self.pattern.ports[portspec] = out_port.copy()
+
+        if plug_into is not None:
+            self.plugged({portspec: plug_into})
+        return self
+
+
     def render(
             self,
             append: bool = True,

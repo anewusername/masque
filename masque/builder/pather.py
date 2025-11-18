@@ -304,3 +304,71 @@ class Pather(Builder, PatherMixin):
         self.plug(tname, {portspec: tool_port_names[0], **output})
         return self
 
+    def pathS(
+            self,
+            portspec: str,
+            length: float,
+            jog: float,
+            *,
+            plug_into: str | None = None,
+            **kwargs,
+            ) -> Self:
+        """
+        Create an S-shaped "wire"/"waveguide" and `plug` it into the port `portspec`, with the aim
+        of traveling exactly `length` distance with an offset `jog` along the other axis (+ve jog is
+        left of direction of travel).
+
+        The output port will have the same orientation as the source port (`portspec`).
+
+        This function attempts to use `tool.planS()`, but falls back to `tool.planL()` if the former
+        raises a NotImplementedError.
+
+        Args:
+            portspec: The name of the port into which the wire will be plugged.
+            jog: Total manhattan distance perpendicular to the direction of travel.
+                Positive values are to the left of the direction of travel.
+            length: The total manhattan distance from input to output, along the input's axis only.
+                (There may be a tool-dependent offset along the other axis.)
+            plug_into: If not None, attempts to plug the wire's output port into the provided
+                port on `self`.
+
+        Returns:
+            self
+
+        Raises:
+            BuildError if `distance` is too small to fit the s-bend (for nonzero jog).
+            LibraryError if no valid name could be picked for the pattern.
+        """
+        if self._dead:
+            logger.error('Skipping pathS() since device is dead')
+            return self
+
+        tool_port_names = ('A', 'B')
+
+        tool = self.tools.get(portspec, self.tools[None])
+        in_ptype = self.pattern[portspec].ptype
+        try:
+            tree = tool.pathS(length, jog, in_ptype=in_ptype, port_names=tool_port_names, **kwargs)
+        except NotImplementedError:
+            # Fall back to drawing two L-bends
+            ccw0 = jog > 0
+            kwargs_no_out = (kwargs | {'out_ptype': None})
+            t_tree0 = tool.path(    ccw0, length / 2, port_names=tool_port_names, in_ptype=in_ptype, **kwargs_no_out)
+            t_pat0 = t_tree0.top_pattern()
+            (_, jog0), _ = t_pat0[tool_port_names[0]].measure_travel(t_pat0[tool_port_names[1]])
+            t_tree1 = tool.path(not ccw0, jog - jog0, port_names=tool_port_names, in_ptype=t_pat0[tool_port_names[1]].ptype, **kwargs)
+            t_pat1 = t_tree1.top_pattern()
+            (_, jog1), _ = t_pat1[tool_port_names[0]].measure_travel(t_pat1[tool_port_names[1]])
+
+            self.path(portspec,     ccw0, length - jog1, **kwargs_no_out)
+            self.path(portspec, not ccw0, jog    - jog0, **kwargs)
+            return self
+
+        tname = self.library << tree
+        if plug_into is not None:
+            output = {plug_into: tool_port_names[1]}
+        else:
+            output = {}
+        self.plug(tname, {portspec: tool_port_names[0], **output})
+        return self
+
