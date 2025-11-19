@@ -1202,7 +1202,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 #            map_out: dict[str, str | None] | None,
 #            *,
 #            mirrored: bool,
-#            inherit_name: bool,
+#            thru: bool | str,
 #            set_rotation: bool | None,
 #            append: Literal[False],
 #            ) -> Self:
@@ -1216,7 +1216,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 #            map_out: dict[str, str | None] | None,
 #            *,
 #            mirrored: bool,
-#            inherit_name: bool,
+#            thru: bool | str,
 #            set_rotation: bool | None,
 #            append: bool,
 #            ) -> Self:
@@ -1229,7 +1229,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             map_out: dict[str, str | None] | None = None,
             *,
             mirrored: bool = False,
-            inherit_name: bool = True,
+            thru: bool | str = True,
             set_rotation: bool | None = None,
             append: bool = False,
             ok_connections: Iterable[tuple[str, str]] = (),
@@ -1250,7 +1250,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         - `my_pat.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
             of `my_pat`.
             If `wire` has only two ports (e.g. 'A' and 'B'), no `map_out` argument is
-            provided, and the `inherit_name` argument is not explicitly set to `False`,
+            provided, and the `thru` argument is not explicitly set to `False`,
             the unconnected port of `wire` is automatically renamed to 'myport'. This
             allows easy extension of existing ports without changing their names or
             having to provide `map_out` each time `plug` is called.
@@ -1263,11 +1263,15 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
                 new names for ports in `other`.
             mirrored: Enables mirroring `other` across the x axis prior to connecting
                 any ports.
-            inherit_name: If `True`, and `map_in` specifies only a single port,
-                and `map_out` is `None`, and `other` has only two ports total,
-                then automatically renames the output port of `other` to the
-                name of the port from `self` that appears in `map_in`. This
-                makes it easy to extend a pattern with simple 2-port devices
+            thru: If map_in specifies only a single port, `thru` provides a mechainsm
+                to avoid repeating the port name. Eg, for `map_in={'myport': 'A'}`,
+                - If True (default), and `other` has only two ports total, and map_out
+                doesn't specify a name for the other port, its name is set to the key
+                in `map_in`, i.e. 'myport'.
+                - If a string, `map_out[thru]` is set to the key in `map_in` (i.e. 'myport').
+                An error is raised if that entry already exists.
+
+                This makes it easy to extend a pattern with simple 2-port devices
                 (e.g. wires) without providing `map_out` each time `plug` is
                 called. See "Examples" above for more info. Default `True`.
             set_rotation: If the necessary rotation cannot be determined from
@@ -1295,17 +1299,24 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             `PortError` if the specified port mapping is not achieveable (the ports
                 do not line up)
         """
-        # If asked to inherit a name, check that all conditions are met
-        if (inherit_name
-                and not map_out
-                and len(map_in) == 1
-                and len(other.ports) == 2):
-            out_port_name = next(iter(set(other.ports.keys()) - set(map_in.values())))
-            map_out = {out_port_name: next(iter(map_in.keys()))}
-
         if map_out is None:
             map_out = {}
         map_out = copy.deepcopy(map_out)
+
+        # If asked to inherit a name, check that all conditions are met
+        if isinstance(thru, str):
+            if not len(map_in) == 1:
+                raise PatternError(f'Got {thru=} but have multiple map_in entries; don\'t know which one to use')
+            if thru in map_out:
+                raise PatternError(f'Got {thru=} but tha port already exists in map_out')
+            map_out[thru] = next(iter(map_in.keys()))
+        elif (bool(thru)
+                and len(map_in) == 1
+                and not map_out
+                and len(other.ports) == 2
+                ):
+            out_port_name = next(iter(set(other.ports.keys()) - set(map_in.values())))
+            map_out = {out_port_name: next(iter(map_in.keys()))}
 
         self.check_ports(other.ports.keys(), map_in, map_out)
         translation, rotation, pivot = self.find_transform(

@@ -67,7 +67,7 @@ class Builder(PortList):
 
     - `my_device.plug(wire, {'myport': 'A'})` places port 'A' of `wire` at 'myport'
         of `my_device`. If `wire` has only two ports (e.g. 'A' and 'B'), no `map_out`,
-        argument is provided, and the `inherit_name` argument is not explicitly
+        argument is provided, and the `thru` argument is not explicitly
         set to `False`, the unconnected port of `wire` is automatically renamed to
         'myport'. This allows easy extension of existing ports without changing
         their names or having to provide `map_out` each time `plug` is called.
@@ -223,7 +223,7 @@ class Builder(PortList):
             map_out: dict[str, str | None] | None = None,
             *,
             mirrored: bool = False,
-            inherit_name: bool = True,
+            thru: bool | str = True,
             set_rotation: bool | None = None,
             append: bool = False,
             ok_connections: Iterable[tuple[str, str]] = (),
@@ -246,11 +246,15 @@ class Builder(PortList):
                 new names for ports in `other`.
             mirrored: Enables mirroring `other` across the x axis prior to
                 connecting any ports.
-            inherit_name: If `True`, and `map_in` specifies only a single port,
-                and `map_out` is `None`, and `other` has only two ports total,
-                then automatically renames the output port of `other` to the
-                name of the port from `self` that appears in `map_in`. This
-                makes it easy to extend a device with simple 2-port devices
+            thru: If map_in specifies only a single port, `thru` provides a mechainsm
+                to avoid repeating the port name. Eg, for `map_in={'myport': 'A'}`,
+                - If True (default), and `other` has only two ports total, and map_out
+                doesn't specify a name for the other port, its name is set to the key
+                in `map_in`, i.e. 'myport'.
+                - If a string, `map_out[thru]` is set to the key in `map_in` (i.e. 'myport').
+                An error is raised if that entry already exists.
+
+                This makes it easy to extend a pattern with simple 2-port devices
                 (e.g. wires) without providing `map_out` each time `plug` is
                 called. See "Examples" above for more info. Default `True`.
             set_rotation: If the necessary rotation cannot be determined from
@@ -296,7 +300,7 @@ class Builder(PortList):
             map_in = map_in,
             map_out = map_out,
             mirrored = mirrored,
-            inherit_name = inherit_name,
+            thru = thru,
             set_rotation = set_rotation,
             append = append,
             ok_connections = ok_connections,
