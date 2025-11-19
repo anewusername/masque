@@ -193,7 +193,7 @@ class RenderPather(PortList, PatherMixin):
             map_out: dict[str, str | None] | None = None,
             *,
             mirrored: bool = False,
-            inherit_name: bool = True,
+            thru: bool | str = True,
             set_rotation: bool | None = None,
             append: bool = False,
             ) -> Self:
@@ -210,11 +210,15 @@ class RenderPather(PortList, PatherMixin):
                 new names for ports in `other`.
             mirrored: Enables mirroring `other` across the x axis prior to
                 connecting any ports.
-            inherit_name: If `True`, and `map_in` specifies only a single port,
-                and `map_out` is `None`, and `other` has only two ports total,
-                then automatically renames the output port of `other` to the
-                name of the port from `self` that appears in `map_in`. This
-                makes it easy to extend a device with simple 2-port devices
+            thru: If map_in specifies only a single port, `thru` provides a mechainsm
+                to avoid repeating the port name. Eg, for `map_in={'myport': 'A'}`,
+                - If True (default), and `other` has only two ports total, and map_out
+                doesn't specify a name for the other port, its name is set to the key
+                in `map_in`, i.e. 'myport'.
+                - If a string, `map_out[thru]` is set to the key in `map_in` (i.e. 'myport').
+                An error is raised if that entry already exists.
+
+                This makes it easy to extend a pattern with simple 2-port devices
                 (e.g. wires) without providing `map_out` each time `plug` is
                 called. See "Examples" above for more info. Default `True`.
             set_rotation: If the necessary rotation cannot be determined from
