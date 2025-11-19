@@ -265,13 +265,13 @@ class RenderPather(PortList, PatherMixin):
                 self.paths[new_name].append(RenderStep('P', None, port.copy(), port.copy(), None))
 
         self.pattern.plug(
-            other=other_tgt,
-            map_in=map_in,
-            map_out=map_out,
-            mirrored=mirrored,
-            inherit_name=inherit_name,
-            set_rotation=set_rotation,
-            append=append,
+            other = other_tgt,
+            map_in = map_in,
+            map_out = map_out,
+            mirrored = mirrored,
+            thru = thru,
+            set_rotation = set_rotation,
+            append = append,
             )
 
         return self
@@ -337,14 +337,14 @@ class RenderPather(PortList, PatherMixin):
                 self.paths[new_name].append(RenderStep('P', None, port.copy(), port.copy(), None))
 
         self.pattern.place(
-            other=other_tgt,
-            offset=offset,
-            rotation=rotation,
-            pivot=pivot,
-            mirrored=mirrored,
-            port_map=port_map,
-            skip_port_check=skip_port_check,
-            append=append,
+            other = other_tgt,
+            offset = offset,
+            rotation = rotation,
+            pivot = pivot,
+            mirrored = mirrored,
+            port_map = port_map,
+            skip_port_check = skip_port_check,
+            append = append,
             )
 
         return self
