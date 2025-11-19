@@ -1,5 +1,5 @@
 from typing import Self, TYPE_CHECKING
-from collections.abc import Sequence, Iterator
+from collections.abc import Sequence, Iterator, Iterable
 import logging
 from contextlib import contextmanager
 from abc import abstractmethod, ABCMeta
@@ -9,22 +9,19 @@ from numpy import pi
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..library import ILibrary
+from ..library import ILibrary, TreeView
 from ..error import PortError, BuildError
 from ..utils import SupportsBool
 from ..abstract import Abstract
 from .tools import Tool
 from .utils import ell
-
-if TYPE_CHECKING:
-    from .pather import Pather
-    from .renderpather import RenderPather
+from ..ports import PortList
 
 
 logger = logging.getLogger(__name__)
 
 
-class PatherMixin(metaclass=ABCMeta):
+class PatherMixin(PortList, metaclass=ABCMeta):
     pattern: Pattern
     """ Layout of this device """
 
@@ -61,6 +58,21 @@ class PatherMixin(metaclass=ABCMeta):
             *,
             plug_into: str | None = None,
             **kwargs,
+            ) -> Self:
+        pass
+
+    @abstractmethod
+    def plug(
+            self,
+            other: Abstract | str | Pattern | TreeView,
+            map_in: dict[str, str],
+            map_out: dict[str, str | None] | None = None,
+            *,
+            mirrored: bool = False,
+            thru: bool | str = True,
+            set_rotation: bool | None = None,
+            append: bool = False,
+            ok_connections: Iterable[tuple[str, str]] = (),
             ) -> Self:
         pass
 
@@ -221,6 +233,7 @@ class PatherMixin(metaclass=ABCMeta):
             *,
             out_ptype: str | None = None,
             plug_destination: bool = True,
+            thru: str | None = None,
             **kwargs,
             ) -> Self:
         """
@@ -244,6 +257,8 @@ class PatherMixin(metaclass=ABCMeta):
             out_ptype: Passed to the pathing tool in order to specify the desired port type
                 to be generated at the destination end. If `None` (default), the destination
                 port's `ptype` will be used.
+            thru: If not `None`, the port by this name will be rename to `portspec_src`.
+                This can be used when routing a signal through a pre-placed 2-port device.
 
         Returns:
             self
@@ -311,6 +326,9 @@ class PatherMixin(metaclass=ABCMeta):
             raise BuildError('Don\'t know how to route a U-bend yet (TODO)!')
         else:
             raise BuildError(f'Don\'t know how to route ports with relative angle {angle}')
+
+        if thru is not None:
+            self.rename_ports({thru: portspec_src})
 
         return self
 
@@ -453,9 +471,9 @@ class PortPather:
     port without needing to repeatedly pass its name.
     """
     port: str
-    pather: 'Pather | RenderPather'
+    pather: PatherMixin
 
-    def __init__(self, port: str, pather: 'Pather | RenderPather') -> None:
+    def __init__(self, port: str, pather: PatherMixin) -> None:
         self.port = port
         self.pather = pather
 
