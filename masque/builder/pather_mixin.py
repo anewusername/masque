@@ -440,6 +440,9 @@ class PatherMixin(metaclass=ABCMeta):
         self.pattern.flatten(self.library)
         return self
 
+    def at(self, portspec: str) -> 'PortPather':
+        return PortPather(portspec, self)
+
 
 
 class PortPather:
