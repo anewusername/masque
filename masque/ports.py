@@ -472,12 +472,12 @@ class PortList(metaclass=ABCMeta):
         s_ports = self[map_in.keys()]
         o_ports = other[map_in.values()]
         return self.find_port_transform(
-            s_ports=s_ports,
-            o_ports=o_ports,
-            map_in=map_in,
-            mirrored=mirrored,
-            set_rotation=set_rotation,
-            ok_connections=ok_connections,
+            s_ports = s_ports,
+            o_ports = o_ports,
+            map_in = map_in,
+            mirrored = mirrored,
+            set_rotation = set_rotation,
+            ok_connections = ok_connections,
             )
 
     @staticmethod

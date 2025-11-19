@@ -1311,9 +1311,9 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
         translation, rotation, pivot = self.find_transform(
             other,
             map_in,
-            mirrored=mirrored,
-            set_rotation=set_rotation,
-            ok_connections=ok_connections,
+            mirrored = mirrored,
+            set_rotation = set_rotation,
+            ok_connections = ok_connections,
             )
 
         # get rid of plugged ports
@@ -1326,13 +1326,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
 
         self.place(
             other,
-            offset=translation,
-            rotation=rotation,
-            pivot=pivot,
-            mirrored=mirrored,
-            port_map=map_out,
-            skip_port_check=True,
-            append=append,
+            offset = translation,
+            rotation = rotation,
+            pivot = pivot,
+            mirrored = mirrored,
+            port_map = map_out,
+            skip_port_check = True,
+            append = append,
             )
         return self
 

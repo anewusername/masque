@@ -292,14 +292,14 @@ class Builder(PortList):
             other = self.library[other.name]
 
         self.pattern.plug(
-            other=other,
-            map_in=map_in,
-            map_out=map_out,
-            mirrored=mirrored,
-            inherit_name=inherit_name,
-            set_rotation=set_rotation,
-            append=append,
-            ok_connections=ok_connections,
+            other = other,
+            map_in = map_in,
+            map_out = map_out,
+            mirrored = mirrored,
+            inherit_name = inherit_name,
+            set_rotation = set_rotation,
+            append = append,
+            ok_connections = ok_connections,
             )
         return self
 
@@ -365,14 +365,14 @@ class Builder(PortList):
             other = self.library[other.name]
 
         self.pattern.place(
-            other=other,
-            offset=offset,
-            rotation=rotation,
-            pivot=pivot,
-            mirrored=mirrored,
-            port_map=port_map,
-            skip_port_check=skip_port_check,
-            append=append,
+            other = other,
+            offset = offset,
+            rotation = rotation,
+            pivot = pivot,
+            mirrored = mirrored,
+            port_map = port_map,
+            skip_port_check = skip_port_check,
+            append = append,
             )
         return self
 
