@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, TYPE_CHECKING
 from collections.abc import Sequence, Iterator
 import logging
 from contextlib import contextmanager
@@ -11,10 +11,14 @@ from numpy.typing import ArrayLike
 from ..pattern import Pattern
 from ..library import ILibrary
 from ..error import PortError, BuildError
-from ..utils import rotation_matrix_2d, SupportsBool
-#from ..abstract import Abstract
+from ..utils import SupportsBool
+from ..abstract import Abstract
 from .tools import Tool
 from .utils import ell
+
+if TYPE_CHECKING:
+    from .pather import Pather
+    from .renderpather import RenderPather
 
 
 logger = logging.getLogger(__name__)
@@ -434,4 +438,89 @@ class PatherMixin(metaclass=ABCMeta):
             self
         """
         self.pattern.flatten(self.library)
+        return self
+
+
+
+class PortPather:
+    """
+    Single-port state manager
+
+      This class provides a convenient way to perform multiple pathing operations on a
+    port without needing to repeatedly pass its name.
+    """
+    port: str
+    pather: 'Pather | RenderPather'
+
+    def __init__(self, port: str, pather: 'Pather | RenderPather') -> None:
+        self.port = port
+        self.pather = pather
+
+    #
+    # Delegate to pather
+    #
+    def retool(self, tool: Tool) -> Self:
+        self.pather.retool(tool, keys=[self.port])
+        return self
+
+    @contextmanager
+    def toolctx(self, tool: Tool) -> Iterator[Self]:
+        with self.pather.toolctx(tool, keys=[self.port]):
+            yield self
+
+    def path(self, *args, **kwargs) -> Self:
+        self.pather.path(self.port, *args, **kwargs)
+        return self
+
+    def pathS(self, *args, **kwargs) -> Self:
+        self.pather.pathS(self.port, *args, **kwargs)
+        return self
+
+    def path_to(self, *args, **kwargs) -> Self:
+        self.pather.path_to(self.port, *args, **kwargs)
+        return self
+
+    def path_into(self, *args, **kwargs) -> Self:
+        self.pather.path_into(self.port, *args, **kwargs)
+        return self
+
+    def path_from(self, *args, **kwargs) -> Self:
+        self.pather.path_into(args[0], self.port, *args[1:], **kwargs)
+        return self
+
+    def mpath(self, *args, **kwargs) -> Self:
+        self.pather.mpath([self.port], *args, **kwargs)
+        return self
+
+    def plug(
+            self,
+            other: Abstract | str,
+            other_port: str,
+            *args,
+            **kwargs,
+            ) -> Self:
+        self.pather.plug(other, {self.port: other_port}, *args, **kwargs)
+        return self
+
+    def plugged(self, other_port: str) -> Self:
+        self.pather.plugged({self.port: other_port})
+        return self
+
+    #
+    # Delegate to port
+    #
+    def set_ptype(self, ptype: str) -> Self:
+        self.pather[self.port].set_ptype(ptype)
+        return self
+
+    def mirror(self, *args, **kwargs) -> Self:
+        self.pather[self.port].mirror(*args, **kwargs)
+        return self
+
+    def rotate(self, rotation: float) -> Self:
+        self.pather[self.port].rotate(rotation)
+        return self
+
+    def set_rotation(self, rotation: float | None) -> Self:
+        self.pather[self.port].set_rotation(rotation)
         return self

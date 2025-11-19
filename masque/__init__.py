@@ -80,6 +80,7 @@ from .builder import (
     SimpleTool as SimpleTool,
     AutoTool as AutoTool,
     PathTool as PathTool,
+    PortPather as PortPather,
     )
 from .utils import (
     ports2data as ports2data,
