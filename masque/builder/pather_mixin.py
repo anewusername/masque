@@ -488,7 +488,10 @@ class PortPather:
         return self
 
     def path_from(self, *args, **kwargs) -> Self:
+        thru = kwargs.pop('thru', None)
         self.pather.path_into(args[0], self.port, *args[1:], **kwargs)
+        if thru is not None:
+            self.rename_from(thru)
         return self
 
     def mpath(self, *args, **kwargs) -> Self:
@@ -526,4 +529,12 @@ class PortPather:
 
     def set_rotation(self, rotation: float | None) -> Self:
         self.pather[self.port].set_rotation(rotation)
+        return self
+
+    def rename_to(self, new_name: str) -> Self:
+        self.pather.rename_ports({self.port: new_name})
+        return self
+
+    def rename_from(self, old_name: str) -> Self:
+        self.pather.rename_ports({old_name: self.port})
         return self
