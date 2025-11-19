@@ -2,7 +2,7 @@
 Pather with batched (multi-step) rendering
 """
 from typing import Self
-from collections.abc import Sequence, Mapping, MutableMapping
+from collections.abc import Sequence, Mapping, MutableMapping, Iterable
 import copy
 import logging
 from collections import defaultdict
@@ -13,7 +13,7 @@ from numpy import pi
 from numpy.typing import ArrayLike
 
 from ..pattern import Pattern
-from ..library import ILibrary
+from ..library import ILibrary, TreeView
 from ..error import BuildError
 from ..ports import PortList, Port
 from ..abstract import Abstract
@@ -25,7 +25,7 @@ from .pather_mixin import PatherMixin
 logger = logging.getLogger(__name__)
 
 
-class RenderPather(PortList, PatherMixin):
+class RenderPather(PatherMixin):
     """
       `RenderPather` is an alternative to `Pather` which uses the `path`/`path_to`/`mpath`
     functions to plan out wire paths without incrementally generating the layout. Instead,
@@ -188,7 +188,7 @@ class RenderPather(PortList, PatherMixin):
 
     def plug(
             self,
-            other: Abstract | str,
+            other: Abstract | str | Pattern | TreeView,
             map_in: dict[str, str],
             map_out: dict[str, str | None] | None = None,
             *,
@@ -196,6 +196,7 @@ class RenderPather(PortList, PatherMixin):
             thru: bool | str = True,
             set_rotation: bool | None = None,
             append: bool = False,
+            ok_connections: Iterable[tuple[str, str]] = (),
             ) -> Self:
         """
           Wrapper for `Pattern.plug` which adds a `RenderStep` with opcode 'P'
@@ -229,6 +230,12 @@ class RenderPather(PortList, PatherMixin):
             append: If `True`, `other` is appended instead of being referenced.
                 Note that this does not flatten  `other`, so its refs will still
                 be refs (now inside `self`).
+            ok_connections: Set of "allowed" ptype combinations. Identical
+                ptypes are always allowed to connect, as is `'unk'` with
+                any other ptypte. Non-allowed ptype connections will emit a
+                warning. Order is ignored, i.e. `(a, b)` is equivalent to
+                `(b, a)`.
+
 
         Returns:
             self
