@@ -302,6 +302,9 @@ class SimpleTool(Tool, metaclass=ABCMeta):
     default_out_ptype: str
     """ Default value for out_ptype """
 
+    mirror_bend: bool = True
+    """ Whether a clockwise bend should be mirrored (vs rotated) to get a ccw bend """
+
     @dataclass(frozen=True, slots=True)
     class LData:
         """ Data for planL """
@@ -382,7 +385,9 @@ class SimpleTool(Tool, metaclass=ABCMeta):
                 pat.plug(straight_tree[top], pmap, append=True)
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
-            pat.plug(bend, {port_names[1]: bport_in}, mirrored=bool(data.ccw))
+            mirrored = self.mirror_bend and bool(data.ccw)
+            inport = bport_in if (self.mirror_bend or not data.ccw) else bport_out
+            pat.plug(bend, {port_names[1]: inport}, mirrored=mirrored)
         return tree
 
     def path(
@@ -463,7 +468,8 @@ class AutoTool(Tool, metaclass=ABCMeta):
         abstract: Abstract
         in_port_name: str
         out_port_name: str
-        clockwise: bool = True
+        clockwise: bool = True      # Is in-to-out clockwise?
+        mirror: bool = True         # Should we mirror to get the other rotation?
 
         @property
         def in_port(self) -> Port:
@@ -658,8 +664,11 @@ class AutoTool(Tool, metaclass=ABCMeta):
         if data.b_transition:
             pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
         if data.ccw is not None:
-            assert data.bend is not None
-            pat.plug(data.bend.abstract, {port_names[1]: data.bend.in_port_name}, mirrored=bool(data.ccw) == data.bend.clockwise)
+            bend = data.bend
+            assert bend is not None
+            mirrored = bend.mirror and (bool(data.ccw) == bend.clockwise)
+            inport = bend.in_port_name if (bend.mirror or bool(data.ccw) != bend.clockwise) else bend.out_port_name
+            pat.plug(bend.abstract, {port_names[1]: inport}, mirrored=mirrored)
         if data.out_transition:
             pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
         return tree
