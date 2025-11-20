@@ -133,7 +133,7 @@ tree = make_tree(...)
 
 # To reference this cell in our layout, we have to add all its children to our `library` first:
 top_name = tree.top()              # get the name of the topcell
-name_mapping = library.add(tree)   # add all patterns from `tree`, renaming elgible conflicting patterns
+name_mapping = library.add(tree)   # add all patterns from `tree`, renaming eligible conflicting patterns
 new_name = name_mapping.get(top_name, top_name)    # get the new name for the cell (in case it was auto-renamed)
 my_pattern.ref(new_name, ...)       # instantiate the cell
 
@@ -176,7 +176,7 @@ my_pattern.place(library << make_tree(...), ...)
 
 
 ### Quickly add geometry, labels, or refs:
-The long form for adding elements can be overly verbose:
+Adding elements can be overly verbose:
 ```python3
 my_pattern.shapes[layer].append(Polygon(vertices, ...))
 my_pattern.labels[layer] += [Label('my text')]
