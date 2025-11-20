@@ -264,6 +264,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             self,
             tops: str | Sequence[str],
             flatten_ports: bool = False,
+            dangling_ok: bool = False,
             ) -> dict[str, 'Pattern']:
         """
         Returns copies of all `tops` patterns with all refs
@@ -276,6 +277,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             tops: The pattern(s) to flattern.
             flatten_ports: If `True`, keep ports from any referenced
                 patterns; otherwise discard them.
+            dangling_ok: If `True`, no error will be thrown if any
+                ref points to a name which is not present in the library.
+                Default False.
 
         Returns:
             {name: flat_pattern} mapping for all flattened patterns.
@@ -292,6 +296,8 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
             for target in pat.refs:
                 if target is None:
                     continue
+                if dangling_ok and target not in self:
+                    continue
                 if target not in flattened:
                     flatten_single(target)
 
@@ -307,7 +313,9 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
                         p.ports.clear()
                     pat.append(p)
 
-            pat.refs.clear()
+            for target in set(pat.refs.keys()) & set(self.keys()):
+                del pat.refs[target]
+
             flattened[name] = pat
 
         for top in tops:

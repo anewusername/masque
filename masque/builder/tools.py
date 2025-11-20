@@ -378,7 +378,7 @@ class SimpleTool(Tool, metaclass=ABCMeta):
             else:
                 straight_tree = straight_pat_or_tree
                 top = straight_tree.top()
-                straight_tree.flatten(top)
+                straight_tree.flatten(top, dangling_ok=True)
                 pat.plug(straight_tree[top], pmap, append=True)
         if data.ccw is not None:
             bend, bport_in, bport_out = self.bend
@@ -653,7 +653,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
             else:
                 straight_tree = straight_pat_or_tree
                 top = straight_tree.top()
-                straight_tree.flatten(top)
+                straight_tree.flatten(top, dangling_ok=True)
                 pat.plug(straight_tree[top], pmap, append=True)
         if data.b_transition:
             pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
@@ -801,7 +801,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
             else:
                 straight_tree = straight_pat_or_tree
                 top = straight_tree.top()
-                straight_tree.flatten(top)
+                straight_tree.flatten(top, dangling_ok=True)
                 pat.plug(straight_tree[top], pmap, append=True)
         if data.b_transition:
             pat.plug(data.b_transition.abstract, {port_names[1]: data.b_transition.our_port_name})
@@ -813,7 +813,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
             else:
                 sbend_tree = sbend_pat_or_tree
                 top = sbend_tree.top()
-                sbend_tree.flatten(top)
+                sbend_tree.flatten(top, dangling_ok=True)
                 pat.plug(sbend_tree[top], pmap, append=True, mirrored=data.jog_remaining < 0)
         if data.out_transition:
             pat.plug(data.out_transition.abstract, {port_names[1]: data.out_transition.our_port_name})
