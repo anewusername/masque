@@ -1,4 +1,4 @@
-from typing import Self, TYPE_CHECKING
+from typing import Self
 from collections.abc import Sequence, Iterator, Iterable
 import logging
 from contextlib import contextmanager
