@@ -100,7 +100,6 @@ class Port(PositionableImpl, Rotatable, PivotableImpl, Copyable, Mirrorable):
         return self
 
     def mirror(self, axis: int = 0) -> Self:
-        self.offset[1 - axis] *= -1
         if self.rotation is not None:
             self.rotation *= -1
             self.rotation += axis * pi
