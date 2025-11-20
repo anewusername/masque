@@ -745,7 +745,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             self
         """
         for entry in chain(chain_elements(self.shapes, self.refs, self.labels), self.ports.values()):
-            cast('Positionable', entry).offset[across_axis - 1] *= -1
+            cast('Positionable', entry).offset[1 - across_axis] *= -1
         return self
 
     def mirror_elements(self, across_axis: int = 0) -> Self:
