@@ -768,6 +768,7 @@ class AutoTool(Tool, metaclass=ABCMeta):
                 l2_err: BuildError | None = err
             else:
                 l2_err = None
+            raise NotImplementedError('TODO need to handle ldata below')
 
         if not success:
             # Failed to break
