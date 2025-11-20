@@ -279,6 +279,7 @@ class RenderPather(PatherMixin):
             thru = thru,
             set_rotation = set_rotation,
             append = append,
+            ok_connections = ok_connections,
             )
 
         return self
