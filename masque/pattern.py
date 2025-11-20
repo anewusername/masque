@@ -1169,12 +1169,13 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
             ports[new_name] = port
 
         for name, port in ports.items():
-            p = port.deepcopy()
+            pp = port.deepcopy()
             if mirrored:
-                p.mirror()
-            p.rotate_around(pivot, rotation)
-            p.translate(offset)
-            self.ports[name] = p
+                pp.mirror()
+                pp.offset[1] *= -1
+            pp.rotate_around(pivot, rotation)
+            pp.translate(offset)
+            self.ports[name] = pp
 
         if append:
             if isinstance(other, Abstract):
