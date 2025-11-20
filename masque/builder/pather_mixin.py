@@ -537,6 +537,10 @@ class PortPather:
         self.pather[self.port].set_ptype(ptype)
         return self
 
+    def translate(self, *args, **kwargs) -> Self:
+        self.pather[self.port].translate(*args, **kwargs)
+        return self
+
     def mirror(self, *args, **kwargs) -> Self:
         self.pather[self.port].mirror(*args, **kwargs)
         return self
@@ -556,3 +560,13 @@ class PortPather:
     def rename_from(self, old_name: str) -> Self:
         self.pather.rename_ports({old_name: self.port})
         return self
+
+    def into_copy(self, new_name: str) -> Self:
+        self.pather.ports[new_name] = self.pather[self.port].copy()
+        self.port = new_name
+        return self
+
+    def save_copy(self, new_name: str) -> Self:
+        self.pather.ports[new_name] = self.pather[self.port].copy()
+        return self
+
