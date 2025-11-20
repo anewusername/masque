@@ -321,7 +321,7 @@ class PatherMixin(PortList, metaclass=ABCMeta):
             else:
                 # S-bend, delegate to implementations
                 (travel, jog), _ = port_src.measure_travel(port_dst)
-                self.pathS(portspec_src, -travel, jog, **dst_args)
+                self.pathS(portspec_src, -travel, -jog, **dst_args)
         elif numpy.isclose(angle, 0):
             raise BuildError('Don\'t know how to route a U-bend yet (TODO)!')
         else:

@@ -352,16 +352,17 @@ class Pather(Builder, PatherMixin):
         except NotImplementedError:
             # Fall back to drawing two L-bends
             ccw0 = jog > 0
-            kwargs_no_out = (kwargs | {'out_ptype': None})
+            kwargs_no_out = kwargs | {'out_ptype': None}
             t_tree0 = tool.path(    ccw0, length / 2, port_names=tool_port_names, in_ptype=in_ptype, **kwargs_no_out)
             t_pat0 = t_tree0.top_pattern()
             (_, jog0), _ = t_pat0[tool_port_names[0]].measure_travel(t_pat0[tool_port_names[1]])
-            t_tree1 = tool.path(not ccw0, jog - jog0, port_names=tool_port_names, in_ptype=t_pat0[tool_port_names[1]].ptype, **kwargs)
+            t_tree1 = tool.path(not ccw0, abs(jog - jog0), port_names=tool_port_names, in_ptype=t_pat0[tool_port_names[1]].ptype, **kwargs)
             t_pat1 = t_tree1.top_pattern()
             (_, jog1), _ = t_pat1[tool_port_names[0]].measure_travel(t_pat1[tool_port_names[1]])
 
-            self.path(portspec,     ccw0, length - jog1, **kwargs_no_out)
-            self.path(portspec, not ccw0, jog    - jog0, **kwargs)
+            kwargs_plug = kwargs | {'plug_into': plug_into}
+            self.path(portspec,     ccw0, length - abs(jog1), **kwargs_no_out)
+            self.path(portspec, not ccw0,    abs(jog - jog0), **kwargs_plug)
             return self
 
         tname = self.library << tree

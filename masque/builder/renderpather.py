@@ -488,12 +488,13 @@ class RenderPather(PatherMixin):
             ccw0 = jog > 0
             kwargs_no_out = (kwargs | {'out_ptype': None})
             t_port0, _ = tool.planL(    ccw0, length / 2, in_ptype=in_ptype, **kwargs_no_out)
-            (_, jog0), _ = Port((0, 0), 0).measure_travel(t_port0)
-            t_port1, _ = tool.planL(not ccw0, jog - jog0, in_ptype=t_port0.ptype, **kwargs)
-            (_, jog1), _ =  Port((0, 0), 0).measure_travel(t_port1)
+            jog0 = Port((0, 0), 0).measure_travel(t_port0)[0][1]
+            t_port1, _ = tool.planL(not ccw0, abs(jog - jog0), in_ptype=t_port0.ptype, **kwargs)
+            jog1 = Port((0, 0), 0).measure_travel(t_port1)[0][1]
 
-            self.path(portspec,     ccw0, length - jog1, **kwargs_no_out)
-            self.path(portspec, not ccw0, jog    - jog0, **kwargs)
+            kwargs_plug = kwargs | {'plug_into': plug_into}
+            self.path(portspec,     ccw0, length - abs(jog1), **kwargs_no_out)
+            self.path(portspec, not ccw0,    abs(jog - jog0), **kwargs_plug)
             return self
 
         out_port.rotate_around((0, 0), pi + port_rot)
