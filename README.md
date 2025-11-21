@@ -228,9 +228,11 @@ my_pattern.ref(_make_my_subpattern(), offset=..., ...)
 
 ## TODO
 
+* Rework naming/args for path-related (Builder, PortPather, path/pathL/pathS/pathU, path_to, mpath)
+* PolyCollection & arrow-based read/write
+* pather and renderpather examples, including .at() (PortPather)
+* Bus-to-bus connections?
+* Tests tests tests
 * Better interface for polygon operations (e.g. with `pyclipper`)
     - de-embedding
     - boolean ops
-* Tests tests tests
-* check renderpather
-* pather and renderpather examples
