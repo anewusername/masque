@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, overload
 from collections.abc import Sequence, Iterator, Iterable
 import logging
 from contextlib import contextmanager
@@ -458,62 +458,91 @@ class PatherMixin(PortList, metaclass=ABCMeta):
         self.pattern.flatten(self.library)
         return self
 
-    def at(self, portspec: str) -> 'PortPather':
+    def at(self, portspec: str | Iterable[str]) -> 'PortPather':
         return PortPather(portspec, self)
-
 
 
 class PortPather:
     """
-    Single-port state manager
+    Port state manager
 
       This class provides a convenient way to perform multiple pathing operations on a
-    port without needing to repeatedly pass its name.
+    set of ports without needing to repeatedly pass their names.
     """
-    port: str
+    ports: list[str]
     pather: PatherMixin
 
-    def __init__(self, port: str, pather: PatherMixin) -> None:
-        self.port = port
+    def __init__(self, ports: str | Iterable[str], pather: PatherMixin) -> None:
+        self.ports = [ports] if isinstance(ports, str) else list(ports)
         self.pather = pather
 
     #
     # Delegate to pather
     #
     def retool(self, tool: Tool) -> Self:
-        self.pather.retool(tool, keys=[self.port])
+        self.pather.retool(tool, keys=self.ports)
         return self
 
     @contextmanager
     def toolctx(self, tool: Tool) -> Iterator[Self]:
-        with self.pather.toolctx(tool, keys=[self.port]):
+        with self.pather.toolctx(tool, keys=self.ports):
             yield self
 
     def path(self, *args, **kwargs) -> Self:
-        self.pather.path(self.port, *args, **kwargs)
+        if len(self.ports) > 1:
+            logger.warning('Use path_each() when pathing multiple ports independently')
+        for port in self.ports:
+            self.pather.path(port, *args, **kwargs)
+        return self
+
+    def path_each(self, *args, **kwargs) -> Self:
+        for port in self.ports:
+            self.pather.path(port, *args, **kwargs)
         return self
 
     def pathS(self, *args, **kwargs) -> Self:
-        self.pather.pathS(self.port, *args, **kwargs)
+        if len(self.ports) > 1:
+            logger.warning('Use pathS_each() when pathing multiple ports independently')
+        for port in self.ports:
+            self.pather.pathS(port, *args, **kwargs)
+        return self
+
+    def pathS_each(self, *args, **kwargs) -> Self:
+        for port in self.ports:
+            self.pather.pathS(port, *args, **kwargs)
         return self
 
     def path_to(self, *args, **kwargs) -> Self:
-        self.pather.path_to(self.port, *args, **kwargs)
+        if len(self.ports) > 1:
+            logger.warning('Use path_each_to() when pathing multiple ports independently')
+        for port in self.ports:
+            self.pather.path_to(port, *args, **kwargs)
         return self
 
-    def path_into(self, *args, **kwargs) -> Self:
-        self.pather.path_into(self.port, *args, **kwargs)
-        return self
-
-    def path_from(self, *args, **kwargs) -> Self:
-        thru = kwargs.pop('thru', None)
-        self.pather.path_into(args[0], self.port, *args[1:], **kwargs)
-        if thru is not None:
-            self.rename_from(thru)
+    def path_each_to(self, *args, **kwargs) -> Self:
+        for port in self.ports:
+            self.pather.path_to(port, *args, **kwargs)
         return self
 
     def mpath(self, *args, **kwargs) -> Self:
-        self.pather.mpath([self.port], *args, **kwargs)
+        self.pather.mpath(self.ports, *args, **kwargs)
+        return self
+
+    def path_into(self, *args, **kwargs) -> Self:
+        """ Path_into, using the current port as the source """
+        if len(self.ports) > 1:
+            raise BuildError(f'Unable use implicit path_into() with {len(self.ports)} (>1) ports.')
+        self.pather.path_into(self.ports[0], *args, **kwargs)
+        return self
+
+    def path_from(self, *args, **kwargs) -> Self:
+        """ Path_into, using the current port as the destination """
+        if len(self.ports) > 1:
+            raise BuildError(f'Unable use implicit path_from() with {len(self.ports)} (>1) ports.')
+        thru = kwargs.pop('thru', None)
+        self.pather.path_into(args[0], self.ports[0], *args[1:], **kwargs)
+        if thru is not None:
+            self.rename_from(thru)
         return self
 
     def plug(
@@ -523,50 +552,126 @@ class PortPather:
             *args,
             **kwargs,
             ) -> Self:
-        self.pather.plug(other, {self.port: other_port}, *args, **kwargs)
+        if len(self.ports) > 1:
+            raise BuildError(f'Unable use implicit plug() with {len(self.ports)} ports.'
+                             'Use the pather or pattern directly to plug multiple ports.')
+        self.pather.plug(other, {self.ports[0]: other_port}, *args, **kwargs)
         return self
 
     def plugged(self, other_port: str) -> Self:
-        self.pather.plugged({self.port: other_port})
+        if len(self.ports) > 1:
+            raise BuildError(f'Unable use implicit plugged() with {len(self.ports)} (>1) ports.')
+        self.pather.plugged({self.ports[0]: other_port})
         return self
 
     #
     # Delegate to port
     #
     def set_ptype(self, ptype: str) -> Self:
-        self.pather[self.port].set_ptype(ptype)
+        for port in self.ports:
+            self.pather[port].set_ptype(ptype)
         return self
 
     def translate(self, *args, **kwargs) -> Self:
-        self.pather[self.port].translate(*args, **kwargs)
+        for port in self.ports:
+            self.pather[port].translate(*args, **kwargs)
         return self
 
     def mirror(self, *args, **kwargs) -> Self:
-        self.pather[self.port].mirror(*args, **kwargs)
+        for port in self.ports:
+            self.pather[port].mirror(*args, **kwargs)
         return self
 
     def rotate(self, rotation: float) -> Self:
-        self.pather[self.port].rotate(rotation)
+        for port in self.ports:
+            self.pather[port].rotate(rotation)
         return self
 
     def set_rotation(self, rotation: float | None) -> Self:
-        self.pather[self.port].set_rotation(rotation)
+        for port in self.ports:
+            self.pather[port].set_rotation(rotation)
         return self
 
     def rename_to(self, new_name: str) -> Self:
-        self.pather.rename_ports({self.port: new_name})
+        if len(self.ports) > 1:
+            BuildError('Use rename_ports() for >1 port')
+        self.pather.rename_ports({self.ports[0]: new_name})
+        self.ports[0] = new_name
         return self
 
     def rename_from(self, old_name: str) -> Self:
-        self.pather.rename_ports({old_name: self.port})
+        if len(self.ports) > 1:
+            BuildError('Use rename_ports() for >1 port')
+        self.pather.rename_ports({old_name: self.ports[0]})
         return self
 
-    def into_copy(self, new_name: str) -> Self:
-        self.pather.ports[new_name] = self.pather[self.port].copy()
-        self.port = new_name
+    def rename_ports(self, name_map: dict[str, str | None]) -> Self:
+        self.pather.rename_ports(name_map)
+        self.ports = [mm for mm in [name_map.get(pp, pp) for pp in self.ports] if mm is not None]
         return self
 
-    def save_copy(self, new_name: str) -> Self:
-        self.pather.ports[new_name] = self.pather[self.port].copy()
+    def add_ports(self, ports: Iterable[str]) -> Self:
+        ports = list(ports)
+        conflicts = set(ports) & set(self.ports)
+        if conflicts:
+            raise BuildError(f'ports {conflicts} already selected')
+        self.ports += ports
+        return self
+
+    def add_port(self, port: str, index: int | None = None) -> Self:
+        if port in self.ports:
+            raise BuildError(f'{port=} already selected')
+        if index is not None:
+            self.ports.insert(index, port)
+        else:
+            self.ports.append(port)
+        return self
+
+    def drop_port(self, port: str) -> Self:
+        if port not in self.ports:
+            raise BuildError(f'{port=} already not selected')
+        self.ports = [pp for pp in self.ports if pp != port]
+        return self
+
+    def into_copy(self, new_name: str, src: str | None = None) -> Self:
+        """ Copy a port and replace it with the copy """
+        if not self.ports:
+            raise BuildError('Have no ports to copy')
+        if len(self.ports) == 1:
+            src = self.ports[0]
+        elif src is None:
+            raise BuildError('Must specify src when >1 port is available')
+        if src not in self.ports:
+            raise BuildError(f'{src=} not available')
+        self.pather.ports[new_name] = self.pather[src].copy()
+        self.ports = [(new_name if pp == src else pp) for pp in self.ports]
+        return self
+
+    def save_copy(self, new_name: str, src: str | None = None) -> Self:
+        """ Copy a port and but keep using the original """
+        if not self.ports:
+            raise BuildError('Have no ports to copy')
+        if len(self.ports) == 1:
+            src = self.ports[0]
+        elif src is None:
+            raise BuildError('Must specify src when >1 port is available')
+        if src not in self.ports:
+            raise BuildError(f'{src=} not available')
+        self.pather.ports[new_name] = self.pather[src].copy()
+        return self
+
+    @overload
+    def delete(self, name: None) -> None: ...
+
+    @overload
+    def delete(self, name: str) -> Self: ...
+
+    def delete(self, name: str | None = None) -> Self | None:
+        if name is None:
+            for pp in self.ports:
+                del self.pather.ports[pp]
+            return None
+        del self.pather.ports[name]
+        self.ports = [pp for pp in self.ports if pp != name]
         return self
 
