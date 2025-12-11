@@ -376,5 +376,5 @@ def _mlayer2dxf(layer: layer_t) -> str:
     if isinstance(layer, int):
         return str(layer)
     if isinstance(layer, tuple):
-        return f'{layer[0]}.{layer[1]}'
+        return f'{layer[0]:d}.{layer[1]:d}'
     raise PatternError(f'Unknown layer type: {layer} ({type(layer)})')
