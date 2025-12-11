@@ -351,7 +351,7 @@ def _shapes_to_elements(
                     )
 
             for polygon in shape.to_polygons():
-                xy_open = polygon.vertices + polygon.offset
+                xy_open = polygon.vertices
                 xy_closed = numpy.vstack((xy_open, xy_open[0, :]))
                 block.add_lwpolyline(xy_closed, dxfattribs=attribs)
 
