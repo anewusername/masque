@@ -18,9 +18,9 @@ def remove_duplicate_vertices(vertices: ArrayLike, closed_path: bool = True) -> 
         `vertices` with no consecutive duplicates. This may be a view into the original array.
     """
     vertices = numpy.asarray(vertices)
-    duplicates = (vertices == numpy.roll(vertices, 1, axis=0)).all(axis=1)
+    duplicates = (vertices == numpy.roll(vertices, -1, axis=0)).all(axis=1)
     if not closed_path:
-        duplicates[0] = False
+        duplicates[-1] = False
     return vertices[~duplicates]
 
 
