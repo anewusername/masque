@@ -256,6 +256,11 @@ class Polygon(Shape):
         Returns:
             A Polygon object containing the requested rectangle
         """
+        if sum(int(pp is None) for pp in (xmin, xmax, xctr, lx)) != 2:
+            raise PatternError('Exactly two of xmin, xctr, xmax, lx must be provided!')
+        if sum(int(pp is None) for pp in (ymin, ymax, yctr, ly)) != 2:
+            raise PatternError('Exactly two of ymin, yctr, ymax, ly must be provided!')
+
         if lx is None:
             if xctr is None:
                 assert xmin is not None
