@@ -37,6 +37,55 @@ A layout consists of a hierarchy of `Pattern`s stored in a single `Library`.
 Each `Pattern` can contain `Ref`s pointing at other patterns, `Shape`s, `Label`s, and `Port`s.
 
 
+Library / Pattern hierarchy:
+```
+  +-----------------------------------------------------------------------+
+  |  Library                                                              |
+  |                                                                       |
+  |    Name: "MyChip"               ...>  Name: "Transistor"              |
+  |  +---------------------------+  :    +---------------------------+    |
+  |  | [Pattern]                 |  :    | [Pattern]                 |    |
+  |  |                           |  :    |                           |    |
+  |  | shapes: {...}             |  :    | shapes: {                 |    |
+  |  | ports:  {...}             |  :    |    "Si": [<Polygon>, ...] |    |
+  |  |                           |  :    |    "M1": [<Polygon>, ...]}|    |
+  |  | refs:                     |  :    | ports:  {G, S, D}         |    |
+  |  |   "Transistor": [Ref, Ref]|..:    +---------------------------+    |
+  |  +---------------------------+                                        |
+  |                                                                       |
+  |          #  (`refs` keys resolve to Patterns within the Library)      |
+  +-----------------------------------------------------------------------+
+```
+
+
+Pattern internals:
+```
+  +---------------------------------------------------------------+
+  |  [Pattern]                                                    |
+  |                                                               |
+  |  shapes: {                                                    |
+  |    (1, 0): [Polygon, Circle, ...],     # Geometry by layer    |
+  |    (2, 0): [Path, ...]                                        |
+  |    "M1"  : [Path, ...]                                        |
+  |    "M2"  : [Polygon, ...]                                     |
+  |  }                                                            |
+  |                                                               |
+  |  refs: {        # Key sets target name, Ref sets transform    |
+  |    "my_cell": [                                               |
+  |       Ref(offset=(0,0), rotation=0),                          |
+  |       Ref(offset=(10,0), rotation=R90, repetition=Grid(...))  |
+  |    ]                                                          |
+  |  }                                                            |
+  |                                                               |
+  |  ports: {                                                     |
+  |    "in":  Port(offset=(0,0), rotation=0, ptype="M1"),         |
+  |    "out": Port(offset=(10,0), rotation=R180, ptype="wg")      |
+  |  }                                                            |
+  |                                                               |
+  +---------------------------------------------------------------+
+```
+
+
 `masque` departs from several "classic" GDSII paradigms:
 - A `Pattern` object does not store its own name. A name is only assigned when the pattern is placed
     into a `Library`, which is effectively a name->`Pattern` mapping.
@@ -236,3 +285,4 @@ my_pattern.ref(_make_my_subpattern(), offset=..., ...)
 * Better interface for polygon operations (e.g. with `pyclipper`)
     - de-embedding
     - boolean ops
+* tuple / string layer auto-translation

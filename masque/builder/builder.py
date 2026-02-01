@@ -210,7 +210,8 @@ class Builder(PortList):
         self.pattern.rect(*args, **kwargs)
         return self
 
-    # Note: We're a superclass of `Pather`, where path() means something different...
+    # Note: We're a superclass of `Pather`, where path() means something different,
+    #  so we shouldn't wrap Pattern.path()
     #@wraps(Pattern.path)
     #def path(self, *args, **kwargs) -> Self:
     #    self.pattern.path(*args, **kwargs)

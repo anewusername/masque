@@ -487,7 +487,7 @@ class RenderPather(PatherMixin):
             # Fall back to drawing two L-bends
             ccw0 = jog > 0
             kwargs_no_out = (kwargs | {'out_ptype': None})
-            t_port0, _ = tool.planL(    ccw0, length / 2, in_ptype=in_ptype, **kwargs_no_out)
+            t_port0, _ = tool.planL(    ccw0, length / 2, in_ptype=in_ptype, **kwargs_no_out)       # TODO length/2 may fail with asymmetric ptypes
             jog0 = Port((0, 0), 0).measure_travel(t_port0)[0][1]
             t_port1, _ = tool.planL(not ccw0, abs(jog - jog0), in_ptype=t_port0.ptype, **kwargs)
             jog1 = Port((0, 0), 0).measure_travel(t_port1)[0][1]

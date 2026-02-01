@@ -1241,7 +1241,7 @@ class Pattern(PortList, AnnotatableImpl, Mirrorable):
           ports specified by `map_out`.
 
         Examples:
-        ======list, ===
+        =========
         - `my_pat.plug(subdevice, {'A': 'C', 'B': 'B'}, map_out={'D': 'myport'})`
             instantiates `subdevice` into `my_pat`, plugging ports 'A' and 'B'
             of `my_pat` into ports 'C' and 'B' of `subdevice`. The connected ports

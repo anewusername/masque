@@ -141,7 +141,6 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         Args:
             tops: Name(s) of the pattern(s) to check.
                 Default is all patterns in the library.
-            skip: Memo, set patterns which have already been traversed.
 
         Returns:
             Set of all referenced pattern names
@@ -274,7 +273,7 @@ class ILibraryView(Mapping[str, 'Pattern'], metaclass=ABCMeta):
         For an in-place variant, see `Pattern.flatten`.
 
         Args:
-            tops: The pattern(s) to flattern.
+            tops: The pattern(s) to flatten.
             flatten_ports: If `True`, keep ports from any referenced
                 patterns; otherwise discard them.
             dangling_ok: If `True`, no error will be thrown if any

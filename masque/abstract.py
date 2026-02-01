@@ -24,6 +24,7 @@ class Abstract(PortList):
     When snapping a sub-component to an existing pattern, only the name (not contained
     in a `Pattern` object) and port info is needed, and not the geometry itself.
     """
+    # Alternate design option: do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
     __slots__ = ('name', '_ports')
 
     name: str
@@ -47,8 +48,6 @@ class Abstract(PortList):
             ) -> None:
         self.name = name
         self.ports = copy.deepcopy(ports)
-
-    # TODO do we want to store a Ref instead of just a name? then we can translate/rotate/mirror...
 
     def __repr__(self) -> str:
         s = f'<Abstract {self.name} ['
@@ -88,7 +87,7 @@ class Abstract(PortList):
 
     def rotate_around(self, pivot: ArrayLike, rotation: float) -> Self:
         """
-        Rotate the Abstract around the a location.
+        Rotate the Abstract around a pivot point.
 
         Args:
             pivot: (x, y) location to rotate around
